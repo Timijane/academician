@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EDUMETA · Admin Dashboard</title>
+  <title>EDUMETA · Admin Control Panel</title>
   <style>
+    /* ========== GLOBAL STYLES ========== */
     * {
       margin: 0;
       padding: 0;
@@ -17,7 +18,7 @@
       color: #1e293b;
     }
 
-    /* Topbar */
+    /* ========== TOPBAR ========== */
     .topbar {
       background: #0b2b4f;
       color: white;
@@ -56,10 +57,6 @@
       font-weight: 500;
     }
 
-    .status-badge.inactive {
-      background: #ef4444;
-    }
-
     .admin-email {
       font-size: 0.9rem;
       opacity: 0.9;
@@ -75,13 +72,12 @@
       font-size: 0.9rem;
       transition: all 0.2s;
     }
-
     .btn-logout:hover {
       background: rgba(255,255,255,0.1);
       border-color: white;
     }
 
-    /* Layout */
+    /* ========== LAYOUT ========== */
     .app-container {
       display: flex;
       margin-top: 64px;
@@ -133,7 +129,7 @@
       padding: 32px;
     }
 
-    /* Cards & Stats */
+    /* ========== CARDS & STATS ========== */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -163,7 +159,7 @@
       color: #0b2b4f;
     }
 
-    /* Tables */
+    /* ========== TABLES ========== */
     .data-table {
       width: 100%;
       background: white;
@@ -223,6 +219,7 @@
 
     .hidden { display: none; }
   </style>
+
   <!-- Firebase SDK (modular) -->
   <script type="importmap">
     {
@@ -235,9 +232,9 @@
   </script>
 </head>
 <body>
+  <!-- Top Navigation Bar -->
   <header class="topbar">
     <div class="logo">
-      <!-- Use your own logo if available -->
       <img src="https://via.placeholder.com/40x40/0b2b4f/ffffff?text=EDU" alt="EDUMETA" height="40">
       <span>EDUMETA CONTROL PANEL</span>
     </div>
@@ -248,9 +245,10 @@
     </div>
   </header>
 
+  <!-- Main Layout: Sidebar + Content -->
   <div class="app-container">
     <aside class="sidebar" id="sidebar">
-      <!-- Sidebar will be populated by JavaScript based on role -->
+      <!-- Sidebar dynamically populated -->
     </aside>
 
     <main class="main-content" id="mainContent">
@@ -261,12 +259,25 @@
   </div>
 
   <script type="module">
-    // ==================== FIREBASE INIT ====================
+    // ==================== FIREBASE INITIALIZATION ====================
     import { initializeApp } from 'firebase/app';
     import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
-    import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+    import { 
+      getFirestore, 
+      collection, 
+      query, 
+      where, 
+      onSnapshot, 
+      doc, 
+      getDoc, 
+      getDocs, 
+      setDoc, 
+      deleteDoc, 
+      updateDoc,
+      serverTimestamp 
+    } from 'firebase/firestore';
 
-    // Your Firebase config (copy from login page)
+    // Your Firebase configuration (copy from your login page)
     const firebaseConfig = {
       apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
       authDomain: "edumeta-c5588.firebaseapp.com",
@@ -281,19 +292,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // DOM elements
-    const systemStatus = document.getElementById('systemStatus');
-    const adminEmailSpan = document.getElementById('adminEmail');
+    // ==================== DOM ELEMENTS ====================
+    const systemStatusEl = document.getElementById('systemStatus');
+    const adminEmailEl = document.getElementById('adminEmail');
     const logoutBtn = document.getElementById('logoutBtn');
     const sidebarEl = document.getElementById('sidebar');
     const pageContent = document.getElementById('pageContent');
 
-    // Global user state
+    // ==================== GLOBAL STATE ====================
     let currentUser = null;
     let currentUserRole = null;
     let currentUserEmail = null;
     let currentUserId = null;
-    let isMasterAdmin = false;
+    let isMasterAdmin = false; // based on fixed email
 
     // ==================== AUTH STATE & APPROVAL CHECK ====================
     onAuthStateChanged(auth, async (user) => {
@@ -303,42 +314,50 @@
         return;
       }
 
-      // Check if user exists in approved_users
-      const approvedRef = doc(db, 'approved_users', user.uid);
-      const approvedSnap = await getDoc(approvedRef);
+      try {
+        // Check if user exists in approved_users
+        const approvedRef = doc(db, 'approved_users', user.uid);
+        const approvedSnap = await getDoc(approvedRef);
 
-      if (!approvedSnap.exists()) {
-        // User is authenticated but not approved → show pending message (or redirect)
-        pageContent.innerHTML = '<h2>Account Pending Approval</h2><p>Your account is still waiting for admin approval. Please check back later.</p>';
-        // Hide sidebar because no access
-        sidebarEl.innerHTML = '';
-        adminEmailSpan.textContent = user.email;
-        return;
+        if (!approvedSnap.exists()) {
+          // Authenticated but not approved → show pending message
+          pageContent.innerHTML = `
+            <h2>Account Pending Approval</h2>
+            <p>Your account is awaiting admin approval. Please check back later.</p>
+          `;
+          sidebarEl.innerHTML = ''; // Hide sidebar
+          adminEmailEl.textContent = user.email;
+          return;
+        }
+
+        // User is approved – set global state
+        const userData = approvedSnap.data();
+        currentUser = user;
+        currentUserRole = userData.role;      // 'master-admin' or 'co-admin'
+        currentUserEmail = userData.email;
+        currentUserId = user.uid;
+        isMasterAdmin = (currentUserEmail === 'okewunmitimileyin23@gmail.com');
+
+        adminEmailEl.textContent = currentUserEmail;
+
+        // Build the sidebar according to role
+        buildSidebar(currentUserRole);
+
+        // Load the default page (overview)
+        loadPage('overview');
+      } catch (error) {
+        console.error('Auth state error:', error);
+        pageContent.innerHTML = `<h2>Error loading dashboard</h2><p>${error.message}</p>`;
       }
-
-      const userData = approvedSnap.data();
-      currentUser = user;
-      currentUserRole = userData.role;      // 'master-admin' or 'co-admin'
-      currentUserEmail = userData.email;
-      currentUserId = user.uid;
-      isMasterAdmin = (currentUserEmail === 'okewunmitimileyin23@gmail.com'); // master admin email
-
-      adminEmailSpan.textContent = currentUserEmail;
-
-      // Build sidebar based on role
-      buildSidebar(currentUserRole);
-
-      // Load default page (overview)
-      loadPage('overview');
     });
 
     // ==================== SIDEBAR CONSTRUCTION ====================
     function buildSidebar(role) {
-      // Define all possible menu items with allowed roles
+      // Define all menu items with allowed roles
       const menuItems = [
         { id: 'overview', label: 'Dashboard Overview', icon: '📊', roles: ['master-admin', 'co-admin'] },
         { id: 'users', label: 'User Management', icon: '👥', roles: ['master-admin', 'co-admin'] },
-        { id: 'coadmins', label: 'Board of Directors', icon: '🏛️', roles: ['master-admin'] }, // only master
+        { id: 'coadmins', label: 'Board of Directors', icon: '🏛️', roles: ['master-admin'] },
         { id: 'teachers', label: 'Teachers', icon: '👨‍🏫', roles: ['master-admin', 'co-admin'] },
         { id: 'students', label: 'Students', icon: '🧑‍🎓', roles: ['master-admin', 'co-admin'] },
         { id: 'attendance', label: 'Attendance', icon: '📆', roles: ['master-admin', 'co-admin'] },
@@ -349,6 +368,7 @@
         { id: 'settings', label: 'System Settings', icon: '⚙️', roles: ['master-admin'] }
       ];
 
+      // Filter items based on user role
       const filtered = menuItems.filter(item => item.roles.includes(role));
 
       let html = '<ul>';
@@ -359,7 +379,7 @@
 
       sidebarEl.innerHTML = html;
 
-      // Attach click listeners
+      // Attach click listeners to menu items
       document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
           document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -382,32 +402,37 @@
           renderCoAdmins();
           break;
         case 'teachers':
-          renderTeachers();
+          renderPlaceholder('Teachers');
           break;
         case 'students':
-          renderStudents();
+          renderPlaceholder('Students');
           break;
         case 'attendance':
-          renderAttendance();
+          renderPlaceholder('Attendance');
           break;
         case 'lessons':
-          renderLessons();
+          renderPlaceholder('Lesson Notes');
           break;
         case 'ai':
-          renderAILogs();
+          renderPlaceholder('AI Monitoring');
           break;
         case 'payments':
-          renderPayments();
+          renderPlaceholder('Payments');
           break;
         case 'reports':
-          renderReports();
+          renderPlaceholder('Reports');
           break;
         case 'settings':
-          renderSettings();
+          renderPlaceholder('System Settings');
           break;
         default:
           pageContent.innerHTML = '<h2>Page not found</h2>';
       }
+    }
+
+    // Helper for placeholder pages (modules under construction)
+    function renderPlaceholder(moduleName) {
+      pageContent.innerHTML = `<h2>${moduleName}</h2><p>Module under construction. Check back soon.</p>`;
     }
 
     // ==================== OVERVIEW DASHBOARD ====================
@@ -418,7 +443,9 @@
         <div style="margin-top: 32px;">
           <h3>Pending Approvals</h3>
           <table class="data-table" id="pendingTable">
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Date</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr><th>Name</th><th>Email/Phone</th><th>Role</th><th>Requested</th><th>Actions</th></tr>
+            </thead>
             <tbody id="pendingBody"></tbody>
           </table>
         </div>
@@ -428,22 +455,28 @@
       loadPendingApprovals();
     }
 
+    // Load statistics cards (counts from Firestore)
     async function loadStats() {
       const statsGrid = document.getElementById('statsGrid');
-      // Fetch counts from Firestore
-      const approvedUsersSnap = await getDocs(collection(db, 'approved_users'));
-      const pendingSnap = await getDocs(collection(db, 'pending_users'));
-      const today = new Date().toISOString().split('T')[0];
-      const attendanceTodaySnap = await getDocs(query(collection(db, 'attendance'), where('date', '==', today)));
+      try {
+        const [approvedSnap, pendingSnap, attendanceTodaySnap] = await Promise.all([
+          getDocs(collection(db, 'approved_users')),
+          getDocs(collection(db, 'pending_users')),
+          getDocs(query(collection(db, 'attendance'), where('date', '==', new Date().toISOString().split('T')[0])))
+        ]);
 
-      statsGrid.innerHTML = `
-        <div class="stat-card"><h3>Total Users</h3><div class="value">${approvedUsersSnap.size}</div></div>
-        <div class="stat-card"><h3>Pending Approvals</h3><div class="value">${pendingSnap.size}</div></div>
-        <div class="stat-card"><h3>Attendance Today</h3><div class="value">${attendanceTodaySnap.size}</div></div>
-        <div class="stat-card"><h3>System Status</h3><div class="value">🟢 Active</div></div>
-      `;
+        statsGrid.innerHTML = `
+          <div class="stat-card"><h3>Total Users</h3><div class="value">${approvedSnap.size}</div></div>
+          <div class="stat-card"><h3>Pending Approvals</h3><div class="value">${pendingSnap.size}</div></div>
+          <div class="stat-card"><h3>Attendance Today</h3><div class="value">${attendanceTodaySnap.size}</div></div>
+          <div class="stat-card"><h3>System Status</h3><div class="value">🟢 Active</div></div>
+        `;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
     }
 
+    // Real‑time pending approvals list
     function loadPendingApprovals() {
       const tbody = document.getElementById('pendingBody');
       if (!tbody) return;
@@ -455,14 +488,17 @@
           tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No pending requests</td></tr>';
           return;
         }
+
         let html = '';
         snapshot.forEach(doc => {
           const data = doc.data();
-          const date = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
+          const date = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : 'N/A';
+          const displayName = data.firstName || data.name || '';
+          const displayContact = data.email || data.phone || 'N/A';
           html += `
             <tr data-id="${doc.id}">
-              <td>${data.firstName || data.name || 'N/A'} ${data.lastName || ''}</td>
-              <td>${data.email || data.phone || 'N/A'}</td>
+              <td>${displayName} ${data.lastName || ''}</td>
+              <td>${displayContact}</td>
               <td>${data.role || 'student'}</td>
               <td>${date}</td>
               <td>
@@ -476,63 +512,14 @@
       });
     }
 
-    // Approve / Reject functions (expose to window for onclick)
-    window.approveUser = async (pendingId) => {
-      try {
-        const pendingRef = doc(db, 'pending_users', pendingId);
-        const pendingSnap = await getDoc(pendingRef);
-        if (!pendingSnap.exists()) return;
-
-        const data = pendingSnap.data();
-        // Add to approved_users
-        await setDoc(doc(db, 'approved_users', pendingId), {
-          ...data,
-          approvedBy: currentUserId,
-          approvedAt: new Date(),
-          status: 'active'
-        });
-        // Delete from pending
-        await deleteDoc(pendingRef);
-        // Optionally log to activity_logs
-        await setDoc(doc(collection(db, 'activity_logs')), {
-          actorId: currentUserId,
-          actorRole: currentUserRole,
-          action: 'approve_user',
-          targetId: pendingId,
-          timestamp: new Date(),
-          details: `Approved user ${data.email}`
-        });
-      } catch (error) {
-        alert('Error approving user: ' + error.message);
-      }
-    };
-
-    window.rejectUser = async (pendingId) => {
-      try {
-        const pendingRef = doc(db, 'pending_users', pendingId);
-        const pendingSnap = await getDoc(pendingRef);
-        if (!pendingSnap.exists()) return;
-        const data = pendingSnap.data();
-        await deleteDoc(pendingRef);
-        await setDoc(doc(collection(db, 'activity_logs')), {
-          actorId: currentUserId,
-          actorRole: currentUserRole,
-          action: 'reject_user',
-          targetId: pendingId,
-          timestamp: new Date(),
-          details: `Rejected user ${data.email}`
-        });
-      } catch (error) {
-        alert('Error rejecting user: ' + error.message);
-      }
-    };
-
     // ==================== USER MANAGEMENT ====================
     function renderUserManagement() {
       pageContent.innerHTML = `
         <h2>User Management</h2>
         <table class="data-table">
-          <thead><tr><th>UID</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr><th>UID</th><th>Email/Phone</th><th>Role</th><th>Actions</th></tr>
+          </thead>
           <tbody id="usersBody"></tbody>
         </table>
       `;
@@ -558,14 +545,31 @@
       });
     }
 
+    // Edit user (simple prompt for demo – you can replace with a modal)
     window.editUser = (userId) => {
-      // Implement edit functionality (e.g., open modal to change role)
-      alert('Edit user ' + userId + ' - implement as needed');
+      const newRole = prompt('Enter new role (master-admin / co-admin / teacher / student / parent):');
+      if (newRole) {
+        updateDoc(doc(db, 'approved_users', userId), { role: newRole })
+          .then(() => {
+            alert('Role updated');
+            // Log activity
+            setDoc(doc(collection(db, 'activity_logs')), {
+              actorId: currentUserId,
+              actorRole: currentUserRole,
+              action: 'edit_user',
+              targetId: userId,
+              newRole,
+              timestamp: serverTimestamp()
+            });
+          })
+          .catch(err => alert('Error: ' + err.message));
+      }
     };
 
+    // Delete user (master‑admin only)
     window.deleteUser = async (userId) => {
       if (!isMasterAdmin) return;
-      if (!confirm('Are you sure you want to delete this user?')) return;
+      if (!confirm('Permanently delete this user? This action cannot be undone.')) return;
       try {
         await deleteDoc(doc(db, 'approved_users', userId));
         await setDoc(doc(collection(db, 'activity_logs')), {
@@ -573,19 +577,71 @@
           actorRole: currentUserRole,
           action: 'delete_user',
           targetId: userId,
-          timestamp: new Date()
+          timestamp: serverTimestamp()
         });
       } catch (error) {
         alert('Error deleting user: ' + error.message);
       }
     };
 
-    // ==================== CO-ADMIN MANAGEMENT (only master) ====================
+    // ==================== APPROVE / REJECT (exposed to window) ====================
+    window.approveUser = async (pendingId) => {
+      try {
+        const pendingRef = doc(db, 'pending_users', pendingId);
+        const pendingSnap = await getDoc(pendingRef);
+        if (!pendingSnap.exists()) return;
+
+        const data = pendingSnap.data();
+        // Add to approved_users
+        await setDoc(doc(db, 'approved_users', pendingId), {
+          ...data,
+          approvedBy: currentUserId,
+          approvedAt: serverTimestamp(),
+          status: 'active'
+        });
+        // Remove from pending
+        await deleteDoc(pendingRef);
+        // Log activity
+        await setDoc(doc(collection(db, 'activity_logs')), {
+          actorId: currentUserId,
+          actorRole: currentUserRole,
+          action: 'approve_user',
+          targetId: pendingId,
+          timestamp: serverTimestamp(),
+          details: `Approved user ${data.email || data.phone}`
+        });
+      } catch (error) {
+        alert('Error approving user: ' + error.message);
+      }
+    };
+
+    window.rejectUser = async (pendingId) => {
+      try {
+        const pendingRef = doc(db, 'pending_users', pendingId);
+        const pendingSnap = await getDoc(pendingRef);
+        if (!pendingSnap.exists()) return;
+        const data = pendingSnap.data();
+        await deleteDoc(pendingRef);
+        await setDoc(doc(collection(db, 'activity_logs')), {
+          actorId: currentUserId,
+          actorRole: currentUserRole,
+          action: 'reject_user',
+          targetId: pendingId,
+          timestamp: serverTimestamp(),
+          details: `Rejected user ${data.email || data.phone}`
+        });
+      } catch (error) {
+        alert('Error rejecting user: ' + error.message);
+      }
+    };
+
+    // ==================== CO-ADMIN MANAGEMENT (master‑admin only) ====================
     function renderCoAdmins() {
       if (!isMasterAdmin) {
         pageContent.innerHTML = '<h2>Access Denied</h2><p>Only master‑admin can manage co‑admins.</p>';
         return;
       }
+
       pageContent.innerHTML = `
         <h2>Board of Directors (Co‑Admins)</h2>
         <table class="data-table">
@@ -613,35 +669,27 @@
 
     window.removeCoAdmin = async (userId) => {
       if (!isMasterAdmin) return;
-      if (!confirm('Remove co‑admin privileges?')) return;
+      if (!confirm('Remove co‑admin privileges? (User will become a regular teacher)')) return;
       try {
-        await updateDoc(doc(db, 'approved_users', userId), { role: 'teacher' }); // or whatever default
+        await updateDoc(doc(db, 'approved_users', userId), { role: 'teacher' });
         await setDoc(doc(collection(db, 'activity_logs')), {
           actorId: currentUserId,
           actorRole: currentUserRole,
           action: 'demote_coadmin',
           targetId: userId,
-          timestamp: new Date()
+          timestamp: serverTimestamp()
         });
       } catch (error) {
         alert('Error: ' + error.message);
       }
     };
 
-    // ==================== PLACEHOLDERS FOR OTHER MODULES ====================
-    function renderTeachers() { pageContent.innerHTML = '<h2>Teachers</h2><p>Module under construction.</p>'; }
-    function renderStudents() { pageContent.innerHTML = '<h2>Students</h2><p>Module under construction.</p>'; }
-    function renderAttendance() { pageContent.innerHTML = '<h2>Attendance</h2><p>Module under construction.</p>'; }
-    function renderLessons() { pageContent.innerHTML = '<h2>Lesson Notes</h2><p>Module under construction.</p>'; }
-    function renderAILogs() { pageContent.innerHTML = '<h2>AI Monitoring</h2><p>Module under construction.</p>'; }
-    function renderPayments() { pageContent.innerHTML = '<h2>Payments</h2><p>Module under construction.</p>'; }
-    function renderReports() { pageContent.innerHTML = '<h2>Reports</h2><p>Module under construction.</p>'; }
-    function renderSettings() { pageContent.innerHTML = '<h2>System Settings</h2><p>Module under construction.</p>'; }
-
     // ==================== LOGOUT ====================
     logoutBtn.addEventListener('click', async () => {
       await signOut(auth);
+      // Redirect handled by onAuthStateChanged
     });
+
   </script>
 </body>
 </html>
