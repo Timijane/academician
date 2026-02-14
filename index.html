@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDUMETA · Unified Auth</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      background: linear-gradient(145deg, #f6f9fc 0%, #e6f0f5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 2.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      width: 100%;
+      max-width: 480px;
+      padding: 2.5rem 2rem;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .logo img {
+      max-width: 180px;
+      height: auto;
+    }
+    h2 {
+      color: #1e293b;
+      font-weight: 600;
+      font-size: 1.8rem;
+      margin-bottom: 0.3rem;
+    }
+    .sub {
+      color: #475569;
+      margin-bottom: 2rem;
+    }
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 2rem 0 1rem;
+    }
+    .role-btn {
+      background: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 2rem;
+      padding: 1rem 0.5rem;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #1e293b;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+    .role-btn:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      transform: scale(1.02);
+    }
+    .auth-screen { display: none; }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #3b82f6;
+      cursor: pointer;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      border: none;
+      background: none;
+      padding: 0.3rem 0;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .form-group { margin-bottom: 1.2rem; position: relative; }
+    input {
+      width: 100%;
+      padding: 1rem 1.2rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 3rem;
+      font-size: 1rem;
+      background: white;
+      transition: 0.15s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .hidden { display: none; }
+    .password-container {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .password-container input { flex: 1; padding-right: 4rem; }
+    .password-container button {
+      position: absolute;
+      right: 0.8rem;
+      background: none;
+      border: none;
+      color: #3b82f6;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 2rem;
+    }
+    .password-container button:hover { background: #eef2ff; }
+    #forgot-password {
+      display: block;
+      text-align: right;
+      margin: 0.2rem 0 1.5rem;
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    #auth-button {
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 3rem;
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-bottom: 1.5rem;
+    }
+    #auth-button:hover { background: #2563eb; }
+    .social-login {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin: 1.5rem 0 1.2rem;
+    }
+    .social-login button {
+      background: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 3rem;
+      padding: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .social-login button:hover { background: #f8fafc; }
+    #recaptcha-container { margin: 1rem 0; }
+    #switch-auth {
+      text-align: center;
+      color: #475569;
+    }
+    #switch-auth a {
+      color: #3b82f6;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    hr { border: 1px solid #e2e8f0; margin: 1.5rem 0; }
+    .message {
+      background: #f0fdf4;
+      color: #166534;
+      border-radius: 3rem;
+      padding: 0.8rem 1.5rem;
+      text-align: center;
+      margin: 1rem 0;
+      border: 1px solid #86efac;
+    }
+  </style>
+  <!-- Firebase SDK (modular) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+      }
+    }
+  </script>
+</head>
+<body>
+<div class="card" id="app">
+  <!-- Logo (same for both screens) -->
+  <div class="logo">
+    <img src="https://via.placeholder.com/180x60?text=EDUMETA" alt="EDUMETA">
+  </div>
+
+  <!-- ROLE SELECTION SCREEN -->
+  <div id="role-screen">
+    <h2>Welcome to EDUMETA</h2>
+    <div class="sub">Select your role to continue</div>
+    <div class="role-grid">
+      <button class="role-btn" data-role="admin">👑 Admin</button>
+      <button class="role-btn" data-role="co-admin">🛡️ Co‑Admin</button>
+      <button class="role-btn" data-role="student">🎓 Student</button>
+      <button class="role-btn" data-role="parent">👪 Parent</button>
+    </div>
+  </div>
+
+  <!-- AUTH SCREEN (hidden by default) -->
+  <div id="auth-screen" class="auth-screen">
+    <button class="back-link" id="back-to-roles">← Back to roles</button>
+    <h2 id="auth-title">Login</h2>
+    <div class="sub" id="auth-description">Login to access your dashboard</div>
+
+    <!-- DYNAMIC AUTH FORM -->
+    <form id="auth-form">
+      <!-- Full name (only shown in signup) -->
+      <div class="form-group hidden" id="name-group">
+        <input type="text" id="name" placeholder="Full Name" autocomplete="name">
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <input type="email" id="email" placeholder="Email Address" required autocomplete="email">
+      </div>
+
+      <!-- Phone (optional, used only for phone sign-in) -->
+      <div class="form-group hidden" id="phone-group">
+        <input type="tel" id="phone" placeholder="Phone Number (with country code)" autocomplete="tel">
+      </div>
+
+      <!-- Password field -->
+      <div class="form-group password-container">
+        <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+        <button type="button" class="toggle-pw" data-target="password">Show</button>
+      </div>
+
+      <!-- Confirm password (signup only) -->
+      <div class="form-group password-container hidden" id="confirm-group">
+        <input type="password" id="confirm-password" placeholder="Confirm Password" autocomplete="new-password">
+        <button type="button" class="toggle-pw" data-target="confirm-password">Show</button>
+      </div>
+
+      <!-- Forgot password (login only) -->
+      <a href="#" id="forgot-password" class="hidden">Forgot Password?</a>
+
+      <!-- Submit button -->
+      <button type="submit" id="auth-button">Login</button>
+    </form>
+
+    <!-- reCAPTCHA for phone auth -->
+    <div id="recaptcha-container"></div>
+
+    <!-- Social login buttons -->
+    <div class="social-login">
+      <button id="google-login">🔵 Sign in with Google</button>
+      <button id="apple-login">🍏 Sign in with Apple</button>
+      <button id="phone-login">📱 Sign in with Phone</button>
+    </div>
+
+    <!-- Toggle between login / signup -->
+    <p id="switch-auth">Don't have an account? <a href="#" id="toggle-auth">Sign Up</a></p>
+  </div>
+
+  <!-- optional message area -->
+  <div id="message-area"></div>
+</div>
+
+<script type="module">
+  // ==================== FIREBASE INIT ====================
+  import { initializeApp } from 'firebase/app';
+  import { getAnalytics } from 'firebase/analytics';
+  import {
+    getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    sendPasswordResetEmail, RecaptchaVerifier, signInWithPhoneNumber
+  } from 'firebase/auth';
+  import {
+    getFirestore, doc, setDoc, getDoc, collection, addDoc
+  } from 'firebase/firestore';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+    authDomain: "edumeta-c5588.firebaseapp.com",
+    projectId: "edumeta-c5588",
+    storageBucket: "edumeta-c5588.firebasestorage.app",
+    messagingSenderId: "332853259697",
+    appId: "1:332853259697:web:92e0c07e43d1c3bf432190",
+    measurementId: "G-WY24HER46Q"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const googleProvider = new GoogleAuthProvider();
+  const appleProvider = new OAuthProvider('apple.com');
+
+  // ==================== APP STATE ====================
+  let selectedRole = localStorage.getItem('selectedRole') || null;
+  let isLoginMode = true;  // true = login, false = signup
+
+  // DOM elements
+  const roleScreen = document.getElementById('role-screen');
+  const authScreen = document.getElementById('auth-screen');
+  const authTitle = document.getElementById('auth-title');
+  const authDesc = document.getElementById('auth-description');
+  const authForm = document.getElementById('auth-form');
+  const authButton = document.getElementById('auth-button');
+  const switchAuthLink = document.getElementById('toggle-auth');
+  const switchText = document.getElementById('switch-auth');
+  const forgotLink = document.getElementById('forgot-password');
+  const nameGroup = document.getElementById('name-group');
+  const phoneGroup = document.getElementById('phone-group');
+  const confirmGroup = document.getElementById('confirm-group');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const nameInput = document.getElementById('name');
+  const phoneInput = document.getElementById('phone');
+  const confirmInput = document.getElementById('confirm-password');
+  const messageDiv = document.getElementById('message-area');
+
+  // reCAPTCHA
+  window.recaptchaVerifier = null;
+
+  // ==================== UI HELPERS ====================
+  function showMessage(msg, isError = false) {
+    messageDiv.innerHTML = `<div class="message" style="background:${isError?'#fee2e2':'#f0fdf4'}; color:${isError?'#991b1b':'#166534'};">${msg}</div>`;
+    setTimeout(() => messageDiv.innerHTML = '', 5000);
+  }
+
+  function togglePasswordVisibility(btn, targetId) {
+    const pwField = document.getElementById(targetId);
+    if (pwField.type === 'password') {
+      pwField.type = 'text';
+      btn.textContent = 'Hide';
+    } else {
+      pwField.type = 'password';
+      btn.textContent = 'Show';
+    }
+  }
+
+  // attach toggle events
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const target = e.target.dataset.target;
+      togglePasswordVisibility(e.target, target);
+    });
+  });
+
+  // Switch between login and signup UI
+  function setAuthMode(mode) {
+    isLoginMode = mode; // true = login
+    if (isLoginMode) {
+      authTitle.textContent = 'Login';
+      authDesc.textContent = 'Login to access your dashboard';
+      authButton.textContent = 'Login';
+      nameGroup.classList.add('hidden');
+      confirmGroup.classList.add('hidden');
+      forgotLink.classList.remove('hidden');
+      switchText.innerHTML = `Don't have an account? <a href="#" id="toggle-auth">Sign Up</a>`;
+    } else {
+      authTitle.textContent = 'Sign Up';
+      authDesc.textContent = 'Create a new account';
+      authButton.textContent = 'Sign Up';
+      nameGroup.classList.remove('hidden');
+      confirmGroup.classList.add('hidden'); // confirm shows only after validation? we'll show it
+      confirmGroup.classList.remove('hidden'); // actually we want it visible
+      forgotLink.classList.add('hidden');
+      switchText.innerHTML = `Already have an account? <a href="#" id="toggle-auth">Login</a>`;
+    }
+    // re-attach listener for the new switch link
+    document.getElementById('toggle-auth').addEventListener('click', (e) => {
+      e.preventDefault();
+      setAuthMode(!isLoginMode);
+    });
+  }
+
+  // Show auth screen for a given role
+  function selectRole(role) {
+    selectedRole = role;
+    localStorage.setItem('selectedRole', role);
+    roleScreen.style.display = 'none';
+    authScreen.style.display = 'block';
+    setAuthMode(true); // default to login
+    // Hide phone field initially (appears only when phone login clicked)
+    phoneGroup.classList.add('hidden');
+    // reset recaptcha if any
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+  }
+
+  // Back to role selection
+  document.getElementById('back-to-roles').addEventListener('click', () => {
+    roleScreen.style.display = 'block';
+    authScreen.style.display = 'none';
+    selectedRole = null;
+    localStorage.removeItem('selectedRole');
+  });
+
+  // Role button listeners
+  document.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectRole(btn.dataset.role));
+  });
+
+  // Check URL param for direct role link (e.g., ?role=admin)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlRole = urlParams.get('role');
+  if (urlRole) {
+    selectRole(urlRole);
+  }
+
+  // ==================== FIREBASE AUTH FUNCTIONS ====================
+  // --- Email signup ---
+  async function registerUser(email, password, fullName) {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    await setDoc(doc(db, "pending_users", user.uid), {
+      uid: user.uid,
+      email,
+      fullName,
+      role: selectedRole,
+      status: "pending",
+      createdAt: new Date()
+    });
+
+    showMessage("Registration submitted. Await admin approval.");
+    // Optionally reset form or redirect
+  }
+
+  // --- Email login ---
+  async function loginUser(email, password) {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    const approvedRef = doc(db, "approved_users", user.uid);
+    const approvedSnap = await getDoc(approvedRef);
+
+    if (!approvedSnap.exists()) {
+      showMessage("You are not approved yet.", true);
+      return;
+    }
+
+    const userData = approvedSnap.data();
+    if (userData.role !== selectedRole) {
+      showMessage("Wrong login role selected.", true);
+      return;
+    }
+
+    // Redirect to dashboard (or you could load dashboard in-page)
+    window.location.href = "/dashboard.html";
+  }
+
+  // --- Google login ---
+  async function loginWithGoogle() {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    await setDoc(doc(db, "pending_users", user.uid), {
+      uid: user.uid,
+      email: user.email,
+      role: selectedRole,
+      status: "pending",
+      createdAt: new Date()
+    }, { merge: true });
+
+    showMessage("Google account submitted for approval.");
+  }
+
+  // --- Apple login ---
+  async function loginWithApple() {
+    const result = await signInWithPopup(auth, appleProvider);
+    const user = result.user;
+
+    await setDoc(doc(db, "pending_users", user.uid), {
+      uid: user.uid,
+      email: user.email,
+      role: selectedRole,
+      status: "pending",
+      createdAt: new Date()
+    }, { merge: true });
+
+    showMessage("Apple account submitted for approval.");
+  }
+
+  // --- Phone login ---
+  async function loginWithPhone(phoneNumber) {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'normal' });
+    }
+    const appVerifier = window.recaptchaVerifier;
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    const code = prompt("Enter OTP sent to phone");
+    await confirmationResult.confirm(code);
+    const user = auth.currentUser;
+
+    await setDoc(doc(db, "pending_users", user.uid), {
+      uid: user.uid,
+      phone: user.phoneNumber,
+      role: selectedRole,
+      status: "pending",
+      createdAt: new Date()
+    });
+
+    showMessage("Phone account submitted for approval.");
+  }
+
+  // --- Password reset ---
+  async function resetPassword(email) {
+    await sendPasswordResetEmail(auth, email);
+    showMessage("Password reset email sent.");
+  }
+
+  // ==================== EVENT LISTENERS ====================
+  // Form submit
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const fullName = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+
+    if (!selectedRole) {
+      showMessage("Please select a role first.", true);
+      return;
+    }
+
+    try {
+      if (isLoginMode) {
+        // LOGIN
+        await loginUser(email, password);
+      } else {
+        // SIGNUP
+        if (!fullName) {
+          showMessage("Full name is required for signup.", true);
+          return;
+        }
+        if (password !== confirmInput.value) {
+          showMessage("Passwords do not match.", true);
+          return;
+        }
+        await registerUser(email, password, fullName);
+      }
+    } catch (error) {
+      console.error(error);
+      showMessage(error.message, true);
+    }
+  });
+
+  // Forgot password
+  forgotLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    if (!email) {
+      showMessage("Enter your email address first.", true);
+      return;
+    }
+    try {
+      await resetPassword(email);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  });
+
+  // Social logins
+  document.getElementById('google-login').addEventListener('click', async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  });
+
+  document.getElementById('apple-login').addEventListener('click', async () => {
+    try {
+      await loginWithApple();
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  });
+
+  document.getElementById('phone-login').addEventListener('click', async () => {
+    // Show phone field temporarily
+    phoneGroup.classList.remove('hidden');
+    const phone = phoneInput.value.trim();
+    if (!phone) {
+      showMessage("Please enter your phone number.", true);
+      return;
+    }
+    try {
+      await loginWithPhone(phone);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  });
+
+  // initial toggle link attachment
+  setAuthMode(true);
+
+  // If user is already logged in but not approved, the dashboard check will redirect.
+  // We don't handle dashboard here – separate dashboard.html
+</script>
+</body>
+</html>
