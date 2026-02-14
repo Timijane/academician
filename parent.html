@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDUMETA · Parent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(145deg, #f6f9fc 0%, #e6f0f5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 2.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      width: 100%;
+      max-width: 480px;
+      padding: 2.5rem 2rem;
+    }
+    h2 { color: #1e293b; margin-bottom: 0.3rem; }
+    .sub { color: #475569; margin-bottom: 1.5rem; }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .form-group { margin-bottom: 1.2rem; position: relative; }
+    input {
+      width: 100%;
+      padding: 1rem 1.2rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 3rem;
+      font-size: 1rem;
+      background: white;
+      transition: 0.15s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .hidden { display: none; }
+    .password-container {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .password-container input { flex: 1; padding-right: 4rem; }
+    .password-container button {
+      position: absolute;
+      right: 0.8rem;
+      background: none;
+      border: none;
+      color: #3b82f6;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.4rem 0.8rem;
+      border-radius: 2rem;
+    }
+    .password-container button:hover { background: #eef2ff; }
+    #forgot-password {
+      display: block;
+      text-align: right;
+      margin: 0.2rem 0 1.5rem;
+      color: #3b82f6;
+      text-decoration: none;
+    }
+    #auth-button {
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 3rem;
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 1.5rem;
+    }
+    #auth-button:hover { background: #2563eb; }
+    .social-login {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin: 1.5rem 0;
+    }
+    .social-login button {
+      background: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 3rem;
+      padding: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .social-login button:hover { background: #f8fafc; }
+    #switch-auth {
+      text-align: center;
+      color: #475569;
+    }
+    #switch-auth a {
+      color: #3b82f6;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .message {
+      background: #f0fdf4;
+      color: #166534;
+      border-radius: 3rem;
+      padding: 0.8rem 1.5rem;
+      text-align: center;
+      margin: 1rem 0;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+      }
+    }
+  </script>
+</head>
+<body>
+<div class="card">
+  <a href="index.html" class="back-link">← Back to roles</a>
+  <h2 id="auth-title">Parent Login</h2>
+  <div class="sub" id="auth-description">Login to parent dashboard</div>
+
+  <form id="auth-form">
+    <!-- First name (signup only) -->
+    <div class="form-group hidden" id="firstname-group">
+      <input type="text" id="firstname" placeholder="First Name">
+    </div>
+    <!-- Last name (signup only) -->
+    <div class="form-group hidden" id="lastname-group">
+      <input type="text" id="lastname" placeholder="Last Name">
+    </div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <input type="email" id="email" placeholder="Email Address" required>
+    </div>
+    <!-- Confirm Email (signup only) -->
+    <div class="form-group hidden" id="confirm-email-group">
+      <input type="email" id="confirm-email" placeholder="Confirm Email">
+    </div>
+
+    <!-- Password -->
+    <div class="form-group password-container">
+      <input type="password" id="password" placeholder="Password" required>
+      <button type="button" class="toggle-pw" data-target="password">Show</button>
+    </div>
+    <!-- Confirm Password (signup only) -->
+    <div class="form-group password-container hidden" id="confirm-password-group">
+      <input type="password" id="confirm-password" placeholder="Confirm Password">
+      <button type="button" class="toggle-pw" data-target="confirm-password">Show</button>
+    </div>
+
+    <!-- PARENT-SPECIFIC FIELD (signup only) -->
+    <div class="form-group hidden" id="phone-group">
+      <input type="tel" id="phone" placeholder="Phone Number (optional)">
+    </div>
+
+    <!-- Forgot password (login only) -->
+    <a href="#" id="forgot-password" class="hidden">Forgot Password?</a>
+
+    <button type="submit" id="auth-button">Login</button>
+  </form>
+
+  <!-- Social login -->
+  <div class="social-login">
+    <button id="google-login">Sign in with Google</button>
+  </div>
+
+  <p id="switch-auth">Don't have an account? <a href="#" id="toggle-auth">Sign Up</a></p>
+  <div id="message-area"></div>
+</div>
+
+<script type="module">
+  // ==================== FIREBASE INIT ====================
+  import { initializeApp } from 'firebase/app';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+  import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+    authDomain: "edumeta-c5588.firebaseapp.com",
+    projectId: "edumeta-c5588",
+    storageBucket: "edumeta-c5588.firebasestorage.app",
+    messagingSenderId: "332853259697",
+    appId: "1:332853259697:web:92e0c07e43d1c3bf432190",
+    measurementId: "G-WY24HER46Q"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const googleProvider = new GoogleAuthProvider();
+
+  // ==================== STATE ====================
+  const role = 'parent';
+  let isLoginMode = true;
+
+  // DOM elements
+  const authTitle = document.getElementById('auth-title');
+  const authDesc = document.getElementById('auth-description');
+  const authForm = document.getElementById('auth-form');
+  const authButton = document.getElementById('auth-button');
+  const switchLink = document.getElementById('toggle-auth');
+  const switchText = document.getElementById('switch-auth');
+  const forgotLink = document.getElementById('forgot-password');
+  const firstNameGroup = document.getElementById('firstname-group');
+  const lastNameGroup = document.getElementById('lastname-group');
+  const confirmEmailGroup = document.getElementById('confirm-email-group');
+  const confirmPwGroup = document.getElementById('confirm-password-group');
+  const phoneGroup = document.getElementById('phone-group');
+
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const firstNameInput = document.getElementById('firstname');
+  const lastNameInput = document.getElementById('lastname');
+  const confirmEmailInput = document.getElementById('confirm-email');
+  const confirmPwInput = document.getElementById('confirm-password');
+  const phoneInput = document.getElementById('phone');
+
+  const messageDiv = document.getElementById('message-area');
+
+  function showMessage(msg, isError = false) {
+    messageDiv.innerHTML = `<div class="message" style="background:${isError?'#fee2e2':'#f0fdf4'}; color:${isError?'#991b1b':'#166534'};">${msg}</div>`;
+    setTimeout(() => messageDiv.innerHTML = '', 5000);
+  }
+
+  // Toggle password visibility
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const targetId = e.target.dataset.target;
+      const pwField = document.getElementById(targetId);
+      if (pwField.type === 'password') {
+        pwField.type = 'text';
+        e.target.textContent = 'Hide';
+      } else {
+        pwField.type = 'password';
+        e.target.textContent = 'Show';
+      }
+    });
+  });
+
+  // Switch between login/signup UI
+  function setAuthMode(mode) {
+    isLoginMode = mode;
+    if (isLoginMode) {
+      authTitle.textContent = 'Parent Login';
+      authDesc.textContent = 'Login to parent dashboard';
+      authButton.textContent = 'Login';
+      firstNameGroup.classList.add('hidden');
+      lastNameGroup.classList.add('hidden');
+      confirmEmailGroup.classList.add('hidden');
+      confirmPwGroup.classList.add('hidden');
+      phoneGroup.classList.add('hidden');
+      forgotLink.classList.remove('hidden');
+      switchText.innerHTML = `Don't have an account? <a href="#" id="toggle-auth">Sign Up</a>`;
+    } else {
+      authTitle.textContent = 'Parent Sign Up';
+      authDesc.textContent = 'Create a parent account';
+      authButton.textContent = 'Sign Up';
+      firstNameGroup.classList.remove('hidden');
+      lastNameGroup.classList.remove('hidden');
+      confirmEmailGroup.classList.remove('hidden');
+      confirmPwGroup.classList.remove('hidden');
+      phoneGroup.classList.remove('hidden');
+      forgotLink.classList.add('hidden');
+      switchText.innerHTML = `Already have an account? <a href="#" id="toggle-auth">Login</a>`;
+    }
+    // Re-attach toggle event
+    document.getElementById('toggle-auth').addEventListener('click', (e) => {
+      e.preventDefault();
+      setAuthMode(!isLoginMode);
+    });
+  }
+
+  // Initial mode
+  setAuthMode(true);
+
+  // ==================== AUTH FUNCTIONS ====================
+  async function registerUser(email, password, firstName, lastName) {
+    // Validate confirm email
+    if (email !== confirmEmailInput.value) {
+      throw new Error('Emails do not match');
+    }
+
+    const phone = phoneInput.value.trim() || '';
+
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Save to pending_users with optional phone
+    await setDoc(doc(db, 'pending_users', user.uid), {
+      uid: user.uid,
+      email,
+      firstName,
+      lastName,
+      phone,
+      role,
+      status: 'pending',
+      createdAt: new Date()
+    });
+
+    showMessage('Registration submitted. Await admin approval.');
+  }
+
+  async function loginUser(email, password) {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    const approvedRef = doc(db, 'approved_users', user.uid);
+    const approvedSnap = await getDoc(approvedRef);
+
+    if (!approvedSnap.exists()) {
+      throw new Error('You are not approved yet.');
+    }
+
+    const userData = approvedSnap.data();
+    if (userData.role !== role) {
+      throw new Error('Wrong login role.');
+    }
+
+    // Redirect to parent dashboard
+    window.location.href = '/parent-dashboard.html';
+  }
+
+  async function loginWithGoogle() {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    await setDoc(doc(db, 'pending_users', user.uid), {
+      uid: user.uid,
+      email: user.email,
+      firstName: user.displayName?.split(' ')[0] || '',
+      lastName: user.displayName?.split(' ')[1] || '',
+      role,
+      status: 'pending',
+      createdAt: new Date()
+    }, { merge: true });
+
+    showMessage('Google account submitted for approval.');
+  }
+
+  async function resetPassword(email) {
+    await sendPasswordResetEmail(auth, email);
+    showMessage('Password reset email sent.');
+  }
+
+  // ==================== EVENT LISTENERS ====================
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    try {
+      if (isLoginMode) {
+        await loginUser(email, password);
+      } else {
+        const firstName = firstNameInput.value.trim();
+        const lastName = lastNameInput.value.trim();
+        if (!firstName || !lastName) throw new Error('First and last name required');
+        if (password !== confirmPwInput.value) throw new Error('Passwords do not match');
+        await registerUser(email, password, firstName, lastName);
+      }
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  });
+
+  forgotLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    if (!email) return showMessage('Enter your email first.', true);
+    try {
+      await resetPassword(email);
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  });
+
+  document.getElementById('google-login').addEventListener('click', async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  });
+</script>
+</body>
+</html>
