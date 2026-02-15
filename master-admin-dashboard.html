@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDUMETA · Admin Control Panel</title>
+  <style>
+    /* ========== GLOBAL STYLES ========== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: #f3f6fc;
+      color: #1e293b;
+    }
+
+    /* ========== TOPBAR ========== */
+    .topbar {
+      background: #0b2b4f;
+      color: white;
+      padding: 0 30px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .status-badge {
+      background: #10b981;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .admin-email {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: white;
+    }
+
+    /* ========== LAYOUT ========== */
+    .app-container {
+      display: flex;
+      margin-top: 64px;
+      min-height: calc(100vh - 64px);
+    }
+
+    .sidebar {
+      width: 260px;
+      background: white;
+      border-right: 1px solid #e2e8f0;
+      padding: 24px 0;
+      position: fixed;
+      top: 64px;
+      bottom: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar ul {
+      list-style: none;
+    }
+
+    .sidebar li {
+      padding: 12px 24px;
+      margin: 4px 12px;
+      border-radius: 8px;
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar li:hover {
+      background: #f1f5f9;
+      color: #0b2b4f;
+    }
+
+    .sidebar li.active {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+    }
+
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      padding: 32px;
+    }
+
+    /* ========== CARDS & STATS ========== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      border: 1px solid #e9eef3;
+    }
+
+    .stat-card h3 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #0b2b4f;
+    }
+
+    /* ========== TABLES ========== */
+    .data-table {
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      border-collapse: collapse;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .data-table th {
+      background: #f8fafc;
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: #475569;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .approve-btn, .reject-btn {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .approve-btn {
+      background: #22c55e;
+      color: white;
+    }
+
+    .reject-btn {
+      background: #ef4444;
+      color: white;
+    }
+
+    .edit-btn, .delete-btn {
+      padding: 4px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 4px;
+      font-size: 0.85rem;
+    }
+    .edit-btn { background: #3b82f6; color: white; }
+    .delete-btn { background: #ef4444; color: white; }
+
+    .hidden { display: none; }
+  </style>
+
+  <!-- Firebase SDK (modular) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <div class="logo">
+      <img src="https://via.placeholder.com/40x40/0b2b4f/ffffff?text=EDU" alt="EDUMETA" height="40">
+      <span>EDUMETA CONTROL PANEL</span>
+    </div>
+    <div class="top-actions">
+      <span id="systemStatus" class="status-badge active">System Active</span>
+      <span id="adminEmail" class="admin-email"></span>
+      <button id="logoutBtn" class="btn-logout">Logout</button>
+    </div>
+  </header>
+
+  <!-- Main Layout: Sidebar + Content -->
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar">
+      <!-- Sidebar dynamically populated -->
+    </aside>
+
+    <main class="main-content" id="mainContent">
+      <div id="pageContent">
+        <h2>Loading dashboard...</h2>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    // ==================== FIREBASE INITIALIZATION ====================
+    import { initializeApp } from 'firebase/app';
+    import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+    import { 
+      getFirestore, 
+      collection, 
+      query, 
+      where, 
+      onSnapshot, 
+      doc, 
+      getDoc, 
+      getDocs, 
+      setDoc, 
+      deleteDoc, 
+      updateDoc,
+      serverTimestamp 
+    } from 'firebase/firestore';
+
+    // Your Firebase configuration (copy from your login page)
+    const firebaseConfig = {
+      apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+      authDomain: "edumeta-c5588.firebaseapp.com",
+      projectId: "edumeta-c5588",
+      storageBucket: "edumeta-c5588.firebasestorage.app",
+      messagingSenderId: "332853259697",
+      appId: "1:332853259697:web:92e0c07e43d1c3bf432190",
+      measurementId: "G-WY24HER46Q"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ==================== DOM ELEMENTS ====================
+    const systemStatusEl = document.getElementById('systemStatus');
+    const adminEmailEl = document.getElementById('adminEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const sidebarEl = document.getElementById('sidebar');
+    const pageContent = document.getElementById('pageContent');
+
+    // ==================== GLOBAL STATE ====================
+    let currentUser = null;
+    let currentUserRole = null;
+    let currentUserEmail = null;
+    let currentUserId = null;
+    let isMasterAdmin = false; // based on fixed email
+
+    // ==================== AUTH STATE & APPROVAL CHECK ====================
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        // Not logged in → redirect to login page with role=admin
+        window.location.href = 'admin.html?role=admin';
+        return;
+      }
+
+      try {
+        // Check if user exists in approved_users
+        const approvedRef = doc(db, 'approved_users', user.uid);
+        const approvedSnap = await getDoc(approvedRef);
+
+        if (!approvedSnap.exists()) {
+          // Authenticated but not approved → show pending message
+          pageContent.innerHTML = `
+            <h2>Account Pending Approval</h2>
+            <p>Your account is awaiting admin approval. Please check back later.</p>
+          `;
+          sidebarEl.innerHTML = ''; // Hide sidebar
+          adminEmailEl.textContent = user.email;
+          return;
+        }
+
+        // User is approved – set global state
+        const userData = approvedSnap.data();
+        currentUser = user;
+        currentUserRole = userData.role;      // 'master-admin' or 'co-admin'
+        currentUserEmail = userData.email;
+        currentUserId = user.uid;
+        isMasterAdmin = (currentUserEmail === 'okewunmitimileyin23@gmail.com');
+
+        adminEmailEl.textContent = currentUserEmail;
+
+        // Build the sidebar according to role
+        buildSidebar(currentUserRole);
+
+        // Load the default page (overview)
+        loadPage('overview');
+      } catch (error) {
+        console.error('Auth state error:', error);
+        pageContent.innerHTML = `<h2>Error loading dashboard</h2><p>${error.message}</p>`;
+      }
+    });
+
+    // ==================== SIDEBAR CONSTRUCTION ====================
+    function buildSidebar(role) {
+      // Define all menu items with allowed roles
+      const menuItems = [
+        { id: 'overview', label: 'Dashboard Overview', icon: '📊', roles: ['master-admin', 'co-admin'] },
+        { id: 'users', label: 'User Management', icon: '👥', roles: ['master-admin', 'co-admin'] },
+        { id: 'coadmins', label: 'Board of Directors', icon: '🏛️', roles: ['master-admin'] },
+        { id: 'teachers', label: 'Teachers', icon: '👨‍🏫', roles: ['master-admin', 'co-admin'] },
+        { id: 'students', label: 'Students', icon: '🧑‍🎓', roles: ['master-admin', 'co-admin'] },
+        { id: 'attendance', label: 'Attendance', icon: '📆', roles: ['master-admin', 'co-admin'] },
+        { id: 'lessons', label: 'Lesson Notes', icon: '📝', roles: ['master-admin', 'co-admin'] },
+        { id: 'ai', label: 'AI Monitoring', icon: '🤖', roles: ['master-admin', 'co-admin'] },
+        { id: 'payments', label: 'Payments', icon: '💰', roles: ['master-admin', 'co-admin'] },
+        { id: 'reports', label: 'Reports', icon: '📈', roles: ['master-admin', 'co-admin'] },
+        { id: 'settings', label: 'System Settings', icon: '⚙️', roles: ['master-admin'] }
+      ];
+
+      // Filter items based on user role
+      const filtered = menuItems.filter(item => item.roles.includes(role));
+
+      let html = '<ul>';
+      filtered.forEach(item => {
+        html += `<li data-page="${item.id}" class="nav-item">${item.icon} ${item.label}</li>`;
+      });
+      html += '</ul>';
+
+      sidebarEl.innerHTML = html;
+
+      // Attach click listeners to menu items
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+          item.classList.add('active');
+          loadPage(item.dataset.page);
+        });
+      });
+    }
+
+    // ==================== PAGE LOADER ====================
+    function loadPage(pageId) {
+      switch(pageId) {
+        case 'overview':
+          renderOverview();
+          break;
+        case 'users':
+          renderUserManagement();
+          break;
+        case 'coadmins':
+          renderCoAdmins();
+          break;
+        case 'teachers':
+          renderPlaceholder('Teachers');
+          break;
+        case 'students':
+          renderPlaceholder('Students');
+          break;
+        case 'attendance':
+          renderPlaceholder('Attendance');
+          break;
+        case 'lessons':
+          renderPlaceholder('Lesson Notes');
+          break;
+        case 'ai':
+          renderPlaceholder('AI Monitoring');
+          break;
+        case 'payments':
+          renderPlaceholder('Payments');
+          break;
+        case 'reports':
+          renderPlaceholder('Reports');
+          break;
+        case 'settings':
+          renderPlaceholder('System Settings');
+          break;
+        default:
+          pageContent.innerHTML = '<h2>Page not found</h2>';
+      }
+    }
+
+    // Helper for placeholder pages (modules under construction)
+    function renderPlaceholder(moduleName) {
+      pageContent.innerHTML = `<h2>${moduleName}</h2><p>Module under construction. Check back soon.</p>`;
+    }
+
+    // ==================== OVERVIEW DASHBOARD ====================
+    function renderOverview() {
+      pageContent.innerHTML = `
+        <h2>Dashboard Overview</h2>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div style="margin-top: 32px;">
+          <h3>Pending Approvals</h3>
+          <table class="data-table" id="pendingTable">
+            <thead>
+              <tr><th>Name</th><th>Email/Phone</th><th>Role</th><th>Requested</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="pendingBody"></tbody>
+          </table>
+        </div>
+      `;
+
+      loadStats();
+      loadPendingApprovals();
+    }
+
+    // Load statistics cards (counts from Firestore)
+    async function loadStats() {
+      const statsGrid = document.getElementById('statsGrid');
+      try {
+        const [approvedSnap, pendingSnap, attendanceTodaySnap] = await Promise.all([
+          getDocs(collection(db, 'approved_users')),
+          getDocs(collection(db, 'pending_users')),
+          getDocs(query(collection(db, 'attendance'), where('date', '==', new Date().toISOString().split('T')[0])))
+        ]);
+
+        statsGrid.innerHTML = `
+          <div class="stat-card"><h3>Total Users</h3><div class="value">${approvedSnap.size}</div></div>
+          <div class="stat-card"><h3>Pending Approvals</h3><div class="value">${pendingSnap.size}</div></div>
+          <div class="stat-card"><h3>Attendance Today</h3><div class="value">${attendanceTodaySnap.size}</div></div>
+          <div class="stat-card"><h3>System Status</h3><div class="value">🟢 Active</div></div>
+        `;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    // Real‑time pending approvals list
+    function loadPendingApprovals() {
+      const tbody = document.getElementById('pendingBody');
+      if (!tbody) return;
+
+      const pendingQuery = query(collection(db, 'pending_users'));
+
+      onSnapshot(pendingQuery, (snapshot) => {
+        if (snapshot.empty) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No pending requests</td></tr>';
+          return;
+        }
+
+        let html = '';
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const date = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : 'N/A';
+          const displayName = data.firstName || data.name || '';
+          const displayContact = data.email || data.phone || 'N/A';
+          html += `
+            <tr data-id="${doc.id}">
+              <td>${displayName} ${data.lastName || ''}</td>
+              <td>${displayContact}</td>
+              <td>${data.role || 'student'}</td>
+              <td>${date}</td>
+              <td>
+                <button class="approve-btn" onclick="window.approveUser('${doc.id}')">Approve</button>
+                <button class="reject-btn" onclick="window.rejectUser('${doc.id}')">Reject</button>
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      });
+    }
+
+    // ==================== USER MANAGEMENT ====================
+    function renderUserManagement() {
+      pageContent.innerHTML = `
+        <h2>User Management</h2>
+        <table class="data-table">
+          <thead>
+            <tr><th>UID</th><th>Email/Phone</th><th>Role</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      `;
+
+      const usersQuery = query(collection(db, 'approved_users'));
+      onSnapshot(usersQuery, (snapshot) => {
+        let html = '';
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          html += `
+            <tr>
+              <td>${doc.id.substring(0, 8)}...</td>
+              <td>${data.email || data.phone || 'N/A'}</td>
+              <td>${data.role || 'N/A'}</td>
+              <td>
+                <button class="edit-btn" onclick="window.editUser('${doc.id}')">Edit</button>
+                ${isMasterAdmin ? `<button class="delete-btn" onclick="window.deleteUser('${doc.id}')">Delete</button>` : ''}
+              </td>
+            </tr>
+          `;
+        });
+        document.getElementById('usersBody').innerHTML = html;
+      });
+    }
+
+    // Edit user (simple prompt for demo – you can replace with a modal)
+    window.editUser = (userId) => {
+      const newRole = prompt('Enter new role (master-admin / co-admin / teacher / student / parent):');
+      if (newRole) {
+        updateDoc(doc(db, 'approved_users', userId), { role: newRole })
+          .then(() => {
+            alert('Role updated');
+            // Log activity
+            setDoc(doc(collection(db, 'activity_logs')), {
+              actorId: currentUserId,
+              actorRole: currentUserRole,
+              action: 'edit_user',
+              targetId: userId,
+              newRole,
+              timestamp: serverTimestamp()
+            });
+          })
+          .catch(err => alert('Error: ' + err.message));
+      }
+    };
+
+    // Delete user (master‑admin only)
+    window.deleteUser = async (userId) => {
+      if (!isMasterAdmin) return;
+      if (!confirm('Permanently delete this user? This action cannot be undone.')) return;
+      try {
+        await deleteDoc(doc(db, 'approved_users', userId));
+        await setDoc(doc(collection(db, 'activity_logs')), {
+          actorId: currentUserId,
+          actorRole: currentUserRole,
+          action: 'delete_user',
+          targetId: userId,
+          timestamp: serverTimestamp()
+        });
+      } catch (error) {
+        alert('Error deleting user: ' + error.message);
+      }
+    };
+
+    // ==================== APPROVE / REJECT (exposed to window) ====================
+    window.approveUser = async (pendingId) => {
+      try {
+        const pendingRef = doc(db, 'pending_users', pendingId);
+        const pendingSnap = await getDoc(pendingRef);
+        if (!pendingSnap.exists()) return;
+
+        const data = pendingSnap.data();
+        // Add to approved_users
+        await setDoc(doc(db, 'approved_users', pendingId), {
+          ...data,
+          approvedBy: currentUserId,
+          approvedAt: serverTimestamp(),
+          status: 'active'
+        });
+        // Remove from pending
+        await deleteDoc(pendingRef);
+        // Log activity
+        await setDoc(doc(collection(db, 'activity_logs')), {
+          actorId: currentUserId,
+          actorRole: currentUserRole,
+          action: 'approve_user',
+          targetId: pendingId,
+          timestamp: serverTimestamp(),
+          details: `Approved user ${data.email || data.phone}`
+        });
+      } catch (error) {
+        alert('Error approving user: ' + error.message);
+      }
+    };
+
+    window.rejectUser = async (pendingId) => {
+      try {
+        const pendingRef = doc(db, 'pending_users', pendingId);
+        const pendingSnap = await getDoc(pendingRef);
+        if (!pendingSnap.exists()) return;
+        const data = pendingSnap.data();
+        await deleteDoc(pendingRef);
+        await setDoc(doc(collection(db, 'activity_logs')), {
+          actorId: currentUserId,
+          actorRole: currentUserRole,
+          action: 'reject_user',
+          targetId: pendingId,
+          timestamp: serverTimestamp(),
+          details: `Rejected user ${data.email || data.phone}`
+        });
+      } catch (error) {
+        alert('Error rejecting user: ' + error.message);
+      }
+    };
+
+    // ==================== CO-ADMIN MANAGEMENT (master‑admin only) ====================
+    function renderCoAdmins() {
+      if (!isMasterAdmin) {
+        pageContent.innerHTML = '<h2>Access Denied</h2><p>Only master‑admin can manage co‑admins.</p>';
+        return;
+      }
+
+      pageContent.innerHTML = `
+        <h2>Board of Directors (Co‑Admins)</h2>
+        <table class="data-table">
+          <thead><tr><th>Email</th><th>Name</th><th>Actions</th></tr></thead>
+          <tbody id="coadminBody"></tbody>
+        </table>
+      `;
+
+      const coadminQuery = query(collection(db, 'approved_users'), where('role', '==', 'co-admin'));
+      onSnapshot(coadminQuery, (snapshot) => {
+        let html = '';
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          html += `
+            <tr>
+              <td>${data.email}</td>
+              <td>${data.firstName || ''} ${data.lastName || ''}</td>
+              <td><button class="delete-btn" onclick="window.removeCoAdmin('${doc.id}')">Remove</button></td>
+            </tr>
+          `;
+        });
+        document.getElementById('coadminBody').innerHTML = html || '<tr><td colspan="3">No co‑admins found.</td></tr>';
+      });
+    }
+
+    window.removeCoAdmin = async (userId) => {
+      if (!isMasterAdmin) return;
+      if (!confirm('Remove co‑admin privileges? (User will become a regular teacher)')) return;
+      try {
+        await updateDoc(doc(db, 'approved_users', userId), { role: 'teacher' });
+        await setDoc(doc(collection(db, 'activity_logs')), {
+          actorId: currentUserId,
+          actorRole: currentUserRole,
+          action: 'demote_coadmin',
+          targetId: userId,
+          timestamp: serverTimestamp()
+        });
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    };
+
+    // ==================== LOGOUT ====================
+    logoutBtn.addEventListener('click', async () => {
+      await signOut(auth);
+      // Redirect handled by onAuthStateChanged
+    });
+
+  </script>
+</body>
+</html>
