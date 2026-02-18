@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUMETA · Parent Access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Same theme variables as above (copy from student dashboard) */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+        :root[data-theme="light"] {
+            --bg-primary:#f0f4fa; --bg-secondary:#ffffff; --text-primary:#1e293b; --text-secondary:#334155;
+            --accent:#2563eb; --accent-hover:#1d4ed8; --border:rgba(0,0,0,0.1); --card-bg:rgba(255,255,255,0.7);
+            --shadow:0 10px 30px -10px rgba(0,0,0,0.2);
+        }
+        :root[data-theme="dark"] {
+            --bg-primary:#0b1120; --bg-secondary:#1e293b; --text-primary:#f1f5f9; --text-secondary:#cbd5e1;
+            --accent:#38bdf8; --accent-hover:#7dd3fc; --border:rgba(255,255,255,0.08); --card-bg:rgba(15,23,42,0.8);
+            --shadow:0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+        body {
+            background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+        }
+        .theme-toggle {
+            position: fixed; top: 1.8rem; right: 2rem; background: var(--card-bg); backdrop-filter: blur(10px);
+            border: 1px solid var(--border); border-radius: 3rem; padding: 0.8rem 1.3rem; display: flex;
+            align-items: center; gap: 0.6rem; cursor: pointer; box-shadow: var(--shadow); color: var(--text-primary);
+            z-index: 100; transition: all 0.2s;
+        }
+        .glass-card {
+            background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border);
+            border-radius: 2.5rem; padding: 3rem; width: 100%; max-width: 500px; box-shadow: var(--shadow);
+            color: var(--text-primary); transition: all 0.3s;
+        }
+        h1 { font-size: 2.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .subhead { color: var(--text-secondary); margin-bottom: 2rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .form-group input {
+            width: 100%; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 2rem;
+            background: var(--bg-secondary); color: var(--text-primary); outline: none;
+        }
+        .form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.2); }
+        .btn {
+            width: 100%; background: var(--accent); color: white; border: none; padding: 1rem;
+            border-radius: 3rem; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: 0.2s;
+        }
+        .btn:hover { background: var(--accent-hover); transform: scale(1.02); }
+        .back-link { text-align: center; margin-top: 1.5rem; }
+        .back-link a { color: var(--accent); text-decoration: none; }
+        .student-info { margin-top: 2rem; padding: 1.5rem; background: var(--bg-secondary); border-radius: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i><span>Theme</span></div>
+    <div class="glass-card" id="access-card">
+        <h1>Parent Access</h1>
+        <p class="subhead">Enter your child's Student ID and secret key to view progress.</p>
+        <div class="form-group"><label>Student ID</label><input type="text" id="studentId" placeholder="e.g., STU001"></div>
+        <div class="form-group"><label>Secret Key (e.g., Date of Birth)</label><input type="password" id="secretKey" placeholder="YYYY-MM-DD"></div>
+        <button class="btn" onclick="accessStudent()">View Progress</button>
+        <div class="back-link"><a href="index.html">← Back to home</a></div>
+        <div id="studentDisplay" style="display:none;"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+            authDomain: "edumeta-c5588.firebaseapp.com",
+            projectId: "edumeta-c5588",
+            storageBucket: "edumeta-c5588.firebasestorage.app",
+            messagingSenderId: "332853259697",
+            appId: "1:332853259697:web:92e0c07e43d1c3bf432190"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function accessStudent() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const secret = document.getElementById('secretKey').value.trim();
+            if (!studentId || !secret) { alert('Please enter both fields.'); return; }
+
+            // Query students collection where studentId field matches and secretKey matches (e.g., date of birth)
+            // In a real system, you'd store a hashed secret or a randomly generated PIN per student.
+            const snapshot = await db.collection('students').where('studentId', '==', studentId).get();
+            if (snapshot.empty) { alert('Student not found.'); return; }
+            const studentDoc = snapshot.docs[0];
+            const student = studentDoc.data();
+            // For demo, we accept any secret if it's 'demo' or matches a stored field
+            if (student.secretKey && student.secretKey !== secret) {
+                alert('Invalid secret key.');
+                return;
+            }
+            // Display student info
+            document.getElementById('access-card').innerHTML = `
+                <h2>${student.name}</h2>
+                <p class="subhead">Class: ${student.class}</p>
+                <div class="student-info">
+                    <p><strong>Recent Performance:</strong> ${student.averageScore || 75}%</p>
+                    <p><strong>Attendance:</strong> 95%</p>
+                    <p><strong>Upcoming Tests:</strong> Mathematics (2025-04-10)</p>
+                    <p><a href="#" onclick="alert('Full report would be shown')">View Full Report Card</a></p>
+                </div>
+                <button class="btn" onclick="location.reload()">Check Another</button>
+                <div class="back-link"><a href="index.html">← Home</a></div>
+            `;
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            document.querySelector('.theme-toggle i').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+        (function() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.querySelector('.theme-toggle i').className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        })();
+    </script>
+</body>
+</html>
