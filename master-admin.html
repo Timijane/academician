@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edutopscholars · Master Admin</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-image: url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80');
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --accent: #2563eb;
+            --border: rgba(0, 0, 0, 0.1);
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --error: #dc2626;
+            --success: #16a34a;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80');
+            --glass-bg: rgba(15, 23, 42, 0.9);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --accent: #38bdf8;
+            --border: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(30, 41, 59, 0.8);
+            --error: #ef4444;
+            --success: #4ade80;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-image) no-repeat center center/cover fixed;
+            color: var(--text-primary);
+            padding: 1rem;
+        }
+
+        .theme-toggle {
+            position: fixed; top: 24px; right: 24px;
+            background: var(--glass-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 60px;
+            width: 56px; height: 56px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; color: var(--accent); cursor: pointer;
+            z-index: 1000; transition: 0.2s;
+        }
+        .theme-toggle:hover { transform: scale(1.05); border-color: var(--accent); }
+
+        .glass-card {
+            background: var(--glass-bg); backdrop-filter: blur(16px);
+            border: 1px solid var(--border); border-radius: 2.5rem;
+            padding: 2.5rem 2rem; width: min(480px, 100%);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+
+        .tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 2rem;
+            background: rgba(0,0,0,0.2); border-radius: 3rem; padding: 0.3rem;
+        }
+        .tab {
+            flex: 1; text-align: center; padding: 0.8rem 0;
+            border-radius: 3rem; font-weight: 600; cursor: pointer;
+            transition: 0.2s; color: var(--text-secondary);
+        }
+        .tab.active {
+            background: var(--accent); color: white;
+        }
+
+        h2 { font-size: 2rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sub { color: var(--text-secondary); margin-bottom: 2rem; }
+
+        .input-group {
+            margin-bottom: 1.5rem; position: relative;
+        }
+        .input-group label {
+            display: block; margin-bottom: 0.5rem;
+            font-weight: 500; font-size: 0.95rem; color: var(--text-secondary);
+        }
+        .input-wrapper {
+            display: flex; align-items: center;
+            background: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 1.5rem; padding: 0.2rem 1rem;
+            transition: 0.2s;
+        }
+        .input-wrapper:focus-within {
+            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+        .input-wrapper i {
+            color: var(--text-secondary); font-size: 1.2rem; width: 2rem;
+        }
+        .input-wrapper input {
+            width: 100%; background: transparent; border: none;
+            padding: 1rem 0; font-size: 1rem;
+            color: var(--text-primary); outline: none;
+        }
+        .input-wrapper input::placeholder {
+            color: var(--text-secondary); opacity: 0.6;
+        }
+        .toggle-password {
+            cursor: pointer; color: var(--text-secondary);
+            font-size: 1.2rem; padding: 0 0.5rem;
+        }
+        .toggle-password:hover { color: var(--accent); }
+
+        .btn-primary {
+            width: 100%; background: var(--accent); border: none;
+            border-radius: 3rem; padding: 1.2rem;
+            font-size: 1.2rem; font-weight: 600; color: white;
+            cursor: pointer; transition: 0.2s; margin-top: 1rem;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1); transform: scale(1.02);
+        }
+
+        .message {
+            font-size: 0.9rem; margin-top: 0.5rem; display: none;
+        }
+        .error-message { color: var(--error); }
+        .success-message { color: var(--success); }
+
+        .footer-note {
+            margin-top: 1.5rem; text-align: center; font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+
+    <div class="glass-card">
+        <!-- Tab switcher -->
+        <div class="tabs">
+            <div class="tab active" id="loginTab">Login</div>
+            <div class="tab" id="signupTab">Sign Up</div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm">
+            <h2>Welcome back</h2>
+            <div class="sub">Master admin credentials</div>
+            <form id="adminLoginForm">
+                <div class="input-group">
+                    <label>Email (Gmail)</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="loginEmail" placeholder="admin@edutopscholars.org" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                        <i class="fas fa-eye toggle-password" onclick="togglePassword('loginPassword', this)"></i>
+                    </div>
+                </div>
+                <div class="message error-message" id="loginError"></div>
+                <button type="submit" class="btn-primary">Sign in as Admin</button>
+            </form>
+        </div>
+
+        <!-- Signup Form (initially hidden) -->
+        <div id="signupForm" class="hidden">
+            <h2>Create master account</h2>
+            <div class="sub">First admin only</div>
+            <form id="adminSignupForm">
+                <div class="input-group">
+                    <label>Email (must be Gmail)</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="signupEmail" placeholder="admin@edutopscholars.org" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="signupPassword" placeholder="Min. 8 characters" required>
+                        <i class="fas fa-eye toggle-password" onclick="togglePassword('signupPassword', this)"></i>
+                    </div>
+                    <div class="password-strength" id="passwordStrength" style="font-size:0.85rem; margin-top:0.3rem;"></div>
+                </div>
+                <div class="input-group">
+                    <label>Confirm Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="signupConfirm" placeholder="Re-enter password" required>
+                        <i class="fas fa-eye toggle-password" onclick="togglePassword('signupConfirm', this)"></i>
+                    </div>
+                </div>
+                <div class="message error-message" id="signupError"></div>
+                <div class="message success-message" id="signupSuccess"></div>
+                <button type="submit" class="btn-primary">Register as Master Admin</button>
+            </form>
+        </div>
+
+        <div class="footer-note">
+            Secure access · role‑based authentication
+        </div>
+    </div>
+
+    <script>
+        // ==================== THEME TOGGLE ====================
+        (function() {
+            const html = document.documentElement;
+            const toggleBtn = document.getElementById('themeToggle');
+            const icon = toggleBtn.querySelector('i');
+            function updateIcon(theme) {
+                icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+            toggleBtn.addEventListener('click', () => {
+                const current = html.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                html.setAttribute('data-theme', next);
+                updateIcon(next);
+                localStorage.setItem('edutopscholars-theme', next);
+            });
+            const saved = localStorage.getItem('edutopscholars-theme');
+            if (saved && (saved === 'dark' || saved === 'light')) {
+                html.setAttribute('data-theme', saved);
+                updateIcon(saved);
+            } else {
+                updateIcon('dark');
+            }
+        })();
+
+        // ==================== TAB SWITCHING ====================
+        const loginTab = document.getElementById('loginTab');
+        const signupTab = document.getElementById('signupTab');
+        const loginDiv = document.getElementById('loginForm');
+        const signupDiv = document.getElementById('signupForm');
+
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            signupTab.classList.remove('active');
+            loginDiv.classList.remove('hidden');
+            signupDiv.classList.add('hidden');
+        });
+
+        signupTab.addEventListener('click', () => {
+            signupTab.classList.add('active');
+            loginTab.classList.remove('active');
+            signupDiv.classList.remove('hidden');
+            loginDiv.classList.add('hidden');
+        });
+
+        // ==================== PASSWORD TOGGLE ====================
+        window.togglePassword = function(fieldId, eyeIcon) {
+            const input = document.getElementById(fieldId);
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            eyeIcon.classList.toggle('fa-eye');
+            eyeIcon.classList.toggle('fa-eye-slash');
+        };
+
+        // ==================== PASSWORD STRENGTH ====================
+        document.getElementById('signupPassword')?.addEventListener('input', function() {
+            const pwd = this.value;
+            const strengthDiv = document.getElementById('passwordStrength');
+            if (pwd.length === 0) {
+                strengthDiv.textContent = '';
+                return;
+            }
+            let strength = 'Weak';
+            let color = 'var(--error)';
+            if (pwd.length >= 8 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) {
+                strength = 'Strong';
+                color = 'var(--success)';
+            } else if (pwd.length >= 6 && (/[A-Z]/.test(pwd) || /[0-9]/.test(pwd))) {
+                strength = 'Medium';
+                color = '#eab308';
+            }
+            strengthDiv.innerHTML = `Strength: <span style="color:${color}">${strength}</span>`;
+        });
+
+        // ==================== LOGIN VALIDATION ====================
+        document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorDiv = document.getElementById('loginError');
+            if (!email || !password) {
+                errorDiv.textContent = 'Both fields are required.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (!email.endsWith('@gmail.com')) {
+                errorDiv.textContent = 'Admin must use a Gmail address.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            errorDiv.style.display = 'none';
+            // Demo redirect (replace with Firebase later)
+            alert('Login successful (demo). Redirecting to dashboard...');
+            window.location.href = 'admin-dashboard.html';
+        });
+
+        // ==================== SIGNUP VALIDATION ====================
+        document.getElementById('adminSignupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            const confirm = document.getElementById('signupConfirm').value.trim();
+            const errorDiv = document.getElementById('signupError');
+            const successDiv = document.getElementById('signupSuccess');
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            if (!email || !password || !confirm) {
+                errorDiv.textContent = 'All fields are required.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (!email.endsWith('@gmail.com')) {
+                errorDiv.textContent = 'Master admin must use a Gmail address.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (password.length < 8) {
+                errorDiv.textContent = 'Password must be at least 8 characters.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (password !== confirm) {
+                errorDiv.textContent = 'Passwords do not match.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            // Demo success
+            successDiv.textContent = 'Account created! Redirecting to login...';
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                // Switch to login tab
+                loginTab.click();
+                // Optionally pre-fill email
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
