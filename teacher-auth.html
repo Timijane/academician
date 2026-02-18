@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUMETA · Teacher Portal</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Theme variables (exactly as in master-admin) */
+        :root[data-theme="light"] {
+            --bg-gradient-start: #f0f4fa;
+            --bg-gradient-end: #d9e2ef;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-primary: #1e293b;
+            --text-secondary: #334155;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --input-bg: rgba(255, 255, 255, 0.7);
+            --shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.2);
+            --tab-inactive: rgba(0,0,0,0.05);
+        }
+
+        :root[data-theme="dark"] {
+            --bg-gradient-start: #0b1120;
+            --bg-gradient-end: #1a2639;
+            --glass-bg: rgba(15, 23, 42, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.6);
+            --tab-inactive: rgba(255,255,255,0.05);
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            transition: background 0.3s;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1.8rem;
+            right: 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 3rem;
+            padding: 0.8rem 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            color: var(--text-primary);
+            z-index: 100;
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover {
+            transform: scale(1.02);
+            background: var(--input-bg);
+        }
+
+        .auth-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 2.5rem;
+            width: 100%;
+            max-width: 600px; /* Slightly wider for extra fields */
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.5rem;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.8rem;
+            font-weight: 600;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        .tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .auth-form {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .auth-form.active {
+            display: flex;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .input-group label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        .input-wrapper input,
+        .input-wrapper select,
+        .input-wrapper textarea {
+            width: 100%;
+            padding: 0.9rem 1rem 0.9rem 2.8rem;
+            border: 1px solid var(--glass-border);
+            border-radius: 2rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+            appearance: none;
+        }
+        .input-wrapper select {
+            cursor: pointer;
+        }
+        .input-wrapper textarea {
+            padding-left: 2.8rem;
+            border-radius: 1.5rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .input-wrapper input:focus,
+        .input-wrapper select:focus,
+        .input-wrapper textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            z-index: 2;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 0.5rem;
+        }
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: scale(1.02);
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1rem;
+            color: var(--text-secondary);
+        }
+        .back-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: 0.5px solid var(--glass-border);
+            margin: 1rem 0;
+        }
+        .info-note {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: var(--input-bg);
+            padding: 0.8rem;
+            border-radius: 1rem;
+            border-left: 4px solid var(--accent);
+        }
+        .info-note i {
+            margin-right: 0.4rem;
+            color: var(--accent);
+        }
+
+        /* Small grid for name/surname */
+        .name-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon"></i>
+        <span>Theme</span>
+    </div>
+
+    <div class="auth-container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('login')">Login</div>
+            <div class="tab" onclick="switchTab('signup')">Sign Up</div>
+        </div>
+
+        <!-- ========== LOGIN FORM ========== -->
+        <form id="login-form" class="auth-form active" onsubmit="event.preventDefault(); teacherLogin();">
+            <div class="input-group">
+                <label><i class="fas fa-envelope"></i> Email address</label>
+                <div class="input-wrapper">
+                    <i class="far fa-envelope"></i>
+                    <input type="email" id="login-email" placeholder="teacher@school.edu" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="login-password" placeholder="••••••••" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('login-password', this)"></i>
+                </div>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="remember"> <label for="remember">Remember me</label>
+            </div>
+            <button type="submit" class="btn">Access Teacher Dashboard</button>
+            <div class="info-note">
+                <i class="fas fa-shield-alt"></i> Only approved teachers can log in. Contact admin if you cannot access.
+            </div>
+        </form>
+
+        <!-- ========== SIGNUP FORM ========== (with all teacher fields) -->
+        <form id="signup-form" class="auth-form" onsubmit="event.preventDefault(); teacherSignup();">
+            <!-- Name & Surname -->
+            <div class="name-row">
+                <div class="input-group">
+                    <label>First name</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="first-name" placeholder="John" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Surname</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="surname" placeholder="Doe" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Qualifications (free text) -->
+            <div class="input-group">
+                <label>Qualifications (e.g., B.Ed, M.Sc, certifications)</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-certificate"></i>
+                    <input type="text" id="qualifications" placeholder="B.Ed Mathematics, TRCN certified" required>
+                </div>
+            </div>
+
+            <!-- Schools attended (multi-line) -->
+            <div class="input-group">
+                <label>Schools attended (with years if possible)</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-school"></i>
+                    <textarea id="schools" placeholder="Primary: ...&#10;Secondary: ...&#10;Higher Institution: ..." rows="3" required></textarea>
+                </div>
+            </div>
+
+            <!-- Phone number with +234 hint -->
+            <div class="input-group">
+                <label>Phone number (Nigeria)</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-phone-alt"></i>
+                    <input type="tel" id="phone" placeholder="+234 800 000 0000" value="+234" required>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="input-group">
+                <label>Email address</label>
+                <div class="input-wrapper">
+                    <i class="far fa-envelope"></i>
+                    <input type="email" id="signup-email" placeholder="teacher@school.edu" required>
+                </div>
+            </div>
+
+            <!-- Class teaching dropdown -->
+            <div class="input-group">
+                <label>Class teaching</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-users"></i>
+                    <select id="class-teaching" required>
+                        <option value="" disabled selected>– Select class –</option>
+                        <option value="Creche">Creche</option>
+                        <option value="Nursery1">Nursery 1</option>
+                        <option value="Nursery2">Nursery 2</option>
+                        <option value="KG1">KG1</option>
+                        <option value="KG2">KG2</option>
+                        <option value="Basic1">Basic 1</option>
+                        <option value="Basic2">Basic 2</option>
+                        <option value="Basic3">Basic 3</option>
+                        <option value="Basic4">Basic 4</option>
+                        <option value="Basic5">Basic 5</option>
+                        <option value="Basic6">Basic 6</option>
+                        <option value="JSS1">JSS1</option>
+                        <option value="JSS2">JSS2</option>
+                        <option value="JSS3">JSS3</option>
+                        <option value="SSS1">SSS1</option>
+                        <option value="SSS2">SSS2</option>
+                        <option value="SSS3">SSS3</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Password & Confirm -->
+            <div class="input-group">
+                <label>Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="signup-password" placeholder="••••••••" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('signup-password', this)"></i>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Confirm password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="signup-confirm" placeholder="••••••••" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('signup-confirm', this)"></i>
+                </div>
+            </div>
+
+            <!-- Terms -->
+            <div class="checkbox-row">
+                <input type="checkbox" id="terms" required> 
+                <label for="terms">I agree to the <a href="#" style="color: var(--accent);">privacy policy</a> and terms of use</label>
+            </div>
+
+            <button type="submit" class="btn">Submit for Approval</button>
+            <div class="info-note">
+                <i class="fas fa-clock"></i> After submitting, the admin will review your profile. You will receive an email once approved.
+            </div>
+        </form>
+
+        <hr>
+        <div class="back-link">
+            <a href="index.html"><i class="fas fa-arrow-left"></i> Back to role selection</a>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle (identical to master-admin)
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            document.querySelector('.theme-toggle i').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab');
+            const forms = document.querySelectorAll('.auth-form');
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.remove('active'));
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('login-form').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('signup-form').classList.add('active');
+            }
+        }
+
+        // Toggle password visibility
+        function togglePassword(inputId, icon) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Dummy login (simulate Firebase later)
+        function teacherLogin() {
+            const email = document.getElementById('login-email').value;
+            const pwd = document.getElementById('login-password').value;
+            if (!email || !pwd) {
+                alert('Please enter email and password.');
+                return;
+            }
+            // Simulate success
+            alert(`Login attempt for ${email}. In production, this will verify against approved teachers.`);
+            // window.location.href = 'teacher-dashboard.html';
+        }
+
+        // Dummy signup
+        function teacherSignup() {
+            const firstName = document.getElementById('first-name').value;
+            const surname = document.getElementById('surname').value;
+            const qualifications = document.getElementById('qualifications').value;
+            const schools = document.getElementById('schools').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('signup-email').value;
+            const classTeaching = document.getElementById('class-teaching').value;
+            const pwd = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            const terms = document.getElementById('terms').checked;
+
+            if (!firstName || !surname || !qualifications || !schools || !phone || !email || !classTeaching || !pwd || !confirm) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            if (pwd !== confirm) {
+                alert('Passwords do not match.');
+                return;
+            }
+            if (!terms) {
+                alert('You must accept the terms.');
+                return;
+            }
+            // Basic phone check (very simple)
+            if (!phone.startsWith('+234')) {
+                alert('Phone number should start with +234 (Nigeria).');
+                return;
+            }
+            // Simulate submission
+            alert(`Signup request submitted for ${firstName} ${surname}. Admin will review your profile.`);
+            // Optionally reset form or redirect
+            document.getElementById('signup-form').reset();
+        }
+
+        // Initial theme icon
+        (function() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.querySelector('.theme-toggle i').className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        })();
+    </script>
+</body>
+</html>
