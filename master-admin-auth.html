@@ -1,0 +1,400 @@
+here<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUMETA · Super Admin Authentication</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root[data-theme="light"] {
+            --bg-gradient-start: #f0f4fa;
+            --bg-gradient-end: #d9e2ef;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-primary: #1e293b;
+            --text-secondary: #334155;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --input-bg: rgba(255, 255, 255, 0.7);
+            --shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.2);
+            --tab-inactive: rgba(0,0,0,0.05);
+        }
+
+        :root[data-theme="dark"] {
+            --bg-gradient-start: #0b1120;
+            --bg-gradient-end: #1a2639;
+            --glass-bg: rgba(15, 23, 42, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.6);
+            --tab-inactive: rgba(255,255,255,0.05);
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            transition: background 0.3s;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1.8rem;
+            right: 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 3rem;
+            padding: 0.8rem 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            color: var(--text-primary);
+            z-index: 100;
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover {
+            transform: scale(1.02);
+            background: var(--input-bg);
+        }
+
+        .auth-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.5rem;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.8rem;
+            font-weight: 600;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        .tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .auth-form {
+            display: none;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .auth-form.active {
+            display: flex;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .input-group label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        .input-wrapper input {
+            width: 100%;
+            padding: 0.9rem 1rem 0.9rem 2.8rem;
+            border: 1px solid var(--glass-border);
+            border-radius: 2rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .input-wrapper input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            z-index: 2;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 0.5rem;
+        }
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: scale(1.02);
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1rem;
+            color: var(--text-secondary);
+        }
+        .back-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: 0.5px solid var(--glass-border);
+            margin: 1rem 0;
+        }
+        .info-note {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: var(--input-bg);
+            padding: 0.8rem;
+            border-radius: 1rem;
+            border-left: 4px solid var(--accent);
+        }
+        .info-note i {
+            margin-right: 0.4rem;
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon"></i>
+        <span>Theme</span>
+    </div>
+
+    <div class="auth-container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('login')">Login</div>
+            <div class="tab" onclick="switchTab('signup')">Sign Up</div>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="auth-form active" onsubmit="event.preventDefault(); login();">
+            <div class="input-group">
+                <label><i class="far fa-envelope" style="margin-right: 0.3rem;"></i> Gmail (authorized only)</label>
+                <div class="input-wrapper">
+                    <i class="far fa-envelope"></i>
+                    <input type="email" id="login-email" placeholder="okewunmitimileyin23@gmail.com" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="login-password" placeholder="••••••••" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('login-password', this)"></i>
+                </div>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="remember"> <label for="remember">Remember this device</label>
+            </div>
+            <button type="submit" class="btn">Access Dashboard</button>
+            <div class="info-note">
+                <i class="fas fa-shield-alt"></i> Only pre‑authorised Gmail accounts can log in. Others will be rejected.
+            </div>
+        </form>
+
+        <!-- Signup Form -->
+        <form id="signup-form" class="auth-form" onsubmit="event.preventDefault(); signup();">
+            <div class="input-group">
+                <label>Full name</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="signup-name" placeholder="Dr. Timileyin Okewunmi" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Gmail address</label>
+                <div class="input-wrapper">
+                    <i class="far fa-envelope"></i>
+                    <input type="email" id="signup-email" placeholder="okewunmitimileyin23@gmail.com" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="signup-password" placeholder="••••••••" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('signup-password', this)"></i>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Confirm password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="signup-confirm" placeholder="••••••••" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('signup-confirm', this)"></i>
+                </div>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="terms" required> <label for="terms">I accept the enterprise terms and data policies</label>
+            </div>
+            <button type="submit" class="btn">Request Admin Approval</button>
+            <div class="info-note">
+                <i class="fas fa-clock"></i> Signup requests are manually approved by the existing Super Admin. Only the authorised Gmail will be granted access.
+            </div>
+        </form>
+
+        <hr>
+        <div class="back-link">
+            <a href="index.html"><i class="fas fa-arrow-left"></i> Back to role selection</a>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            document.querySelector('.theme-toggle i').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab');
+            const forms = document.querySelectorAll('.auth-form');
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.remove('active'));
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('login-form').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('signup-form').classList.add('active');
+            }
+        }
+
+        function togglePassword(inputId, icon) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Dummy functions for demonstration (Firebase integration later)
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            if (!email || !password) {
+                alert('Please fill in both fields.');
+                return;
+            }
+            // Simulate validation (only the specific Gmail works for demo)
+            if (email.toLowerCase() === 'okewunmitimileyin23@gmail.com') {
+                alert(`Welcome back, Super Admin. Redirecting to dashboard...`);
+                window.location.href = 'admin-dashboard.html'; // future page
+            } else {
+                alert('Access denied. Only the authorised Super Admin Gmail is allowed.');
+            }
+        }
+
+        function signup() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const pwd = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            const terms = document.getElementById('terms').checked;
+
+            if (!name || !email || !pwd || !confirm) {
+                alert('All fields are required.');
+                return;
+            }
+            if (pwd !== confirm) {
+                alert('Passwords do not match.');
+                return;
+            }
+            if (!terms) {
+                alert('You must accept the terms.');
+                return;
+            }
+            // Simulate signup request (only the specific Gmail will eventually be approved)
+            if (email.toLowerCase() === 'okewunmitimileyin23@gmail.com') {
+                alert('Signup request sent. The current Super Admin will review and approve your account. You will be notified.');
+                // Clear form or redirect
+                document.getElementById('signup-form').reset();
+            } else {
+                alert('Signup is only allowed for the authorised Super Admin Gmail. If you are not the administrator, please use the appropriate role portal.');
+            }
+        }
+
+        // Set initial theme icon
+        (function() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.querySelector('.theme-toggle i').className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        })();
+    </script>
+</body>
+    </html>
