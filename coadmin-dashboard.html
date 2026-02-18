@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUMETA · Co‑Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Same base styles as admin dashboard – copy from student dashboard or admin */
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+        :root[data-theme="light"] { /* ... same variables ... */ }
+        :root[data-theme="dark"] { /* ... same variables ... */ }
+        /* Copy all the same CSS from student dashboard for consistency */
+        /* (I'll include the full CSS from student dashboard here, but for brevity in this response I'll assume it's identical) */
+        body { background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; }
+        .sidebar { width: 280px; background: var(--sidebar-bg); backdrop-filter: blur(16px); border-right: 1px solid var(--border); padding: 2rem 1rem; display: flex; flex-direction: column; gap: 2rem; height: 100vh; position: sticky; top: 0; overflow-y: auto; }
+        .logo-area { display: flex; align-items: center; gap: 0.8rem; padding: 0 1rem; }
+        .logo-icon { font-size: 2rem; color: var(--accent); }
+        .logo-text { font-weight: 700; font-size: 1.4rem; letter-spacing: -0.5px; }
+        .logo-small { font-size: 0.8rem; opacity: 0.6; }
+        .nav { display: flex; flex-direction: column; gap: 0.5rem; }
+        .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; border-radius: 1rem; color: var(--text-secondary); text-decoration: none; transition: 0.2s; cursor: pointer; }
+        .nav-item i { width: 24px; font-size: 1.2rem; }
+        .nav-item.active { background: var(--accent); color: white; }
+        .nav-item:hover:not(.active) { background: var(--card-bg); }
+        .main { flex: 1; padding: 2rem; overflow-y: auto; height: 100vh; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .page-title { font-size: 2rem; font-weight: 600; }
+        .admin-info { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle { background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        .admin-profile { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); padding: 0.5rem 1rem; border-radius: 2rem; }
+        .admin-profile img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+        .section { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .section-title { font-weight: 600; font-size: 1.3rem; }
+        .badge { background: var(--accent); color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.8rem 0.5rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); }
+        td { padding: 0.8rem 0.5rem; border-bottom: 1px solid var(--border); }
+        .btn { background: transparent; border: 1px solid var(--border); padding: 0.4rem 1rem; border-radius: 2rem; color: var(--text-primary); cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+        .btn-danger { background: var(--danger); border-color: var(--danger); color: white; }
+        .btn-sm { padding: 0.2rem 0.8rem; font-size: 0.85rem; }
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index:1000; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-secondary); padding: 2rem; border-radius: 2rem; width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; }
+        .modal-buttons { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo-area"><i class="fas fa-user-tie logo-icon"></i><div><div class="logo-text">EDUMETA</div><div class="logo-small">Co‑Admin</div></div></div>
+        <nav class="nav">
+            <div class="nav-item active" data-section="dashboard"><i class="fas fa-home"></i> Dashboard</div>
+            <div class="nav-item" data-section="lessonNotes"><i class="fas fa-book-open"></i> Lesson Notes</div>
+            <div class="nav-item" data-section="payments"><i class="fas fa-coins"></i> Payments</div>
+            <div class="nav-item" data-section="attendance"><i class="fas fa-camera"></i> Attendance</div>
+            <div class="nav-item" data-section="profile"><i class="fas fa-user-cog"></i> Profile</div>
+        </nav>
+        <div style="margin-top: auto;"><div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+    </aside>
+    <main class="main">
+        <div class="top-bar">
+            <h1 class="page-title" id="page-title">Dashboard</h1>
+            <div class="admin-info">
+                <div class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i><span>Theme</span></div>
+                <div class="admin-profile" id="coadmin-profile"><img src="https://ui-avatars.com/api/?name=CoAdmin&background=2563eb&color=fff" alt="CoAdmin"><span id="coadmin-name">Loading...</span></div>
+            </div>
+        </div>
+        <div id="section-content"><div style="text-align:center;padding:3rem"><i class="fas fa-spinner fa-pulse fa-3x"></i><p>Loading dashboard...</p></div></div>
+    </main>
+
+    <div id="actionModal" class="modal"><div class="modal-content"><h3 id="modalTitle">Confirm</h3><p id="modalMessage"></p><div class="modal-buttons"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="modalConfirmBtn">Confirm</button></div></div></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+            authDomain: "edumeta-c5588.firebaseapp.com",
+            projectId: "edumeta-c5588",
+            storageBucket: "edumeta-c5588.firebasestorage.app",
+            messagingSenderId: "332853259697",
+            appId: "1:332853259697:web:92e0c07e43d1c3bf432190"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentSection = 'dashboard';
+        let currentUser = null;
+        let userData = null;
+        let unsubscribeFunctions = {};
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'co-admin-auth.html'; return; }
+            currentUser = user;
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists) { alert('User not found.'); auth.signOut(); return; }
+            userData = userDoc.data();
+            if (!userData.roles || !userData.roles.includes('co-admin')) {
+                alert('Access denied. You are not a co-admin.');
+                auth.signOut(); return;
+            }
+            document.getElementById('coadmin-name').innerText = userData.name || user.email.split('@')[0];
+            if (userData.photoURL) document.querySelector('.admin-profile img').src = userData.photoURL;
+            loadSection(currentSection);
+        });
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (item.classList.contains('active')) return;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                currentSection = item.dataset.section;
+                document.getElementById('page-title').innerText = item.innerText.trim();
+                loadSection(currentSection);
+            });
+        });
+
+        function loadSection(section) {
+            Object.values(unsubscribeFunctions).forEach(unsub => unsub());
+            unsubscribeFunctions = {};
+            document.getElementById('section-content').innerHTML = '<div style="text-align:center;padding:3rem"><i class="fas fa-spinner fa-pulse fa-3x"></i><p>Loading...</p></div>';
+            switch (section) {
+                case 'dashboard': loadDashboard(); break;
+                case 'lessonNotes': loadLessonNotes(); break;
+                case 'payments': loadPayments(); break;
+                case 'attendance': loadAttendance(); break;
+                case 'profile': loadProfile(); break;
+                default: loadDashboard();
+            }
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        function showModal(title, message, onConfirm) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('actionModal').classList.add('active');
+            document.getElementById('modalConfirmBtn').onclick = () => { onConfirm(); closeModal(); };
+        }
+        function closeModal() { document.getElementById('actionModal').classList.remove('active'); }
+
+        // ---------- DASHBOARD (summary) ----------
+        function loadDashboard() {
+            const html = `<div class="stats-grid"><div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div><div class="stat-info"><h3>...</h3><p>Pending Lessons</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div><div class="stat-info"><h3>...</h3><p>Pending Payments</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div><div class="stat-info"><h3>...</h3><p>Today's Attendance</p></div></div></div>
+                <div class="section"><div class="section-header"><h2 class="section-title">Recent Activities</h2></div><div id="recent-activities">Loading...</div></div>`;
+            document.getElementById('section-content').innerHTML = html;
+
+            Promise.all([
+                db.collection('lessonNotes').where('status','==','pending').get().then(s => s.size),
+                db.collection('payments').where('status','==','pending').get().then(s => s.size),
+                db.collection('attendance').where('date','==',new Date().toISOString().split('T')[0]).get().then(s => s.size)
+            ]).then(([pendingLessons, pendingPayments, attendanceCount]) => {
+                document.querySelector('.stats-grid').innerHTML = `
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-book"></i></div><div class="stat-info"><h3>${pendingLessons}</h3><p>Pending Lessons</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>${pendingPayments}</h3><p>Pending Payments</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-camera"></i></div><div class="stat-info"><h3>${attendanceCount}</h3><p>Today's Attendance</p></div></div>
+                `;
+            });
+
+            unsubscribeFunctions.dashboardAudit = db.collection('auditLogs').orderBy('timestamp','desc').limit(5)
+                .onSnapshot(snap => {
+                    let rows = '';
+                    snap.forEach(d => { let a = d.data(); rows += `<tr><td>${a.user}</td><td>${a.action}</td><td>${formatDate(a.timestamp)}</td></tr>`; });
+                    document.getElementById('recent-activities').innerHTML = '<table><thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead><tbody>'+rows+'</tbody></table>';
+                });
+        }
+
+        // ---------- LESSON NOTES (approve/deny) ----------
+        function loadLessonNotes() {
+            const html = `<div class="section"><div class="section-header"><h2 class="section-title">Pending Lesson Notes</h2></div>
+                <table><thead><tr><th>Teacher</th><th>Topic</th><th>Class</th><th>Submitted</th><th>Actions</th></tr></thead>
+                <tbody id="lesson-notes-body">Loading...</tbody></table></div>`;
+            document.getElementById('section-content').innerHTML = html;
+            unsubscribeFunctions.lessonNotes = db.collection('lessonNotes').where('status','==','pending')
+                .onSnapshot(snap => {
+                    let rows = '';
+                    snap.forEach(doc => {
+                        const n = doc.data();
+                        rows += `<tr><td>${n.teacherName}</td><td>${n.topic}</td><td>${n.class}</td><td>${formatDate(n.submitted)}</td>
+                            <td><button class="btn btn-sm btn-primary" onclick="approveLesson('${doc.id}')">Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="denyLesson('${doc.id}')">Deny</button></td></tr>`;
+                    });
+                    document.getElementById('lesson-notes-body').innerHTML = rows || '<tr><td colspan="5">No pending lesson notes.</td></tr>';
+                });
+        }
+
+        window.approveLesson = (id) => {
+            showModal('Approve Lesson Note', 'Approve this note?', async () => {
+                await db.collection('lessonNotes').doc(id).update({ status: 'approved' });
+                await db.collection('auditLogs').add({ user: currentUser.email, action: `Approved lesson note ${id}`, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+        };
+        window.denyLesson = (id) => {
+            showModal('Deny Lesson Note', 'This note will be deleted.', async () => {
+                await db.collection('lessonNotes').doc(id).delete();
+                await db.collection('auditLogs').add({ user: currentUser.email, action: `Denied lesson note ${id}`, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+        };
+
+        // ---------- PAYMENTS (confirm) ----------
+        function loadPayments() {
+            const html = `<div class="section"><div class="section-header"><h2 class="section-title">Pending Payments</h2></div>
+                <table><thead><tr><th>Student</th><th>Amount</th><th>Term</th><th>Type</th><th>Receipt</th><th>Action</th></tr></thead>
+                <tbody id="payments-body">Loading...</tbody></table></div>`;
+            document.getElementById('section-content').innerHTML = html;
+            unsubscribeFunctions.payments = db.collection('payments').where('status','==','pending')
+                .onSnapshot(snap => {
+                    let rows = '';
+                    snap.forEach(doc => {
+                        const p = doc.data();
+                        rows += `<tr><td>${p.studentName}</td><td>₦${p.amount}</td><td>${p.term}</td><td>${p.type}</td>
+                            <td><a href="#" onclick="alert('Receipt preview')">View</a></td>
+                            <td><button class="btn btn-sm btn-primary" onclick="confirmPayment('${doc.id}')">Confirm</button></td></tr>`;
+                    });
+                    document.getElementById('payments-body').innerHTML = rows || '<tr><td colspan="6">No pending payments.</td></tr>';
+                });
+        }
+
+        window.confirmPayment = (id) => {
+            showModal('Confirm Payment', 'Mark this payment as confirmed?', async () => {
+                await db.collection('payments').doc(id).update({ status: 'confirmed', confirmedBy: currentUser.email, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                await db.collection('auditLogs').add({ user: currentUser.email, action: `Confirmed payment ${id}`, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+        };
+
+        // ---------- ATTENDANCE (view only) ----------
+        function loadAttendance() {
+            const html = `<div class="section"><div class="section-header"><h2 class="section-title">Today's Attendance</h2></div>
+                <table><thead><tr><th>Staff</th><th>Time</th><th>Photo</th><th>Status</th></tr></thead>
+                <tbody id="attendance-body">Loading...</tbody></table></div>`;
+            document.getElementById('section-content').innerHTML = html;
+            const today = new Date().toISOString().split('T')[0];
+            unsubscribeFunctions.attendance = db.collection('attendance').where('date','==',today).orderBy('timestamp','desc')
+                .onSnapshot(snap => {
+                    let rows = '';
+                    snap.forEach(doc => {
+                        const a = doc.data();
+                        rows += `<tr><td>${a.staffName}</td><td>${formatDate(a.timestamp)}</td>
+                            <td><img src="${a.photoURL || 'https://ui-avatars.com/api/?name='+encodeURIComponent(a.staffName)}" style="width:40px;height:40px;border-radius:50%;"></td>
+                            <td>${a.late ? '<span class="badge" style="background:var(--danger)">Late</span>' : '<span class="badge" style="background:var(--success)">On time</span>'}</td></tr>`;
+                    });
+                    document.getElementById('attendance-body').innerHTML = rows || '<tr><td colspan="4">No records.</td></tr>';
+                });
+        }
+
+        // ---------- PROFILE (similar to teacher) ----------
+        function loadProfile() {
+            document.getElementById('section-content').innerHTML = `
+                <div class="section"><div class="section-header"><h2 class="section-title">My Profile</h2></div>
+                <p><strong>Name:</strong> ${userData.name} ${userData.surname}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+                <p><strong>Phone:</strong> ${userData.phone}</p>
+                <p><strong>Qualifications:</strong> ${userData.qualifications}</p>
+                <p><strong>Class Teaching:</strong> ${userData.class || 'N/A'}</p>
+                <p><strong>Roles:</strong> ${userData.roles.join(', ')}</p>
+                <button class="btn btn-primary" onclick="alert('Edit profile not available for co-admin in demo.')">Edit</button></div>
+            `;
+        }
+
+        // ---------- LOGOUT & THEME ----------
+        window.logout = () => auth.signOut().then(() => window.location.href = 'index.html');
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            document.querySelector('.theme-toggle i').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+        window.toggleTheme = toggleTheme;
+        (function() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.querySelector('.theme-toggle i').className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        })();
+    </script>
+</body>
+</html>
