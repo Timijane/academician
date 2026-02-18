@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUMETA | Master Admin Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --transition: all 0.3s ease;
+        }
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --accent: #38bdf8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        [data-theme="light"] {
+            --bg: #f1f5f9;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text: #0f172a;
+            --input-bg: rgba(0, 0, 0, 0.05);
+            --accent: #2563eb;
+            --border: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            padding: 3rem;
+            border-radius: 2rem;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h2 { font-size: 2rem; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        .sub-text { opacity: 0.7; font-size: 0.9rem; margin-bottom: 2rem; }
+
+        .input-group { margin-bottom: 1.2rem; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-size: 0.8rem; font-weight: 600; }
+        
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            outline: none;
+            transition: var(--transition);
+        }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: var(--transition);
+        }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .auth-switch { margin-top: 1.5rem; font-size: 0.85rem; }
+        .auth-switch span { color: var(--accent); cursor: pointer; font-weight: bold; }
+
+        .error-msg {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <div class="glass-card">
+        <i class="fas fa-crown" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
+        <h2 id="title">Admin Login</h2>
+        <p class="sub-text" id="description">Access the EDUMETA Engine Room</p>
+
+        <div id="errorMessage" class="error-msg"></div>
+
+        <form id="adminForm">
+            <div class="input-group" id="nameGroup" style="display: none;">
+                <label>Full Name</label>
+                <input type="text" id="adminName" placeholder="Enter your full name">
+            </div>
+            <div class="input-group">
+                <label>Institutional Email</label>
+                <input type="email" id="adminEmail" required placeholder="admin@edumeta.com">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="adminPass" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn-primary" id="submitBtn">Sign In</button>
+        </form>
+
+        <div class="auth-switch">
+            <p id="toggleText">Don't have an account? <span onclick="switchMode()">Request Access</span></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+            authDomain: "edumeta-c5588.firebaseapp.com",
+            projectId: "edumeta-c5588",
+            storageBucket: "edumeta-c5588.firebasestorage.app",
+            messagingSenderId: "332853259697",
+            appId: "1:332853259697:web:92e0c07e43d1c3bf432190"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let isLogin = true;
+        const MASTER_EMAIL = "okewunmitimileyin23@gmail.com";
+
+        window.switchMode = () => {
+            isLogin = !isLogin;
+            document.getElementById('title').innerText = isLogin ? "Admin Login" : "Admin Signup";
+            document.getElementById('submitBtn').innerText = isLogin ? "Sign In" : "Register";
+            document.getElementById('nameGroup').style.display = isLogin ? "none" : "block";
+            document.getElementById('toggleText').innerHTML = isLogin ? 
+                `Don't have an account? <span onclick="switchMode()">Request Access</span>` : 
+                `Already registered? <span onclick="switchMode()">Login</span>`;
+        };
+
+        document.getElementById('adminForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value;
+            const pass = document.getElementById('adminPass').value;
+            const errorDiv = document.getElementById('errorMessage');
+
+            errorDiv.style.display = "none";
+
+            try {
+                if (isLogin) {
+                    // 1. LOGIN LOGIC
+                    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                    const user = userCredential.user;
+
+                    // Security Check: Is this the Master Admin Email?
+                    if (user.email !== MASTER_EMAIL) {
+                        // Check if they are a promoted Co-Admin
+                        const userDoc = await getDoc(doc(db, "users", user.uid));
+                        if (userDoc.exists() && (userDoc.data().role === "master-admin" || userDoc.data().role === "co-admin")) {
+                            window.location.href = "master-dashboard.html";
+                        } else {
+                            throw new Error("Access Denied: Not an authorized Admin.");
+                        }
+                    } else {
+                        window.location.href = "master-dashboard.html";
+                    }
+                } else {
+                    // 2. SIGNUP LOGIC
+                    if (email !== MASTER_EMAIL) {
+                        alert("Only the designated Master Admin email can register through this portal. Others must be invited.");
+                        return;
+                    }
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                    await setDoc(doc(db, "users", userCredential.user.uid), {
+                        name: document.getElementById('adminName').value,
+                        email: email,
+                        role: "master-admin",
+                        status: "active"
+                    });
+                    window.location.href = "master-dashboard.html";
+                }
+            } catch (error) {
+                errorDiv.innerText = error.message;
+                errorDiv.style.display = "block";
+            }
+        });
+
+        window.toggleTheme = () => {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            document.getElementById('themeIcon').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        };
+    </script>
+</body>
+</html>
