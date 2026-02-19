@@ -187,6 +187,22 @@
             <h2>Create master account</h2>
             <div class="sub">First admin only</div>
             <form id="adminSignupForm">
+                <!-- NEW: First Name -->
+                <div class="input-group">
+                    <label>First Name</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="signupFirstName" placeholder="John" required>
+                    </div>
+                </div>
+                <!-- NEW: Surname -->
+                <div class="input-group">
+                    <label>Surname</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="signupSurname" placeholder="Doe" required>
+                    </div>
+                </div>
                 <div class="input-group">
                     <label>Email (must be Gmail)</label>
                     <div class="input-wrapper">
@@ -434,9 +450,11 @@
             }
         });
 
-        // ==================== SIGNUP HANDLER ====================
+        // ==================== SIGNUP HANDLER (with name fields) ====================
         document.getElementById('adminSignupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const firstName = document.getElementById('signupFirstName').value.trim();
+            const surname = document.getElementById('signupSurname').value.trim();
             const email = document.getElementById('signupEmail').value.trim();
             const password = document.getElementById('signupPassword').value.trim();
             const confirm = document.getElementById('signupConfirm').value.trim();
@@ -450,7 +468,7 @@
             infoDiv.style.display = 'none';
 
             // Basic validation
-            if (!email || !password || !confirm) {
+            if (!firstName || !surname || !email || !password || !confirm) {
                 errorDiv.textContent = 'All fields are required.';
                 errorDiv.style.display = 'block';
                 return;
@@ -494,8 +512,10 @@
                 // Send email verification
                 await user.sendEmailVerification();
 
-                // Create user document in Firestore
+                // Create user document in Firestore with firstName and surname
                 await db.collection('users').doc(user.uid).set({
+                    firstName: firstName,
+                    surname: surname,
                     email: user.email,
                     role: 'master-admin',
                     status: 'pending',   // will be approved after email verification? or manually
