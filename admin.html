@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUMETA · Master Admin (Live)</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDK (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <!-- Chart.js (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* (Same CSS as before – no changes) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f4fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #334155;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: rgba(0, 0, 0, 0.1);
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --sidebar-bg: rgba(255, 255, 255, 0.8);
+            --shadow: 0 10px 30px -10px rgba(0,0,0,0.2);
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #ca8a04;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0b1120;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: rgba(255, 255, 255, 0.08);
+            --card-bg: rgba(15, 23, 42, 0.8);
+            --sidebar-bg: rgba(15, 23, 42, 0.9);
+            --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #eab308;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0 1rem;
+        }
+        .logo-icon {
+            font-size: 2rem;
+            color: var(--accent);
+        }
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.4rem;
+            letter-spacing: -0.5px;
+        }
+        .logo-small {
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .nav-item i {
+            width: 24px;
+            font-size: 1.2rem;
+        }
+        .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+        .nav-item:hover:not(.active) {
+            background: var(--card-bg);
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .page-title {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+        }
+        .admin-profile img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Cards & sections */
+        .section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .section-title {
+            font-weight: 600;
+            font-size: 1.3rem;
+        }
+        .badge {
+            background: var(--accent);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 1rem;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+        .stat-info h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        .stat-info p {
+            color: var(--text-secondary);
+        }
+
+        .alert-banner {
+            background: var(--warning);
+            color: black;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            padding: 0.8rem 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 0.8rem 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        .btn-danger {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+        .btn-sm {
+            padding: 0.2rem 0.8rem;
+            font-size: 0.85rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 2rem;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-shield-halved logo-icon"></i>
+            <div>
+                <div class="logo-text">EDUMETA</div>
+                <div class="logo-small">Master Admin</div>
+            </div>
+        </div>
+        <nav class="nav">
+            <div class="nav-item active" data-section="dashboard"><i class="fas fa-home"></i> Dashboard</div>
+            <div class="nav-item" data-section="teachers"><i class="fas fa-chalkboard-user"></i> Teachers</div>
+            <div class="nav-item" data-section="lessons"><i class="fas fa-book-open"></i> Lesson Notes</div>
+            <div class="nav-item" data-section="payments"><i class="fas fa-coins"></i> Payments</div>
+            <div class="nav-item" data-section="students"><i class="fas fa-user-graduate"></i> Students</div>
+            <div class="nav-item" data-section="attendance"><i class="fas fa-camera"></i> Attendance</div>
+            <div class="nav-item" data-section="audit"><i class="fas fa-history"></i> Audit Logs</div>
+            <div class="nav-item" data-section="settings"><i class="fas fa-cog"></i> Settings</div>
+        </nav>
+        <div style="margin-top: auto;">
+            <div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+        <div class="top-bar">
+            <h1 class="page-title" id="page-title">Dashboard</h1>
+            <div class="admin-info">
+                <div class="theme-toggle" onclick="toggleTheme()">
+                    <i class="fas fa-moon"></i>
+                    <span>Theme</span>
+                </div>
+                <div class="admin-profile" id="admin-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=2563eb&color=fff" alt="Admin">
+                    <span id="admin-name">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic sections will be injected here -->
+        <div id="section-content">
+            <div style="text-align: center; padding: 3rem;"><i class="fas fa-spinner fa-pulse fa-3x"></i><p>Loading dashboard...</p></div>
+        </div>
+    </main>
+
+    <!-- Generic modal for actions -->
+    <div id="actionModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Confirm Action</h3>
+            <p id="modalMessage"></p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // FIREBASE INITIALIZATION
+        // ========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+            authDomain: "edumeta-c5588.firebaseapp.com",
+            projectId: "edumeta-c5588",
+            storageBucket: "edumeta-c5588.firebasestorage.app",
+            messagingSenderId: "332853259697",
+            appId: "1:332853259697:web:92e0c07e43d1c3bf432190",
+            measurementId: "G-WY24HER46Q"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // ========================================================
+        // GLOBAL STATE
+        // ========================================================
+        let currentSection = 'dashboard';
+        let currentUser = null;
+        let userData = null;
+        let unsubscribeFunctions = {};
+
+        // ========================================================
+        // AUTH STATE OBSERVER (ROLE‑BASED) – FIXED REDIRECTS
+        // ========================================================
+        const LOGIN_PAGE = 'admin.html'; // Change to your actual admin login page
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                // Not logged in → redirect to admin login
+                window.location.href = LOGIN_PAGE;
+                return;
+            }
+
+            try {
+                // Fetch user document from Firestore using UID
+                const userDoc = await db.collection('users').doc(user.uid).get();
+
+                if (!userDoc.exists) {
+                    alert('User record not found in database. Please contact support.');
+                    await auth.signOut();
+                    window.location.href = LOGIN_PAGE;
+                    return;
+                }
+
+                userData = userDoc.data();
+
+                // Check if account is approved
+                if (userData.status !== 'approved') {
+                    alert(`Your account is not approved yet. Current status: ${userData.status || 'unknown'}`);
+                    await auth.signOut();
+                    window.location.href = LOGIN_PAGE;
+                    return;
+                }
+
+                // Check if the user has the master-admin role
+                if (userData.role !== 'master-admin') {
+                    alert(`Access denied. You are logged in as ${userData.role || 'unknown role'}. This area is for master admins only.`);
+                    await auth.signOut();
+                    window.location.href = LOGIN_PAGE;
+                    return;
+                }
+
+                // All checks passed – set current user and proceed
+                currentUser = user;
+                document.getElementById('admin-name').innerText = userData.name || user.email.split('@')[0];
+                document.querySelector('.admin-profile img').src = userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=2563eb&color=fff`;
+
+                // Load the initial section
+                loadSection(currentSection);
+
+            } catch (error) {
+                console.error('Error during authentication check:', error);
+                alert('An error occurred while verifying your access. Please try again.');
+                await auth.signOut();
+                window.location.href = LOGIN_PAGE;
+            }
+        });
+
+        // ========================================================
+        // NAVIGATION
+        // ========================================================
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (item.classList.contains('active')) return;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                currentSection = item.dataset.section;
+                document.getElementById('page-title').innerText = item.innerText.trim();
+                loadSection(currentSection);
+            });
+        });
+
+        function loadSection(section) {
+            // Unsubscribe from previous listeners
+            Object.values(unsubscribeFunctions).forEach(unsub => unsub());
+            unsubscribeFunctions = {};
+
+            // Show loading
+            document.getElementById('section-content').innerHTML = '<div style="text-align: center; padding: 3rem;"><i class="fas fa-spinner fa-pulse fa-3x"></i><p>Loading...</p></div>';
+
+            switch (section) {
+                case 'dashboard': loadDashboard(); break;
+                case 'teachers': loadTeachers(); break;
+                case 'lessons': loadLessonNotes(); break;
+                case 'payments': loadPayments(); break;
+                case 'students': loadStudents(); break;
+                case 'attendance': loadAttendance(); break;
+                case 'audit': loadAuditLogs(); break;
+                case 'settings': renderSettings(); break; // settings is static
+                default: loadDashboard();
+            }
+        }
+
+        // ========================================================
+        // HELPER FUNCTIONS
+        // ========================================================
+        function formatDate(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        function showModal(title, message, onConfirm) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('actionModal').classList.add('active');
+            document.getElementById('modalConfirmBtn').onclick = () => { onConfirm(); closeModal(); };
+        }
+
+        function closeModal() {
+            document.getElementById('actionModal').classList.remove('active');
+        }
+
+        function addAuditLog(action) {
+            // Only super admin can write audit logs (rules will enforce)
+            db.collection('auditLogs').add({
+                user: currentUser.email,
+                action: action,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.error('Audit log failed:', err));
+        }
+
+        // ========================================================
+        // DASHBOARD
+        // ========================================================
+        function loadDashboard() {
+            const content = document.getElementById('section-content');
+            content.innerHTML = `
+                <div class="stats-grid" id="dashboard-stats">
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div><div class="stat-info"><h3>...</h3><p>Pending Teachers</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div><div class="stat-info"><h3>...</h3><p>Pending Lessons</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div><div class="stat-info"><h3>...</h3><p>Pending Payments</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-pulse"></i></div><div class="stat-info"><h3>...</h3><p>Late Arrivals Today</p></div></div>
+                </div>
+                <div class="section" id="recent-activities">
+                    <div class="section-header"><h2 class="section-title">Recent Activities</h2></div>
+                    <table><thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead><tbody id="recent-activities-body"><tr><td colspan="3">Loading...</td></tr></tbody></table>
+                </div>
+            `;
+
+            // Fetch counts
+            const pendingTeachers = db.collection('users').where('status', '==', 'pending').where('roles', 'array-contains', 'teacher');
+            const pendingLessons = db.collection('lessonNotes').where('status', '==', 'pending');
+            const pendingPayments = db.collection('payments').where('status', '==', 'pending');
+            const today = new Date().toISOString().split('T')[0];
+            const lateAttendance = db.collection('attendance').where('date', '==', today).where('late', '==', true);
+
+            Promise.all([
+                pendingTeachers.get().then(snap => snap.size),
+                pendingLessons.get().then(snap => snap.size),
+                pendingPayments.get().then(snap => snap.size),
+                lateAttendance.get().then(snap => snap.size)
+            ]).then(([teachers, lessons, payments, late]) => {
+                document.getElementById('dashboard-stats').innerHTML = `
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-chalkboard-user"></i></div><div class="stat-info"><h3>${teachers}</h3><p>Pending Teachers</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-book"></i></div><div class="stat-info"><h3>${lessons}</h3><p>Pending Lessons</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>${payments}</h3><p>Pending Payments</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>${late}</h3><p>Late Arrivals Today</p></div></div>
+                `;
+            });
+
+            // Real-time recent activities (last 5 audit logs)
+            unsubscribeFunctions.dashboardAudit = db.collection('auditLogs')
+                .orderBy('timestamp', 'desc')
+                .limit(5)
+                .onSnapshot(snapshot => {
+                    let html = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        html += `<tr><td>${data.user}</td><td>${data.action}</td><td>${formatDate(data.timestamp)}</td></tr>`;
+                    });
+                    document.getElementById('recent-activities-body').innerHTML = html || '<tr><td colspan="3">No recent activities</td></tr>';
+                });
+        }
+
+        // ========================================================
+        // TEACHERS SECTION
+        // ========================================================
+        function loadTeachers() {
+            const content = document.getElementById('section-content');
+            content.innerHTML = `
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">Teachers & Staff</h2><span class="badge" id="teacher-count">0</span></div>
+                    <table><thead><tr><th>Photo</th><th>Name</th><th>Class</th><th>Status</th><th>Roles</th><th>Actions</th></tr></thead><tbody id="teachers-body"><tr><td colspan="6">Loading...</td></tr></tbody></table>
+                </div>
+            `;
+
+            unsubscribeFunctions.teachers = db.collection('users')
+                .where('roles', 'array-contains', 'teacher') // includes teachers and possibly co-admins
+                .onSnapshot(snapshot => {
+                    let teachers = [];
+                    snapshot.forEach(doc => teachers.push({ id: doc.id, ...doc.data() }));
+                    document.getElementById('teacher-count').innerText = teachers.length;
+                    let html = '';
+                    teachers.forEach(t => {
+                        const status = t.status || 'pending';
+                        const roles = t.roles ? t.roles.join(', ') : 'teacher';
+                        const photo = t.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name || t.email)}&background=2563eb&color=fff`;
+                        html += `<tr>
+                            <td><img src="${photo}" style="width:40px;height:40px;border-radius:50%;"></td>
+                            <td>${t.name || ''} ${t.surname || ''}</td>
+                            <td>${t.class || 'N/A'}</td>
+                            <td><span class="badge" style="background:${status === 'approved' ? 'var(--success)' : 'var(--warning)'}">${status}</span></td>
+                            <td>${roles}</td>
+                            <td>
+                                ${status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="approveTeacher('${t.id}')">Approve</button>` : ''}
+                                <button class="btn btn-sm" onclick="promoteTeacher('${t.id}')">Promote</button>
+                                <button class="btn btn-sm" onclick="queryTeacher('${t.id}')">Query</button>
+                                <button class="btn btn-sm btn-danger" onclick="sackTeacher('${t.id}')">Sack</button>
+                            </td>
+                        </tr>`;
+                    });
+                    document.getElementById('teachers-body').innerHTML = html || '<tr><td colspan="6">No teachers found</td></tr>';
+                });
+        }
+
+        // Teacher actions (Firebase writes)
+        window.approveTeacher = (id) => {
+            showModal('Approve Teacher', 'Approve this teacher?', async () => {
+                await db.collection('users').doc(id).update({ status: 'approved' });
+                addAuditLog(`Approved teacher ${id}`);
+            });
+        };
+
+        window.promoteTeacher = (id) => {
+            // In production, you'd show a role picker. For demo, add co-admin.
+            showModal('Promote Teacher', 'Add co-admin role?', async () => {
+                const doc = await db.collection('users').doc(id).get();
+                const currentRoles = doc.data().roles || ['teacher'];
+                if (!currentRoles.includes('co-admin')) {
+                    currentRoles.push('co-admin');
+                    await db.collection('users').doc(id).update({ roles: currentRoles });
+                    addAuditLog(`Promoted teacher ${id} to co-admin`);
+                }
+            });
+        };
+
+        window.queryTeacher = (id) => {
+            const reason = prompt('Enter reason for query:');
+            if (reason) {
+                addAuditLog(`Queried teacher ${id}: ${reason}`);
+                alert('Query recorded (simulated)');
+            }
+        };
+
+        window.sackTeacher = (id) => {
+            showModal('Sack Teacher', 'This action is irreversible. Continue?', async () => {
+                await db.collection('users').doc(id).delete();
+                addAuditLog(`Sacked teacher ${id}`);
+            });
+        };
+
+        // ========================================================
+        // LESSON NOTES
+        // ========================================================
+        function loadLessonNotes() {
+            const content = document.getElementById('section-content');
+            content.innerHTML = `
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">Lesson Notes for Review</h2></div>
+                    <table><thead><tr><th>Teacher</th><th>Topic</th><th>Class</th><th>Submitted</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead><tbody id="lesson-notes-body"><tr><td colspan="7">Loading...</td></tr></tbody></table>
+                </div>
+            `;
+
+            unsubscribeFunctions.lessonNotes = db.collection('lessonNotes')
+                .orderBy('submitted', 'desc')
+                .onSnapshot(snapshot => {
+                    let notes = [];
+                    snapshot.forEach(doc => notes.push({ id: doc.id, ...doc.data() }));
+                    let html = '';
+                    notes.forEach(n => {
+                        const teacherName = n.teacherName || 'Unknown';
+                        html += `<tr>
+                            <td>${teacherName}</td>
+                            <td>${n.topic}</td>
+                            <td>${n.class}</td>
+                            <td>${formatDate(n.submitted)}</td>
+                            <td><span class="badge" style="background:${n.status === 'approved' ? 'var(--success)' : 'var(--warning)'}">${n.status}</span></td>
+                            <td>${n.startTime ? n.startTime.toDate().toLocaleTimeString() : ''} - ${n.endTime ? n.endTime.toDate().toLocaleTimeString() : ''}</td>
+                            <td>
+                                ${n.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-primary" onclick="approveLesson('${n.id}')">Approve</button>
+                                    <button class="btn btn-sm btn-danger" onclick="denyLesson('${n.id}')">Deny</button>
+                                ` : ''}
+                                <button class="btn btn-sm" onclick="viewLessonDetails('${n.id}')">Details</button>
+                            </td>
+                        </tr>`;
+                    });
+                    document.getElementById('lesson-notes-body').innerHTML = html || '<tr><td colspan="7">No lesson notes</td></tr>';
+                });
+        }
+
+        window.approveLesson = (id) => {
+            showModal('Approve Lesson Note', 'Approve this lesson note?', async () => {
+                await db.collection('lessonNotes').doc(id).update({ status: 'approved' });
+                addAuditLog(`Approved lesson note ${id}`);
+            });
+        };
+
+        window.denyLesson = (id) => {
+            showModal('Deny Lesson Note', 'This note will be deleted. Teacher must resubmit.', async () => {
+                await db.collection('lessonNotes').doc(id).delete();
+                addAuditLog(`Denied lesson note ${id}`);
+            });
+        };
+
+        window.viewLessonDetails = (id) => {
+            alert(`Viewing details for lesson note ${id} (simulated)`);
+        };
+
+        // ========================================================
+        // PAYMENTS
+        // ========================================================
+        function loadPayments() {
+            const content = document.getElementById('section-content');
+            content.innerHTML = `
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">Pending Payment Confirmations</h2></div>
+                    <table><thead><tr><th>Student</th><th>Amount</th><th>Term</th><th>Type</th><th>Receipt</th><th>Action</th></tr></thead><tbody id="payments-pending-body"><tr><td colspan="6">Loading...</td></tr></tbody></table>
+                </div>
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">Payment History</h2></div>
+                    <table><thead><tr><th>Student</th><th>Amount</th><th>Term</th><th>Confirmed By</th><th>Date</th></tr></thead><tbody id="payments-history-body"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+                </div>
+            `;
+
+            unsubscribeFunctions.payments = db.collection('payments')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snapshot => {
+                    let pendingHtml = '', historyHtml = '';
+                    snapshot.forEach(doc => {
+                        const p = { id: doc.id, ...doc.data() };
+                        const row = `<tr>
+                            <td>${p.studentName} (${p.studentId})</td>
+                            <td>₦${p.amount}</td>
+                            <td>${p.term}</td>
+                            <td>${p.type}</td>
+                            ${p.status === 'pending' ? 
+                                `<td><a href="#" onclick="alert('Receipt preview')">${p.receipt || 'View'}</a></td>
+                                 <td><button class="btn btn-sm btn-primary" onclick="confirmPayment('${p.id}')">Confirm</button></td>` : 
+                                `<td>${p.confirmedBy}</td><td>${formatDate(p.timestamp)}</td>`
+                            }
+                        </tr>`;
+                        if (p.status === 'pending') pendingHtml += row;
+                        else historyHtml += row;
+                    });
+                    document.getElementById('payments-pending-body').innerHTML = pendingHtml || '<tr><td colspan="6">No pending payments</td></tr>';
+                    document.getElementById('payments-history-body').innerHTML = historyHtml || '<tr><td colspan="5">No payment history</td></tr>';
+                });
+        }
+
+        window.confirmPayment = (id) => {
+            showModal('Confirm Payment', 'Mark this payment as confirmed?', async () => {
+                await db.collection('payments').doc(id).update({
+                    status: 'confirmed',
+                    confirmedBy: currentUser.email,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                addAuditLog(`Confirmed payment ${id}`);
+            });
+        };
+
+        // ========================================================
+        // STUDENTS
+        // ========================================================
+        function loadStudents() {
+            const content = document.getElementById('section-content');
+            content.innerHTML = `
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">Student Management</h2></div>
+                    <table><thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Performance</th><th>Status</th><th>Prefect</th><th>Actions</th></tr></thead><tbody id="students-body"><tr><td colspan="7">Loading...</td></tr></tbody></table>
+                </div>
+            `;
+
+            unsubscribeFunctions.students = db.collection('students')
+                .onSnapshot(snapshot => {
+                    let html = '';
+                    snapshot.forEach(doc => {
+                        const s = { id: doc.id, ...doc.data() };
+                        html += `<tr>
+                            <td>${s.studentId || s.id}</td>
+                            <td>${s.name}</td>
+                            <td>${s.class}</td>
+                            <td>${s.performance || 0}%</td>
+                            <td>${s.suspended ? 'Suspended' : 'Active'}</td>
+                            <td>${s.prefect || 'None'}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="viewStudentProfile('${s.id}')">Profile</button>
+                                ${!s.suspended ? `<button class="btn btn-sm btn-danger" onclick="suspendStudent('${s.id}')">Suspend</button>` : `<button class="btn btn-sm btn-success" onclick="reinstateStudent('${s.id}')">Reinstate</button>`}
+                                <button class="btn btn-sm" onclick="appointPrefect('${s.id}')">Appoint Prefect</button>
+                            </td>
+                        </tr>`;
+                    });
+                    document.getElementById('students-body').innerHTML = html || '<tr><td colspan="7">No students found</td></tr>';
+                });
+        }
+
+        window.viewStudentProfile = (id) => alert(`View profile for ${id}`);
+        window.suspendStudent = (id) => {
+            showModal('Suspend Student', 'Suspend this student?', async () => {
+                await db.collection('students').doc(id).update({ suspended: true });
+                addAuditLog(`Suspended student ${id}`);
+            });
+        };
+        window.reinstateStudent = (id) => {
+            showModal('Reinstate Student', 'Reinstate this student?', async () => {
+                await db.collection('students').doc(id).update({ suspended: false });
+                addAuditLog(`Reinstated student ${id}`);
+            });
+        };
+        window.appointPrefect = (id) => {
+            const role = prompt('Enter prefect role (e.g., Sports):');
+            if (role) {
+                db.collection('students').doc(id).update({ prefect: role });
+                addAuditLog(`Appointed student ${id} as ${role} prefect`);
+            }
+        };
+
+        // ========================================================
+        // ATTENDANCE
+        // ========================================================
+        function loadAttendance() {
+            const content = document.getElementById('section-content');
+            content.innerHTML = `
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">Today's Gate Attendance</h2></div>
+                    <table><thead><tr><th>Photo</th><th>Staff</th><th>Time</th><th>Status</th></tr></thead><tbody id="attendance-body"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+                </div>
+            `;
+
+            const today = new Date().toISOString().split('T')[0];
+            unsubscribeFunctions.attendance = db.collection('attendance')
+                .where('date', '==', today)
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snapshot => {
+                    let html = '';
+                    snapshot.forEach(doc => {
+                        const a = doc.data();
+                        const photo = a.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.staffName)}&background=2563eb&color=fff`;
+                        html += `<tr>
+                            <td><img src="${photo}" style="width:40px;height:40px;border-radius:50%;"></td>
+                            <td>${a.staffName}</td>
+                            <td>${formatDate(a.timestamp)}</td>
+                            <td>${a.late ? '<span class="badge" style="background:var(--danger)">Late</span>' : '<span class="badge" style="background:var(--success)">On time</span>'}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('attendance-body').innerHTML = html || '<tr><td colspan="4">No attendance records for today</td></tr>';
+                });
+        }
+
+        // ========================================================
+        // AUDIT LOGS
+        // ========================================================
+        function loadAuditLogs() {
+            const content = document.getElementById('section-content');
+            content.innerHTML = `
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">System Audit Logs</h2><button class="btn btn-danger" onclick="clearAllLogs()">Clear All Logs</button></div>
+                    <table><thead><tr><th>User</th><th>Action</th><th>Timestamp</th><th>Delete</th></tr></thead><tbody id="audit-logs-body"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+                </div>
+            `;
+
+            unsubscribeFunctions.auditLogs = db.collection('auditLogs')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snapshot => {
+                    let html = '';
+                    snapshot.forEach(doc => {
+                        const log = doc.data();
+                        html += `<tr>
+                            <td>${log.user}</td>
+                            <td>${log.action}</td>
+                            <td>${formatDate(log.timestamp)}</td>
+                            <td><button class="btn btn-sm btn-danger" onclick="deleteLog('${doc.id}')">Delete</button></td>
+                        </tr>`;
+                    });
+                    document.getElementById('audit-logs-body').innerHTML = html || '<tr><td colspan="4">No audit logs</td></tr>';
+                });
+        }
+
+        window.deleteLog = (id) => {
+            showModal('Delete Log', 'Delete this log entry?', async () => {
+                await db.collection('auditLogs').doc(id).delete();
+                // No need to add audit log for deletion? Could but may cause loop.
+            });
+        };
+
+        window.clearAllLogs = () => {
+            showModal('Clear All Logs', 'Are you sure? This cannot be undone.', async () => {
+                const snapshot = await db.collection('auditLogs').get();
+                const batch = db.batch();
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                addAuditLog('Cleared all audit logs');
+            });
+        };
+
+        // ========================================================
+        // SETTINGS (static for now)
+        // ========================================================
+        function renderSettings() {
+            document.getElementById('section-content').innerHTML = `
+                <div class="section">
+                    <div class="section-header"><h2 class="section-title">Role & Permission Settings</h2></div>
+                    <p>Assign class teachers, HODs, etc. (mock UI – will be expanded)</p>
+                    <div style="display:grid; gap:1rem;">
+                        <div><strong>Current Class Teachers:</strong> Jane Smith (JSS1), Peter Obi (SSS2)</div>
+                        <div><strong>HODs:</strong> Jane Smith (Science), Peter Obi (Arts)</div>
+                        <button class="btn btn-primary" onclick="alert('Role assignment interface would open')">Manage Roles</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ========================================================
+        // LOGOUT & THEME
+        // ========================================================
+        window.logout = () => {
+            auth.signOut().then(() => window.location.href = 'admin.html'); // Redirect to login
+        };
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            document.querySelector('.theme-toggle i').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+        window.toggleTheme = toggleTheme;
+
+        // Initial theme icon
+        (function() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.querySelector('.theme-toggle i').className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        })();
+    </script>
+</body>
+</html>
