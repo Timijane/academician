@@ -8,7 +8,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
+        /* (same CSS as before – no changes) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -122,12 +127,16 @@
         .btn-primary:hover {
             filter: brightness(1.1); transform: scale(1.02);
         }
+        .btn-primary:disabled {
+            opacity: 0.6; cursor: not-allowed;
+        }
 
         .message {
             font-size: 0.9rem; margin-top: 0.5rem; display: none;
         }
         .error-message { color: var(--error); }
         .success-message { color: var(--success); }
+        .info-message { color: var(--accent); }
 
         .footer-note {
             margin-top: 1.5rem; text-align: center; font-size: 0.9rem;
@@ -168,7 +177,8 @@
                     </div>
                 </div>
                 <div class="message error-message" id="loginError"></div>
-                <button type="submit" class="btn-primary">Sign in as Admin</button>
+                <div class="message info-message" id="loginInfo"></div>
+                <button type="submit" class="btn-primary" id="loginBtn">Sign in as Admin</button>
             </form>
         </div>
 
@@ -203,7 +213,8 @@
                 </div>
                 <div class="message error-message" id="signupError"></div>
                 <div class="message success-message" id="signupSuccess"></div>
-                <button type="submit" class="btn-primary">Register as Master Admin</button>
+                <div class="message info-message" id="signupInfo"></div>
+                <button type="submit" class="btn-primary" id="signupBtn">Register as Master Admin</button>
             </form>
         </div>
 
@@ -213,6 +224,20 @@
     </div>
 
     <script>
+        // ==================== FIREBASE INIT ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
+            authDomain: "edumeta-c5588.firebaseapp.com",
+            projectId: "edumeta-c5588",
+            storageBucket: "edumeta-c5588.firebasestorage.app",
+            messagingSenderId: "332853259697",
+            appId: "1:332853259697:web:92e0c07e43d1c3bf432190",
+            measurementId: "G-WY24HER46Q"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
         // ==================== THEME TOGGLE ====================
         (function() {
             const html = document.documentElement;
@@ -248,6 +273,7 @@
             signupTab.classList.remove('active');
             loginDiv.classList.remove('hidden');
             signupDiv.classList.add('hidden');
+            clearMessages();
         });
 
         signupTab.addEventListener('click', () => {
@@ -255,7 +281,16 @@
             loginTab.classList.remove('active');
             signupDiv.classList.remove('hidden');
             loginDiv.classList.add('hidden');
+            clearMessages();
         });
+
+        function clearMessages() {
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('loginInfo').style.display = 'none';
+            document.getElementById('signupError').style.display = 'none';
+            document.getElementById('signupSuccess').style.display = 'none';
+            document.getElementById('signupInfo').style.display = 'none';
+        }
 
         // ==================== PASSWORD TOGGLE ====================
         window.togglePassword = function(fieldId, eyeIcon) {
@@ -286,12 +321,39 @@
             strengthDiv.innerHTML = `Strength: <span style="color:${color}">${strength}</span>`;
         });
 
-        // ==================== LOGIN VALIDATION ====================
-        document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
+        // ==================== CHECK EXISTING SESSION ====================
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // Already logged in – check if verified and has master-admin rights
+                try {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (user.emailVerified && userDoc.exists && userDoc.data().role === 'master-admin' && userDoc.data().status === 'approved') {
+                        // Redirect to dashboard
+                        window.location.href = 'admin-dashboard.html';
+                    } else {
+                        // Not fully ready – stay on login page but maybe show message
+                        if (!user.emailVerified) {
+                            showLoginInfo('Please verify your email before logging in. Check your inbox.');
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error checking user doc:', e);
+                }
+            }
+        });
+
+        // ==================== LOGIN HANDLER ====================
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             const errorDiv = document.getElementById('loginError');
+            const infoDiv = document.getElementById('loginInfo');
+            const loginBtn = document.getElementById('loginBtn');
+
+            errorDiv.style.display = 'none';
+            infoDiv.style.display = 'none';
+
             if (!email || !password) {
                 errorDiv.textContent = 'Both fields are required.';
                 errorDiv.style.display = 'block';
@@ -302,23 +364,92 @@
                 errorDiv.style.display = 'block';
                 return;
             }
-            errorDiv.style.display = 'none';
-            // Demo redirect (replace with Firebase later)
-            alert('Login successful (demo). Redirecting to dashboard...');
-            window.location.href = 'admin-dashboard.html';
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Check email verification
+                if (!user.emailVerified) {
+                    errorDiv.textContent = 'Please verify your email before logging in. Check your inbox.';
+                    errorDiv.style.display = 'block';
+                    await auth.signOut();
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign in as Admin';
+                    return;
+                }
+
+                // Fetch user document from Firestore
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    errorDiv.textContent = 'User record not found. Please contact support.';
+                    errorDiv.style.display = 'block';
+                    await auth.signOut();
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign in as Admin';
+                    return;
+                }
+
+                const userData = userDoc.data();
+
+                // Check role
+                if (userData.role !== 'master-admin') {
+                    errorDiv.textContent = `Access denied. You are logged in as ${userData.role || 'unknown'}.`;
+                    errorDiv.style.display = 'block';
+                    await auth.signOut();
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign in as Admin';
+                    return;
+                }
+
+                // Check status (if pending, auto-approve? For now require approved)
+                if (userData.status !== 'approved') {
+                    // Option: if email verified and status pending, we could auto-approve
+                    if (userData.status === 'pending') {
+                        // Auto-approve
+                        await db.collection('users').doc(user.uid).update({ status: 'approved' });
+                        infoDiv.textContent = 'Account auto-approved. Redirecting...';
+                        infoDiv.style.display = 'block';
+                    } else {
+                        errorDiv.textContent = `Your account is not approved. Status: ${userData.status}`;
+                        errorDiv.style.display = 'block';
+                        await auth.signOut();
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Sign in as Admin';
+                        return;
+                    }
+                }
+
+                // All good – redirect to dashboard
+                window.location.href = 'admin-dashboard.html';
+            } catch (error) {
+                console.error('Login error:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign in as Admin';
+            }
         });
 
-        // ==================== SIGNUP VALIDATION ====================
-        document.getElementById('adminSignupForm').addEventListener('submit', (e) => {
+        // ==================== SIGNUP HANDLER ====================
+        document.getElementById('adminSignupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('signupEmail').value.trim();
             const password = document.getElementById('signupPassword').value.trim();
             const confirm = document.getElementById('signupConfirm').value.trim();
             const errorDiv = document.getElementById('signupError');
             const successDiv = document.getElementById('signupSuccess');
+            const infoDiv = document.getElementById('signupInfo');
+            const signupBtn = document.getElementById('signupBtn');
+
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
+            infoDiv.style.display = 'none';
 
+            // Basic validation
             if (!email || !password || !confirm) {
                 errorDiv.textContent = 'All fields are required.';
                 errorDiv.style.display = 'block';
@@ -339,15 +470,60 @@
                 errorDiv.style.display = 'block';
                 return;
             }
-            // Demo success
-            successDiv.textContent = 'Account created! Redirecting to login...';
-            successDiv.style.display = 'block';
-            setTimeout(() => {
-                // Switch to login tab
-                loginTab.click();
-                // Optionally pre-fill email
-            }, 2000);
+
+            signupBtn.disabled = true;
+            signupBtn.textContent = 'Creating account...';
+
+            try {
+                // Optional: check if any master-admin already exists (to prevent multiple)
+                const masterAdminQuery = await db.collection('users').where('role', '==', 'master-admin').get();
+                if (!masterAdminQuery.empty) {
+                    // At least one master-admin already exists – you may want to block signup
+                    // For demo, we allow but you can change this
+                    // errorDiv.textContent = 'A master admin already exists. Contact existing admin.';
+                    // errorDiv.style.display = 'block';
+                    // signupBtn.disabled = false;
+                    // signupBtn.textContent = 'Register as Master Admin';
+                    // return;
+                }
+
+                // Create user in Firebase Auth
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Send email verification
+                await user.sendEmailVerification();
+
+                // Create user document in Firestore
+                await db.collection('users').doc(user.uid).set({
+                    email: user.email,
+                    role: 'master-admin',
+                    status: 'pending',   // will be approved after email verification? or manually
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Show success message and switch to login tab
+                successDiv.textContent = 'Account created! Please verify your email (check inbox) then log in.';
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    loginTab.click();  // switch to login tab
+                }, 3000);
+            } catch (error) {
+                console.error('Signup error:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Register as Master Admin';
+            }
         });
+
+        // Helper to show info message on login tab
+        function showLoginInfo(msg) {
+            const infoDiv = document.getElementById('loginInfo');
+            infoDiv.textContent = msg;
+            infoDiv.style.display = 'block';
+        }
     </script>
 </body>
 </html>
