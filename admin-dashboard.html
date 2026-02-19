@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Firebase SDK (compat version for simplicity) -->
+    <!-- Firebase SDK (compat version) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -385,7 +385,7 @@
 
     <script>
         // ========================================================
-        // FIREBASE INITIALIZATION (your config)
+        // FIREBASE INITIALIZATION
         // ========================================================
         const firebaseConfig = {
             apiKey: "AIzaSyA8BCzF4xcTAMYu5Rt1ROMRuZLVYh5iwRQ",
@@ -406,13 +406,11 @@
         // ========================================================
         let currentSection = 'dashboard';
         let currentUser = null;
-        let unsubscribeFunctions = {}; // to detach listeners when switching sections
-
-        // Super admin email
-        const SUPER_ADMIN_EMAIL = "okewunmitimileyin23@gmail.com";
+        let userData = null;
+        let unsubscribeFunctions = {};
 
         // ========================================================
-        // AUTH STATE OBSERVER
+        // AUTH STATE OBSERVER (ROLE‑BASED)
         // ========================================================
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -420,17 +418,50 @@
                 window.location.href = 'master-admin-auth.html';
                 return;
             }
-            if (user.email !== SUPER_ADMIN_EMAIL) {
-                alert('Access denied. Only the super admin can access this page.');
-                auth.signOut();
+
+            try {
+                // Fetch user document from Firestore using UID
+                const userDoc = await db.collection('users').doc(user.uid).get();
+
+                if (!userDoc.exists) {
+                    alert('User record not found in database. Please contact support.');
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                userData = userDoc.data();
+
+                // Check if account is approved
+                if (userData.status !== 'approved') {
+                    alert(`Your account is not approved yet. Current status: ${userData.status || 'unknown'}`);
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Check if the user has the master-admin role
+                if (userData.role !== 'master-admin') {
+                    alert(`Access denied. You are logged in as ${userData.role || 'unknown role'}. This area is for master admins only.`);
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // All checks passed – set current user and proceed
+                currentUser = user;
+                document.getElementById('admin-name').innerText = userData.name || user.email.split('@')[0];
+                document.querySelector('.admin-profile img').src = userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=2563eb&color=fff`;
+
+                // Load the initial section
+                loadSection(currentSection);
+
+            } catch (error) {
+                console.error('Error during authentication check:', error);
+                alert('An error occurred while verifying your access. Please try again.');
+                await auth.signOut();
                 window.location.href = 'index.html';
-                return;
             }
-            currentUser = user;
-            document.getElementById('admin-name').innerText = user.displayName || user.email.split('@')[0];
-            document.querySelector('.admin-profile img').src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=2563eb&color=fff`;
-            // Load initial section
-            loadSection(currentSection);
         });
 
         // ========================================================
