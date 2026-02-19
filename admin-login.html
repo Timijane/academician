@@ -177,7 +177,6 @@
                     </div>
                 </div>
                 <div class="message error-message" id="loginError"></div>
-                <div class="message info-message" id="loginInfo"></div>
                 <button type="submit" class="btn-primary" id="loginBtn">Sign in as Admin</button>
             </form>
         </div>
@@ -187,7 +186,7 @@
             <h2>Create master account</h2>
             <div class="sub">First admin only</div>
             <form id="adminSignupForm">
-                <!-- NEW: First Name -->
+                <!-- First Name -->
                 <div class="input-group">
                     <label>First Name</label>
                     <div class="input-wrapper">
@@ -195,7 +194,7 @@
                         <input type="text" id="signupFirstName" placeholder="John" required>
                     </div>
                 </div>
-                <!-- NEW: Surname -->
+                <!-- Surname -->
                 <div class="input-group">
                     <label>Surname</label>
                     <div class="input-wrapper">
@@ -229,7 +228,6 @@
                 </div>
                 <div class="message error-message" id="signupError"></div>
                 <div class="message success-message" id="signupSuccess"></div>
-                <div class="message info-message" id="signupInfo"></div>
                 <button type="submit" class="btn-primary" id="signupBtn">Register as Master Admin</button>
             </form>
         </div>
@@ -302,10 +300,8 @@
 
         function clearMessages() {
             document.getElementById('loginError').style.display = 'none';
-            document.getElementById('loginInfo').style.display = 'none';
             document.getElementById('signupError').style.display = 'none';
             document.getElementById('signupSuccess').style.display = 'none';
-            document.getElementById('signupInfo').style.display = 'none';
         }
 
         // ==================== PASSWORD TOGGLE ====================
@@ -337,46 +333,18 @@
             strengthDiv.innerHTML = `Strength: <span style="color:${color}">${strength}</span>`;
         });
 
-        // ==================== CHECK EXISTING SESSION ====================
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                // Already logged in – check if verified and has master-admin rights
-                try {
-                    const userDoc = await db.collection('users').doc(user.uid).get();
-                    if (user.emailVerified && userDoc.exists && userDoc.data().role === 'master-admin' && userDoc.data().status === 'approved') {
-                        // Redirect to dashboard
-                        window.location.href = 'admin-dashboard.html';
-                    } else {
-                        // Not fully ready – stay on login page but maybe show message
-                        if (!user.emailVerified) {
-                            showLoginInfo('Please verify your email before logging in. Check your inbox.');
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error checking user doc:', e);
-                }
-            }
-        });
-
-        // ==================== LOGIN HANDLER ====================
+        // ==================== LOGIN HANDLER (NO CHECKS) ====================
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             const errorDiv = document.getElementById('loginError');
-            const infoDiv = document.getElementById('loginInfo');
             const loginBtn = document.getElementById('loginBtn');
 
             errorDiv.style.display = 'none';
-            infoDiv.style.display = 'none';
 
             if (!email || !password) {
                 errorDiv.textContent = 'Both fields are required.';
-                errorDiv.style.display = 'block';
-                return;
-            }
-            if (!email.endsWith('@gmail.com')) {
-                errorDiv.textContent = 'Admin must use a Gmail address.';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -385,61 +353,8 @@
             loginBtn.textContent = 'Signing in...';
 
             try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-
-                // Check email verification
-                if (!user.emailVerified) {
-                    errorDiv.textContent = 'Please verify your email before logging in. Check your inbox.';
-                    errorDiv.style.display = 'block';
-                    await auth.signOut();
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Sign in as Admin';
-                    return;
-                }
-
-                // Fetch user document from Firestore
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists) {
-                    errorDiv.textContent = 'User record not found. Please contact support.';
-                    errorDiv.style.display = 'block';
-                    await auth.signOut();
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Sign in as Admin';
-                    return;
-                }
-
-                const userData = userDoc.data();
-
-                // Check role
-                if (userData.role !== 'master-admin') {
-                    errorDiv.textContent = `Access denied. You are logged in as ${userData.role || 'unknown'}.`;
-                    errorDiv.style.display = 'block';
-                    await auth.signOut();
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Sign in as Admin';
-                    return;
-                }
-
-                // Check status (if pending, auto-approve? For now require approved)
-                if (userData.status !== 'approved') {
-                    // Option: if email verified and status pending, we could auto-approve
-                    if (userData.status === 'pending') {
-                        // Auto-approve
-                        await db.collection('users').doc(user.uid).update({ status: 'approved' });
-                        infoDiv.textContent = 'Account auto-approved. Redirecting...';
-                        infoDiv.style.display = 'block';
-                    } else {
-                        errorDiv.textContent = `Your account is not approved. Status: ${userData.status}`;
-                        errorDiv.style.display = 'block';
-                        await auth.signOut();
-                        loginBtn.disabled = false;
-                        loginBtn.textContent = 'Sign in as Admin';
-                        return;
-                    }
-                }
-
-                // All good – redirect to dashboard
+                await auth.signInWithEmailAndPassword(email, password);
+                // No checks – redirect straight to dashboard
                 window.location.href = 'admin-dashboard.html';
             } catch (error) {
                 console.error('Login error:', error);
@@ -460,14 +375,11 @@
             const confirm = document.getElementById('signupConfirm').value.trim();
             const errorDiv = document.getElementById('signupError');
             const successDiv = document.getElementById('signupSuccess');
-            const infoDiv = document.getElementById('signupInfo');
             const signupBtn = document.getElementById('signupBtn');
 
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
-            infoDiv.style.display = 'none';
 
-            // Basic validation
             if (!firstName || !surname || !email || !password || !confirm) {
                 errorDiv.textContent = 'All fields are required.';
                 errorDiv.style.display = 'block';
@@ -493,36 +405,23 @@
             signupBtn.textContent = 'Creating account...';
 
             try {
-                // Optional: check if any master-admin already exists (to prevent multiple)
-                const masterAdminQuery = await db.collection('users').where('role', '==', 'master-admin').get();
-                if (!masterAdminQuery.empty) {
-                    // At least one master-admin already exists – you may want to block signup
-                    // For demo, we allow but you can change this
-                    // errorDiv.textContent = 'A master admin already exists. Contact existing admin.';
-                    // errorDiv.style.display = 'block';
-                    // signupBtn.disabled = false;
-                    // signupBtn.textContent = 'Register as Master Admin';
-                    // return;
-                }
-
                 // Create user in Firebase Auth
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Send email verification
+                // Send verification email (optional, but we'll keep it)
                 await user.sendEmailVerification();
 
-                // Create user document in Firestore with firstName and surname
+                // Create user document in Firestore
                 await db.collection('users').doc(user.uid).set({
-                    firstName: firstName,
-                    surname: surname,
+                    firstName,
+                    surname,
                     email: user.email,
                     role: 'master-admin',
-                    status: 'pending',   // will be approved after email verification? or manually
+                    status: 'pending',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Show success message and switch to login tab
                 successDiv.textContent = 'Account created! Please verify your email (check inbox) then log in.';
                 successDiv.style.display = 'block';
                 setTimeout(() => {
@@ -537,13 +436,6 @@
                 signupBtn.textContent = 'Register as Master Admin';
             }
         });
-
-        // Helper to show info message on login tab
-        function showLoginInfo(msg) {
-            const infoDiv = document.getElementById('loginInfo');
-            infoDiv.textContent = msg;
-            infoDiv.style.display = 'block';
-        }
     </script>
 </body>
 </html>
