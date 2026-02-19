@@ -365,7 +365,7 @@
             }
         });
 
-        // ==================== SIGNUP HANDLER (with name fields) ====================
+        // ==================== SIGNUP HANDLER (NO VERIFICATION EMAIL) ====================
         document.getElementById('adminSignupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const firstName = document.getElementById('signupFirstName').value.trim();
@@ -405,24 +405,23 @@
             signupBtn.textContent = 'Creating account...';
 
             try {
-                // Create user in Firebase Auth
+                // Create user in Firebase Auth (no email verification sent)
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Send verification email (optional, but we'll keep it)
-                await user.sendEmailVerification();
+                // Do NOT send verification email
 
-                // Create user document in Firestore
+                // Create user document in Firestore (status pending, but you can manually approve later)
                 await db.collection('users').doc(user.uid).set({
                     firstName,
                     surname,
                     email: user.email,
                     role: 'master-admin',
-                    status: 'pending',
+                    status: 'pending',   // you can later change to 'approved' in Firestore if needed
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                successDiv.textContent = 'Account created! Please verify your email (check inbox) then log in.';
+                successDiv.textContent = 'Account created! You can now log in.';
                 successDiv.style.display = 'block';
                 setTimeout(() => {
                     loginTab.click();  // switch to login tab
