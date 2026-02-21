@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Payments</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar .logo-area {
+            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
+            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
+            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+        }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+        .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
+        .main-content.expanded { margin-left: 80px; }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
+
+        /* Tabs */
+        .tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 2rem;
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem;
+            width: fit-content;
+        }
+        .tab {
+            padding: 0.6rem 1.8rem; border-radius: 3rem; font-weight: 500; cursor: pointer;
+            transition: 0.2s; color: var(--text-secondary);
+        }
+        .tab.active { background: var(--accent); color: white; }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
+            padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;
+        }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+
+        .btn {
+            padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
+
+        .fee-grid, .payment-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;
+        }
+        .fee-card, .payment-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem;
+            padding: 1rem; box-shadow: var(--shadow);
+        }
+        .fee-amount { font-size: 1.5rem; font-weight: 600; color: var(--accent); }
+        .fee-classes { color: var(--text-secondary); font-size: 0.9rem; margin: 0.5rem 0; }
+
+        .filter-bar {
+            display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .filter-group input, .filter-group select {
+            background: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 2rem; padding: 0.5rem 1rem; color: var(--text-primary);
+        }
+
+        table {
+            width: 100%; border-collapse: collapse;
+        }
+        th { text-align: left; padding: 0.8rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); }
+        td { padding: 0.8rem; border-bottom: 1px solid var(--border); }
+        .badge {
+            padding: 0.25rem 0.8rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 500;
+        }
+        .badge.completed { background: var(--success-bg); color: var(--success-text); }
+        .badge.partial { background: var(--warning-bg); color: var(--warning-text); }
+        .badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
+            padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.3rem; color: var(--text-secondary); }
+        .form-control {
+            width: 100%; padding: 0.6rem 1rem; background: var(--input-bg);
+            border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary);
+        }
+        .student-selector {
+            max-height: 200px; overflow-y: auto; border: 1px solid var(--border);
+            border-radius: 1rem; padding: 0.5rem; margin-bottom: 1rem;
+        }
+        .student-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem; border-bottom: 1px solid var(--border); cursor: pointer;
+        }
+        .student-item:hover { background: var(--hover-bg); }
+        .student-item.selected { background: var(--accent); color: white; }
+        .student-name { font-weight: 500; }
+        .student-class { color: var(--text-secondary); }
+        .payment-history {
+            margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;
+        }
+        .history-row {
+            display: flex; justify-content: space-between; padding: 0.3rem 0;
+        }
+        .total-row {
+            font-weight: 600; border-top: 2px solid var(--border); padding-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-graduation-cap"></i>
+            <h2>EduTop Admin</h2>
+        </div>
+        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
+        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="admin-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="admin-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="admin-payments.html" class="nav-item active"><i class="fas fa-credit-card"></i><span>Payments</span></a>
+        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="admin-audit.html" class="nav-item"><i class="fas fa-history"></i><span>Audit Logs</span></a>
+        <a href="admin-settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Payments</h1>
+                <p>Manage fee structures, confirm payments, and track balances</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">MA</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" id="paymentTabs">
+            <div class="tab active" data-tab="feeStructure">Fee Structure</div>
+            <div class="tab" data-tab="pending">Pending Confirmations</div>
+            <div class="tab" data-tab="records">Payment Records</div>
+        </div>
+
+        <!-- Tab Content: Fee Structure -->
+        <div id="tab-feeStructure" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Fee Titles</h3>
+                    <button class="btn btn-primary" id="addFeeBtn">+ Add Fee Title</button>
+                </div>
+                <div id="feeList" class="fee-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Pending Confirmations -->
+        <div id="tab-pending" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Pending Payment Confirmations</h3>
+                </div>
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label>Search Student:</label>
+                        <input type="text" id="pendingSearch" placeholder="Name or ID">
+                    </div>
+                </div>
+                <div id="pendingList">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Payment Records -->
+        <div id="tab-records" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>All Payment Transactions</h3>
+                </div>
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label>From:</label>
+                        <input type="date" id="recordFrom">
+                    </div>
+                    <div class="filter-group">
+                        <label>To:</label>
+                        <input type="date" id="recordTo">
+                    </div>
+                    <div class="filter-group">
+                        <label>Student:</label>
+                        <input type="text" id="recordStudent" placeholder="Name">
+                    </div>
+                    <button class="btn btn-primary" id="applyRecordFilters">Apply</button>
+                </div>
+                <table id="recordsTable">
+                    <thead>
+                        <tr><th>Date</th><th>Student</th><th>Fee Title</th><th>Amount</th><th>Confirmed By</th></tr>
+                    </thead>
+                    <tbody id="recordsBody">
+                        <tr><td colspan="5">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Fee Modal -->
+    <div class="modal" id="feeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="feeModalTitle">Add Fee Title</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeFeeModal()"></i>
+            </div>
+            <form id="feeForm">
+                <input type="hidden" id="feeId">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="feeTitle" class="form-control" placeholder="e.g., School Fee" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₦)</label>
+                    <input type="number" id="feeAmount" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Applicable Classes</label>
+                    <select id="feeClasses" class="form-control" multiple size="5" required>
+                        <!-- Populated by JS -->
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeFeeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment Confirmation Modal -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Payment</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closePaymentModal()"></i>
+            </div>
+            <div id="paymentModalContent">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Auth check
+        let currentUser = null;
+        let currentUserData = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUserData = userDoc.data();
+            document.getElementById('profileInitials').textContent = 
+                (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
+            document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
+
+            // Load data
+            loadFeeTitles();
+            loadPendingPayments();
+            loadAllPayments();
+            loadClassesForFeeForm();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                tabContents.forEach(content => content.style.display = 'none');
+                document.getElementById(`tab-${tabName}`).style.display = 'block';
+            });
+        });
+
+        // ========== FEE STRUCTURE ==========
+        let allClasses = [];
+        async function loadClassesForFeeForm() {
+            const snapshot = await db.collection('classes').get();
+            const select = document.getElementById('feeClasses');
+            select.innerHTML = '';
+            snapshot.forEach(doc => {
+                const cls = doc.data();
+                allClasses.push({ id: doc.id, name: cls.className || doc.id });
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = cls.className || doc.id;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadFeeTitles() {
+            const snapshot = await db.collection('feeTitles').get();
+            const container = document.getElementById('feeList');
+            if (snapshot.empty) {
+                container.innerHTML = '<p>No fee titles defined.</p>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const fee = doc.data();
+                const classes = fee.applicableClasses.map(c => {
+                    const cls = allClasses.find(cl => cl.id === c);
+                    return cls ? cls.name : c;
+                }).join(', ');
+                html += `
+                <div class="fee-card">
+                    <div class="fee-amount">₦${fee.amount.toLocaleString()}</div>
+                    <div><strong>${fee.title}</strong></div>
+                    <div class="fee-classes">${classes}</div>
+                    <div style="margin-top:0.5rem;">
+                        <button class="btn btn-outline btn-sm" onclick="editFee('${doc.id}')">Edit</button>
+                    </div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // Fee modal
+        const feeModal = document.getElementById('feeModal');
+        const feeModalTitle = document.getElementById('feeModalTitle');
+        const feeIdField = document.getElementById('feeId');
+        const feeTitle = document.getElementById('feeTitle');
+        const feeAmount = document.getElementById('feeAmount');
+        const feeClasses = document.getElementById('feeClasses');
+
+        window.addFee = () => {
+            feeModalTitle.textContent = 'Add Fee Title';
+            feeIdField.value = '';
+            feeTitle.value = '';
+            feeAmount.value = '';
+            Array.from(feeClasses.options).forEach(opt => opt.selected = false);
+            feeModal.classList.add('active');
+        };
+
+        window.editFee = async (id) => {
+            const doc = await db.collection('feeTitles').doc(id).get();
+            const fee = doc.data();
+            feeModalTitle.textContent = 'Edit Fee Title';
+            feeIdField.value = id;
+            feeTitle.value = fee.title;
+            feeAmount.value = fee.amount;
+            // Select the classes
+            Array.from(feeClasses.options).forEach(opt => {
+                opt.selected = fee.applicableClasses.includes(opt.value);
+            });
+            feeModal.classList.add('active');
+        };
+
+        window.closeFeeModal = () => {
+            feeModal.classList.remove('active');
+        };
+
+        document.getElementById('feeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = feeIdField.value;
+            const data = {
+                title: feeTitle.value,
+                amount: parseFloat(feeAmount.value),
+                applicableClasses: Array.from(feeClasses.selectedOptions).map(opt => opt.value)
+            };
+            if (id) {
+                await db.collection('feeTitles').doc(id).update(data);
+            } else {
+                await db.collection('feeTitles').add(data);
+            }
+            closeFeeModal();
+            loadFeeTitles();
+        });
+
+        document.getElementById('addFeeBtn').addEventListener('click', addFee);
+
+        // ========== PENDING PAYMENTS ==========
+        let pendingPayments = [];
+        async function loadPendingPayments() {
+            // We need a collection for pending receipts uploaded by students/parents.
+            // For now, assume there is a 'pendingPayments' collection with fields:
+            // studentId, receiptImageUrl, uploadedAt, status = 'pending'
+            const snapshot = await db.collection('pendingPayments')
+                .where('status', '==', 'pending')
+                .orderBy('uploadedAt', 'desc')
+                .get();
+            pendingPayments = [];
+            snapshot.forEach(doc => pendingPayments.push({ id: doc.id, ...doc.data() }));
+            renderPendingPayments();
+        }
+
+        async function renderPendingPayments() {
+            const container = document.getElementById('pendingList');
+            if (!pendingPayments.length) {
+                container.innerHTML = '<p>No pending confirmations.</p>';
+                return;
+            }
+            // Fetch student details for each
+            const studentIds = [...new Set(pendingPayments.map(p => p.studentId))];
+            const studentsSnap = await Promise.all(studentIds.map(id => db.collection('users').doc(id).get()));
+            const studentMap = {};
+            studentsSnap.forEach(snap => {
+                if (snap.exists) studentMap[snap.id] = snap.data();
+            });
+
+            let html = '<div class="payment-grid">';
+            pendingPayments.forEach(p => {
+                const student = studentMap[p.studentId] || {};
+                const name = `${student.firstName || ''} ${student.surname || ''}`.trim() || 'Unknown';
+                const date = p.uploadedAt ? p.uploadedAt.toDate().toLocaleString() : 'N/A';
+                html += `
+                <div class="payment-card">
+                    <div><strong>${name}</strong> (${student.class || 'N/A'})</div>
+                    <div>Uploaded: ${date}</div>
+                    <img src="${p.receiptImageUrl}" style="max-width:100%; max-height:150px; object-fit:contain; margin:0.5rem 0;" onclick="window.open('${p.receiptImageUrl}')">
+                    <button class="btn btn-primary btn-sm" onclick="confirmPayment('${p.id}', '${p.studentId}')">Confirm</button>
+                </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        window.confirmPayment = (pendingId, studentId) => {
+            // Open modal with student selection and payment entry
+            openPaymentModal(studentId, pendingId);
+        };
+
+        // ========== PAYMENT CONFIRMATION MODAL ==========
+        const paymentModal = document.getElementById('paymentModal');
+        const paymentModalContent = document.getElementById('paymentModalContent');
+        let currentPendingId = null;
+        let currentStudentId = null;
+        let allStudents = [];
+        let feeTitlesList = [];
+
+        async function openPaymentModal(initialStudentId, pendingId) {
+            currentPendingId = pendingId;
+            currentStudentId = initialStudentId;
+            await loadAllStudents();
+            await loadFeeTitlesList();
+            renderPaymentModal();
+            paymentModal.classList.add('active');
+        }
+
+        async function loadAllStudents() {
+            const snapshot = await db.collection('users').where('role', '==', 'student').get();
+            allStudents = [];
+            snapshot.forEach(doc => allStudents.push({ id: doc.id, ...doc.data() }));
+        }
+
+        async function loadFeeTitlesList() {
+            const snapshot = await db.collection('feeTitles').get();
+            feeTitlesList = [];
+            snapshot.forEach(doc => feeTitlesList.push({ id: doc.id, ...doc.data() }));
+        }
+
+        async function renderPaymentModal() {
+            // Student selector
+            let studentOptions = '';
+            allStudents.forEach(s => {
+                const name = `${s.firstName || ''} ${s.surname || ''}`.trim() || 'Unknown';
+                const selected = s.id === currentStudentId ? 'selected' : '';
+                studentOptions += `<option value="${s.id}" ${selected}>${name} (${s.class || 'N/A'})</option>`;
+            });
+
+            // Fee title dropdown
+            let feeOptions = '';
+            feeTitlesList.forEach(f => {
+                feeOptions += `<option value="${f.id}">${f.title} (₦${f.amount})</option>`;
+            });
+
+            // Get payment history for selected student (if any)
+            let historyHtml = '';
+            let totalPaid = 0;
+            let totalExpected = 0;
+            if (currentStudentId) {
+                const paymentsSnap = await db.collection('payments')
+                    .where('studentId', '==', currentStudentId)
+                    .get();
+                const payments = [];
+                paymentsSnap.forEach(doc => payments.push({ id: doc.id, ...doc.data() }));
+
+                // Group by fee title
+                const feeMap = {};
+                feeTitlesList.forEach(f => feeMap[f.id] = { title: f.title, amount: f.amount, paid: 0 });
+                payments.forEach(p => {
+                    if (feeMap[p.feeTitleId]) {
+                        feeMap[p.feeTitleId].paid += p.amountPaid;
+                    }
+                });
+
+                for (let fid in feeMap) {
+                    const f = feeMap[fid];
+                    totalExpected += f.amount;
+                    totalPaid += f.paid;
+                    const outstanding = f.amount - f.paid;
+                    const status = outstanding <= 0 ? 'Completed' : (f.paid > 0 ? 'Partial' : 'Pending');
+                    historyHtml += `
+                    <div class="history-row">
+                        <span>${f.title}</span>
+                        <span>₦${f.paid.toLocaleString()} / ₦${f.amount.toLocaleString()}</span>
+                        <span class="badge ${outstanding <= 0 ? 'completed' : 'partial'}">${status}</span>
+                    </div>
+                    `;
+                }
+                historyHtml += `
+                <div class="history-row total-row">
+                    <span>Total</span>
+                    <span>₦${totalPaid.toLocaleString()} / ₦${totalExpected.toLocaleString()}</span>
+                    <span class="badge ${totalPaid >= totalExpected ? 'completed' : 'partial'}">${totalPaid >= totalExpected ? 'Fully Paid' : 'Outstanding'}</span>
+                </div>
+                `;
+            }
+
+            paymentModalContent.innerHTML = `
+                <div class="form-group">
+                    <label>Select Student</label>
+                    <select id="modalStudentSelect" class="form-control">
+                        ${studentOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fee Title</label>
+                    <select id="modalFeeSelect" class="form-control">
+                        ${feeOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount Paid (₦)</label>
+                    <input type="number" id="modalAmount" class="form-control" required>
+                </div>
+                <div class="payment-history" id="modalHistory">
+                    <h4>Payment Summary</h4>
+                    ${historyHtml}
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button class="btn btn-outline" onclick="closePaymentModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="savePaymentConfirmation()">Confirm Payment</button>
+                </div>
+            `;
+
+            // Add event listener to student select to update history
+            document.getElementById('modalStudentSelect').addEventListener('change', (e) => {
+                currentStudentId = e.target.value;
+                renderPaymentModal(); // re-render with new student
+            });
+        }
+
+        window.savePaymentConfirmation = async () => {
+            const studentId = document.getElementById('modalStudentSelect').value;
+            const feeTitleId = document.getElementById('modalFeeSelect').value;
+            const amountPaid = parseFloat(document.getElementById('modalAmount').value);
+            if (!studentId || !feeTitleId || !amountPaid) return;
+
+            // Create payment record
+            await db.collection('payments').add({
+                studentId,
+                feeTitleId,
+                amountPaid,
+                confirmedBy: currentUser.uid,
+                confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'confirmed',
+                // Optionally link to pending receipt
+                pendingReceiptId: currentPendingId || null
+            });
+
+            // If there was a pending receipt, mark it as confirmed
+            if (currentPendingId) {
+                await db.collection('pendingPayments').doc(currentPendingId).update({
+                    status: 'confirmed',
+                    confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    confirmedBy: currentUser.uid
+                });
+            }
+
+            // Log audit
+            await db.collection('auditLogs').add({
+                userId: currentUser.uid,
+                userName: currentUserData?.firstName + ' ' + currentUserData?.surname,
+                action: `Confirmed payment of ₦${amountPaid} for student ${studentId}`,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'success'
+            });
+
+            closePaymentModal();
+            loadPendingPayments(); // refresh
+            loadAllPayments(); // refresh records
+        };
+
+        window.closePaymentModal = () => {
+            paymentModal.classList.remove('active');
+            currentPendingId = null;
+        };
+
+        // ========== PAYMENT RECORDS ==========
+        async function loadAllPayments() {
+            const snapshot = await db.collection('payments')
+                .orderBy('confirmedAt', 'desc')
+                .limit(100)
+                .get();
+            const payments = [];
+            snapshot.forEach(doc => payments.push({ id: doc.id, ...doc.data() }));
+
+            // Fetch student names and fee titles
+            const studentIds = [...new Set(payments.map(p => p.studentId))];
+            const feeTitleIds = [...new Set(payments.map(p => p.feeTitleId))];
+            const [studentsSnap, feesSnap] = await Promise.all([
+                Promise.all(studentIds.map(id => db.collection('users').doc(id).get())),
+                Promise.all(feeTitleIds.map(id => db.collection('feeTitles').doc(id).get()))
+            ]);
+            const studentMap = {};
+            studentsSnap.forEach(snap => { if (snap.exists) studentMap[snap.id] = snap.data(); });
+            const feeMap = {};
+            feesSnap.forEach(snap => { if (snap.exists) feeMap[snap.id] = snap.data(); });
+
+            let html = '';
+            payments.forEach(p => {
+                const student = studentMap[p.studentId] || {};
+                const studentName = `${student.firstName || ''} ${student.surname || ''}`.trim() || 'Unknown';
+                const fee = feeMap[p.feeTitleId] || {};
+                const date = p.confirmedAt ? p.confirmedAt.toDate().toLocaleDateString() : 'N/A';
+                html += `<tr>
+                    <td>${date}</td>
+                    <td>${studentName}</td>
+                    <td>${fee.title || 'Unknown'}</td>
+                    <td>₦${p.amountPaid.toLocaleString()}</td>
+                    <td>${p.confirmedBy || '—'}</td>
+                </tr>`;
+            });
+            document.getElementById('recordsBody').innerHTML = html || '<tr><td colspan="5">No payments yet</td></tr>';
+        }
+
+        // Filter records (simple client-side filtering for demo)
+        document.getElementById('applyRecordFilters').addEventListener('click', loadAllPayments);
+    </script>
+</body>
+</html>
