@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Settings</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* (same base styles) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar .logo-area {
+            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
+            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
+            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+        }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+        .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
+        .main-content.expanded { margin-left: 80px; }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
+
+        .card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
+            padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;
+        }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+
+        .btn {
+            padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
+        .btn-danger { background: var(--danger-text); color: white; }
+
+        .tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 2rem;
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem;
+            width: fit-content;
+        }
+        .tab {
+            padding: 0.6rem 1.8rem; border-radius: 3rem; font-weight: 500; cursor: pointer;
+            transition: 0.2s; color: var(--text-secondary);
+        }
+        .tab.active { background: var(--accent); color: white; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        .form-group label {
+            display: block; margin-bottom: 0.3rem; color: var(--text-secondary);
+        }
+        .form-control {
+            width: 100%; padding: 0.6rem 1rem; background: var(--input-bg);
+            border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary);
+        }
+
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem; border-bottom: 1px solid var(--border);
+        }
+        .list-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-graduation-cap"></i>
+            <h2>EduTop Admin</h2>
+        </div>
+        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
+        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="admin-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="admin-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="admin-payments.html" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
+        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="admin-audit.html" class="nav-item"><i class="fas fa-history"></i><span>Audit Logs</span></a>
+        <a href="admin-settings.html" class="nav-item active"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>System Settings</h1>
+                <p>Configure school information, terms, classes, and permissions</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">MA</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tabs -->
+        <div class="tabs" id="settingsTabs">
+            <div class="tab active" data-tab="general">General</div>
+            <div class="tab" data-tab="terms">Academic Terms</div>
+            <div class="tab" data-tab="classes">Classes</div>
+            <div class="tab" data-tab="permissions">Permissions</div>
+        </div>
+
+        <!-- General Tab -->
+        <div id="tab-general" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <h3>School Information</h3>
+                </div>
+                <form id="generalForm">
+                    <div class="form-group">
+                        <label>School Name</label>
+                        <input type="text" id="schoolName" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>School Address</label>
+                        <input type="text" id="schoolAddress" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" id="schoolPhone" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="schoolEmail" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Website</label>
+                        <input type="url" id="schoolWebsite" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Current Session</label>
+                        <input type="text" id="currentSession" class="form-control" placeholder="e.g., 2024/2025">
+                    </div>
+                    <div class="form-group">
+                        <label>Current Term</label>
+                        <select id="currentTerm" class="form-control">
+                            <option value="1">First Term</option>
+                            <option value="2">Second Term</option>
+                            <option value="3">Third Term</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save General Settings</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Academic Terms Tab -->
+        <div id="tab-terms" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Manage Academic Terms</h3>
+                    <button class="btn btn-primary" id="addTermBtn">+ Add Term</button>
+                </div>
+                <div id="termsList"></div>
+            </div>
+        </div>
+
+        <!-- Classes Tab -->
+        <div id="tab-classes" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Manage Classes</h3>
+                    <button class="btn btn-primary" id="addClassBtn">+ Add Class</button>
+                </div>
+                <div id="classesList"></div>
+            </div>
+        </div>
+
+        <!-- Permissions Tab -->
+        <div id="tab-permissions" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Co‑Admin Permissions</h3>
+                    <p>Select which actions co‑admins can perform.</p>
+                </div>
+                <form id="permissionsForm">
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permUsers"> Manage Users (view, edit, approve)</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permLessonNotes"> Review Lesson Notes</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permTimetable"> Manage Timetable</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permAttendance"> Manage Attendance</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permPayments"> Confirm Payments</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permAnnouncements"> Create Announcements</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permCalendar"> Manage Calendar</label>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="permAudit"> View Audit Logs (cannot delete)</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Permissions</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Term Modal -->
+    <div class="modal" id="termModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Term</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeTermModal()"></i>
+            </div>
+            <form id="termForm">
+                <div class="form-group">
+                    <label>Term Name</label>
+                    <input type="text" id="termName" class="form-control" placeholder="e.g., First Term 2025" required>
+                </div>
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="termStart" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="termEnd" class="form-control" required>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeTermModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Term</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Class Modal -->
+    <div class="modal" id="classModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Class</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeClassModal()"></i>
+            </div>
+            <form id="classForm">
+                <div class="form-group">
+                    <label>Class Name</label>
+                    <input type="text" id="className" class="form-control" placeholder="e.g., Basic 3" required>
+                </div>
+                <div class="form-group">
+                    <label>Class Teacher (optional)</label>
+                    <select id="classTeacher" class="form-control">
+                        <option value="">None</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeClassModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Auth check (only master admin can access settings)
+        let currentUser = null;
+        let currentUserData = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'masterAdmin') {
+                alert('Only the master admin can access settings.');
+                window.location.href = 'admin-dashboard.html';
+                return;
+            }
+            currentUserData = userDoc.data();
+            document.getElementById('profileInitials').textContent = 
+                (currentUserData.firstName?.[0] || 'M') + (currentUserData.surname?.[0] || 'A');
+            document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
+
+            // Load all settings
+            loadGeneralSettings();
+            loadTerms();
+            loadClasses();
+            loadPermissions();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const contents = document.querySelectorAll('.tab-content');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                contents.forEach(c => c.classList.remove('active'));
+                document.getElementById(`tab-${tabName}`).classList.add('active');
+            });
+        });
+
+        // ========== GENERAL SETTINGS ==========
+        async function loadGeneralSettings() {
+            const doc = await db.collection('config').doc('general').get();
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById('schoolName').value = data.schoolName || '';
+                document.getElementById('schoolAddress').value = data.address || '';
+                document.getElementById('schoolPhone').value = data.phone || '';
+                document.getElementById('schoolEmail').value = data.email || '';
+                document.getElementById('schoolWebsite').value = data.website || '';
+                document.getElementById('currentSession').value = data.currentSession || '';
+                document.getElementById('currentTerm').value = data.currentTerm || '1';
+            }
+        }
+
+        document.getElementById('generalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                schoolName: document.getElementById('schoolName').value,
+                address: document.getElementById('schoolAddress').value,
+                phone: document.getElementById('schoolPhone').value,
+                email: document.getElementById('schoolEmail').value,
+                website: document.getElementById('schoolWebsite').value,
+                currentSession: document.getElementById('currentSession').value,
+                currentTerm: document.getElementById('currentTerm').value
+            };
+            await db.collection('config').doc('general').set(data);
+            logAudit('Updated general settings');
+            alert('Settings saved.');
+        });
+
+        // ========== ACADEMIC TERMS ==========
+        const termModal = document.getElementById('termModal');
+        const termName = document.getElementById('termName');
+        const termStart = document.getElementById('termStart');
+        const termEnd = document.getElementById('termEnd');
+
+        window.addTerm = () => {
+            termModal.classList.add('active');
+        };
+        window.closeTermModal = () => {
+            termModal.classList.remove('active');
+            termName.value = '';
+            termStart.value = '';
+            termEnd.value = '';
+        };
+
+        document.getElementById('termForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await db.collection('terms').add({
+                name: termName.value,
+                startDate: termStart.value,
+                endDate: termEnd.value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            logAudit(`Added term: ${termName.value}`);
+            closeTermModal();
+            loadTerms();
+        });
+
+        async function loadTerms() {
+            const snapshot = await db.collection('terms').orderBy('startDate', 'asc').get();
+            const container = document.getElementById('termsList');
+            if (snapshot.empty) {
+                container.innerHTML = '<p>No terms added yet.</p>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const t = doc.data();
+                html += `
+                <div class="list-item">
+                    <span><strong>${t.name}</strong> (${t.startDate} to ${t.endDate})</span>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTerm('${doc.id}')">Delete</button>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        window.deleteTerm = async (id) => {
+            if (!confirm('Delete this term?')) return;
+            await db.collection('terms').doc(id).delete();
+            logAudit(`Deleted term ${id}`);
+            loadTerms();
+        };
+
+        document.getElementById('addTermBtn').addEventListener('click', addTerm);
+
+        // ========== CLASSES ==========
+        const classModal = document.getElementById('classModal');
+        const className = document.getElementById('className');
+        const classTeacher = document.getElementById('classTeacher');
+
+        window.addClass = () => {
+            classModal.classList.add('active');
+        };
+        window.closeClassModal = () => {
+            classModal.classList.remove('active');
+            className.value = '';
+            classTeacher.value = '';
+        };
+
+        // Load teachers for class teacher dropdown
+        async function loadTeachersForDropdown() {
+            const snapshot = await db.collection('users').where('role', '==', 'teacher').get();
+            let options = '<option value="">None</option>';
+            snapshot.forEach(doc => {
+                const t = doc.data();
+                options += `<option value="${doc.id}">${t.firstName || ''} ${t.surname || ''}</option>`;
+            });
+            classTeacher.innerHTML = options;
+        }
+
+        document.getElementById('classForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await db.collection('classes').add({
+                className: className.value,
+                classTeacher: classTeacher.value || null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            logAudit(`Added class: ${className.value}`);
+            closeClassModal();
+            loadClasses();
+        });
+
+        async function loadClasses() {
+            const snapshot = await db.collection('classes').orderBy('className', 'asc').get();
+            const container = document.getElementById('classesList');
+            if (snapshot.empty) {
+                container.innerHTML = '<p>No classes added yet.</p>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const c = doc.data();
+                html += `
+                <div class="list-item">
+                    <span><strong>${c.className}</strong> ${c.classTeacher ? '(Teacher assigned)' : ''}</span>
+                    <button class="btn btn-danger btn-sm" onclick="deleteClass('${doc.id}')">Delete</button>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        window.deleteClass = async (id) => {
+            if (!confirm('Delete this class?')) return;
+            await db.collection('classes').doc(id).delete();
+            logAudit(`Deleted class ${id}`);
+            loadClasses();
+        };
+
+        document.getElementById('addClassBtn').addEventListener('click', addClass);
+
+        // ========== PERMISSIONS ==========
+        async function loadPermissions() {
+            const doc = await db.collection('config').doc('permissions').get();
+            if (doc.exists) {
+                const p = doc.data();
+                document.getElementById('permUsers').checked = p.manageUsers || false;
+                document.getElementById('permLessonNotes').checked = p.reviewLessonNotes || false;
+                document.getElementById('permTimetable').checked = p.manageTimetable || false;
+                document.getElementById('permAttendance').checked = p.manageAttendance || false;
+                document.getElementById('permPayments').checked = p.confirmPayments || false;
+                document.getElementById('permAnnouncements').checked = p.createAnnouncements || false;
+                document.getElementById('permCalendar').checked = p.manageCalendar || false;
+                document.getElementById('permAudit').checked = p.viewAudit || false;
+            }
+        }
+
+        document.getElementById('permissionsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const permissions = {
+                manageUsers: document.getElementById('permUsers').checked,
+                reviewLessonNotes: document.getElementById('permLessonNotes').checked,
+                manageTimetable: document.getElementById('permTimetable').checked,
+                manageAttendance: document.getElementById('permAttendance').checked,
+                confirmPayments: document.getElementById('permPayments').checked,
+                createAnnouncements: document.getElementById('permAnnouncements').checked,
+                manageCalendar: document.getElementById('permCalendar').checked,
+                viewAudit: document.getElementById('permAudit').checked
+            };
+            await db.collection('config').doc('permissions').set(permissions);
+            logAudit('Updated co‑admin permissions');
+            alert('Permissions saved.');
+        });
+
+        // ========== AUDIT LOGGING ==========
+        async function logAudit(action) {
+            await db.collection('auditLogs').add({
+                userId: auth.currentUser.uid,
+                userName: currentUserData ? `${currentUserData.firstName || ''} ${currentUserData.surname || ''}`.trim() : 'Admin',
+                userEmail: currentUserData?.email || auth.currentUser.email,
+                action,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userAgent: navigator.userAgent
+            });
+        }
+
+        // Initialize teacher dropdown when modal opens
+        document.getElementById('addClassBtn').addEventListener('click', loadTeachersForDropdown);
+    </script>
+</body>
+</html>
