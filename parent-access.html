@@ -3,10 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edutopscholars · Parent Access</title>
+    <title>EduTop Scholars · Parent Access</title>
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
+        /* === SAME STYLES (but no tabs) === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -18,6 +25,7 @@
             --border: rgba(0, 0, 0, 0.1);
             --input-bg: rgba(255, 255, 255, 0.9);
             --error: #dc2626;
+            --success: #16a34a;
         }
 
         :root[data-theme="dark"] {
@@ -29,6 +37,7 @@
             --border: rgba(255, 255, 255, 0.1);
             --input-bg: rgba(30, 41, 59, 0.8);
             --error: #ef4444;
+            --success: #4ade80;
         }
 
         body {
@@ -56,16 +65,15 @@
         .glass-card {
             background: var(--glass-bg); backdrop-filter: blur(16px);
             border: 1px solid var(--border); border-radius: 2.5rem;
-            padding: 3rem 2.5rem; width: min(480px, 100%);
+            padding: 2.5rem 2rem; width: min(480px, 100%);
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            text-align: center;
         }
 
-        h2 { font-size: 2.5rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .sub { color: var(--text-secondary); margin-bottom: 2.5rem; }
+        h2 { font-size: 2rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sub { color: var(--text-secondary); margin-bottom: 2rem; }
 
         .input-group {
-            margin-bottom: 2rem; position: relative;
+            margin-bottom: 1.5rem; position: relative;
         }
         .input-group label {
             display: block; margin-bottom: 0.5rem;
@@ -101,17 +109,40 @@
         .btn-primary:hover {
             filter: brightness(1.1); transform: scale(1.02);
         }
+        .btn-primary:disabled {
+            opacity: 0.6; cursor: not-allowed;
+        }
 
         .message {
             font-size: 0.9rem; margin-top: 0.5rem; display: none;
         }
         .error-message { color: var(--error); }
+        .success-message { color: var(--success); }
 
         .footer-note {
-            margin-top: 2rem; text-align: center; color: var(--text-secondary);
+            margin-top: 1.5rem; text-align: center; font-size: 0.9rem;
+            color: var(--text-secondary);
         }
-        .footer-note a {
-            color: var(--accent); text-decoration: none; font-weight: 600;
+
+        /* Student info display (initially hidden) */
+        #studentInfo {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--border);
+        }
+        .info-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .info-value {
+            font-weight: 600;
+            color: var(--text-primary);
         }
     </style>
 </head>
@@ -120,25 +151,73 @@
 
     <div class="glass-card">
         <h2>Parent Access</h2>
-        <div class="sub">View your child’s progress</div>
+        <div class="sub">Enter student credentials to view progress</div>
+
         <form id="parentAccessForm">
             <div class="input-group">
-                <label>Student ID / Access Key</label>
+                <label>Student ID (Admission Number)</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-id-card"></i>
+                    <input type="text" id="studentId" placeholder="e.g., STU-2025-001" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>PIN (provided by school)</label>
                 <div class="input-wrapper">
                     <i class="fas fa-key"></i>
-                    <input type="text" id="accessKey" placeholder="e.g., STU-2025-001" required>
+                    <input type="password" id="studentPin" placeholder="4-digit PIN" maxlength="4" pattern="\d{4}" inputmode="numeric" required>
                 </div>
             </div>
             <div class="message error-message" id="accessError"></div>
-            <button type="submit" class="btn-primary">Access Records</button>
+            <div class="message success-message" id="accessSuccess"></div>
+            <button type="submit" class="btn-primary" id="accessBtn">View Progress</button>
         </form>
+
+        <!-- Student info display (hidden until success) -->
+        <div id="studentInfo" style="display: none;">
+            <h3 style="margin-bottom: 1rem;">Student Information</h3>
+            <div class="info-row">
+                <span class="info-label">Full Name</span>
+                <span class="info-value" id="infoName">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Class</span>
+                <span class="info-value" id="infoClass">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Attendance Rate</span>
+                <span class="info-value" id="infoAttendance">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Average Score</span>
+                <span class="info-value" id="infoAverage">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Last Report</span>
+                <span class="info-value" id="infoReport">-</span>
+            </div>
+        </div>
+
         <div class="footer-note">
-            Provided by the school. <a href="index.html">← Back to portal</a>
+            Secure guest access · PIN provided by class teacher
         </div>
     </div>
 
     <script>
-        // Theme toggle
+        // ==================== FIREBASE INIT ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ==================== THEME TOGGLE ====================
         (function() {
             const html = document.documentElement;
             const toggleBtn = document.getElementById('themeToggle');
@@ -162,20 +241,72 @@
             }
         })();
 
-        // Form validation
-        document.getElementById('parentAccessForm').addEventListener('submit', (e) => {
+        // ==================== PARENT ACCESS HANDLER ====================
+        document.getElementById('parentAccessForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const key = document.getElementById('accessKey').value.trim();
+            const studentId = document.getElementById('studentId').value.trim();
+            const pin = document.getElementById('studentPin').value.trim();
             const errorDiv = document.getElementById('accessError');
-            if (!key) {
-                errorDiv.textContent = 'Please enter a student ID or access key.';
+            const successDiv = document.getElementById('accessSuccess');
+            const accessBtn = document.getElementById('accessBtn');
+            const studentInfoDiv = document.getElementById('studentInfo');
+
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            studentInfoDiv.style.display = 'none';
+
+            if (!studentId || !pin) {
+                errorDiv.textContent = 'Both fields are required.';
                 errorDiv.style.display = 'block';
                 return;
             }
-            errorDiv.style.display = 'none';
-            // In production, validate key against Firestore and redirect to student summary page.
-            alert('Access granted (demo). Redirecting to student summary...');
-            window.location.href = 'student-summary.html?id=' + encodeURIComponent(key);
+
+            accessBtn.disabled = true;
+            accessBtn.textContent = 'Verifying...';
+
+            try {
+                // Query for student with matching admission number and PIN
+                // Assuming admission number is stored in a field 'admissionNumber' in the student's user document.
+                // PIN is stored in a field 'parentPIN' (hashed ideally, but for simplicity we store plain).
+                // We'll query the users collection where role='student' and admissionNumber == studentId.
+                const studentsRef = db.collection('users');
+                const snapshot = await studentsRef
+                    .where('role', '==', 'student')
+                    .where('admissionNumber', '==', studentId)
+                    .limit(1)
+                    .get();
+
+                if (snapshot.empty) {
+                    throw new Error('Student not found.');
+                }
+
+                const studentDoc = snapshot.docs[0];
+                const studentData = studentDoc.data();
+
+                // Check PIN
+                if (studentData.parentPIN !== pin) {
+                    throw new Error('Invalid PIN.');
+                }
+
+                // Success – display student info (mock data, adjust fields as needed)
+                document.getElementById('infoName').textContent = `${studentData.firstName || ''} ${studentData.surname || ''}`;
+                document.getElementById('infoClass').textContent = studentData.class || 'Not assigned';
+                // These fields would come from other collections (attendance, scores) – we'll mock for now
+                document.getElementById('infoAttendance').textContent = '95%'; // mock
+                document.getElementById('infoAverage').textContent = '78%'; // mock
+                document.getElementById('infoReport').textContent = 'Term 1, 2025'; // mock
+
+                studentInfoDiv.style.display = 'block';
+                successDiv.textContent = 'Access granted. Showing student progress.';
+                successDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Access error:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                accessBtn.disabled = false;
+                accessBtn.textContent = 'View Progress';
+            }
         });
     </script>
 </body>
