@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Attendance Review</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        .sidebar .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 2.5rem;
+            padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i {
+            font-size: 2rem;
+            color: var(--accent);
+        }
+        .sidebar .logo-area h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .sidebar.collapsed .logo-area h2 {
+            display: none;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 0.75rem;
+            color: var(--text-secondary);
+            transition: 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.3rem;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        .sidebar .nav-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+        }
+        .sidebar .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+        .sidebar .nav-item i {
+            font-size: 1.2rem;
+            width: 1.5rem;
+        }
+        .sidebar.collapsed .nav-item span {
+            display: none;
+        }
+        .sidebar .toggle-btn {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .page-title p {
+            color: var(--text-secondary);
+        }
+        .profile-area {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown {
+            position: relative;
+            cursor: pointer;
+        }
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 50px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            min-width: 150px;
+            display: none;
+            z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+            border-radius: 0.5rem;
+        }
+        .dropdown-item:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Filters */
+        .filter-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .filter-group label {
+            color: var(--text-secondary);
+        }
+        .filter-group input, .filter-group select {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+        }
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .stat-card .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Attendance cards grid */
+        .attendance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .attendance-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+        .attendance-card:hover {
+            transform: translateY(-4px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .staff-info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .staff-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .staff-name {
+            font-weight: 600;
+        }
+        .staff-role {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .date-badge {
+            background: var(--hover-bg);
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+        }
+        .times {
+            margin: 1rem 0;
+        }
+        .time-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.3rem 0;
+            border-bottom: 1px dashed var(--border);
+        }
+        .time-label {
+            color: var(--text-secondary);
+        }
+        .time-value {
+            font-weight: 500;
+        }
+        .photo-row {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .photo-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 0.5rem;
+            background: var(--hover-bg);
+            cursor: pointer;
+            object-fit: cover;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .status-badge.present { background: var(--success-bg); color: var(--success-text); }
+        .status-badge.late { background: var(--warning-bg); color: var(--warning-text); }
+        .status-badge.early { background: var(--danger-bg); color: var(--danger-text); }
+        .status-badge.absent { background: var(--danger-bg); color: var(--danger-text); }
+
+        /* Modal for photo preview */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+        .modal-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 1rem;
+        }
+        .close-modal {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-graduation-cap"></i>
+            <h2>EduTop Admin</h2>
+        </div>
+        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
+        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="admin-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="admin-attendance.html" class="nav-item active"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="admin-payments.html" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
+        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="admin-audit.html" class="nav-item"><i class="fas fa-history"></i><span>Audit Logs</span></a>
+        <a href="admin-settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Attendance Review</h1>
+                <p>View all staff attendance records</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">MA</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>From:</label>
+                <input type="date" id="dateFrom">
+            </div>
+            <div class="filter-group">
+                <label>To:</label>
+                <input type="date" id="dateTo">
+            </div>
+            <div class="filter-group">
+                <label>Staff:</label>
+                <select id="staffFilter">
+                    <option value="all">All Staff</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Status:</label>
+                <select id="statusFilter">
+                    <option value="all">All</option>
+                    <option value="present">Present</option>
+                    <option value="late">Late</option>
+                    <option value="early">Early Check‑Out</option>
+                    <option value="absent">Absent</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="applyFilters">Apply</button>
+            <button class="btn" id="resetFilters">Reset</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card"><div class="stat-value" id="totalRecords">0</div><div class="stat-label">Total Records</div></div>
+            <div class="stat-card"><div class="stat-value" id="presentCount">0</div><div class="stat-label">Present</div></div>
+            <div class="stat-card"><div class="stat-value" id="lateCount">0</div><div class="stat-label">Late</div></div>
+            <div class="stat-card"><div class="stat-value" id="earlyCount">0</div><div class="stat-label">Early Out</div></div>
+            <div class="stat-card"><div class="stat-value" id="absentCount">0</div><div class="stat-label">Absent</div></div>
+        </div>
+
+        <!-- Attendance cards -->
+        <div id="attendanceContainer" class="attendance-grid"></div>
+    </div>
+
+    <!-- Photo Modal -->
+    <div class="modal" id="photoModal" onclick="closePhotoModal()">
+        <span class="close-modal">&times;</span>
+        <div class="modal-content">
+            <img id="modalImage" src="" alt="Attendance photo">
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Auth check
+        let currentUser = null;
+        let currentUserData = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUserData = userDoc.data();
+            document.getElementById('profileInitials').textContent = 
+                (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
+
+            // Load staff for filter dropdown
+            loadStaffFilter();
+            // Load attendance data (initially last 30 days)
+            loadAttendance();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        // Staff filter dropdown
+        let staffMap = {}; // id -> { name, role }
+        async function loadStaffFilter() {
+            const snapshot = await db.collection('users')
+                .where('role', 'in', ['teacher', 'nonTeachingStaff'])
+                .get();
+            const select = document.getElementById('staffFilter');
+            snapshot.forEach(doc => {
+                const s = doc.data();
+                staffMap[doc.id] = {
+                    name: `${s.firstName || ''} ${s.surname || ''}`.trim() || 'Unknown',
+                    role: s.role === 'teacher' ? 'Teacher' : 'Non‑Teaching'
+                };
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = staffMap[doc.id].name;
+                select.appendChild(option);
+            });
+        }
+
+        // Load attendance records with filters
+        let allAttendance = [];
+        async function loadAttendance() {
+            // Default date range: last 30 days to today
+            const toDate = new Date();
+            const fromDate = new Date();
+            fromDate.setDate(fromDate.getDate() - 30);
+            const fromStr = fromDate.toISOString().split('T')[0];
+            const toStr = toDate.toISOString().split('T')[0];
+            document.getElementById('dateFrom').value = fromStr;
+            document.getElementById('dateTo').value = toStr;
+
+            await fetchAttendance();
+        }
+
+        async function fetchAttendance() {
+            const from = document.getElementById('dateFrom').value;
+            const to = document.getElementById('dateTo').value;
+            if (!from || !to) return;
+
+            // Firestore query on date field (string YYYY-MM-DD)
+            const snapshot = await db.collection('attendance')
+                .where('date', '>=', from)
+                .where('date', '<=', to)
+                .orderBy('date', 'desc')
+                .get();
+
+            allAttendance = [];
+            snapshot.forEach(doc => allAttendance.push({ id: doc.id, ...doc.data() }));
+            applyFilters();
+        }
+
+        // Apply all filters (date range, staff, status)
+        function applyFilters() {
+            const staffId = document.getElementById('staffFilter').value;
+            const status = document.getElementById('statusFilter').value;
+
+            let filtered = allAttendance;
+
+            if (staffId !== 'all') {
+                filtered = filtered.filter(a => a.staffId === staffId);
+            }
+
+            // Determine status for each record (we need to compute based on late/early fields)
+            // We'll compute on the fly in render, but for filtering we need to compute now.
+            filtered = filtered.filter(a => {
+                if (status === 'all') return true;
+                const isLate = a.late === true;
+                const isEarly = a.early === true;
+                const hasCheckIn = !!a.checkInTime;
+                const hasCheckOut = !!a.checkOutTime;
+                if (status === 'present') return hasCheckIn && !isLate;
+                if (status === 'late') return hasCheckIn && isLate;
+                if (status === 'early') return hasCheckOut && isEarly;
+                if (status === 'absent') return !hasCheckIn; // no check-in
+                return true;
+            });
+
+            renderAttendance(filtered);
+            updateStats(filtered);
+        }
+
+        function updateStats(filtered) {
+            let present = 0, late = 0, early = 0, absent = 0;
+            filtered.forEach(a => {
+                if (!a.checkInTime) {
+                    absent++;
+                } else if (a.late) {
+                    late++;
+                } else {
+                    present++;
+                }
+                if (a.checkOutTime && a.early) early++;
+            });
+            document.getElementById('totalRecords').textContent = filtered.length;
+            document.getElementById('presentCount').textContent = present;
+            document.getElementById('lateCount').textContent = late;
+            document.getElementById('earlyCount').textContent = early;
+            document.getElementById('absentCount').textContent = absent;
+        }
+
+        // Render cards
+        function renderAttendance(records) {
+            const container = document.getElementById('attendanceContainer');
+            if (!records.length) {
+                container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem;">No attendance records found.</div>';
+                return;
+            }
+
+            let html = '';
+            records.forEach(rec => {
+                const staff = staffMap[rec.staffId] || { name: 'Unknown', role: '' };
+                const checkInTime = rec.checkInTime ? new Date(rec.checkInTime.seconds * 1000).toLocaleString() : '—';
+                const checkOutTime = rec.checkOutTime ? new Date(rec.checkOutTime.seconds * 1000).toLocaleString() : '—';
+                const isLate = rec.late ? 'Late' : 'On Time';
+                const isEarly = rec.early ? 'Early' : 'On Time';
+                const statusClass = rec.late ? 'late' : (rec.checkInTime ? 'present' : 'absent');
+                
+                html += `
+                <div class="attendance-card">
+                    <div class="card-header">
+                        <div class="staff-info">
+                            <div class="staff-avatar">${staff.name.charAt(0) || '?'}</div>
+                            <div>
+                                <div class="staff-name">${staff.name}</div>
+                                <div class="staff-role">${staff.role}</div>
+                            </div>
+                        </div>
+                        <div class="date-badge">${rec.date || ''}</div>
+                    </div>
+                    <div class="times">
+                        <div class="time-row"><span class="time-label">Check‑In:</span><span class="time-value">${checkInTime}</span></div>
+                        <div class="time-row"><span class="time-label">Check‑Out:</span><span class="time-value">${checkOutTime}</span></div>
+                    </div>
+                    <div class="photo-row">
+                        ${rec.checkInPhoto ? `<img src="${rec.checkInPhoto}" class="photo-thumb" onclick="showPhoto('${rec.checkInPhoto}')" title="Check‑In Photo">` : ''}
+                        ${rec.checkOutPhoto ? `<img src="${rec.checkOutPhoto}" class="photo-thumb" onclick="showPhoto('${rec.checkOutPhoto}')" title="Check‑Out Photo">` : ''}
+                    </div>
+                    <div style="margin-top:0.8rem;">
+                        <span class="status-badge ${statusClass}">${rec.late ? 'Late' : (rec.checkInTime ? 'Present' : 'Absent')}</span>
+                        ${rec.early ? '<span class="status-badge early">Early Out</span>' : ''}
+                    </div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // Photo modal
+        const photoModal = document.getElementById('photoModal');
+        const modalImage = document.getElementById('modalImage');
+        window.showPhoto = (url) => {
+            modalImage.src = url;
+            photoModal.classList.add('active');
+        };
+        window.closePhotoModal = () => {
+            photoModal.classList.remove('active');
+            modalImage.src = '';
+        };
+
+        // Filter buttons
+        document.getElementById('applyFilters').addEventListener('click', fetchAttendance);
+        document.getElementById('resetFilters').addEventListener('click', () => {
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            document.getElementById('staffFilter').value = 'all';
+            document.getElementById('statusFilter').value = 'all';
+            fetchAttendance();
+        });
+    </script>
+</body>
+</html>
