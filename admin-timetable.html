@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Timetable Management</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Same base styles as previous pages */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        .sidebar .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 2.5rem;
+            padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i {
+            font-size: 2rem;
+            color: var(--accent);
+        }
+        .sidebar .logo-area h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .sidebar.collapsed .logo-area h2 {
+            display: none;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 0.75rem;
+            color: var(--text-secondary);
+            transition: 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.3rem;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        .sidebar .nav-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+        }
+        .sidebar .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+        .sidebar .nav-item i {
+            font-size: 1.2rem;
+            width: 1.5rem;
+        }
+        .sidebar.collapsed .nav-item span {
+            display: none;
+        }
+        .sidebar .toggle-btn {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .page-title p {
+            color: var(--text-secondary);
+        }
+        .profile-area {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown {
+            position: relative;
+            cursor: pointer;
+        }
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 50px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            min-width: 150px;
+            display: none;
+            z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+            border-radius: 0.5rem;
+        }
+        .dropdown-item:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .class-selector {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1.5rem;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-width: 200px;
+        }
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            background: var(--accent);
+            color: white;
+        }
+        .btn:hover {
+            filter: brightness(1.1);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        /* Timetable grid */
+        .timetable-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: 100px repeat(5, 1fr);
+            gap: 0.5rem;
+            min-width: 800px;
+        }
+        .grid-header {
+            font-weight: 600;
+            padding: 0.8rem;
+            text-align: center;
+            background: var(--hover-bg);
+            border-radius: 0.5rem;
+        }
+        .time-slot {
+            padding: 0.8rem;
+            text-align: center;
+            background: var(--hover-bg);
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+        .period-cell {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .period-cell:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+        .period-cell .subject {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+        .period-cell .teacher {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .period-cell .time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: var(--text-secondary);
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+        }
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+        .btn-delete {
+            background: var(--danger-text);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-graduation-cap"></i>
+            <h2>EduTop Admin</h2>
+        </div>
+        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
+        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="admin-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="admin-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="admin-payments.html" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
+        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="admin-audit.html" class="nav-item"><i class="fas fa-history"></i><span>Audit Logs</span></a>
+        <a href="admin-settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Timetable Management</h1>
+                <p>View and edit class timetables</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">MA</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <select id="classSelect" class="class-selector">
+                <option value="">Select a class...</option>
+            </select>
+            <button class="btn" id="addPeriodBtn" disabled>+ Add Period</button>
+        </div>
+
+        <!-- Timetable display -->
+        <div class="timetable-container" id="timetableContainer" style="display: none;">
+            <div class="timetable-grid" id="timetableGrid">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+        <div id="noClassSelected" style="text-align:center; padding:3rem; color:var(--text-secondary);">
+            <i class="fas fa-calendar-alt" style="font-size:3rem; margin-bottom:1rem;"></i>
+            <h3>No class selected</h3>
+            <p>Please choose a class from the dropdown above.</p>
+        </div>
+    </div>
+
+    <!-- Period Modal -->
+    <div class="modal" id="periodModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Edit Period</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeModal()"></i>
+            </div>
+            <form id="periodForm">
+                <input type="hidden" id="periodId">
+                <div class="form-group">
+                    <label>Day</label>
+                    <select id="periodDay" class="form-control" required>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Time</label>
+                        <input type="time" id="periodStart" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Time</label>
+                        <input type="time" id="periodEnd" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="periodSubject" class="form-control" placeholder="e.g., Mathematics" required>
+                </div>
+                <div class="form-group">
+                    <label>Teacher</label>
+                    <select id="periodTeacher" class="form-control" required>
+                        <option value="">Select teacher...</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn" id="savePeriodBtn">Save</button>
+                    <button type="button" class="btn btn-delete" id="deletePeriodBtn" style="display:none;" onclick="deletePeriod()">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Auth check
+        let currentUserData = null;
+        let currentAdminId = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUserData = userDoc.data();
+            currentAdminId = user.uid;
+            document.getElementById('profileInitials').textContent = 
+                (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
+            document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
+
+            // Load classes and teachers
+            loadClasses();
+            loadTeachers();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        // Load classes into dropdown
+        async function loadClasses() {
+            const classSelect = document.getElementById('classSelect');
+            const snapshot = await db.collection('classes').get();
+            snapshot.forEach(doc => {
+                const cls = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = cls.className || doc.id;
+                classSelect.appendChild(option);
+            });
+        }
+
+        // Load teachers into dropdown (for modal)
+        async function loadTeachers() {
+            const teacherSelect = document.getElementById('periodTeacher');
+            const snapshot = await db.collection('users').where('role', '==', 'teacher').get();
+            snapshot.forEach(doc => {
+                const teacher = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = `${teacher.firstName || ''} ${teacher.surname || ''}`.trim() || 'Unknown';
+                teacherSelect.appendChild(option);
+            });
+        }
+
+        // Class selection change
+        const classSelect = document.getElementById('classSelect');
+        const addPeriodBtn = document.getElementById('addPeriodBtn');
+        const timetableContainer = document.getElementById('timetableContainer');
+        const noClassSelected = document.getElementById('noClassSelected');
+        let currentClassId = null;
+        let periods = []; // store periods for current class
+        let unsubscribePeriods = null;
+
+        classSelect.addEventListener('change', async (e) => {
+            const classId = e.target.value;
+            currentClassId = classId;
+            addPeriodBtn.disabled = !classId;
+
+            if (!classId) {
+                timetableContainer.style.display = 'none';
+                noClassSelected.style.display = 'block';
+                if (unsubscribePeriods) unsubscribePeriods();
+                return;
+            }
+
+            timetableContainer.style.display = 'block';
+            noClassSelected.style.display = 'none';
+
+            // Set up real-time listener for periods of this class
+            if (unsubscribePeriods) unsubscribePeriods();
+            unsubscribePeriods = db.collection('timetable')
+                .where('classId', '==', classId)
+                .onSnapshot(snapshot => {
+                    periods = [];
+                    snapshot.forEach(doc => periods.push({ id: doc.id, ...doc.data() }));
+                    renderTimetable();
+                });
+        });
+
+        // Render timetable grid
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        function renderTimetable() {
+            const grid = document.getElementById('timetableGrid');
+            // Get all unique time slots from periods (sort by start time)
+            const times = [...new Set(periods.map(p => p.startTime))].sort();
+            // Build header row
+            let html = '<div class="grid-header">Time</div>';
+            days.forEach(day => html += `<div class="grid-header">${day}</div>`);
+
+            // For each time slot, create a row
+            times.forEach(time => {
+                html += `<div class="time-slot">${time}</div>`;
+                days.forEach(day => {
+                    const period = periods.find(p => p.day === day && p.startTime === time);
+                    if (period) {
+                        html += `
+                            <div class="period-cell" onclick="editPeriod('${period.id}')">
+                                <div class="subject">${period.subject}</div>
+                                <div class="teacher">${period.teacherName || '—'}</div>
+                                <div class="time">${period.startTime}-${period.endTime}</div>
+                            </div>
+                        `;
+                    } else {
+                        html += `<div class="period-cell" onclick="addPeriod('${day}', '${time}')">+</div>`;
+                    }
+                });
+            });
+
+            // If no periods, show empty grid with + cells
+            if (times.length === 0) {
+                html += `<div class="time-slot">08:00</div>`; // default time
+                days.forEach(day => html += `<div class="period-cell" onclick="addPeriod('${day}', '08:00')">+</div>`);
+                html += `<div class="time-slot">09:00</div>`;
+                days.forEach(day => html += `<div class="period-cell" onclick="addPeriod('${day}', '09:00')">+</div>`);
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // Modal functions
+        const modal = document.getElementById('periodModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const periodIdField = document.getElementById('periodId');
+        const periodDay = document.getElementById('periodDay');
+        const periodStart = document.getElementById('periodStart');
+        const periodEnd = document.getElementById('periodEnd');
+        const periodSubject = document.getElementById('periodSubject');
+        const periodTeacher = document.getElementById('periodTeacher');
+        const deleteBtn = document.getElementById('deletePeriodBtn');
+
+        window.addPeriod = (day, time) => {
+            modalTitle.textContent = 'Add Period';
+            periodIdField.value = '';
+            periodDay.value = day;
+            periodStart.value = time;
+            periodEnd.value = '';
+            periodSubject.value = '';
+            periodTeacher.value = '';
+            deleteBtn.style.display = 'none';
+            modal.classList.add('active');
+        };
+
+        window.editPeriod = async (periodId) => {
+            const period = periods.find(p => p.id === periodId);
+            if (!period) return;
+            modalTitle.textContent = 'Edit Period';
+            periodIdField.value = periodId;
+            periodDay.value = period.day;
+            periodStart.value = period.startTime;
+            periodEnd.value = period.endTime;
+            periodSubject.value = period.subject;
+            periodTeacher.value = period.teacherId || '';
+            deleteBtn.style.display = 'inline-block';
+            modal.classList.add('active');
+        };
+
+        window.closeModal = () => {
+            modal.classList.remove('active');
+        };
+
+        // Save period
+        document.getElementById('periodForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentClassId) return;
+
+            const id = periodIdField.value;
+            const data = {
+                classId: currentClassId,
+                day: periodDay.value,
+                startTime: periodStart.value,
+                endTime: periodEnd.value,
+                subject: periodSubject.value,
+                teacherId: periodTeacher.value,
+                // Also store teacher name for display (or fetch on render)
+                teacherName: periodTeacher.selectedOptions[0]?.textContent || ''
+            };
+
+            try {
+                if (id) {
+                    // Update existing
+                    await db.collection('timetable').doc(id).update(data);
+                } else {
+                    // Add new
+                    await db.collection('timetable').add(data);
+                }
+                closeModal();
+            } catch (error) {
+                alert('Error saving period: ' + error.message);
+            }
+        });
+
+        window.deletePeriod = async () => {
+            const id = periodIdField.value;
+            if (!id || !confirm('Delete this period?')) return;
+            try {
+                await db.collection('timetable').doc(id).delete();
+                closeModal();
+            } catch (error) {
+                alert('Error deleting period: ' + error.message);
+            }
+        };
+
+        // Add period button (when no time selected)
+        addPeriodBtn.addEventListener('click', () => {
+            // Default to Monday, 08:00
+            addPeriod('Monday', '08:00');
+        });
+
+        // Cleanup listener
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribePeriods) unsubscribePeriods();
+        });
+    </script>
+</body>
+</html>
