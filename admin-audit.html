@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Audit Logs</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* (same base styles) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar .logo-area {
+            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
+            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
+            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+        }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+        .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
+        .main-content.expanded { margin-left: 80px; }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
+
+        .card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
+            padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;
+        }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+
+        .btn {
+            padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
+        .btn-danger { background: var(--danger-text); color: white; }
+
+        .filter-bar {
+            display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .filter-group input, .filter-group select {
+            background: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 2rem; padding: 0.5rem 1rem; color: var(--text-primary);
+        }
+
+        table {
+            width: 100%; border-collapse: collapse;
+        }
+        th {
+            text-align: left; padding: 0.8rem; color: var(--text-secondary);
+            font-weight: 500; border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 0.8rem; border-bottom: 1px solid var(--border);
+            max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .user-agent { font-size: 0.8rem; color: var(--text-secondary); }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
+            padding: 2rem; max-width: 600px; width: 90%;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-actions { display: flex; gap: 1rem; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-graduation-cap"></i>
+            <h2>EduTop Admin</h2>
+        </div>
+        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
+        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="admin-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="admin-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="admin-payments.html" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
+        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="admin-audit.html" class="nav-item active"><i class="fas fa-history"></i><span>Audit Logs</span></a>
+        <a href="admin-settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Audit Logs</h1>
+                <p>Complete history of all system actions</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">MA</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>From:</label>
+                <input type="datetime-local" id="filterFrom">
+            </div>
+            <div class="filter-group">
+                <label>To:</label>
+                <input type="datetime-local" id="filterTo">
+            </div>
+            <div class="filter-group">
+                <label>User:</label>
+                <input type="text" id="filterUser" placeholder="User name or email">
+            </div>
+            <div class="filter-group">
+                <label>Action:</label>
+                <input type="text" id="filterAction" placeholder="e.g., approve, delete">
+            </div>
+            <button class="btn btn-primary" id="applyFilters">Apply</button>
+            <button class="btn btn-outline" id="resetFilters">Reset</button>
+            <button class="btn btn-danger" id="clearAllBtn" style="margin-left:auto;">Delete All Logs (Master Only)</button>
+        </div>
+
+        <!-- Logs Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3>System Activity Log</h3>
+                <span id="logCount">0 logs</span>
+            </div>
+            <table id="logsTable">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Details</th>
+                        <th>IP / User Agent</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    <tr><td colspan="6">Loading logs...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeDeleteModal()"></i>
+            </div>
+            <p id="deleteMessage">Are you sure you want to delete all audit logs? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Auth check
+        let currentUser = null;
+        let currentUserData = null;
+        let isMasterAdmin = false;
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUserData = userDoc.data();
+            isMasterAdmin = userDoc.data().role === 'masterAdmin';
+            document.getElementById('profileInitials').textContent = 
+                (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
+            document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
+
+            // Show delete button only for master admin
+            if (!isMasterAdmin) {
+                document.getElementById('clearAllBtn').style.display = 'none';
+            }
+
+            // Load logs with real-time listener
+            setupLogsListener();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        // Real-time logs
+        let unsubscribeLogs = null;
+        let allLogs = [];
+
+        function setupLogsListener() {
+            if (unsubscribeLogs) unsubscribeLogs();
+            unsubscribeLogs = db.collection('auditLogs')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snapshot => {
+                    allLogs = [];
+                    snapshot.forEach(doc => allLogs.push({ id: doc.id, ...doc.data() }));
+                    document.getElementById('logCount').textContent = `${allLogs.length} logs`;
+                    applyFilters();
+                }, error => {
+                    console.error('Listener error:', error);
+                });
+        }
+
+        // Filtering
+        function applyFilters() {
+            const from = document.getElementById('filterFrom').value;
+            const to = document.getElementById('filterTo').value;
+            const userFilter = document.getElementById('filterUser').value.toLowerCase();
+            const actionFilter = document.getElementById('filterAction').value.toLowerCase();
+
+            let filtered = allLogs;
+
+            if (from) {
+                const fromDate = new Date(from).getTime();
+                filtered = filtered.filter(l => l.timestamp && l.timestamp.toDate().getTime() >= fromDate);
+            }
+            if (to) {
+                const toDate = new Date(to).getTime();
+                filtered = filtered.filter(l => l.timestamp && l.timestamp.toDate().getTime() <= toDate);
+            }
+            if (userFilter) {
+                filtered = filtered.filter(l => 
+                    (l.userName && l.userName.toLowerCase().includes(userFilter)) ||
+                    (l.userEmail && l.userEmail.toLowerCase().includes(userFilter))
+                );
+            }
+            if (actionFilter) {
+                filtered = filtered.filter(l => l.action.toLowerCase().includes(actionFilter));
+            }
+
+            renderLogs(filtered);
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logsBody');
+            if (!logs.length) {
+                tbody.innerHTML = '<tr><td colspan="6">No logs found.</td></tr>';
+                return;
+            }
+            let html = '';
+            logs.forEach(log => {
+                const timestamp = log.timestamp ? log.timestamp.toDate().toLocaleString() : 'N/A';
+                const user = log.userName || log.userEmail || log.userId || 'System';
+                const action = log.action || '—';
+                const details = log.details || log.description || '';
+                const ip = log.ip || '';
+                const userAgent = log.userAgent ? (log.userAgent.substring(0, 30) + '...') : '';
+                const canDelete = isMasterAdmin; // only master admin can delete individual logs (we'll add button)
+                html += `
+                <tr>
+                    <td>${timestamp}</td>
+                    <td>${user}</td>
+                    <td>${action}</td>
+                    <td>${details}</td>
+                    <td><span class="user-agent">${ip} ${userAgent}</span></td>
+                    <td>
+                        ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteSingleLog('${log.id}')">Delete</button>` : ''}
+                    </td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        document.getElementById('applyFilters').addEventListener('click', applyFilters);
+        document.getElementById('resetFilters').addEventListener('click', () => {
+            document.getElementById('filterFrom').value = '';
+            document.getElementById('filterTo').value = '';
+            document.getElementById('filterUser').value = '';
+            document.getElementById('filterAction').value = '';
+            applyFilters();
+        });
+
+        // Delete single log (master only)
+        window.deleteSingleLog = async (logId) => {
+            if (!isMasterAdmin) return;
+            if (!confirm('Delete this log entry?')) return;
+            await db.collection('auditLogs').doc(logId).delete();
+            // Optionally log this deletion itself (but careful with infinite loop)
+            // We'll log it as an audit action
+            await logAudit(`Deleted audit log ${logId}`);
+        };
+
+        // Delete all logs modal
+        const deleteModal = document.getElementById('deleteModal');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        clearAllBtn.addEventListener('click', () => {
+            deleteModal.classList.add('active');
+        });
+
+        window.closeDeleteModal = () => {
+            deleteModal.classList.remove('active');
+        };
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (!isMasterAdmin) return;
+            // Delete all logs in batches (Firestore limit 500 per batch)
+            const snapshot = await db.collection('auditLogs').get();
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            // Log this massive deletion
+            await logAudit('Deleted all audit logs');
+            closeDeleteModal();
+        });
+
+        // Helper function to log audit (for actions performed on this page)
+        async function logAudit(action) {
+            const user = currentUserData;
+            await db.collection('auditLogs').add({
+                userId: auth.currentUser.uid,
+                userName: user ? `${user.firstName || ''} ${user.surname || ''}`.trim() : 'Admin',
+                userEmail: user?.email || auth.currentUser.email,
+                action,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                ip: 'client-side', // you could fetch from a service
+                userAgent: navigator.userAgent
+            });
+        }
+
+        // Cleanup listener
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribeLogs) unsubscribeLogs();
+        });
+    </script>
+</body>
+</html>
