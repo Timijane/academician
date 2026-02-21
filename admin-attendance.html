@@ -14,6 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
+        /* (same styles as before, with minor additions) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -61,11 +62,37 @@
             min-height: 100vh;
         }
 
-        /* Kiosk mode – no sidebar, just fullscreen */
         .kiosk-container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
+        }
+
+        /* Top navigation bar */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.8rem 1.5rem;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            color: var(--accent);
+        }
+        .nav-link.active {
+            color: var(--accent);
         }
 
         .header {
@@ -94,7 +121,6 @@
             color: var(--text-secondary);
         }
 
-        /* Camera preview (hidden by default) */
         #cameraPreview {
             position: fixed;
             top: 0;
@@ -139,7 +165,6 @@
             color: var(--text-primary);
         }
 
-        /* Search bar */
         .search-bar {
             margin-bottom: 2rem;
             display: flex;
@@ -166,7 +191,6 @@
             outline: none;
         }
 
-        /* Staff table */
         .staff-table {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -240,7 +264,6 @@
         .status-badge.late { background: var(--warning-text); }
         .status-badge.absent { background: var(--danger-text); }
 
-        /* Time settings (admin only) */
         .settings-panel {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -267,13 +290,22 @@
 </head>
 <body>
     <div class="kiosk-container">
+        <!-- Top navigation -->
+        <div class="top-nav">
+            <div class="nav-links">
+                <a href="admin-dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="admin-attendance-review.html" class="nav-link"><i class="fas fa-chart-bar"></i> Attendance Review</a>
+                <span class="nav-link active"><i class="fas fa-fingerprint"></i> Kiosk</span>
+            </div>
+            <div class="theme-toggle" id="themeToggle">
+                <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+            </div>
+        </div>
+
         <div class="header">
             <div>
                 <h1>Attendance Kiosk</h1>
                 <p>Staff check‑in / check‑out · Today's date: <span id="currentDate"></span></p>
-            </div>
-            <div class="theme-toggle" id="themeToggle">
-                <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
             </div>
         </div>
 
@@ -368,10 +400,10 @@
         // Authentication and role check
         let currentUser = null;
         let isMasterAdmin = false;
-        let morningCutoff = '07:10'; // default
-        let afternoonStart = '14:00'; // default
+        let morningCutoff = '07:10';
+        let afternoonStart = '14:00';
         let staffList = [];
-        let todayAttendance = {}; // map staffId -> { checkIn, checkOut, checkInPhoto, checkOutPhoto, status }
+        let todayAttendance = {};
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -380,7 +412,6 @@
             }
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
-                // Not authorized for attendance kiosk
                 alert('You are not authorized to use the attendance kiosk.');
                 window.location.href = 'index.html';
                 return;
@@ -388,10 +419,8 @@
             currentUser = user;
             isMasterAdmin = userDoc.data().role === 'masterAdmin';
 
-            // Show settings panel only for master admin
             if (isMasterAdmin) {
                 document.getElementById('settingsPanel').style.display = 'flex';
-                // Load saved settings from Firestore config
                 const configDoc = await db.collection('config').doc('attendance').get();
                 if (configDoc.exists) {
                     const config = configDoc.data();
@@ -402,25 +431,25 @@
                 document.getElementById('afternoonStart').value = afternoonStart;
             }
 
-            // Load staff (teachers + nonTeachingStaff)
-            loadStaff();
+            // Load staff
+            await loadStaff();
             // Set up real-time listener for today's attendance
             setupAttendanceListener();
         });
 
-        // Load all staff
         async function loadStaff() {
             const snapshot = await db.collection('users')
                 .where('role', 'in', ['teacher', 'nonTeachingStaff'])
                 .get();
             staffList = [];
-            snapshot.forEach(doc => staffList.push({ id: doc.id, ...doc.data() }));
+            snapshot.forEach(doc => {
+                staffList.push({ id: doc.id, ...doc.data() });
+            });
             renderStaffTable();
         }
 
-        // Real-time listener for today's attendance records
         function setupAttendanceListener() {
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const today = new Date().toISOString().split('T')[0];
             db.collection('attendance')
                 .where('date', '==', today)
                 .onSnapshot(snapshot => {
@@ -433,12 +462,11 @@
                 });
         }
 
-        // Render staff table with search filter
         function renderStaffTable() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const filtered = staffList.filter(s => 
-                (s.firstName + ' ' + s.surname).toLowerCase().includes(searchTerm) ||
-                s.role.toLowerCase().includes(searchTerm)
+                ((s.firstName + ' ' + s.surname).toLowerCase().includes(searchTerm)) ||
+                (s.role.toLowerCase().includes(searchTerm))
             );
 
             let html = '';
@@ -450,7 +478,6 @@
                 const checkInTime = record.checkInTime ? new Date(record.checkInTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
                 const checkOutTime = record.checkOutTime ? new Date(record.checkOutTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
                 
-                // Determine status for display
                 let statusClass = 'absent';
                 let statusText = 'Absent';
                 if (record.checkInTime) {
@@ -491,11 +518,10 @@
             document.getElementById('staffTableBody').innerHTML = html || '<tr><td colspan="6" style="text-align:center;">No staff found</td></tr>';
         }
 
-        // Search input
         document.getElementById('searchInput').addEventListener('input', renderStaffTable);
 
         // Camera handling
-        let currentAction = null; // { type: 'in' or 'out', staffId }
+        let currentAction = null;
         let videoStream = null;
         const cameraPreview = document.getElementById('cameraPreview');
         const video = document.getElementById('video');
@@ -537,7 +563,6 @@
         captureBtn.addEventListener('click', async () => {
             if (!currentAction) return;
 
-            // Capture photo from video
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -546,7 +571,6 @@
             const dataUrl = canvas.toDataURL('image/jpeg');
             const blob = await (await fetch(dataUrl)).blob();
 
-            // Upload to Firebase Storage
             const timestamp = Date.now();
             const staffId = currentAction.staffId;
             const fileName = `attendance/${staffId}_${timestamp}.jpg`;
@@ -554,12 +578,8 @@
             await storageRef.put(blob);
             const photoURL = await storageRef.getDownloadURL();
 
-            // Determine if late/early based on current time
             const now = new Date();
             const today = now.toISOString().split('T')[0];
-            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-            // Get existing record for today
             const attendanceRef = db.collection('attendance').doc(`${staffId}_${today}`);
             const attendanceDoc = await attendanceRef.get();
             const existing = attendanceDoc.exists ? attendanceDoc.data() : {};
@@ -571,7 +591,6 @@
                 [`${currentAction.type === 'in' ? 'checkInPhoto' : 'checkOutPhoto'}`]: photoURL,
             };
 
-            // For check-in, calculate lateness
             if (currentAction.type === 'in') {
                 const cutoff = new Date();
                 const [ch, cm] = morningCutoff.split(':').map(Number);
@@ -579,7 +598,6 @@
                 updateData.late = now > cutoff;
             }
 
-            // For check-out, calculate early departure
             if (currentAction.type === 'out') {
                 const start = new Date();
                 const [sh, sm] = afternoonStart.split(':').map(Number);
@@ -587,13 +605,10 @@
                 updateData.early = now < start;
             }
 
-            // Merge with existing data
             await attendanceRef.set(updateData, { merge: true });
-
             stopCamera();
         });
 
-        // Save attendance settings (master admin only)
         document.getElementById('saveSettings').addEventListener('click', async () => {
             const newMorning = document.getElementById('morningCutoff').value;
             const newAfternoon = document.getElementById('afternoonStart').value;
