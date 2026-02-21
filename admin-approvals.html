@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Approvals</title>
+    <title>EduTop Scholars · Attendance Kiosk</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -12,20 +12,19 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
         /* (same styles as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
-            --bg-image: url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80');
-            --glass-bg: rgba(255, 255, 255, 0.8);
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
             --text-primary: #0f172a;
-            --text-secondary: #334155;
+            --text-secondary: #475569;
             --accent: #2563eb;
-            --border: rgba(0, 0, 0, 0.1);
-            --input-bg: rgba(255, 255, 255, 0.9);
-            --error: #dc2626;
-            --success: #16a34a;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
             --card-bg: #ffffff;
             --hover-bg: #f1f5f9;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -38,15 +37,13 @@
         }
 
         :root[data-theme="dark"] {
-            --bg-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80');
-            --glass-bg: rgba(15, 23, 42, 0.8);
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
             --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
+            --text-secondary: #94a3b8;
             --accent: #38bdf8;
-            --border: rgba(255, 255, 255, 0.1);
-            --input-bg: rgba(30, 41, 59, 0.8);
-            --error: #ef4444;
-            --success: #4ade80;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
             --card-bg: #1e293b;
             --hover-bg: #2d3a4f;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
@@ -60,218 +57,310 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg-image) no-repeat center center/cover fixed;
+            background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
-            display: flex;
         }
 
-        .sidebar {
-            width: 260px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            border-right: 1px solid var(--border);
-            padding: 2rem 1rem;
+        .kiosk-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .top-nav {
             display: flex;
-            flex-direction: column;
-            transition: width 0.3s;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.8rem 1.5rem;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            color: var(--accent);
+        }
+        .nav-link.active {
+            color: var(--accent);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+        .header p {
+            color: var(--text-secondary);
+        }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        #cameraPreview {
             position: fixed;
             top: 0;
             left: 0;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 100;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            flex-direction: column;
         }
-        .sidebar.collapsed { width: 80px; }
-        .sidebar .logo-area {
-            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+        #cameraPreview video {
+            max-width: 90%;
+            max-height: 80vh;
+            border-radius: 1rem;
         }
-        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
-        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
-        .sidebar.collapsed .logo-area h2 { display: none; }
-        .sidebar .nav-item {
-            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
-            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
-            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+        .camera-controls {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
         }
-        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
-        .sidebar .nav-item.active { background: var(--accent); color: white; }
-        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
-        .sidebar.collapsed .nav-item span { display: none; }
-        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+        .btn {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+        .btn-secondary {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
 
-        .main-content {
+        .search-bar {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .search-input {
             flex: 1;
-            margin-left: 260px;
-            padding: 2rem;
-            transition: margin-left 0.3s;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .main-content.expanded { margin-left: 80px; }
-
-        .top-bar {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
-        }
-        .page-title h1 { font-size: 2rem; font-weight: 600; }
-        .page-title p { color: var(--text-secondary); }
-        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
-        .theme-toggle {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
-            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+        .search-input i {
             color: var(--text-secondary);
         }
-        .profile-dropdown { position: relative; cursor: pointer; }
-        .profile-icon {
-            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        .search-input input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            outline: none;
         }
-        .dropdown-menu {
-            position: absolute; right: 0; top: 50px; background: var(--card-bg);
-            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
-            min-width: 150px; display: none; z-index: 1000;
-        }
-        .profile-dropdown:hover .dropdown-menu { display: block; }
-        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
-        .dropdown-item:hover { background: var(--hover-bg); }
 
-        .stats-row {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;
+        .staff-table {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            overflow-x: auto;
         }
-        .stat-card {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
-            padding: 1.2rem; text-align: center; box-shadow: var(--shadow);
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .stat-card .stat-icon { font-size: 2rem; color: var(--accent); margin-bottom: 0.5rem; }
-        .stat-card .stat-value { font-size: 2rem; font-weight: 600; line-height: 1.2; }
-        .stat-card .stat-label { color: var(--text-secondary); font-size: 0.9rem; }
+        th {
+            text-align: left;
+            padding: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .staff-name {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .staff-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-check {
+            padding: 0.4rem 1rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-check-in {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+        .btn-check-out {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+        }
+        .btn-check:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status-badge {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        .status-badge.present { background: var(--success-text); }
+        .status-badge.late { background: var(--warning-text); }
+        .status-badge.absent { background: var(--danger-text); }
 
-        .tabs {
-            display: flex; gap: 0.5rem; margin-bottom: 1.5rem;
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem;
-            width: fit-content;
+        .settings-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
         }
-        .tab {
-            padding: 0.6rem 1.8rem; border-radius: 3rem; font-weight: 500; cursor: pointer;
-            transition: 0.2s; color: var(--text-secondary);
+        .time-setting {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .tab.active { background: var(--accent); color: white; }
+        .time-setting input {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.4rem 0.8rem;
+            color: var(--text-primary);
+        }
 
-        .user-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
         }
-        .user-card {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
-            padding: 1.5rem; box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .user-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-        .user-card-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-        .user-avatar {
-            width: 50px; height: 50px; border-radius: 50%; background: var(--accent);
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.2rem;
-        }
-        .user-info h3 { font-size: 1.1rem; font-weight: 600; }
-        .user-info p { color: var(--text-secondary); font-size: 0.9rem; }
-        .user-detail { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: var(--text-secondary); font-size: 0.95rem; }
-        .user-detail i { width: 1.2rem; color: var(--accent); }
-        .user-actions { display: flex; gap: 0.8rem; margin-top: 1.2rem; justify-content: flex-end; }
-        .btn {
-            padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s;
-        }
-        .btn-approve { background: var(--success-text); color: white; }
-        .btn-approve:hover { filter: brightness(1.1); }
-        .btn-reject { background: var(--danger-text); color: white; }
-        .btn-reject:hover { filter: brightness(1.1); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-
-        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
-        .empty-state i { font-size: 3rem; margin-bottom: 1rem; }
-
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
-            padding: 2rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
-        }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .detail-row { display: flex; margin-bottom: 0.8rem; }
-        .detail-label { width: 120px; color: var(--text-secondary); }
-        .detail-value { flex: 1; font-weight: 500; }
     </style>
 </head>
 <body>
-    <div class="sidebar" id="sidebar">
-        <div class="logo-area">
-            <i class="fas fa-graduation-cap"></i>
-            <h2>EduTop Admin</h2>
+    <div class="kiosk-container">
+        <!-- Top navigation -->
+        <div class="top-nav">
+            <div class="nav-links">
+                <a href="admin-dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="admin-attendance-review.html" class="nav-link"><i class="fas fa-chart-bar"></i> Attendance Review</a>
+                <span class="nav-link active"><i class="fas fa-fingerprint"></i> Kiosk</span>
+            </div>
+            <div class="theme-toggle" id="themeToggle">
+                <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+            </div>
         </div>
-        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
-        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
-        <a href="admin-approvals.html" class="nav-item active"><i class="fas fa-user-check"></i><span>Approvals</span></a>
-        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
-        <a href="admin-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
-        <a href="admin-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
-        <a href="admin-payments.html" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
-        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
-        <a href="admin-audit.html" class="nav-item"><i class="fas fa-history"></i><span>Audit Logs</span></a>
-        <a href="admin-settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
-        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+
+        <div class="header">
+            <div>
+                <h1>Attendance Kiosk</h1>
+                <p>Staff check‑in / check‑out · Today's date: <span id="currentDate"></span></p>
+            </div>
+        </div>
+
+        <!-- Settings panel (visible only to master admin) -->
+        <div class="settings-panel" id="settingsPanel" style="display: none;">
+            <div class="time-setting">
+                <label>Morning cut‑off (late after):</label>
+                <input type="time" id="morningCutoff" value="07:10">
+            </div>
+            <div class="time-setting">
+                <label>Afternoon start (early before):</label>
+                <input type="time" id="afternoonStart" value="14:00">
+            </div>
+            <button class="btn btn-primary" id="saveSettings">Save Settings</button>
+        </div>
+
+        <!-- Search -->
+        <div class="search-bar">
+            <div class="search-input">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search by name or role...">
+            </div>
+        </div>
+
+        <!-- Staff table -->
+        <div class="staff-table">
+            <table id="staffTable">
+                <thead>
+                    <tr>
+                        <th>Staff</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Check‑In</th>
+                        <th>Check‑Out</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                    <tr><td colspan="6" class="loading">Loading staff...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="main-content" id="mainContent">
-        <div class="top-bar">
-            <div class="page-title">
-                <h1>Approvals</h1>
-                <p>Review and manage pending registrations</p>
-            </div>
-            <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
-                </div>
-                <div class="profile-dropdown">
-                    <div class="profile-icon" id="profileInitials">MA</div>
-                    <div class="dropdown-menu">
-                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
-                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats row -->
-        <div class="stats-row" id="statsRow">
-            <div class="stat-card"><i class="fas fa-hourglass-half stat-icon"></i><div class="stat-value" id="totalPending">0</div><div class="stat-label">Total Pending</div></div>
-            <div class="stat-card"><i class="fas fa-chalkboard-teacher stat-icon"></i><div class="stat-value" id="pendingTeachers">0</div><div class="stat-label">Teachers</div></div>
-            <div class="stat-card"><i class="fas fa-user-graduate stat-icon"></i><div class="stat-value" id="pendingStudents">0</div><div class="stat-label">Students</div></div>
-            <div class="stat-card"><i class="fas fa-users-cog stat-icon"></i><div class="stat-value" id="pendingStaff">0</div><div class="stat-label">Non‑Teaching</div></div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tabs" id="roleTabs">
-            <div class="tab active" data-role="all">All</div>
-            <div class="tab" data-role="teacher">Teachers</div>
-            <div class="tab" data-role="student">Students</div>
-            <div class="tab" data-role="nonTeachingStaff">Staff</div>
-        </div>
-
-        <!-- User cards container -->
-        <div id="usersContainer" class="user-grid"></div>
-    </div>
-
-    <!-- Detail Modal -->
-    <div class="modal" id="detailModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>User Details</h3>
-                <i class="fas fa-times" style="cursor:pointer;" onclick="closeDetailModal()"></i>
-            </div>
-            <div id="detailContent"></div>
-            <div style="text-align:right; margin-top:1rem;">
-                <button class="btn btn-approve" onclick="approveFromDetail()">Approve</button>
-                <button class="btn btn-reject" onclick="rejectFromDetail()">Reject</button>
-            </div>
+    <!-- Camera preview modal -->
+    <div id="cameraPreview">
+        <video id="video" autoplay playsinline></video>
+        <div class="camera-controls">
+            <button class="btn btn-primary" id="captureBtn">Capture & Confirm</button>
+            <button class="btn btn-secondary" id="cancelCameraBtn">Cancel</button>
         </div>
     </div>
 
@@ -288,18 +377,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // Sidebar toggle
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const toggleBtn = document.getElementById('sidebarToggle');
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            const icon = toggleBtn.querySelector('i');
-            icon.classList.toggle('fa-chevron-left');
-            icon.classList.toggle('fa-chevron-right');
-        });
+        const storage = firebase.storage();
 
         // Theme toggle
         const html = document.documentElement;
@@ -321,8 +399,19 @@
             updateThemeUI(next);
         });
 
-        // Auth check
-        let currentUserData = null;
+        // Display current date
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Authentication and role check
+        let currentUser = null;
+        let isMasterAdmin = false;
+        let morningCutoff = '07:10';
+        let afternoonStart = '14:00';
+        let staffList = [];
+        let todayAttendance = {};
+        let unsubscribeStaff = null;
+        let unsubscribeAttendance = null;
+
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'admin-login.html';
@@ -330,185 +419,242 @@
             }
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
-                auth.signOut();
+                alert('You are not authorized to use the attendance kiosk.');
                 window.location.href = 'index.html';
                 return;
             }
-            currentUserData = userDoc.data();
-            document.getElementById('profileInitials').textContent = 
-                (currentUserData.firstName?.[0] || 'M') + (currentUserData.surname?.[0] || 'A');
-            document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
+            currentUser = user;
+            isMasterAdmin = userDoc.data().role === 'masterAdmin';
 
-            // Load all users and filter pending client-side
-            setupAllUsersListener();
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut().then(() => window.location.href = 'index.html');
-        });
-
-        // Real-time listener for ALL users
-        let unsubscribeAll = null;
-        let allUsers = [];
-        let pendingUsers = [];
-
-        function setupAllUsersListener() {
-            if (unsubscribeAll) unsubscribeAll();
-            unsubscribeAll = db.collection('users').onSnapshot(snapshot => {
-                allUsers = [];
-                snapshot.forEach(doc => allUsers.push({ id: doc.id, ...doc.data() }));
-                // Filter for pending: approved == false OR approved is missing (undefined)
-                pendingUsers = allUsers.filter(u => u.approved === false || u.approved === undefined);
-                updateStats();
-                filterByTab(currentTab);
-            }, error => {
-                console.error('Listener error:', error);
-            });
-        }
-
-        // Stats update
-        function updateStats() {
-            const total = pendingUsers.length;
-            const teachers = pendingUsers.filter(u => u.role === 'teacher').length;
-            const students = pendingUsers.filter(u => u.role === 'student').length;
-            const staff = pendingUsers.filter(u => u.role === 'nonTeachingStaff').length;
-            document.getElementById('totalPending').textContent = total;
-            document.getElementById('pendingTeachers').textContent = teachers;
-            document.getElementById('pendingStudents').textContent = students;
-            document.getElementById('pendingStaff').textContent = staff;
-        }
-
-        // Tab handling
-        let currentTab = 'all';
-        const tabs = document.querySelectorAll('.tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                currentTab = tab.dataset.role;
-                filterByTab(currentTab);
-            });
-        });
-
-        function filterByTab(role) {
-            let filtered = pendingUsers;
-            if (role !== 'all') {
-                filtered = filtered.filter(u => u.role === role);
+            if (isMasterAdmin) {
+                document.getElementById('settingsPanel').style.display = 'flex';
+                const configDoc = await db.collection('config').doc('attendance').get();
+                if (configDoc.exists) {
+                    const config = configDoc.data();
+                    morningCutoff = config.morningCutoff || '07:10';
+                    afternoonStart = config.afternoonStart || '14:00';
+                }
+                document.getElementById('morningCutoff').value = morningCutoff;
+                document.getElementById('afternoonStart').value = afternoonStart;
             }
-            renderCards(filtered);
+
+            // Load approved staff (teachers and nonTeachingStaff) with real-time listener
+            loadStaffListener();
+            // Set up real-time listener for today's attendance
+            setupAttendanceListener();
+        });
+
+        // Real-time listener for staff (approved teachers and nonTeachingStaff)
+        function loadStaffListener() {
+            if (unsubscribeStaff) unsubscribeStaff();
+            unsubscribeStaff = db.collection('users')
+                .where('role', 'in', ['teacher', 'nonTeachingStaff'])
+                .where('approved', '==', true)
+                .onSnapshot(snapshot => {
+                    staffList = [];
+                    snapshot.forEach(doc => {
+                        staffList.push({ id: doc.id, ...doc.data() });
+                    });
+                    // Once staff are loaded, remove loading message and render
+                    renderStaffTable();
+                }, error => {
+                    console.error('Staff listener error:', error);
+                    document.getElementById('staffTableBody').innerHTML = '<tr><td colspan="6">Error loading staff.</td></tr>';
+                });
         }
 
-        // Render cards
-        function renderCards(users) {
-            const container = document.getElementById('usersContainer');
-            if (!users.length) {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle"></i><h3>All clear!</h3><p>No pending approvals in this category.</p></div>`;
+        function setupAttendanceListener() {
+            const today = new Date().toISOString().split('T')[0];
+            if (unsubscribeAttendance) unsubscribeAttendance();
+            unsubscribeAttendance = db.collection('attendance')
+                .where('date', '==', today)
+                .onSnapshot(snapshot => {
+                    todayAttendance = {};
+                    snapshot.forEach(doc => {
+                        const record = doc.data();
+                        todayAttendance[record.staffId] = record;
+                    });
+                    renderStaffTable(); // re-render when attendance changes
+                }, error => {
+                    console.error('Attendance listener error:', error);
+                });
+        }
+
+        function renderStaffTable() {
+            const tbody = document.getElementById('staffTableBody');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            if (!staffList.length) {
+                tbody.innerHTML = '<tr><td colspan="6">No staff members found.</td></tr>';
+                return;
+            }
+
+            const filtered = staffList.filter(s => 
+                ((s.firstName + ' ' + s.surname).toLowerCase().includes(searchTerm)) ||
+                (s.role.toLowerCase().includes(searchTerm))
+            );
+
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="6">No matching staff.</td></tr>';
                 return;
             }
 
             let html = '';
-            users.forEach(user => {
-                const name = `${user.firstName || ''} ${user.surname || ''}`.trim() || 'Unnamed';
-                const initials = (user.firstName?.[0] || '') + (user.surname?.[0] || '') || '?';
-                const roleDisplay = user.role === 'teacher' ? 'Teacher' : user.role === 'student' ? 'Student' : user.role === 'nonTeachingStaff' ? 'Staff' : user.role;
-                const extraInfo = user.role === 'teacher' ? `📚 ${user.classTeaching || 'No class'}` :
-                                 user.role === 'student' ? `🎓 ${user.class || 'No class'}` :
-                                 user.role === 'nonTeachingStaff' ? `🛠️ ${user.department || 'No dept'}` : '';
+            filtered.forEach(staff => {
+                const name = `${staff.firstName || ''} ${staff.surname || ''}`.trim() || 'Unknown';
+                const initials = (staff.firstName?.[0] || '') + (staff.surname?.[0] || '') || '?';
+                const role = staff.role === 'teacher' ? 'Teacher' : 'Non‑Teaching';
+                const record = todayAttendance[staff.id] || {};
+                const checkInTime = record.checkInTime ? new Date(record.checkInTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+                const checkOutTime = record.checkOutTime ? new Date(record.checkOutTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+                
+                let statusClass = 'absent';
+                let statusText = 'Absent';
+                if (record.checkInTime) {
+                    const checkInDate = new Date(record.checkInTime.seconds * 1000);
+                    const cutoff = new Date();
+                    const [ch, cm] = morningCutoff.split(':').map(Number);
+                    cutoff.setHours(ch, cm, 0);
+                    if (checkInDate <= cutoff) {
+                        statusClass = 'present';
+                        statusText = 'Present';
+                    } else {
+                        statusClass = 'late';
+                        statusText = 'Late';
+                    }
+                }
 
                 html += `
-                <div class="user-card" data-id="${user.id}">
-                    <div class="user-card-header">
-                        <div class="user-avatar">${initials}</div>
-                        <div class="user-info">
-                            <h3>${name}</h3>
-                            <p>${roleDisplay}</p>
+                <tr>
+                    <td>
+                        <div class="staff-name">
+                            <div class="staff-avatar">${initials}</div>
+                            ${name}
                         </div>
-                    </div>
-                    <div class="user-detail"><i class="fas fa-envelope"></i> ${user.email || '—'}</div>
-                    <div class="user-detail"><i class="fas fa-phone"></i> ${user.phone || '—'}</div>
-                    ${extraInfo ? `<div class="user-detail"><i class="fas fa-info-circle"></i> ${extraInfo}</div>` : ''}
-                    <div class="user-actions">
-                        <button class="btn btn-outline btn-sm" onclick="viewDetails('${user.id}')"><i class="fas fa-eye"></i> Details</button>
-                        <button class="btn btn-approve btn-sm" onclick="approveUser('${user.id}')"><i class="fas fa-check"></i> Approve</button>
-                        <button class="btn btn-reject btn-sm" onclick="rejectUser('${user.id}')"><i class="fas fa-times"></i> Reject</button>
-                    </div>
-                </div>
+                    </td>
+                    <td>${role}</td>
+                    <td><span class="status-badge ${statusClass}"></span> ${statusText}</td>
+                    <td>${checkInTime}</td>
+                    <td>${checkOutTime}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-check btn-check-in" ${record.checkInTime ? 'disabled' : ''} onclick="startCheckIn('${staff.id}')">Check In</button>
+                            <button class="btn-check btn-check-out" ${!record.checkInTime || record.checkOutTime ? 'disabled' : ''} onclick="startCheckOut('${staff.id}')">Check Out</button>
+                        </div>
+                    </td>
+                </tr>
                 `;
             });
-            container.innerHTML = html;
+            tbody.innerHTML = html;
         }
 
-        // Detail modal
-        let currentDetailUserId = null;
-        window.viewDetails = async (userId) => {
-            const user = allUsers.find(u => u.id === userId); // from allUsers, not just pending
-            if (!user) return;
-            currentDetailUserId = userId;
-            const name = `${user.firstName || ''} ${user.surname || ''}`.trim() || 'Unnamed';
-            const roleDisplay = user.role === 'teacher' ? 'Teacher' : user.role === 'student' ? 'Student' : user.role === 'nonTeachingStaff' ? 'Staff' : user.role;
-            let extraRows = '';
-            if (user.role === 'teacher') {
-                extraRows += `<div class="detail-row"><span class="detail-label">Class Teaching</span><span class="detail-value">${user.classTeaching || '—'}</span></div>`;
-                extraRows += `<div class="detail-row"><span class="detail-label">Qualifications</span><span class="detail-value">${user.qualifications || '—'}</span></div>`;
-            } else if (user.role === 'student') {
-                extraRows += `<div class="detail-row"><span class="detail-label">Class</span><span class="detail-value">${user.class || '—'}</span></div>`;
-            } else if (user.role === 'nonTeachingStaff') {
-                extraRows += `<div class="detail-row"><span class="detail-label">Department</span><span class="detail-value">${user.department || '—'}</span></div>`;
+        document.getElementById('searchInput').addEventListener('input', renderStaffTable);
+
+        // Camera handling
+        let currentAction = null;
+        let videoStream = null;
+        const cameraPreview = document.getElementById('cameraPreview');
+        const video = document.getElementById('video');
+        const captureBtn = document.getElementById('captureBtn');
+        const cancelBtn = document.getElementById('cancelCameraBtn');
+
+        async function startCamera() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = videoStream;
+                cameraPreview.style.display = 'flex';
+            } catch (err) {
+                alert('Camera access denied or not available.');
+                console.error(err);
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            cameraPreview.style.display = 'none';
+            currentAction = null;
+        }
+
+        window.startCheckIn = (staffId) => {
+            currentAction = { type: 'in', staffId };
+            startCamera();
+        };
+
+        window.startCheckOut = (staffId) => {
+            currentAction = { type: 'out', staffId };
+            startCamera();
+        };
+
+        cancelBtn.addEventListener('click', stopCamera);
+
+        captureBtn.addEventListener('click', async () => {
+            if (!currentAction) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            const blob = await (await fetch(dataUrl)).blob();
+
+            const timestamp = Date.now();
+            const staffId = currentAction.staffId;
+            const fileName = `attendance/${staffId}_${timestamp}.jpg`;
+            const storageRef = storage.ref().child(fileName);
+            await storageRef.put(blob);
+            const photoURL = await storageRef.getDownloadURL();
+
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const attendanceRef = db.collection('attendance').doc(`${staffId}_${today}`);
+            const attendanceDoc = await attendanceRef.get();
+            const existing = attendanceDoc.exists ? attendanceDoc.data() : {};
+
+            const updateData = {
+                staffId,
+                date: today,
+                [`${currentAction.type === 'in' ? 'checkInTime' : 'checkOutTime'}`]: firebase.firestore.FieldValue.serverTimestamp(),
+                [`${currentAction.type === 'in' ? 'checkInPhoto' : 'checkOutPhoto'}`]: photoURL,
+            };
+
+            if (currentAction.type === 'in') {
+                const cutoff = new Date();
+                const [ch, cm] = morningCutoff.split(':').map(Number);
+                cutoff.setHours(ch, cm, 0);
+                updateData.late = now > cutoff;
             }
 
-            const html = `
-                <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">${name}</span></div>
-                <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${user.email || '—'}</span></div>
-                <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${user.phone || '—'}</span></div>
-                <div class="detail-row"><span class="detail-label">Role</span><span class="detail-value">${roleDisplay}</span></div>
-                ${extraRows}
-            `;
-            document.getElementById('detailContent').innerHTML = html;
-            document.getElementById('detailModal').classList.add('active');
-        };
+            if (currentAction.type === 'out') {
+                const start = new Date();
+                const [sh, sm] = afternoonStart.split(':').map(Number);
+                start.setHours(sh, sm, 0);
+                updateData.early = now < start;
+            }
 
-        window.closeDetailModal = () => {
-            document.getElementById('detailModal').classList.remove('active');
-            currentDetailUserId = null;
-        };
+            await attendanceRef.set(updateData, { merge: true });
+            stopCamera();
+        });
 
-        window.approveFromDetail = () => {
-            if (currentDetailUserId) approveUser(currentDetailUserId);
-        };
-        window.rejectFromDetail = () => {
-            if (currentDetailUserId) rejectUser(currentDetailUserId);
-        };
-
-        // Approve / Reject functions
-        window.approveUser = async (userId) => {
-            if (!confirm('Approve this user?')) return;
-            await db.collection('users').doc(userId).update({ approved: true });
-            await logAudit(`Approved user ${userId}`);
-            closeDetailModal();
-        };
-
-        window.rejectUser = async (userId) => {
-            if (!confirm('Reject this user? This will delete the account.')) return;
-            // Option: delete the Firestore document (auth user remains, but can be cleaned up later)
-            await db.collection('users').doc(userId).delete();
-            await logAudit(`Rejected user ${userId}`);
-            closeDetailModal();
-        };
-
-        async function logAudit(action) {
-            await db.collection('auditLogs').add({
-                userId: auth.currentUser.uid,
-                userName: currentUserData?.firstName + ' ' + currentUserData?.surname,
-                userEmail: currentUserData?.email || auth.currentUser.email,
-                action,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userAgent: navigator.userAgent
+        document.getElementById('saveSettings').addEventListener('click', async () => {
+            const newMorning = document.getElementById('morningCutoff').value;
+            const newAfternoon = document.getElementById('afternoonStart').value;
+            await db.collection('config').doc('attendance').set({
+                morningCutoff: newMorning,
+                afternoonStart: newAfternoon
             });
-        }
+            morningCutoff = newMorning;
+            afternoonStart = newAfternoon;
+            alert('Settings saved.');
+        });
 
-        // Cleanup
+        // Cleanup listeners
         window.addEventListener('beforeunload', () => {
-            if (unsubscribeAll) unsubscribeAll();
+            if (unsubscribeStaff) unsubscribeStaff();
+            if (unsubscribeAttendance) unsubscribeAttendance();
         });
     </script>
 </body>
