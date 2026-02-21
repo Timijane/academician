@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
-        /* (same styles as before, with minor additions) */
+        /* (same styles as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -68,7 +68,6 @@
             padding: 2rem;
         }
 
-        /* Top navigation bar */
         .top-nav {
             display: flex;
             justify-content: space-between;
@@ -286,6 +285,12 @@
             padding: 0.4rem 0.8rem;
             color: var(--text-primary);
         }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -344,7 +349,7 @@
                     </tr>
                 </thead>
                 <tbody id="staffTableBody">
-                    <tr><td colspan="6" style="text-align:center;">Loading staff...</td></tr>
+                    <tr><td colspan="6" class="loading">Loading staff...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -404,6 +409,8 @@
         let afternoonStart = '14:00';
         let staffList = [];
         let todayAttendance = {};
+        let unsubscribeStaff = null;
+        let unsubscribeAttendance = null;
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -431,26 +438,35 @@
                 document.getElementById('afternoonStart').value = afternoonStart;
             }
 
-            // Load staff
-            await loadStaff();
+            // Load approved staff (teachers and nonTeachingStaff) with real-time listener
+            loadStaffListener();
             // Set up real-time listener for today's attendance
             setupAttendanceListener();
         });
 
-        async function loadStaff() {
-            const snapshot = await db.collection('users')
+        // Real-time listener for staff (approved teachers and nonTeachingStaff)
+        function loadStaffListener() {
+            if (unsubscribeStaff) unsubscribeStaff();
+            unsubscribeStaff = db.collection('users')
                 .where('role', 'in', ['teacher', 'nonTeachingStaff'])
-                .get();
-            staffList = [];
-            snapshot.forEach(doc => {
-                staffList.push({ id: doc.id, ...doc.data() });
-            });
-            renderStaffTable();
+                .where('approved', '==', true)
+                .onSnapshot(snapshot => {
+                    staffList = [];
+                    snapshot.forEach(doc => {
+                        staffList.push({ id: doc.id, ...doc.data() });
+                    });
+                    // Once staff are loaded, remove loading message and render
+                    renderStaffTable();
+                }, error => {
+                    console.error('Staff listener error:', error);
+                    document.getElementById('staffTableBody').innerHTML = '<tr><td colspan="6">Error loading staff.</td></tr>';
+                });
         }
 
         function setupAttendanceListener() {
             const today = new Date().toISOString().split('T')[0];
-            db.collection('attendance')
+            if (unsubscribeAttendance) unsubscribeAttendance();
+            unsubscribeAttendance = db.collection('attendance')
                 .where('date', '==', today)
                 .onSnapshot(snapshot => {
                     todayAttendance = {};
@@ -458,16 +474,30 @@
                         const record = doc.data();
                         todayAttendance[record.staffId] = record;
                     });
-                    renderStaffTable();
+                    renderStaffTable(); // re-render when attendance changes
+                }, error => {
+                    console.error('Attendance listener error:', error);
                 });
         }
 
         function renderStaffTable() {
+            const tbody = document.getElementById('staffTableBody');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            if (!staffList.length) {
+                tbody.innerHTML = '<tr><td colspan="6">No staff members found.</td></tr>';
+                return;
+            }
+
             const filtered = staffList.filter(s => 
                 ((s.firstName + ' ' + s.surname).toLowerCase().includes(searchTerm)) ||
                 (s.role.toLowerCase().includes(searchTerm))
             );
+
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="6">No matching staff.</td></tr>';
+                return;
+            }
 
             let html = '';
             filtered.forEach(staff => {
@@ -515,7 +545,7 @@
                 </tr>
                 `;
             });
-            document.getElementById('staffTableBody').innerHTML = html || '<tr><td colspan="6" style="text-align:center;">No staff found</td></tr>';
+            tbody.innerHTML = html;
         }
 
         document.getElementById('searchInput').addEventListener('input', renderStaffTable);
@@ -619,6 +649,12 @@
             morningCutoff = newMorning;
             afternoonStart = newAfternoon;
             alert('Settings saved.');
+        });
+
+        // Cleanup listeners
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribeStaff) unsubscribeStaff();
+            if (unsubscribeAttendance) unsubscribeAttendance();
         });
     </script>
 </body>
