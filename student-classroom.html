@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · My Classroom</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .card-header h2 { font-size: 1.3rem; font-weight: 600; }
+
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .resource-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
+        .resource-card h4 { margin-bottom: 0.5rem; }
+        .resource-card p { color: var(--text-secondary); font-size: 0.9rem; }
+        .resource-link {
+            display: inline-block;
+            margin-top: 0.5rem;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>My Classroom</h1>
+                <p>Welcome back, <span id="studentName">Student</span></p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">S</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>📚 Published Resources</h2>
+            </div>
+            <div id="resourcesContainer" class="resource-grid">
+                <div class="empty-state">Loading resources...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>🎥 Virtual Classes</h2>
+            </div>
+            <div id="virtualClassesContainer" class="resource-grid">
+                <div class="empty-state">Loading sessions...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Auth check
+        let currentUser = null;
+        let userData = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'student-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'student') {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            userData = userDoc.data();
+            document.getElementById('studentName').textContent = userData.firstName || 'Student';
+            document.getElementById('profileInitials').textContent = 
+                (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
+            document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Student'}`;
+
+            // Load published resources for the student's class
+            loadResources();
+            // Load virtual classes
+            loadVirtualClasses();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        async function loadResources() {
+            if (!userData.class) {
+                document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">You are not assigned to any class.</div>';
+                return;
+            }
+            const snapshot = await db.collection('publishedResources')
+                .where('classId', '==', userData.class)
+                .orderBy('publishedAt', 'desc')
+                .get();
+            const container = document.getElementById('resourcesContainer');
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="empty-state">No published resources yet.</div>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const res = doc.data();
+                html += `
+                <div class="resource-card">
+                    <h4>${res.subject} - Week ${res.week}</h4>
+                    <p><strong>${res.type}</strong></p>
+                    <p>${res.content.substring(0, 100)}...</p>
+                    <a href="#" class="resource-link" onclick="viewResource('${doc.id}')">View</a>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        window.viewResource = (id) => {
+            // In a real app, open a modal with full content
+            alert('Resource ID: ' + id);
+        };
+
+        async function loadVirtualClasses() {
+            if (!userData.class) return;
+            const now = new Date();
+            const snapshot = await db.collection('virtualClasses')
+                .where('classId', '==', userData.class)
+                .where('date', '>=', now.toISOString().split('T')[0])
+                .orderBy('date', 'asc')
+                .orderBy('time', 'asc')
+                .get();
+            const container = document.getElementById('virtualClassesContainer');
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="empty-state">No upcoming virtual classes.</div>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const vc = doc.data();
+                html += `
+                <div class="resource-card">
+                    <h4>${vc.platform} Class</h4>
+                    <p>Date: ${vc.date} at ${vc.time}</p>
+                    <p>Duration: ${vc.duration} min</p>
+                    <a href="${vc.link}" target="_blank" class="btn btn-primary btn-sm">Join</a>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
