@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Timetable Management</title>
+    <title>EduTop Scholars · Timetable Review</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -13,7 +13,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Same base styles as previous pages */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -62,7 +61,6 @@
             display: flex;
         }
 
-        /* Sidebar */
         .sidebar {
             width: 260px;
             background: var(--bg-sidebar);
@@ -78,65 +76,23 @@
             overflow-y: auto;
             z-index: 100;
         }
-        .sidebar.collapsed {
-            width: 80px;
-        }
+        .sidebar.collapsed { width: 80px; }
         .sidebar .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            margin-bottom: 2.5rem;
-            padding: 0 0.5rem;
+            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
         }
-        .sidebar .logo-area i {
-            font-size: 2rem;
-            color: var(--accent);
-        }
-        .sidebar .logo-area h2 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        .sidebar.collapsed .logo-area h2 {
-            display: none;
-        }
+        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
         .sidebar .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.8rem 1rem;
-            border-radius: 0.75rem;
-            color: var(--text-secondary);
-            transition: 0.2s;
-            cursor: pointer;
-            margin-bottom: 0.3rem;
-            white-space: nowrap;
-            text-decoration: none;
+            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
+            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
+            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
         }
-        .sidebar .nav-item:hover {
-            background: var(--hover-bg);
-            color: var(--accent);
-        }
-        .sidebar .nav-item.active {
-            background: var(--accent);
-            color: white;
-        }
-        .sidebar .nav-item i {
-            font-size: 1.2rem;
-            width: 1.5rem;
-        }
-        .sidebar.collapsed .nav-item span {
-            display: none;
-        }
-        .sidebar .toggle-btn {
-            margin-top: auto;
-            display: flex;
-            justify-content: flex-end;
-            padding: 1rem 0.5rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+        .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
 
         .main-content {
             flex: 1;
@@ -144,172 +100,101 @@
             padding: 2rem;
             transition: margin-left 0.3s;
         }
-        .main-content.expanded {
-            margin-left: 80px;
-        }
+        .main-content.expanded { margin-left: 80px; }
 
         .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
-        }
-        .page-title h1 {
-            font-size: 2rem;
-            font-weight: 600;
-        }
-        .page-title p {
-            color: var(--text-secondary);
-        }
-        .profile-area {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-        .theme-toggle {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.5rem 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-        .profile-dropdown {
-            position: relative;
-            cursor: pointer;
-        }
-        .profile-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-        .dropdown-menu {
-            position: absolute;
-            right: 0;
-            top: 50px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 0.5rem;
-            min-width: 150px;
-            display: none;
-            z-index: 1000;
-        }
-        .profile-dropdown:hover .dropdown-menu {
-            display: block;
-        }
-        .dropdown-item {
-            padding: 0.5rem 1rem;
-            color: var(--text-primary);
-            border-radius: 0.5rem;
-        }
-        .dropdown-item:hover {
-            background: var(--hover-bg);
-        }
-
-        /* Toolbar */
-        .toolbar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            align-items: center;
+            margin-bottom: 1rem;
             flex-wrap: wrap;
+            gap: 1rem;
         }
-        .class-selector {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.5rem 1.5rem;
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            min-width: 200px;
-        }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+
         .btn {
-            padding: 0.5rem 1.5rem;
+            padding: 0.5rem 1.2rem;
             border: none;
             border-radius: 2rem;
             font-weight: 500;
             cursor: pointer;
             transition: 0.2s;
-            background: var(--accent);
-            color: white;
         }
-        .btn:hover {
-            filter: brightness(1.1);
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
 
-        /* Timetable grid */
-        .timetable-container {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
+        .table-responsive {
             overflow-x: auto;
         }
-        .timetable-grid {
-            display: grid;
-            grid-template-columns: 100px repeat(5, 1fr);
-            gap: 0.5rem;
-            min-width: 800px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
         }
-        .grid-header {
-            font-weight: 600;
-            padding: 0.8rem;
-            text-align: center;
-            background: var(--hover-bg);
-            border-radius: 0.5rem;
+        th, td {
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            text-align: left;
         }
-        .time-slot {
-            padding: 0.8rem;
-            text-align: center;
+        th {
             background: var(--hover-bg);
-            border-radius: 0.5rem;
             font-weight: 500;
         }
-        .period-cell {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .period-cell:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent);
-        }
-        .period-cell .subject {
-            font-weight: 600;
-            margin-bottom: 0.2rem;
-        }
-        .period-cell .teacher {
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
             font-size: 0.8rem;
-            color: var(--text-secondary);
+            font-weight: 500;
         }
-        .period-cell .time {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 0.2rem;
+        .badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+
+        .proposal-item {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .proposal-item:hover {
+            background: var(--hover-bg);
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -322,16 +207,16 @@
             justify-content: center;
             z-index: 1000;
         }
-        .modal.active {
-            display: flex;
-        }
+        .modal.active { display: flex; }
         .modal-content {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 1.5rem;
             padding: 2rem;
-            max-width: 500px;
+            max-width: 800px;
             width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .modal-header {
             display: flex;
@@ -339,43 +224,23 @@
             align-items: center;
             margin-bottom: 1.5rem;
         }
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.3rem;
-            color: var(--text-secondary);
-        }
-        .form-control {
-            width: 100%;
-            padding: 0.6rem 1rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            color: var(--text-primary);
-        }
-        .form-row {
-            display: flex;
-            gap: 1rem;
-        }
-        .form-row .form-group {
-            flex: 1;
-        }
         .modal-actions {
             display: flex;
             gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 1.5rem;
+            margin-top: 1rem;
         }
-        .btn-delete {
-            background: var(--danger-text);
-            color: white;
+        .feedback-input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <i class="fas fa-graduation-cap"></i>
@@ -398,8 +263,8 @@
     <div class="main-content" id="mainContent">
         <div class="top-bar">
             <div class="page-title">
-                <h1>Timetable Management</h1>
-                <p>View and edit class timetables</p>
+                <h1>Timetable Review</h1>
+                <p>Approve or reject teacher timetable proposals</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -415,74 +280,42 @@
             </div>
         </div>
 
-        <!-- Toolbar -->
-        <div class="toolbar">
-            <select id="classSelect" class="class-selector">
-                <option value="">Select a class...</option>
-            </select>
-            <button class="btn" id="addPeriodBtn" disabled>+ Add Period</button>
-        </div>
-
-        <!-- Timetable display -->
-        <div class="timetable-container" id="timetableContainer" style="display: none;">
-            <div class="timetable-grid" id="timetableGrid">
-                <!-- Filled by JS -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Pending Proposals</h3>
             </div>
-        </div>
-        <div id="noClassSelected" style="text-align:center; padding:3rem; color:var(--text-secondary);">
-            <i class="fas fa-calendar-alt" style="font-size:3rem; margin-bottom:1rem;"></i>
-            <h3>No class selected</h3>
-            <p>Please choose a class from the dropdown above.</p>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Teacher</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proposalsBody">
+                        <tr><td colspan="4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Period Modal -->
-    <div class="modal" id="periodModal">
+    <!-- Review Modal -->
+    <div class="modal" id="reviewModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Edit Period</h3>
-                <i class="fas fa-times" style="cursor:pointer;" onclick="closeModal()"></i>
+                <h3>Review Timetable</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeReviewModal()"></i>
             </div>
-            <form id="periodForm">
-                <input type="hidden" id="periodId">
-                <div class="form-group">
-                    <label>Day</label>
-                    <select id="periodDay" class="form-control" required>
-                        <option value="Monday">Monday</option>
-                        <option value="Tuesday">Tuesday</option>
-                        <option value="Wednesday">Wednesday</option>
-                        <option value="Thursday">Thursday</option>
-                        <option value="Friday">Friday</option>
-                        <option value="Saturday">Saturday</option>
-                        <option value="Sunday">Sunday</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Start Time</label>
-                        <input type="time" id="periodStart" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>End Time</label>
-                        <input type="time" id="periodEnd" class="form-control" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Subject</label>
-                    <input type="text" id="periodSubject" class="form-control" placeholder="e.g., Mathematics" required>
-                </div>
-                <div class="form-group">
-                    <label>Teacher</label>
-                    <select id="periodTeacher" class="form-control" required>
-                        <option value="">Select teacher...</option>
-                    </select>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn" id="savePeriodBtn">Save</button>
-                    <button type="button" class="btn btn-delete" id="deletePeriodBtn" style="display:none;" onclick="deletePeriod()">Delete</button>
-                </div>
-            </form>
+            <div id="modalContent"></div>
+            <textarea id="feedbackInput" class="feedback-input" placeholder="Feedback (optional, especially for rejection)"></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="handleApprove()">Approve</button>
+                <button class="btn btn-danger" onclick="handleReject()">Reject</button>
+                <button class="btn btn-outline" onclick="closeReviewModal()">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -532,229 +365,150 @@
             updateThemeUI(next);
         });
 
-        // Auth check
+        // Auth check (only master admin or co-admin with permissions)
+        let currentUser = null;
         let currentUserData = null;
-        let currentAdminId = null;
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'admin-login.html';
                 return;
             }
             const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
+            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().permissions?.reviewLessons)) {
                 auth.signOut();
                 window.location.href = 'index.html';
                 return;
             }
             currentUserData = userDoc.data();
-            currentAdminId = user.uid;
             document.getElementById('profileInitials').textContent = 
                 (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
             document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
 
-            // Load classes and teachers
-            loadClasses();
-            loadTeachers();
+            loadProposals();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
             auth.signOut().then(() => window.location.href = 'index.html');
         });
 
-        // Load classes into dropdown
-        async function loadClasses() {
-            const classSelect = document.getElementById('classSelect');
-            const snapshot = await db.collection('classes').get();
-            snapshot.forEach(doc => {
-                const cls = doc.data();
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = cls.className || doc.id;
-                classSelect.appendChild(option);
-            });
-        }
-
-        // Load teachers into dropdown (for modal)
-        async function loadTeachers() {
-            const teacherSelect = document.getElementById('periodTeacher');
-            const snapshot = await db.collection('users').where('role', '==', 'teacher').get();
-            snapshot.forEach(doc => {
-                const teacher = doc.data();
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = `${teacher.firstName || ''} ${teacher.surname || ''}`.trim() || 'Unknown';
-                teacherSelect.appendChild(option);
-            });
-        }
-
-        // Class selection change
-        const classSelect = document.getElementById('classSelect');
-        const addPeriodBtn = document.getElementById('addPeriodBtn');
-        const timetableContainer = document.getElementById('timetableContainer');
-        const noClassSelected = document.getElementById('noClassSelected');
-        let currentClassId = null;
-        let periods = []; // store periods for current class
-        let unsubscribePeriods = null;
-
-        classSelect.addEventListener('change', async (e) => {
-            const classId = e.target.value;
-            currentClassId = classId;
-            addPeriodBtn.disabled = !classId;
-
-            if (!classId) {
-                timetableContainer.style.display = 'none';
-                noClassSelected.style.display = 'block';
-                if (unsubscribePeriods) unsubscribePeriods();
+        async function loadProposals() {
+            const snapshot = await db.collection('timetableProposals')
+                .where('status', '==', 'pending')
+                .orderBy('submittedAt', 'desc')
+                .get();
+            const tbody = document.getElementById('proposalsBody');
+            if (snapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="4">No pending proposals.</td></tr>';
                 return;
             }
-
-            timetableContainer.style.display = 'block';
-            noClassSelected.style.display = 'none';
-
-            // Set up real-time listener for periods of this class
-            if (unsubscribePeriods) unsubscribePeriods();
-            unsubscribePeriods = db.collection('timetable')
-                .where('classId', '==', classId)
-                .onSnapshot(snapshot => {
-                    periods = [];
-                    snapshot.forEach(doc => periods.push({ id: doc.id, ...doc.data() }));
-                    renderTimetable();
-                });
-        });
-
-        // Render timetable grid
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        function renderTimetable() {
-            const grid = document.getElementById('timetableGrid');
-            // Get all unique time slots from periods (sort by start time)
-            const times = [...new Set(periods.map(p => p.startTime))].sort();
-            // Build header row
-            let html = '<div class="grid-header">Time</div>';
-            days.forEach(day => html += `<div class="grid-header">${day}</div>`);
-
-            // For each time slot, create a row
-            times.forEach(time => {
-                html += `<div class="time-slot">${time}</div>`;
-                days.forEach(day => {
-                    const period = periods.find(p => p.day === day && p.startTime === time);
-                    if (period) {
-                        html += `
-                            <div class="period-cell" onclick="editPeriod('${period.id}')">
-                                <div class="subject">${period.subject}</div>
-                                <div class="teacher">${period.teacherName || '—'}</div>
-                                <div class="time">${period.startTime}-${period.endTime}</div>
-                            </div>
-                        `;
-                    } else {
-                        html += `<div class="period-cell" onclick="addPeriod('${day}', '${time}')">+</div>`;
-                    }
-                });
+            // Fetch teacher names
+            const teacherIds = [...new Set(snapshot.docs.map(d => d.data().teacherId))];
+            const teacherPromises = teacherIds.map(id => db.collection('users').doc(id).get());
+            const teacherSnaps = await Promise.all(teacherPromises);
+            const teacherMap = {};
+            teacherSnaps.forEach(snap => {
+                if (snap.exists) teacherMap[snap.id] = snap.data();
             });
 
-            // If no periods, show empty grid with + cells
-            if (times.length === 0) {
-                html += `<div class="time-slot">08:00</div>`; // default time
-                days.forEach(day => html += `<div class="period-cell" onclick="addPeriod('${day}', '08:00')">+</div>`);
-                html += `<div class="time-slot">09:00</div>`;
-                days.forEach(day => html += `<div class="period-cell" onclick="addPeriod('${day}', '09:00')">+</div>`);
-            }
-
-            grid.innerHTML = html;
+            let html = '';
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                const teacher = teacherMap[p.teacherId] || {};
+                const teacherName = `${teacher.firstName || ''} ${teacher.surname || ''}`.trim() || 'Unknown';
+                const date = p.submittedAt ? p.submittedAt.toDate().toLocaleString() : 'N/A';
+                html += `
+                <tr class="proposal-item" onclick="openReviewModal('${doc.id}')">
+                    <td>${p.classId}</td>
+                    <td>${teacherName}</td>
+                    <td>${date}</td>
+                    <td><span class="badge pending">Pending</span></td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
         }
 
-        // Modal functions
-        const modal = document.getElementById('periodModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const periodIdField = document.getElementById('periodId');
-        const periodDay = document.getElementById('periodDay');
-        const periodStart = document.getElementById('periodStart');
-        const periodEnd = document.getElementById('periodEnd');
-        const periodSubject = document.getElementById('periodSubject');
-        const periodTeacher = document.getElementById('periodTeacher');
-        const deleteBtn = document.getElementById('deletePeriodBtn');
+        // Review modal
+        const reviewModal = document.getElementById('reviewModal');
+        const modalContent = document.getElementById('modalContent');
+        const feedbackInput = document.getElementById('feedbackInput');
+        let currentProposalId = null;
 
-        window.addPeriod = (day, time) => {
-            modalTitle.textContent = 'Add Period';
-            periodIdField.value = '';
-            periodDay.value = day;
-            periodStart.value = time;
-            periodEnd.value = '';
-            periodSubject.value = '';
-            periodTeacher.value = '';
-            deleteBtn.style.display = 'none';
-            modal.classList.add('active');
+        window.openReviewModal = async (proposalId) => {
+            currentProposalId = proposalId;
+            const doc = await db.collection('timetableProposals').doc(proposalId).get();
+            const proposal = doc.data();
+            // Build table from periods
+            let periodsHtml = '<table><thead><tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr></thead><tbody>';
+            proposal.periods.forEach(p => {
+                periodsHtml += `<tr>
+                    <td>${p.startTime}</td>
+                    <td>${p.endTime}</td>
+                    <td>${p.monday || ''}</td>
+                    <td>${p.tuesday || ''}</td>
+                    <td>${p.wednesday || ''}</td>
+                    <td>${p.thursday || ''}</td>
+                    <td>${p.friday || ''}</td>
+                </tr>`;
+            });
+            periodsHtml += '</tbody></table>';
+            modalContent.innerHTML = `
+                <p><strong>Class:</strong> ${proposal.classId}</p>
+                ${periodsHtml}
+            `;
+            feedbackInput.value = '';
+            reviewModal.classList.add('active');
         };
 
-        window.editPeriod = async (periodId) => {
-            const period = periods.find(p => p.id === periodId);
-            if (!period) return;
-            modalTitle.textContent = 'Edit Period';
-            periodIdField.value = periodId;
-            periodDay.value = period.day;
-            periodStart.value = period.startTime;
-            periodEnd.value = period.endTime;
-            periodSubject.value = period.subject;
-            periodTeacher.value = period.teacherId || '';
-            deleteBtn.style.display = 'inline-block';
-            modal.classList.add('active');
+        window.closeReviewModal = () => {
+            reviewModal.classList.remove('active');
+            currentProposalId = null;
         };
 
-        window.closeModal = () => {
-            modal.classList.remove('active');
+        window.handleApprove = async () => {
+            if (!currentProposalId) return;
+            const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
+            const proposal = doc.data();
+            // Save to timetables collection
+            await db.collection('timetables').doc(proposal.classId).set({
+                periods: proposal.periods,
+                approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                approvedBy: auth.currentUser.uid
+            });
+            // Update proposal status
+            await doc.ref.update({
+                status: 'approved',
+                reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                reviewedBy: auth.currentUser.uid,
+                feedback: feedbackInput.value
+            });
+            // Log audit
+            await db.collection('auditLogs').add({
+                userId: auth.currentUser.uid,
+                action: `Approved timetable for ${proposal.classId}`,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            closeReviewModal();
+            loadProposals();
         };
 
-        // Save period
-        document.getElementById('periodForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentClassId) return;
-
-            const id = periodIdField.value;
-            const data = {
-                classId: currentClassId,
-                day: periodDay.value,
-                startTime: periodStart.value,
-                endTime: periodEnd.value,
-                subject: periodSubject.value,
-                teacherId: periodTeacher.value,
-                // Also store teacher name for display (or fetch on render)
-                teacherName: periodTeacher.selectedOptions[0]?.textContent || ''
-            };
-
-            try {
-                if (id) {
-                    // Update existing
-                    await db.collection('timetable').doc(id).update(data);
-                } else {
-                    // Add new
-                    await db.collection('timetable').add(data);
-                }
-                closeModal();
-            } catch (error) {
-                alert('Error saving period: ' + error.message);
-            }
-        });
-
-        window.deletePeriod = async () => {
-            const id = periodIdField.value;
-            if (!id || !confirm('Delete this period?')) return;
-            try {
-                await db.collection('timetable').doc(id).delete();
-                closeModal();
-            } catch (error) {
-                alert('Error deleting period: ' + error.message);
-            }
+        window.handleReject = async () => {
+            if (!currentProposalId) return;
+            const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
+            await doc.ref.update({
+                status: 'rejected',
+                reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                reviewedBy: auth.currentUser.uid,
+                feedback: feedbackInput.value
+            });
+            await db.collection('auditLogs').add({
+                userId: auth.currentUser.uid,
+                action: `Rejected timetable proposal ${currentProposalId}`,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            closeReviewModal();
+            loadProposals();
         };
-
-        // Add period button (when no time selected)
-        addPeriodBtn.addEventListener('click', () => {
-            // Default to Monday, 08:00
-            addPeriod('Monday', '08:00');
-        });
-
-        // Cleanup listener
-        window.addEventListener('beforeunload', () => {
-            if (unsubscribePeriods) unsubscribePeriods();
-        });
     </script>
 </body>
 </html>
