@@ -13,7 +13,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (same styles as before, with addition for feedback) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -140,6 +139,28 @@
             background: var(--hover-bg);
         }
 
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+        .tab {
+            padding: 0.6rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -248,11 +269,18 @@
             flex-wrap: wrap;
         }
 
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
         @media (max-width: 768px) {
             .container { padding: 1rem; }
             .top-bar { flex-direction: column; align-items: flex-start; }
             .profile-area { align-self: flex-end; }
             .card-header { flex-direction: column; align-items: flex-start; }
+            .tabs { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -277,18 +305,25 @@
             </div>
         </div>
 
-        <div class="card">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" data-tab="draft">Draft</div>
+            <div class="tab" data-tab="pending">Pending</div>
+            <div class="tab" data-tab="approved">Approved</div>
+            <div class="tab" data-tab="rejected">Rejected</div>
+        </div>
+
+        <!-- Draft Tab (editable table) -->
+        <div id="draftSection" class="card" style="display: block;">
             <div class="card-header">
                 <div>
-                    <h3>Your Class Timetable</h3>
-                    <div id="statusDisplay" class="status-badge status-draft">Loading...</div>
-                    <div id="feedbackMessage" class="feedback-message" style="display: none;"></div>
+                    <h3>Draft Timetable</h3>
+                    <div id="draftFeedback" class="feedback-message" style="display: none;"></div>
                 </div>
             </div>
             <div class="class-info" id="classDisplay"></div>
-
             <div class="table-responsive">
-                <table id="timetableTable">
+                <table id="draftTable">
                     <thead>
                         <tr>
                             <th>Start</th>
@@ -301,19 +336,105 @@
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody">
+                    <tbody id="draftBody">
                         <!-- Rows added dynamically -->
                     </tbody>
                 </table>
             </div>
-
             <div class="actions">
                 <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Period</button>
                 <button class="btn btn-primary" id="saveDraftBtn">Save Draft</button>
                 <button class="btn btn-success" id="submitBtn">Submit for Approval</button>
-                <button class="btn btn-warning" id="editBtn" style="display: none;">Edit</button>
-                <button class="btn btn-success" id="publishBtn" style="display: none;">Publish to Students</button>
-                <button class="btn btn-outline" id="viewStudentLink" style="display: none;" onclick="window.open('student-timetable.html', '_blank')">View Student View</button>
+            </div>
+        </div>
+
+        <!-- Pending Tab (view only) -->
+        <div id="pendingSection" class="card" style="display: none;">
+            <div class="card-header">
+                <h3>Pending Approval</h3>
+            </div>
+            <div class="class-info" id="pendingClass"></div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingBody">
+                        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="actions">
+                <button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button>
+            </div>
+        </div>
+
+        <!-- Approved Tab -->
+        <div id="approvedSection" class="card" style="display: none;">
+            <div class="card-header">
+                <h3>Approved Timetable</h3>
+            </div>
+            <div class="class-info" id="approvedClass"></div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                        </tr>
+                    </thead>
+                    <tbody id="approvedBody">
+                        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="actions">
+                <button class="btn btn-success" id="publishBtn">Publish to Students</button>
+                <button class="btn btn-warning" id="editApprovedBtn">Edit (create new draft)</button>
+                <button class="btn btn-outline" id="viewStudentLink" onclick="window.open('student-timetable.html', '_blank')">View Student View</button>
+            </div>
+        </div>
+
+        <!-- Rejected Tab -->
+        <div id="rejectedSection" class="card" style="display: none;">
+            <div class="card-header">
+                <h3>Rejected Proposal</h3>
+            </div>
+            <div id="rejectedFeedback" class="feedback-message" style="display: none;"></div>
+            <div class="class-info" id="rejectedClass"></div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rejectedBody">
+                        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="actions">
+                <button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button>
             </div>
         </div>
     </div>
@@ -356,9 +477,15 @@
         let currentUser = null;
         let userData = null;
         let currentClassId = null;
-        let currentProposalId = null;
-        let currentTimetableData = [];
-        let currentStatus = 'draft'; // draft, pending, approved, published, rejected
+        // State for each tab
+        let draftProposalId = null;
+        let draftData = [];
+        let pendingProposalId = null;
+        let pendingData = [];
+        let approvedData = null; // from timetables collection
+        let rejectedProposalId = null;
+        let rejectedData = [];
+        let rejectedFeedback = '';
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -380,25 +507,66 @@
             currentClassId = userData.classTeaching;
             if (!currentClassId) {
                 document.getElementById('classDisplay').innerHTML = 'You are not assigned to any class.';
-                document.getElementById('addRowBtn').disabled = true;
-                document.getElementById('saveDraftBtn').disabled = true;
-                document.getElementById('submitBtn').disabled = true;
+                disableAllButtons();
                 return;
             }
             document.getElementById('classDisplay').innerHTML = `Class: <strong>${currentClassId}</strong>`;
 
-            await loadTimetable();
+            await loadAllData();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
             auth.signOut().then(() => window.location.href = 'index.html');
         });
 
-        async function loadTimetable() {
-            // Hide feedback initially
-            document.getElementById('feedbackMessage').style.display = 'none';
+        function disableAllButtons() {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+        }
 
-            // 1. Check for pending proposal
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const sections = {
+            draft: document.getElementById('draftSection'),
+            pending: document.getElementById('pendingSection'),
+            approved: document.getElementById('approvedSection'),
+            rejected: document.getElementById('rejectedSection')
+        };
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                Object.keys(sections).forEach(key => {
+                    sections[key].style.display = key === tabName ? 'block' : 'none';
+                });
+                // Refresh data if needed
+                if (tabName === 'draft') renderDraft();
+                else if (tabName === 'pending') renderPending();
+                else if (tabName === 'approved') renderApproved();
+                else if (tabName === 'rejected') renderRejected();
+            });
+        });
+
+        async function loadAllData() {
+            // Load draft (status draft)
+            const draftSnap = await db.collection('timetableProposals')
+                .where('classId', '==', currentClassId)
+                .where('teacherId', '==', currentUser.uid)
+                .where('status', '==', 'draft')
+                .orderBy('updatedAt', 'desc')
+                .limit(1)
+                .get();
+            if (!draftSnap.empty) {
+                const doc = draftSnap.docs[0];
+                draftProposalId = doc.id;
+                draftData = doc.data().periods || [];
+            } else {
+                draftProposalId = null;
+                draftData = [];
+            }
+
+            // Load pending
             const pendingSnap = await db.collection('timetableProposals')
                 .where('classId', '==', currentClassId)
                 .where('teacherId', '==', currentUser.uid)
@@ -406,31 +574,24 @@
                 .orderBy('submittedAt', 'desc')
                 .limit(1)
                 .get();
-
             if (!pendingSnap.empty) {
-                const proposal = pendingSnap.docs[0];
-                currentProposalId = proposal.id;
-                const data = proposal.data();
-                currentTimetableData = data.periods || [];
-                currentStatus = 'pending';
-                renderTable();
-                updateUIForStatus();
-                return;
+                const doc = pendingSnap.docs[0];
+                pendingProposalId = doc.id;
+                pendingData = doc.data().periods || [];
+            } else {
+                pendingProposalId = null;
+                pendingData = [];
             }
 
-            // 2. Check for approved/published timetable
+            // Load approved timetable from timetables collection
             const approvedSnap = await db.collection('timetables').doc(currentClassId).get();
             if (approvedSnap.exists) {
-                const data = approvedSnap.data();
-                currentTimetableData = data.periods || [];
-                currentStatus = data.published ? 'published' : 'approved';
-                currentProposalId = null; // Not a proposal
-                renderTable();
-                updateUIForStatus();
-                return;
+                approvedData = approvedSnap.data();
+            } else {
+                approvedData = null;
             }
 
-            // 3. Check for rejected proposal (if no pending/approved)
+            // Load rejected
             const rejectedSnap = await db.collection('timetableProposals')
                 .where('classId', '==', currentClassId)
                 .where('teacherId', '==', currentUser.uid)
@@ -438,36 +599,75 @@
                 .orderBy('submittedAt', 'desc')
                 .limit(1)
                 .get();
-
             if (!rejectedSnap.empty) {
-                const proposal = rejectedSnap.docs[0];
-                currentProposalId = proposal.id;
-                const data = proposal.data();
-                currentTimetableData = data.periods || [];
-                currentStatus = 'rejected';
-                renderTable();
-                updateUIForStatus();
-
-                // Show feedback if any
-                if (data.feedback) {
-                    const feedbackEl = document.getElementById('feedbackMessage');
-                    feedbackEl.textContent = `Rejection feedback: ${data.feedback}`;
-                    feedbackEl.style.display = 'block';
-                }
-                return;
+                const doc = rejectedSnap.docs[0];
+                rejectedProposalId = doc.id;
+                rejectedData = doc.data().periods || [];
+                rejectedFeedback = doc.data().feedback || '';
+            } else {
+                rejectedProposalId = null;
+                rejectedData = [];
+                rejectedFeedback = '';
             }
 
-            // 4. No timetable yet → start with empty draft
-            currentTimetableData = [];
-            currentStatus = 'draft';
-            currentProposalId = null;
-            addEmptyRow(); // start with one empty row
-            renderTable();
-            updateUIForStatus();
+            // If no draft exists, initialize with one empty row
+            if (draftData.length === 0) {
+                draftData = [{
+                    startTime: '08:00',
+                    endTime: '08:40',
+                    monday: '',
+                    tuesday: '',
+                    wednesday: '',
+                    thursday: '',
+                    friday: ''
+                }];
+            }
+
+            // Render current tab
+            const activeTab = document.querySelector('.tab.active').dataset.tab;
+            if (activeTab === 'draft') renderDraft();
+            else if (activeTab === 'pending') renderPending();
+            else if (activeTab === 'approved') renderApproved();
+            else if (activeTab === 'rejected') renderRejected();
         }
 
-        function addEmptyRow() {
-            currentTimetableData.push({
+        // ---------- Draft Tab ----------
+        function renderDraft() {
+            const tbody = document.getElementById('draftBody');
+            let html = '';
+            draftData.forEach((period, index) => {
+                html += `
+                <tr>
+                    <td><input type="time" class="time-input" value="${period.startTime}" data-index="${index}" data-field="startTime"></td>
+                    <td><input type="time" class="time-input" value="${period.endTime}" data-index="${index}" data-field="endTime"></td>
+                    <td><input type="text" class="subject-input" value="${period.monday || ''}" placeholder="Subject" data-index="${index}" data-field="monday"></td>
+                    <td><input type="text" class="subject-input" value="${period.tuesday || ''}" placeholder="Subject" data-index="${index}" data-field="tuesday"></td>
+                    <td><input type="text" class="subject-input" value="${period.wednesday || ''}" placeholder="Subject" data-index="${index}" data-field="wednesday"></td>
+                    <td><input type="text" class="subject-input" value="${period.thursday || ''}" placeholder="Subject" data-index="${index}" data-field="thursday"></td>
+                    <td><input type="text" class="subject-input" value="${period.friday || ''}" placeholder="Subject" data-index="${index}" data-field="friday"></td>
+                    <td class="delete-row" onclick="deleteDraftRow(${index})"><i class="fas fa-trash"></i></td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+
+            // Attach input listeners
+            document.querySelectorAll('#draftBody input[data-index]').forEach(input => {
+                input.addEventListener('input', function(e) {
+                    const index = this.dataset.index;
+                    const field = this.dataset.field;
+                    draftData[index][field] = this.value;
+                });
+            });
+        }
+
+        window.deleteDraftRow = (index) => {
+            draftData.splice(index, 1);
+            renderDraft();
+        };
+
+        document.getElementById('addRowBtn').addEventListener('click', () => {
+            draftData.push({
                 startTime: '08:00',
                 endTime: '08:40',
                 monday: '',
@@ -476,228 +676,194 @@
                 thursday: '',
                 friday: ''
             });
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('tableBody');
-            let html = '';
-            currentTimetableData.forEach((period, index) => {
-                const disabled = (currentStatus === 'approved' || currentStatus === 'published') ? 'disabled' : '';
-                html += `
-                <tr>
-                    <td><input type="time" class="time-input" value="${period.startTime}" data-index="${index}" data-field="startTime" ${disabled}></td>
-                    <td><input type="time" class="time-input" value="${period.endTime}" data-index="${index}" data-field="endTime" ${disabled}></td>
-                    <td><input type="text" class="subject-input" value="${period.monday || ''}" placeholder="Subject" data-index="${index}" data-field="monday" ${disabled}></td>
-                    <td><input type="text" class="subject-input" value="${period.tuesday || ''}" placeholder="Subject" data-index="${index}" data-field="tuesday" ${disabled}></td>
-                    <td><input type="text" class="subject-input" value="${period.wednesday || ''}" placeholder="Subject" data-index="${index}" data-field="wednesday" ${disabled}></td>
-                    <td><input type="text" class="subject-input" value="${period.thursday || ''}" placeholder="Subject" data-index="${index}" data-field="thursday" ${disabled}></td>
-                    <td><input type="text" class="subject-input" value="${period.friday || ''}" placeholder="Subject" data-index="${index}" data-field="friday" ${disabled}></td>
-                    <td class="delete-row" onclick="deleteRow(${index})" ${disabled ? 'style="display:none;"' : ''}><i class="fas fa-trash"></i></td>
-                </tr>
-                `;
-            });
-            tbody.innerHTML = html;
-
-            // Attach input listeners only if editable
-            if (currentStatus !== 'approved' && currentStatus !== 'published') {
-                document.querySelectorAll('input[data-index]').forEach(input => {
-                    input.addEventListener('input', function(e) {
-                        const index = this.dataset.index;
-                        const field = this.dataset.field;
-                        currentTimetableData[index][field] = this.value;
-                    });
-                });
-            }
-        }
-
-        window.deleteRow = (index) => {
-            if (currentStatus === 'approved' || currentStatus === 'published') return;
-            currentTimetableData.splice(index, 1);
-            renderTable();
-        };
-
-        document.getElementById('addRowBtn').addEventListener('click', () => {
-            if (currentStatus === 'approved' || currentStatus === 'published') return;
-            addEmptyRow();
-            renderTable();
+            renderDraft();
         });
 
-        function updateUIForStatus() {
-            const statusEl = document.getElementById('statusDisplay');
-            const editBtn = document.getElementById('editBtn');
-            const saveDraftBtn = document.getElementById('saveDraftBtn');
-            const submitBtn = document.getElementById('submitBtn');
-            const publishBtn = document.getElementById('publishBtn');
-            const viewStudentLink = document.getElementById('viewStudentLink');
-            const feedbackEl = document.getElementById('feedbackMessage');
-
-            if (currentStatus === 'pending') {
-                statusEl.textContent = 'Pending Approval';
-                statusEl.className = 'status-badge status-pending';
-                editBtn.style.display = 'inline-block';
-                saveDraftBtn.style.display = 'none';
-                submitBtn.style.display = 'none';
-                publishBtn.style.display = 'none';
-                viewStudentLink.style.display = 'none';
-                feedbackEl.style.display = 'none';
-            } else if (currentStatus === 'approved') {
-                statusEl.textContent = 'Approved (Not Published)';
-                statusEl.className = 'status-badge status-approved';
-                editBtn.style.display = 'inline-block';
-                saveDraftBtn.style.display = 'none';
-                submitBtn.style.display = 'none';
-                publishBtn.style.display = 'inline-block';
-                viewStudentLink.style.display = 'inline-block';
-                feedbackEl.style.display = 'none';
-            } else if (currentStatus === 'published') {
-                statusEl.textContent = 'Published';
-                statusEl.className = 'status-badge status-published';
-                editBtn.style.display = 'inline-block';
-                saveDraftBtn.style.display = 'none';
-                submitBtn.style.display = 'none';
-                publishBtn.style.display = 'none';
-                viewStudentLink.style.display = 'inline-block';
-                feedbackEl.style.display = 'none';
-            } else if (currentStatus === 'rejected') {
-                statusEl.textContent = 'Rejected';
-                statusEl.className = 'status-badge status-rejected';
-                editBtn.style.display = 'inline-block';
-                saveDraftBtn.style.display = 'none';
-                submitBtn.style.display = 'none';
-                publishBtn.style.display = 'none';
-                viewStudentLink.style.display = 'none';
-                // feedback already shown in loadTimetable
-            } else { // draft
-                statusEl.textContent = 'Draft';
-                statusEl.className = 'status-badge status-draft';
-                editBtn.style.display = 'none';
-                saveDraftBtn.style.display = 'inline-block';
-                submitBtn.style.display = 'inline-block';
-                publishBtn.style.display = 'none';
-                viewStudentLink.style.display = 'none';
-                feedbackEl.style.display = 'none';
-            }
-        }
-
-        // Save draft
         document.getElementById('saveDraftBtn').addEventListener('click', async () => {
             if (!currentClassId) return;
             const data = {
                 classId: currentClassId,
                 teacherId: currentUser.uid,
-                periods: currentTimetableData,
+                periods: draftData,
                 status: 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-
-            if (currentProposalId) {
-                // Update existing proposal (draft, pending, or rejected — but button only visible in draft)
-                await db.collection('timetableProposals').doc(currentProposalId).update(data);
+            if (draftProposalId) {
+                await db.collection('timetableProposals').doc(draftProposalId).update(data);
             } else {
-                // Check for existing draft
-                const draftSnap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClassId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'draft')
-                    .limit(1)
-                    .get();
-                if (!draftSnap.empty) {
-                    await draftSnap.docs[0].ref.update(data);
-                } else {
-                    await db.collection('timetableProposals').add(data);
-                }
+                const ref = await db.collection('timetableProposals').add(data);
+                draftProposalId = ref.id;
             }
             alert('Draft saved.');
-            await loadTimetable(); // reload to get updated proposal id
         });
 
-        // Submit for approval
         document.getElementById('submitBtn').addEventListener('click', async () => {
             if (!currentClassId) return;
-            if (currentTimetableData.length === 0) {
+            if (draftData.length === 0) {
                 alert('Please add at least one period.');
                 return;
             }
             const data = {
                 classId: currentClassId,
                 teacherId: currentUser.uid,
-                periods: currentTimetableData,
+                periods: draftData,
                 status: 'pending',
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-
-            if (currentProposalId) {
-                // Update existing proposal (draft, pending, or rejected)
-                await db.collection('timetableProposals').doc(currentProposalId).update(data);
+            if (draftProposalId) {
+                await db.collection('timetableProposals').doc(draftProposalId).update(data);
             } else {
-                // Check for existing draft or pending
-                const existingSnap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClassId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', 'in', ['draft', 'pending'])
-                    .limit(1)
-                    .get();
-                if (!existingSnap.empty) {
-                    await existingSnap.docs[0].ref.update(data);
-                } else {
-                    await db.collection('timetableProposals').add(data);
-                }
+                await db.collection('timetableProposals').add(data);
             }
             alert('Timetable submitted for approval.');
-            await loadTimetable();
+            await loadAllData();
+            // Switch to pending tab
+            document.querySelector('.tab[data-tab="pending"]').click();
         });
 
-        // Edit button
-        document.getElementById('editBtn').addEventListener('click', async () => {
-            if (currentStatus === 'pending') {
-                if (currentProposalId) {
-                    await db.collection('timetableProposals').doc(currentProposalId).update({
-                        status: 'draft',
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-                currentStatus = 'draft';
-                renderTable();
-                updateUIForStatus();
-            } else if (currentStatus === 'approved' || currentStatus === 'published') {
-                // Create a draft proposal based on current data
-                const data = {
-                    classId: currentClassId,
-                    teacherId: currentUser.uid,
-                    periods: currentTimetableData,
-                    status: 'draft',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                const docRef = await db.collection('timetableProposals').add(data);
-                currentProposalId = docRef.id;
-                currentStatus = 'draft';
-                renderTable();
-                updateUIForStatus();
-            } else if (currentStatus === 'rejected') {
-                if (currentProposalId) {
-                    await db.collection('timetableProposals').doc(currentProposalId).update({
-                        status: 'draft',
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    currentStatus = 'draft';
-                    renderTable();
-                    updateUIForStatus();
-                    // Hide feedback
-                    document.getElementById('feedbackMessage').style.display = 'none';
-                }
+        // ---------- Pending Tab ----------
+        function renderPending() {
+            const tbody = document.getElementById('pendingBody');
+            const classSpan = document.getElementById('pendingClass');
+            classSpan.innerHTML = `Class: <strong>${currentClassId}</strong>`;
+            if (pendingData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No pending proposal.</td></tr>';
+                document.getElementById('editPendingBtn').style.display = 'none';
+                return;
             }
+            document.getElementById('editPendingBtn').style.display = 'inline-block';
+            let html = '';
+            pendingData.forEach(p => {
+                html += `
+                <tr>
+                    <td>${p.startTime}</td>
+                    <td>${p.endTime}</td>
+                    <td>${p.monday || '—'}</td>
+                    <td>${p.tuesday || '—'}</td>
+                    <td>${p.wednesday || '—'}</td>
+                    <td>${p.thursday || '—'}</td>
+                    <td>${p.friday || '—'}</td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        document.getElementById('editPendingBtn').addEventListener('click', async () => {
+            if (!pendingProposalId) return;
+            await db.collection('timetableProposals').doc(pendingProposalId).update({
+                status: 'draft',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Publish button
+        // ---------- Approved Tab ----------
+        function renderApproved() {
+            const tbody = document.getElementById('approvedBody');
+            const classSpan = document.getElementById('approvedClass');
+            classSpan.innerHTML = `Class: <strong>${currentClassId}</strong>`;
+            if (!approvedData || !approvedData.periods || approvedData.periods.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No approved timetable.</td></tr>';
+                document.getElementById('publishBtn').style.display = 'none';
+                document.getElementById('editApprovedBtn').style.display = 'none';
+                document.getElementById('viewStudentLink').style.display = 'none';
+                return;
+            }
+            const periods = approvedData.periods.sort((a,b) => a.startTime.localeCompare(b.startTime));
+            let html = '';
+            periods.forEach(p => {
+                html += `
+                <tr>
+                    <td>${p.startTime}</td>
+                    <td>${p.endTime}</td>
+                    <td>${p.monday || '—'}</td>
+                    <td>${p.tuesday || '—'}</td>
+                    <td>${p.wednesday || '—'}</td>
+                    <td>${p.thursday || '—'}</td>
+                    <td>${p.friday || '—'}</td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+            document.getElementById('publishBtn').style.display = approvedData.published ? 'none' : 'inline-block';
+            document.getElementById('editApprovedBtn').style.display = 'inline-block';
+            document.getElementById('viewStudentLink').style.display = 'inline-block';
+        }
+
         document.getElementById('publishBtn').addEventListener('click', async () => {
-            if (!currentClassId || currentStatus !== 'approved') return;
+            if (!currentClassId || !approvedData) return;
             await db.collection('timetables').doc(currentClassId).update({
                 published: true,
                 publishedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            currentStatus = 'published';
-            updateUIForStatus();
             alert('Timetable published to students.');
+            await loadAllData();
+            renderApproved();
+        });
+
+        document.getElementById('editApprovedBtn').addEventListener('click', async () => {
+            // Create a new draft proposal based on current approved data
+            if (!approvedData) return;
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: approvedData.periods,
+                status: 'draft',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            const ref = await db.collection('timetableProposals').add(data);
+            draftProposalId = ref.id;
+            draftData = approvedData.periods.slice(); // copy
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
+        });
+
+        // ---------- Rejected Tab ----------
+        function renderRejected() {
+            const tbody = document.getElementById('rejectedBody');
+            const classSpan = document.getElementById('rejectedClass');
+            const feedbackEl = document.getElementById('rejectedFeedback');
+            classSpan.innerHTML = `Class: <strong>${currentClassId}</strong>`;
+            if (rejectedData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No rejected proposal.</td></tr>';
+                feedbackEl.style.display = 'none';
+                document.getElementById('editRejectedBtn').style.display = 'none';
+                return;
+            }
+            document.getElementById('editRejectedBtn').style.display = 'inline-block';
+            if (rejectedFeedback) {
+                feedbackEl.textContent = `Rejection feedback: ${rejectedFeedback}`;
+                feedbackEl.style.display = 'block';
+            } else {
+                feedbackEl.style.display = 'none';
+            }
+            let html = '';
+            rejectedData.forEach(p => {
+                html += `
+                <tr>
+                    <td>${p.startTime}</td>
+                    <td>${p.endTime}</td>
+                    <td>${p.monday || '—'}</td>
+                    <td>${p.tuesday || '—'}</td>
+                    <td>${p.wednesday || '—'}</td>
+                    <td>${p.thursday || '—'}</td>
+                    <td>${p.friday || '—'}</td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        document.getElementById('editRejectedBtn').addEventListener('click', async () => {
+            if (!rejectedProposalId) return;
+            await db.collection('timetableProposals').doc(rejectedProposalId).update({
+                status: 'draft',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
         });
     </script>
 </body>
