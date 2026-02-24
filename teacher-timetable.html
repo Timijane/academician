@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (keep existing CSS, add new styles for proposal list) */
+        /* (same styles as before, with addition for feedback) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -64,7 +64,7 @@
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
             width: 100%;
@@ -140,91 +140,6 @@
             background: var(--hover-bg);
         }
 
-        /* Main two‑column layout */
-        .dashboard-layout {
-            display: flex;
-            gap: 2rem;
-            align-items: flex-start;
-        }
-        .proposal-sidebar {
-            flex: 0 0 300px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-        .proposal-sidebar h3 {
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
-        }
-        .proposal-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        .proposal-item {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .proposal-item:hover {
-            background: var(--hover-bg);
-            transform: translateX(4px);
-        }
-        .proposal-item.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent);
-        }
-        .proposal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        .proposal-status {
-            font-size: 0.8rem;
-            padding: 0.2rem 0.6rem;
-            border-radius: 1rem;
-            font-weight: 500;
-        }
-        .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
-        .status-pending { background: var(--warning-bg); color: var(--warning-text); }
-        .status-approved { background: var(--success-bg); color: var(--success-text); }
-        .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
-        .status-published { background: var(--success-bg); color: var(--success-text); }
-        .proposal-date {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-        .proposal-feedback {
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            background: var(--danger-bg);
-            border-radius: 0.5rem;
-            color: var(--danger-text);
-        }
-        .btn-create {
-            width: 100%;
-            margin-top: 1rem;
-        }
-
-        .timetable-editor {
-            flex: 1;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -262,6 +177,29 @@
         .btn-warning { background: var(--warning-text); color: white; }
         .btn-danger { background: var(--danger-text); color: white; }
         .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .status-approved { background: var(--success-bg); color: var(--success-text); }
+        .status-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
+        .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
+        .status-published { background: var(--success-bg); color: var(--success-text); }
+
+        .feedback-message {
+            margin-top: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--danger-text);
+        }
 
         .class-info {
             background: var(--hover-bg);
@@ -310,14 +248,11 @@
             flex-wrap: wrap;
         }
 
-        @media (max-width: 1024px) {
-            .dashboard-layout { flex-direction: column; }
-            .proposal-sidebar { width: 100%; }
-        }
         @media (max-width: 768px) {
             .container { padding: 1rem; }
             .top-bar { flex-direction: column; align-items: flex-start; }
             .profile-area { align-self: flex-end; }
+            .card-header { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
@@ -342,49 +277,43 @@
             </div>
         </div>
 
-        <div class="dashboard-layout">
-            <!-- Left: Proposal List -->
-            <div class="proposal-sidebar">
-                <h3>Your Timetables</h3>
-                <div class="proposal-list" id="proposalList">
-                    <!-- Populated by JS -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3>Your Class Timetable</h3>
+                    <div id="statusDisplay" class="status-badge status-draft">Loading...</div>
+                    <div id="feedbackMessage" class="feedback-message" style="display: none;"></div>
                 </div>
-                <button class="btn btn-primary btn-create" id="createDraftBtn">
-                    <i class="fas fa-plus"></i> New Draft
-                </button>
+            </div>
+            <div class="class-info" id="classDisplay"></div>
+
+            <div class="table-responsive">
+                <table id="timetableTable">
+                    <thead>
+                        <tr>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows added dynamically -->
+                    </tbody>
+                </table>
             </div>
 
-            <!-- Right: Editable Timetable -->
-            <div class="timetable-editor" id="editorPanel">
-                <div class="card-header">
-                    <h3 id="editorTitle">Select a timetable to edit</h3>
-                    <div id="editorStatus" class="status-badge status-draft"></div>
-                </div>
-                <div class="class-info" id="classDisplay"></div>
-
-                <div class="table-responsive">
-                    <table id="timetableTable">
-                        <thead>
-                            <tr>
-                                <th>Start</th>
-                                <th>End</th>
-                                <th>Monday</th>
-                                <th>Tuesday</th>
-                                <th>Wednesday</th>
-                                <th>Thursday</th>
-                                <th>Friday</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <!-- Rows added dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="actions" id="editorActions">
-                    <!-- Buttons appear based on state -->
-                </div>
+            <div class="actions">
+                <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Period</button>
+                <button class="btn btn-primary" id="saveDraftBtn">Save Draft</button>
+                <button class="btn btn-success" id="submitBtn">Submit for Approval</button>
+                <button class="btn btn-warning" id="editBtn" style="display: none;">Edit</button>
+                <button class="btn btn-success" id="publishBtn" style="display: none;">Publish to Students</button>
+                <button class="btn btn-outline" id="viewStudentLink" style="display: none;" onclick="window.open('student-timetable.html', '_blank')">View Student View</button>
             </div>
         </div>
     </div>
@@ -423,14 +352,13 @@
             updateThemeUI(next);
         });
 
-        // Auth & user data
+        // Auth check
         let currentUser = null;
         let userData = null;
         let currentClassId = null;
-        let proposals = [];               // all proposals for this class
-        let currentProposal = null;       // the proposal being edited
         let currentProposalId = null;
-        let officialTimetable = null;      // timetables/{classId} document (if any)
+        let currentTimetableData = [];
+        let currentStatus = 'draft'; // draft, pending, approved, published, rejected
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -452,140 +380,109 @@
             currentClassId = userData.classTeaching;
             if (!currentClassId) {
                 document.getElementById('classDisplay').innerHTML = 'You are not assigned to any class.';
+                document.getElementById('addRowBtn').disabled = true;
+                document.getElementById('saveDraftBtn').disabled = true;
+                document.getElementById('submitBtn').disabled = true;
                 return;
             }
             document.getElementById('classDisplay').innerHTML = `Class: <strong>${currentClassId}</strong>`;
 
-            await loadAllData();
+            await loadTimetable();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
             auth.signOut().then(() => window.location.href = 'index.html');
         });
 
-        // Load both proposals and official timetable
-        async function loadAllData() {
-            // Load official timetable
-            const officialDoc = await db.collection('timetables').doc(currentClassId).get();
-            officialTimetable = officialDoc.exists ? { id: officialDoc.id, ...officialDoc.data() } : null;
+        async function loadTimetable() {
+            // Hide feedback initially
+            document.getElementById('feedbackMessage').style.display = 'none';
 
-            // Load all proposals for this class, ordered by updatedAt desc
-            const proposalsSnap = await db.collection('timetableProposals')
+            // 1. Check for pending proposal
+            const pendingSnap = await db.collection('timetableProposals')
                 .where('classId', '==', currentClassId)
                 .where('teacherId', '==', currentUser.uid)
-                .orderBy('updatedAt', 'desc')
+                .where('status', '==', 'pending')
+                .orderBy('submittedAt', 'desc')
+                .limit(1)
                 .get();
 
-            proposals = proposalsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // If no proposals exist, create an empty draft automatically?
-            // We'll let the user click "New Draft" instead.
-
-            renderProposalList();
-
-            // If there is an approved but not published timetable, we may want to show it as a proposal item.
-            // But proposals only come from timetableProposals. The official timetable is separate.
-            // To show "Published" status, we need to create a proposal record for the published version.
-            // We'll handle that by showing a special item for the official published timetable if it exists and is published.
-            // For simplicity, we'll just show the official timetable as a "Published" item if it's published.
-            // But the teacher might want to edit it, which should create a new draft.
-            // We'll add a synthetic proposal for the official published timetable.
-
-            if (officialTimetable && officialTimetable.published) {
-                // Add a synthetic entry for the published timetable (not in proposals collection)
-                // We'll give it a fake id starting with "published_"
-                proposals.unshift({
-                    id: 'published_official',
-                    synthetic: true,
-                    status: 'published',
-                    periods: officialTimetable.periods || [],
-                    updatedAt: officialTimetable.publishedAt ? new Date(officialTimetable.publishedAt.toDate()) : new Date(),
-                    feedback: null
-                });
+            if (!pendingSnap.empty) {
+                const proposal = pendingSnap.docs[0];
+                currentProposalId = proposal.id;
+                const data = proposal.data();
+                currentTimetableData = data.periods || [];
+                currentStatus = 'pending';
+                renderTable();
+                updateUIForStatus();
+                return;
             }
 
-            // Also, if there is an approved but not published official timetable, we may want to show it as "Approved"
-            if (officialTimetable && !officialTimetable.published && officialTimetable.approvedAt) {
-                proposals.unshift({
-                    id: 'approved_official',
-                    synthetic: true,
-                    status: 'approved',
-                    periods: officialTimetable.periods || [],
-                    updatedAt: officialTimetable.approvedAt ? new Date(officialTimetable.approvedAt.toDate()) : new Date(),
-                    feedback: null
-                });
+            // 2. Check for approved/published timetable
+            const approvedSnap = await db.collection('timetables').doc(currentClassId).get();
+            if (approvedSnap.exists) {
+                const data = approvedSnap.data();
+                currentTimetableData = data.periods || [];
+                currentStatus = data.published ? 'published' : 'approved';
+                currentProposalId = null; // Not a proposal
+                renderTable();
+                updateUIForStatus();
+                return;
             }
 
-            // Re-render after adding synthetic ones
-            renderProposalList();
+            // 3. Check for rejected proposal (if no pending/approved)
+            const rejectedSnap = await db.collection('timetableProposals')
+                .where('classId', '==', currentClassId)
+                .where('teacherId', '==', currentUser.uid)
+                .where('status', '==', 'rejected')
+                .orderBy('submittedAt', 'desc')
+                .limit(1)
+                .get();
 
-            // If there's a draft proposal, auto-select the most recent draft; otherwise select nothing.
-            const draft = proposals.find(p => p.status === 'draft' && !p.synthetic);
-            if (draft) {
-                selectProposal(draft.id);
-            } else {
-                // Clear editor
-                clearEditor();
+            if (!rejectedSnap.empty) {
+                const proposal = rejectedSnap.docs[0];
+                currentProposalId = proposal.id;
+                const data = proposal.data();
+                currentTimetableData = data.periods || [];
+                currentStatus = 'rejected';
+                renderTable();
+                updateUIForStatus();
+
+                // Show feedback if any
+                if (data.feedback) {
+                    const feedbackEl = document.getElementById('feedbackMessage');
+                    feedbackEl.textContent = `Rejection feedback: ${data.feedback}`;
+                    feedbackEl.style.display = 'block';
+                }
+                return;
             }
+
+            // 4. No timetable yet → start with empty draft
+            currentTimetableData = [];
+            currentStatus = 'draft';
+            currentProposalId = null;
+            addEmptyRow(); // start with one empty row
+            renderTable();
+            updateUIForStatus();
         }
 
-        function renderProposalList() {
-            const listEl = document.getElementById('proposalList');
-            let html = '';
-            proposals.forEach(p => {
-                const statusClass = `status-${p.status}`;
-                const date = p.updatedAt ? (p.updatedAt.toDate ? p.updatedAt.toDate().toLocaleString() : p.updatedAt.toLocaleString()) : 'Unknown';
-                const feedback = p.feedback ? `<div class="proposal-feedback">⚠️ ${p.feedback}</div>` : '';
-                const activeClass = (currentProposalId === p.id) ? 'active' : '';
-                html += `
-                    <div class="proposal-item ${activeClass}" onclick="selectProposal('${p.id}')">
-                        <div class="proposal-header">
-                            <span class="proposal-status ${statusClass}">${p.status}</span>
-                            <span class="proposal-date">${date}</span>
-                        </div>
-                        ${feedback}
-                    </div>
-                `;
+        function addEmptyRow() {
+            currentTimetableData.push({
+                startTime: '08:00',
+                endTime: '08:40',
+                monday: '',
+                tuesday: '',
+                wednesday: '',
+                thursday: '',
+                friday: ''
             });
-            if (!proposals.length) {
-                html = '<p style="color: var(--text-secondary); text-align: center;">No timetables yet. Create a draft.</p>';
-            }
-            listEl.innerHTML = html;
         }
 
-        window.selectProposal = async (proposalId) => {
-            // Find proposal (could be synthetic)
-            const proposal = proposals.find(p => p.id === proposalId);
-            if (!proposal) return;
-
-            currentProposalId = proposalId;
-            currentProposal = proposal;
-
-            // Highlight active
-            document.querySelectorAll('.proposal-item').forEach(el => el.classList.remove('active'));
-            const activeEl = Array.from(document.querySelectorAll('.proposal-item')).find(
-                el => el.getAttribute('onclick')?.includes(`'${proposalId}'`)
-            );
-            if (activeEl) activeEl.classList.add('active');
-
-            // If synthetic approved/published, we cannot edit directly.
-            // We'll show a read-only table with appropriate actions.
-            if (proposal.synthetic) {
-                // Read-only mode
-                renderTable(proposal.periods, true); // true = readonly
-                updateEditorUIForSynthetic(proposal);
-            } else {
-                // Normal proposal from collection
-                renderTable(proposal.periods, proposal.status !== 'draft' && proposal.status !== 'rejected');
-                updateEditorUIForProposal(proposal);
-            }
-        };
-
-        function renderTable(periods, readOnly) {
+        function renderTable() {
             const tbody = document.getElementById('tableBody');
             let html = '';
-            periods.forEach((period, index) => {
-                const disabled = readOnly ? 'disabled' : '';
+            currentTimetableData.forEach((period, index) => {
+                const disabled = (currentStatus === 'approved' || currentStatus === 'published') ? 'disabled' : '';
                 html += `
                 <tr>
                     <td><input type="time" class="time-input" value="${period.startTime}" data-index="${index}" data-field="startTime" ${disabled}></td>
@@ -601,196 +498,207 @@
             });
             tbody.innerHTML = html;
 
-            if (!readOnly) {
-                // Attach input listeners to update currentProposal.periods
+            // Attach input listeners only if editable
+            if (currentStatus !== 'approved' && currentStatus !== 'published') {
                 document.querySelectorAll('input[data-index]').forEach(input => {
                     input.addEventListener('input', function(e) {
                         const index = this.dataset.index;
                         const field = this.dataset.field;
-                        if (currentProposal && currentProposal.periods) {
-                            currentProposal.periods[index][field] = this.value;
-                        }
+                        currentTimetableData[index][field] = this.value;
                     });
                 });
             }
         }
 
         window.deleteRow = (index) => {
-            if (!currentProposal || currentProposal.synthetic) return;
-            currentProposal.periods.splice(index, 1);
-            renderTable(currentProposal.periods, false);
+            if (currentStatus === 'approved' || currentStatus === 'published') return;
+            currentTimetableData.splice(index, 1);
+            renderTable();
         };
 
-        document.getElementById('addRowBtn')?.addEventListener('click', () => {
-            if (!currentProposal || currentProposal.synthetic) return;
-            currentProposal.periods.push({
-                startTime: '08:00',
-                endTime: '08:40',
-                monday: '',
-                tuesday: '',
-                wednesday: '',
-                thursday: '',
-                friday: ''
-            });
-            renderTable(currentProposal.periods, false);
+        document.getElementById('addRowBtn').addEventListener('click', () => {
+            if (currentStatus === 'approved' || currentStatus === 'published') return;
+            addEmptyRow();
+            renderTable();
         });
 
-        function clearEditor() {
-            document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;">Select a timetable to begin editing</td></tr>';
-            document.getElementById('editorTitle').innerText = 'No timetable selected';
-            document.getElementById('editorStatus').innerText = '';
-            document.getElementById('editorActions').innerHTML = '';
-        }
+        function updateUIForStatus() {
+            const statusEl = document.getElementById('statusDisplay');
+            const editBtn = document.getElementById('editBtn');
+            const saveDraftBtn = document.getElementById('saveDraftBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const publishBtn = document.getElementById('publishBtn');
+            const viewStudentLink = document.getElementById('viewStudentLink');
+            const feedbackEl = document.getElementById('feedbackMessage');
 
-        function updateEditorUIForProposal(proposal) {
-            document.getElementById('editorTitle').innerText = `Editing ${proposal.status} timetable`;
-            document.getElementById('editorStatus').innerText = proposal.status;
-            document.getElementById('editorStatus').className = `status-badge status-${proposal.status}`;
-
-            let actionsHtml = '';
-            if (proposal.status === 'draft' || proposal.status === 'rejected') {
-                actionsHtml = `
-                    <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Period</button>
-                    <button class="btn btn-primary" id="saveDraftBtn">Save Draft</button>
-                    <button class="btn btn-success" id="submitBtn">Submit for Approval</button>
-                `;
-            } else if (proposal.status === 'pending') {
-                actionsHtml = `
-                    <button class="btn btn-warning" id="editBtn">Edit (make draft)</button>
-                `;
-            } else if (proposal.status === 'approved') {
-                // For approved, we might show publish if this is the official approved timetable
-                // But proposal.approved is from proposals? Actually approved status only exists on proposals that were approved? 
-                // We'll treat it as: if proposal.status === 'approved', it means this proposal was approved, but the official timetable might already be updated.
-                // We can allow teacher to publish directly from this proposal if it's the latest approved.
-                actionsHtml = `
-                    <button class="btn btn-success" id="publishBtn">Publish to Students</button>
-                    <button class="btn btn-outline" id="editBtn">Create New Draft</button>
-                `;
-            } else if (proposal.status === 'published') {
-                actionsHtml = `
-                    <button class="btn btn-outline" id="editBtn">Create New Draft</button>
-                    <button class="btn btn-outline" id="viewStudentLink" onclick="window.open('student-timetable.html', '_blank')">View Student View</button>
-                `;
+            if (currentStatus === 'pending') {
+                statusEl.textContent = 'Pending Approval';
+                statusEl.className = 'status-badge status-pending';
+                editBtn.style.display = 'inline-block';
+                saveDraftBtn.style.display = 'none';
+                submitBtn.style.display = 'none';
+                publishBtn.style.display = 'none';
+                viewStudentLink.style.display = 'none';
+                feedbackEl.style.display = 'none';
+            } else if (currentStatus === 'approved') {
+                statusEl.textContent = 'Approved (Not Published)';
+                statusEl.className = 'status-badge status-approved';
+                editBtn.style.display = 'inline-block';
+                saveDraftBtn.style.display = 'none';
+                submitBtn.style.display = 'none';
+                publishBtn.style.display = 'inline-block';
+                viewStudentLink.style.display = 'inline-block';
+                feedbackEl.style.display = 'none';
+            } else if (currentStatus === 'published') {
+                statusEl.textContent = 'Published';
+                statusEl.className = 'status-badge status-published';
+                editBtn.style.display = 'inline-block';
+                saveDraftBtn.style.display = 'none';
+                submitBtn.style.display = 'none';
+                publishBtn.style.display = 'none';
+                viewStudentLink.style.display = 'inline-block';
+                feedbackEl.style.display = 'none';
+            } else if (currentStatus === 'rejected') {
+                statusEl.textContent = 'Rejected';
+                statusEl.className = 'status-badge status-rejected';
+                editBtn.style.display = 'inline-block';
+                saveDraftBtn.style.display = 'none';
+                submitBtn.style.display = 'none';
+                publishBtn.style.display = 'none';
+                viewStudentLink.style.display = 'none';
+                // feedback already shown in loadTimetable
+            } else { // draft
+                statusEl.textContent = 'Draft';
+                statusEl.className = 'status-badge status-draft';
+                editBtn.style.display = 'none';
+                saveDraftBtn.style.display = 'inline-block';
+                submitBtn.style.display = 'inline-block';
+                publishBtn.style.display = 'none';
+                viewStudentLink.style.display = 'none';
+                feedbackEl.style.display = 'none';
             }
-
-            document.getElementById('editorActions').innerHTML = actionsHtml;
-
-            // Re-attach listeners
-            document.getElementById('saveDraftBtn')?.addEventListener('click', saveDraft);
-            document.getElementById('submitBtn')?.addEventListener('click', submitForApproval);
-            document.getElementById('editBtn')?.addEventListener('click', editProposal);
-            document.getElementById('publishBtn')?.addEventListener('click', publishTimetable);
         }
 
-        function updateEditorUIForSynthetic(proposal) {
-            document.getElementById('editorTitle').innerText = `Viewing ${proposal.status} timetable (read-only)`;
-            document.getElementById('editorStatus').innerText = proposal.status;
-            document.getElementById('editorStatus').className = `status-badge status-${proposal.status}`;
-
-            let actionsHtml = '';
-            if (proposal.status === 'approved' || proposal.status === 'published') {
-                actionsHtml = `
-                    <button class="btn btn-outline" id="editBtn">Create New Draft</button>
-                    ${proposal.status === 'published' ? '<button class="btn btn-outline" id="viewStudentLink" onclick="window.open(\'student-timetable.html\', \'_blank\')">View Student View</button>' : ''}
-                `;
-            }
-            document.getElementById('editorActions').innerHTML = actionsHtml;
-            document.getElementById('editBtn')?.addEventListener('click', () => createDraftFrom(proposal.periods));
-        }
-
-        // Actions
-        async function saveDraft() {
-            if (!currentProposal || currentProposal.synthetic) return;
+        // Save draft
+        document.getElementById('saveDraftBtn').addEventListener('click', async () => {
+            if (!currentClassId) return;
             const data = {
                 classId: currentClassId,
                 teacherId: currentUser.uid,
-                periods: currentProposal.periods,
+                periods: currentTimetableData,
                 status: 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            await db.collection('timetableProposals').doc(currentProposalId).update(data);
-            alert('Draft saved.');
-            await loadAllData(); // refresh list
-        }
 
-        async function submitForApproval() {
-            if (!currentProposal || currentProposal.synthetic) return;
-            if (currentProposal.periods.length === 0) {
+            if (currentProposalId) {
+                // Update existing proposal (draft, pending, or rejected — but button only visible in draft)
+                await db.collection('timetableProposals').doc(currentProposalId).update(data);
+            } else {
+                // Check for existing draft
+                const draftSnap = await db.collection('timetableProposals')
+                    .where('classId', '==', currentClassId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'draft')
+                    .limit(1)
+                    .get();
+                if (!draftSnap.empty) {
+                    await draftSnap.docs[0].ref.update(data);
+                } else {
+                    await db.collection('timetableProposals').add(data);
+                }
+            }
+            alert('Draft saved.');
+            await loadTimetable(); // reload to get updated proposal id
+        });
+
+        // Submit for approval
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            if (!currentClassId) return;
+            if (currentTimetableData.length === 0) {
                 alert('Please add at least one period.');
                 return;
             }
             const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: currentTimetableData,
                 status: 'pending',
-                submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            await db.collection('timetableProposals').doc(currentProposalId).update(data);
-            alert('Submitted for approval.');
-            await loadAllData();
-        }
 
-        async function editProposal() {
-            if (!currentProposal) return;
-            if (currentProposal.synthetic) {
-                // Create a new draft from synthetic
-                createDraftFrom(currentProposal.periods);
-                return;
+            if (currentProposalId) {
+                // Update existing proposal (draft, pending, or rejected)
+                await db.collection('timetableProposals').doc(currentProposalId).update(data);
+            } else {
+                // Check for existing draft or pending
+                const existingSnap = await db.collection('timetableProposals')
+                    .where('classId', '==', currentClassId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', 'in', ['draft', 'pending'])
+                    .limit(1)
+                    .get();
+                if (!existingSnap.empty) {
+                    await existingSnap.docs[0].ref.update(data);
+                } else {
+                    await db.collection('timetableProposals').add(data);
+                }
             }
-            // For pending or approved proposals, change status to draft
-            if (currentProposal.status === 'pending' || currentProposal.status === 'approved') {
-                await db.collection('timetableProposals').doc(currentProposalId).update({
+            alert('Timetable submitted for approval.');
+            await loadTimetable();
+        });
+
+        // Edit button
+        document.getElementById('editBtn').addEventListener('click', async () => {
+            if (currentStatus === 'pending') {
+                if (currentProposalId) {
+                    await db.collection('timetableProposals').doc(currentProposalId).update({
+                        status: 'draft',
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                currentStatus = 'draft';
+                renderTable();
+                updateUIForStatus();
+            } else if (currentStatus === 'approved' || currentStatus === 'published') {
+                // Create a draft proposal based on current data
+                const data = {
+                    classId: currentClassId,
+                    teacherId: currentUser.uid,
+                    periods: currentTimetableData,
                     status: 'draft',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                await loadAllData();
+                };
+                const docRef = await db.collection('timetableProposals').add(data);
+                currentProposalId = docRef.id;
+                currentStatus = 'draft';
+                renderTable();
+                updateUIForStatus();
+            } else if (currentStatus === 'rejected') {
+                if (currentProposalId) {
+                    await db.collection('timetableProposals').doc(currentProposalId).update({
+                        status: 'draft',
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    currentStatus = 'draft';
+                    renderTable();
+                    updateUIForStatus();
+                    // Hide feedback
+                    document.getElementById('feedbackMessage').style.display = 'none';
+                }
             }
-        }
+        });
 
-        async function publishTimetable() {
-            if (!currentProposal) return;
-            // Publishing sets the official timetable document to published = true
-            // We need to ensure that the periods in the official doc are the ones we want.
-            // If currentProposal is an approved proposal, we should copy its periods to the official doc if not already.
-            // But the official doc already should have been set when admin approved.
-            // We'll just update the official doc's published flag.
+        // Publish button
+        document.getElementById('publishBtn').addEventListener('click', async () => {
+            if (!currentClassId || currentStatus !== 'approved') return;
             await db.collection('timetables').doc(currentClassId).update({
                 published: true,
                 publishedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            currentStatus = 'published';
+            updateUIForStatus();
             alert('Timetable published to students.');
-            await loadAllData();
-        }
-
-        document.getElementById('createDraftBtn').addEventListener('click', async () => {
-            // Create a new empty draft proposal
-            const newProposal = {
-                classId: currentClassId,
-                teacherId: currentUser.uid,
-                periods: [], // start empty
-                status: 'draft',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            const docRef = await db.collection('timetableProposals').add(newProposal);
-            await loadAllData();
-            selectProposal(docRef.id);
         });
-
-        async function createDraftFrom(periods) {
-            // Create a new draft proposal based on given periods
-            const newProposal = {
-                classId: currentClassId,
-                teacherId: currentUser.uid,
-                periods: JSON.parse(JSON.stringify(periods)), // deep copy
-                status: 'draft',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            const docRef = await db.collection('timetableProposals').add(newProposal);
-            await loadAllData();
-            selectProposal(docRef.id);
-        }
     </script>
 </body>
 </html>
