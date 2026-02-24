@@ -365,7 +365,7 @@
             updateThemeUI(next);
         });
 
-        // Auth check (only master admin or co-admin with permissions)
+        // Auth check (only masterAdmin or co-admin with reviewLessons permission)
         let currentUser = null;
         let currentUserData = null;
         auth.onAuthStateChanged(async (user) => {
@@ -469,12 +469,15 @@
             if (!currentProposalId) return;
             const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
             const proposal = doc.data();
-            // Save to timetables collection
+
+            // Save to timetables collection (overwrites any existing)
             await db.collection('timetables').doc(proposal.classId).set({
                 periods: proposal.periods,
                 approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                approvedBy: auth.currentUser.uid
+                approvedBy: auth.currentUser.uid,
+                published: false // not published yet
             });
+
             // Update proposal status
             await doc.ref.update({
                 status: 'approved',
@@ -482,12 +485,14 @@
                 reviewedBy: auth.currentUser.uid,
                 feedback: feedbackInput.value
             });
+
             // Log audit
             await db.collection('auditLogs').add({
                 userId: auth.currentUser.uid,
                 action: `Approved timetable for ${proposal.classId}`,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
+
             closeReviewModal();
             loadProposals();
         };
@@ -495,17 +500,21 @@
         window.handleReject = async () => {
             if (!currentProposalId) return;
             const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
+            const proposal = doc.data();
+
             await doc.ref.update({
                 status: 'rejected',
                 reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 reviewedBy: auth.currentUser.uid,
                 feedback: feedbackInput.value
             });
+
             await db.collection('auditLogs').add({
                 userId: auth.currentUser.uid,
-                action: `Rejected timetable proposal ${currentProposalId}`,
+                action: `Rejected timetable proposal for ${proposal.classId}`,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
+
             closeReviewModal();
             loadProposals();
         };
