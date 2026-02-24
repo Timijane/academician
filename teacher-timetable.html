@@ -512,6 +512,12 @@
             }
             document.getElementById('classDisplay').innerHTML = `Class: <strong>${currentClassId}</strong>`;
 
+            // Check if teacher is approved – otherwise submission will fail
+            if (!userData.approved) {
+                alert('Your account is not approved yet. You cannot submit timetables.');
+                return;
+            }
+
             await loadAllData();
         });
 
@@ -688,13 +694,18 @@
                 status: 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            if (draftProposalId) {
-                await db.collection('timetableProposals').doc(draftProposalId).update(data);
-            } else {
-                const ref = await db.collection('timetableProposals').add(data);
-                draftProposalId = ref.id;
+            try {
+                if (draftProposalId) {
+                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                } else {
+                    const ref = await db.collection('timetableProposals').add(data);
+                    draftProposalId = ref.id;
+                }
+                alert('Draft saved.');
+            } catch (error) {
+                console.error('Save draft error:', error);
+                alert('Failed to save draft: ' + error.message);
             }
-            alert('Draft saved.');
         });
 
         document.getElementById('submitBtn').addEventListener('click', async () => {
@@ -710,15 +721,19 @@
                 status: 'pending',
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            if (draftProposalId) {
-                await db.collection('timetableProposals').doc(draftProposalId).update(data);
-            } else {
-                await db.collection('timetableProposals').add(data);
+            try {
+                if (draftProposalId) {
+                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                } else {
+                    await db.collection('timetableProposals').add(data);
+                }
+                alert('Timetable submitted for approval.');
+                await loadAllData();
+                document.querySelector('.tab[data-tab="pending"]').click();
+            } catch (error) {
+                console.error('Submit error:', error);
+                alert('Failed to submit: ' + error.message);
             }
-            alert('Timetable submitted for approval.');
-            await loadAllData();
-            // Switch to pending tab
-            document.querySelector('.tab[data-tab="pending"]').click();
         });
 
         // ---------- Pending Tab ----------
@@ -751,12 +766,17 @@
 
         document.getElementById('editPendingBtn').addEventListener('click', async () => {
             if (!pendingProposalId) return;
-            await db.collection('timetableProposals').doc(pendingProposalId).update({
-                status: 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
+            try {
+                await db.collection('timetableProposals').doc(pendingProposalId).update({
+                    status: 'draft',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch (error) {
+                console.error('Edit pending error:', error);
+                alert('Failed to edit: ' + error.message);
+            }
         });
 
         // ---------- Approved Tab ----------
@@ -794,30 +814,39 @@
 
         document.getElementById('publishBtn').addEventListener('click', async () => {
             if (!currentClassId || !approvedData) return;
-            await db.collection('timetables').doc(currentClassId).update({
-                published: true,
-                publishedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            alert('Timetable published to students.');
-            await loadAllData();
-            renderApproved();
+            try {
+                await db.collection('timetables').doc(currentClassId).update({
+                    published: true,
+                    publishedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('Timetable published to students.');
+                await loadAllData();
+                renderApproved();
+            } catch (error) {
+                console.error('Publish error:', error);
+                alert('Failed to publish: ' + error.message);
+            }
         });
 
         document.getElementById('editApprovedBtn').addEventListener('click', async () => {
-            // Create a new draft proposal based on current approved data
             if (!approvedData) return;
-            const data = {
-                classId: currentClassId,
-                teacherId: currentUser.uid,
-                periods: approvedData.periods,
-                status: 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            const ref = await db.collection('timetableProposals').add(data);
-            draftProposalId = ref.id;
-            draftData = approvedData.periods.slice(); // copy
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
+            try {
+                const data = {
+                    classId: currentClassId,
+                    teacherId: currentUser.uid,
+                    periods: approvedData.periods,
+                    status: 'draft',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                const ref = await db.collection('timetableProposals').add(data);
+                draftProposalId = ref.id;
+                draftData = approvedData.periods.slice(); // copy
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch (error) {
+                console.error('Edit approved error:', error);
+                alert('Failed to edit: ' + error.message);
+            }
         });
 
         // ---------- Rejected Tab ----------
@@ -858,12 +887,17 @@
 
         document.getElementById('editRejectedBtn').addEventListener('click', async () => {
             if (!rejectedProposalId) return;
-            await db.collection('timetableProposals').doc(rejectedProposalId).update({
-                status: 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
+            try {
+                await db.collection('timetableProposals').doc(rejectedProposalId).update({
+                    status: 'draft',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch (error) {
+                console.error('Edit rejected error:', error);
+                alert('Failed to edit: ' + error.message);
+            }
         });
     </script>
 </body>
