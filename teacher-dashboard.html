@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
+        /* (same styles as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -214,7 +215,6 @@
             background: var(--hover-bg);
         }
 
-        /* Stats grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -247,7 +247,6 @@
             opacity: 0.8;
         }
 
-        /* Recent activity cards */
         .recent-section {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -330,10 +329,14 @@
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
         <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
         <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-exam.html" class="nav-item"><i class="fas fa-pencil-alt"></i><span>Exam</span></a>
+        <a href="teacher-test.html" class="nav-item"><i class="fas fa-vial"></i><span>Test</span></a>
         <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
         <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-approve-students.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approve Students</span></a>
         <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
         <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
         <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
@@ -416,7 +419,7 @@
             </table>
         </div>
 
-        <!-- Today's Timetable (optional) -->
+        <!-- Today's Timetable -->
         <div class="recent-section" style="margin-top: 1.5rem;">
             <div class="section-header">
                 <h2>Today's Schedule</h2>
@@ -510,7 +513,7 @@
                 .get();
             document.getElementById('pendingNotesCount').textContent = pendingNotes.size;
 
-            // Today's classes from timetable (needs timetable collection)
+            // Today's classes from timetable
             const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
             const timetableSnap = await db.collection('timetable')
                 .where('classId', '==', userData.classTeaching)
@@ -518,7 +521,7 @@
                 .get();
             document.getElementById('todayClassesCount').textContent = timetableSnap.size;
 
-            // Students in class (if class teacher)
+            // Students in class
             if (userData.classTeaching) {
                 const students = await db.collection('users')
                     .where('role', '==', 'student')
@@ -529,11 +532,10 @@
                 document.getElementById('studentsInClassCount').textContent = 'N/A';
             }
 
-            // Pending assignments (assignments created by teacher that are due soon)
+            // Pending assignments (created by teacher)
             const assignments = await db.collection('assignments')
                 .where('teacherId', '==', currentUser.uid)
                 .get();
-            // Count assignments with pending submissions (we can add logic later)
             document.getElementById('pendingAssignmentsCount').textContent = assignments.size;
         }
 
@@ -551,7 +553,6 @@
             let html = '';
             notesSnap.forEach(doc => {
                 const note = doc.data();
-                const date = note.submittedAt ? note.submittedAt.toDate().toLocaleDateString() : 'N/A';
                 html += `
                 <tr>
                     <td>${note.subject || '—'}</td>
@@ -586,14 +587,13 @@
             let html = '<ul style="list-style:none; padding:0;">';
             timetableSnap.forEach(doc => {
                 const period = doc.data();
-                html += `<li style="margin-bottom:0.5rem;">⏰ ${period.startTime} – ${period.endTime}: <strong>${period.subject}</strong> (${period.teacherName || '—'})</li>`;
+                html += `<li style="margin-bottom:0.5rem;">⏰ ${period.startTime} – ${period.endTime}: <strong>${period.subject}</strong></li>`;
             });
             html += '</ul>';
             scheduleDiv.innerHTML = html;
         }
 
         window.viewNote = (noteId) => {
-            // Redirect to lesson notes page with highlight or open modal
             window.location.href = `teacher-lesson-notes.html?note=${noteId}`;
         };
     </script>
