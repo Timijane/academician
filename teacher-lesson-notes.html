@@ -12,7 +12,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -327,6 +326,7 @@
         <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
         <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
         <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
         <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
@@ -335,7 +335,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Lesson Notes</h1>
-                <p>Create syllabus, generate notes with AI, and manage approvals</p>
+                <p>Create syllabus, generate notes with Teacher Assistant, and manage approvals</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -359,7 +359,7 @@
         <!-- Main Tabs (Syllabus / AI Assistant / Notebook) -->
         <div class="subject-tabs" id="mainTabs">
             <div class="subject-tab active" data-tab="syllabus">Syllabus</div>
-            <div class="subject-tab" data-tab="assistant">AI Assistant</div>
+            <div class="subject-tab" data-tab="assistant">Teacher Assistant</div>
             <div class="subject-tab" data-tab="notebook">Notebook</div>
         </div>
 
@@ -389,13 +389,14 @@
                 </div>
                 <div class="actions" style="margin-top:1rem;">
                     <button class="btn btn-outline" id="addWeekBtn"><i class="fas fa-plus"></i> Add Week</button>
-                    <button class="btn btn-primary" id="saveSyllabusBtn">Save Syllabus</button>
+                    <button class="btn btn-primary" id="saveSyllabusBtn">Save Draft</button>
                     <button class="btn btn-success" id="submitSyllabusBtn">Submit for Approval</button>
+                    <button class="btn btn-warning" id="useAIBtn" style="display: none;">Use Teacher Assistant</button>
                 </div>
             </div>
         </div>
 
-        <!-- AI Assistant Tab -->
+        <!-- Teacher Assistant Tab -->
         <div id="tab-assistant" class="tab-content">
             <div class="card">
                 <div class="card-header">
@@ -404,7 +405,7 @@
                 <p class="text-secondary">Select a week and use ready-made prompts to generate content. Copy the result and paste into the Notebook for editing.</p>
                 
                 <div class="filter-bar" style="display:flex; gap:1rem; margin-bottom:1rem;">
-                    <select id="weekSelect" class="form-control" style="max-width:200px;">
+                    <select id="weekSelect" class="form-control" style="max-width:200px; padding:0.5rem; border-radius:2rem;">
                         <option value="">Select Week</option>
                     </select>
                 </div>
@@ -435,7 +436,7 @@
 
                 <div style="margin-top:1rem;">
                     <label>Generated Content (copy from here)</label>
-                    <textarea id="aiOutput" rows="10" class="form-control" readonly></textarea>
+                    <textarea id="aiOutput" rows="10" class="form-control" readonly style="width:100%; padding:1rem; border-radius:1rem; background:var(--input-bg); color:var(--text-primary);"></textarea>
                 </div>
                 <div style="margin-top:1rem;">
                     <button class="btn btn-primary" id="copyToNotebookBtn">Copy to Notebook</button>
@@ -453,11 +454,11 @@
                     </div>
                 </div>
                 <div class="filter-bar" style="display:flex; gap:1rem; margin-bottom:1rem;">
-                    <select id="notebookWeekSelect" class="form-control" style="max-width:200px;">
+                    <select id="notebookWeekSelect" class="form-control" style="max-width:200px; padding:0.5rem; border-radius:2rem;">
                         <option value="">Select Week</option>
                     </select>
                 </div>
-                <div class="notebook" id="notebookContent" contenteditable="true">
+                <div class="notebook" id="notebookContent" contenteditable="true" style="border:1px solid var(--border); padding:1rem; border-radius:1rem; background:var(--input-bg);">
                     <!-- Editable content -->
                 </div>
                 <div class="actions" style="margin-top:1rem;">
@@ -481,7 +482,6 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const storage = firebase.storage();
 
         // Sidebar toggle
         const sidebar = document.getElementById('sidebar');
@@ -518,10 +518,10 @@
         // Auth check
         let currentUser = null;
         let userData = null;
-        let subjects = []; // will be populated from teacher's subjects
+        let subjects = [];
         let currentSubject = null;
-        let syllabusData = {}; // key: subjectId, value: { weeks, status, id }
-        let lessonNotesData = {}; // key: subject+week, value: { content, status, id }
+        let syllabusData = {}; // key: subject, value: { weeks, status, id }
+        let lessonNotesData = {}; // key: subject_week, value: { content, status, id }
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -540,8 +540,7 @@
                 (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
             document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Teacher'}`;
 
-            // Get teacher's subjects (from userData or separate collection)
-            subjects = userData.subjects || ['Mathematics', 'English', 'Science']; // fallback
+            subjects = userData.subjects || ['Mathematics', 'English', 'Science'];
             renderSubjectTabs();
 
             if (subjects.length > 0) {
@@ -582,22 +581,33 @@
 
         // Syllabus functions
         async function loadSyllabus(subject) {
-            // Query for syllabus for this subject and teacher
-            const snapshot = await db.collection('syllabi')
-                .where('teacherId', '==', currentUser.uid)
-                .where('subject', '==', subject)
-                .orderBy('submittedAt', 'desc')
-                .limit(1)
-                .get();
-            if (!snapshot.empty) {
-                const doc = snapshot.docs[0];
-                syllabusData[subject] = { id: doc.id, ...doc.data() };
-                renderSyllabusTable(doc.data().weeks || []);
-                updateSyllabusStatus(doc.data().status);
-            } else {
-                syllabusData[subject] = { weeks: [], status: 'draft' };
-                renderSyllabusTable([]);
-                updateSyllabusStatus('draft');
+            try {
+                const snapshot = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('subject', '==', subject)
+                    .orderBy('submittedAt', 'desc')
+                    .limit(1)
+                    .get();
+                if (!snapshot.empty) {
+                    const doc = snapshot.docs[0];
+                    syllabusData[subject] = { id: doc.id, ...doc.data() };
+                    renderSyllabusTable(doc.data().weeks || []);
+                    updateSyllabusStatus(doc.data().status);
+                    // Show "Use Teacher Assistant" if syllabus approved
+                    if (doc.data().status === 'approved') {
+                        document.getElementById('useAIBtn').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('useAIBtn').style.display = 'none';
+                    }
+                } else {
+                    syllabusData[subject] = { weeks: [], status: 'draft' };
+                    renderSyllabusTable([]);
+                    updateSyllabusStatus('draft');
+                    document.getElementById('useAIBtn').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading syllabus:', error);
+                alert('Failed to load syllabus: ' + error.message);
             }
         }
 
@@ -619,7 +629,6 @@
             });
             tbody.innerHTML = html;
 
-            // Attach input listeners
             document.querySelectorAll('#syllabusBody input').forEach(input => {
                 input.addEventListener('input', function(e) {
                     const index = this.dataset.index;
@@ -646,45 +655,68 @@
 
         document.getElementById('saveSyllabusBtn').addEventListener('click', async () => {
             if (!currentSubject) return;
-            const weeks = syllabusData[currentSubject].weeks;
-            if (weeks.length === 0) return;
-            const data = {
-                teacherId: currentUser.uid,
-                subject: currentSubject,
-                classId: userData.classTeaching,
-                weeks,
-                status: 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (syllabusData[currentSubject].id) {
-                await db.collection('syllabi').doc(syllabusData[currentSubject].id).update(data);
-            } else {
-                const docRef = await db.collection('syllabi').add(data);
-                syllabusData[currentSubject].id = docRef.id;
+            const weeks = syllabusData[currentSubject]?.weeks;
+            if (!weeks || weeks.length === 0) {
+                alert('Please add at least one week.');
+                return;
             }
-            alert('Syllabus saved as draft.');
+            try {
+                const data = {
+                    teacherId: currentUser.uid,
+                    subject: currentSubject,
+                    classId: userData.classTeaching,
+                    weeks,
+                    status: 'draft',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                if (syllabusData[currentSubject].id) {
+                    await db.collection('syllabus').doc(syllabusData[currentSubject].id).update(data);
+                } else {
+                    const docRef = await db.collection('syllabus').add(data);
+                    syllabusData[currentSubject].id = docRef.id;
+                }
+                alert('Syllabus saved as draft.');
+            } catch (error) {
+                console.error('Error saving syllabus:', error);
+                alert('Error saving syllabus: ' + error.message);
+            }
         });
 
         document.getElementById('submitSyllabusBtn').addEventListener('click', async () => {
             if (!currentSubject) return;
-            const weeks = syllabusData[currentSubject].weeks;
-            if (weeks.length === 0) return;
-            const data = {
-                teacherId: currentUser.uid,
-                subject: currentSubject,
-                classId: userData.classTeaching,
-                weeks,
-                status: 'pending',
-                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (syllabusData[currentSubject].id) {
-                await db.collection('syllabi').doc(syllabusData[currentSubject].id).update(data);
-            } else {
-                const docRef = await db.collection('syllabi').add(data);
-                syllabusData[currentSubject].id = docRef.id;
+            const weeks = syllabusData[currentSubject]?.weeks;
+            if (!weeks || weeks.length === 0) {
+                alert('Please add at least one week.');
+                return;
             }
-            alert('Syllabus submitted for approval.');
-            updateSyllabusStatus('pending');
+            try {
+                const data = {
+                    teacherId: currentUser.uid,
+                    subject: currentSubject,
+                    classId: userData.classTeaching,
+                    weeks,
+                    status: 'pending',
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                if (syllabusData[currentSubject].id) {
+                    await db.collection('syllabus').doc(syllabusData[currentSubject].id).update(data);
+                } else {
+                    const docRef = await db.collection('syllabus').add(data);
+                    syllabusData[currentSubject].id = docRef.id;
+                }
+                alert('Syllabus submitted for approval.');
+                updateSyllabusStatus('pending');
+                document.getElementById('useAIBtn').style.display = 'none';
+            } catch (error) {
+                console.error('Error submitting syllabus:', error);
+                alert('Error submitting syllabus: ' + error.message);
+            }
+        });
+
+        document.getElementById('useAIBtn').addEventListener('click', () => {
+            // Switch to Assistant tab and notify user
+            document.querySelector('[data-tab="assistant"]').click();
+            alert('Select a week and use prompts to generate lesson content.');
         });
 
         function updateSyllabusStatus(status) {
@@ -712,14 +744,13 @@
             });
         }
 
-        // Mock AI generation (in production, call a cloud function that uses AI APIs)
+        // Mock AI generation (replace with actual API calls)
         function generateAIContent(promptType, weekData) {
-            // Simulate AI response based on prompt type
             const topic = weekData.topic || 'General Topic';
             const age = '4-5'; // could come from class info
             const duration = '40 min';
             if (promptType === 'lessonNote') {
-                return `# Comprehensive Lesson Note: ${topic}\n\n**Class:** Basic 3 (Age 4-5)\n**Duration:** 40 minutes\n\n## Introduction\nBegin with a song about plants.\n\n## Content Development\n- What is a plant?\n- Parts of a plant\n- Why plants are important\n\n## Activities\n- Draw a plant\n- Plant a seed\n\n## Conclusion\nRecap and sing the song again.`;
+                return `# Comprehensive Lesson Note: ${topic}\n\n**Class:** Basic 3 (Age ${age})\n**Duration:** ${duration}\n\n## Introduction\nBegin with a song about plants.\n\n## Content Development\n- What is a plant?\n- Parts of a plant\n- Why plants are important\n\n## Activities\n- Draw a plant\n- Plant a seed\n\n## Conclusion\nRecap and sing the song again.`;
             } else if (promptType === 'teachingProcess') {
                 return `# Teaching Process for ${topic}\n\n## Teacher's Activities\n1. Show a real plant.\n2. Ask questions.\n3. Guide drawing.\n\n## Student's Activities\n1. Observe plant.\n2. Answer questions.\n3. Draw and color.`;
             } else if (promptType === 'documentResource') {
@@ -750,7 +781,6 @@
             const content = aiOutput.value;
             if (!content) return;
             document.getElementById('notebookContent').innerText = content;
-            // Optionally save to lessonNotes for the selected week
         });
 
         // Notebook
@@ -764,7 +794,6 @@
                 notebookContent.innerText = '';
                 return;
             }
-            // Load lesson note for this subject and week
             const weekData = syllabusData[currentSubject].weeks[weekIdx];
             const key = `${currentSubject}_${weekData.week}`;
             if (lessonNotesData[key]) {
@@ -777,64 +806,92 @@
         });
 
         async function loadLessonNotes(subject) {
-            const snapshot = await db.collection('lessonNotes')
-                .where('teacherId', '==', currentUser.uid)
-                .where('subject', '==', subject)
-                .get();
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const key = `${subject}_${data.week}`;
-                lessonNotesData[key] = { id: doc.id, ...data };
-            });
+            try {
+                const snapshot = await db.collection('lessonNotes')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('subject', '==', subject)
+                    .get();
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const key = `${subject}_${data.week}`;
+                    lessonNotesData[key] = { id: doc.id, ...data };
+                });
+            } catch (error) {
+                console.error('Error loading lesson notes:', error);
+            }
         }
 
         document.getElementById('saveNotebookBtn').addEventListener('click', async () => {
             const weekIdx = notebookWeekSelect.value;
-            if (weekIdx === '') return;
+            if (weekIdx === '') {
+                alert('Please select a week.');
+                return;
+            }
             const weekData = syllabusData[currentSubject].weeks[weekIdx];
             const content = notebookContent.innerText;
-            const key = `${currentSubject}_${weekData.week}`;
-            const data = {
-                teacherId: currentUser.uid,
-                subject: currentSubject,
-                week: weekData.week,
-                topic: weekData.topic,
-                content,
-                status: 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (lessonNotesData[key] && lessonNotesData[key].id) {
-                await db.collection('lessonNotes').doc(lessonNotesData[key].id).update(data);
-            } else {
-                const docRef = await db.collection('lessonNotes').add(data);
-                lessonNotesData[key] = { id: docRef.id, ...data };
+            if (!content.trim()) {
+                alert('Please enter lesson note content.');
+                return;
             }
-            alert('Lesson note draft saved.');
+            const key = `${currentSubject}_${weekData.week}`;
+            try {
+                const data = {
+                    teacherId: currentUser.uid,
+                    subject: currentSubject,
+                    week: weekData.week,
+                    topic: weekData.topic,
+                    content,
+                    status: 'draft',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                if (lessonNotesData[key] && lessonNotesData[key].id) {
+                    await db.collection('lessonNotes').doc(lessonNotesData[key].id).update(data);
+                } else {
+                    const docRef = await db.collection('lessonNotes').add(data);
+                    lessonNotesData[key] = { id: docRef.id, ...data };
+                }
+                alert('Lesson note draft saved.');
+            } catch (error) {
+                console.error('Error saving lesson note:', error);
+                alert('Error saving: ' + error.message);
+            }
         });
 
         document.getElementById('submitLessonNoteBtn').addEventListener('click', async () => {
             const weekIdx = notebookWeekSelect.value;
-            if (weekIdx === '') return;
+            if (weekIdx === '') {
+                alert('Please select a week.');
+                return;
+            }
             const weekData = syllabusData[currentSubject].weeks[weekIdx];
             const content = notebookContent.innerText;
-            const key = `${currentSubject}_${weekData.week}`;
-            const data = {
-                teacherId: currentUser.uid,
-                subject: currentSubject,
-                week: weekData.week,
-                topic: weekData.topic,
-                content,
-                status: 'pending',
-                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (lessonNotesData[key] && lessonNotesData[key].id) {
-                await db.collection('lessonNotes').doc(lessonNotesData[key].id).update(data);
-            } else {
-                const docRef = await db.collection('lessonNotes').add(data);
-                lessonNotesData[key] = { id: docRef.id, ...data };
+            if (!content.trim()) {
+                alert('Please enter lesson note content.');
+                return;
             }
-            alert('Lesson note submitted for approval.');
-            updateLessonNoteStatus('pending');
+            const key = `${currentSubject}_${weekData.week}`;
+            try {
+                const data = {
+                    teacherId: currentUser.uid,
+                    subject: currentSubject,
+                    week: weekData.week,
+                    topic: weekData.topic,
+                    content,
+                    status: 'pending',
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                if (lessonNotesData[key] && lessonNotesData[key].id) {
+                    await db.collection('lessonNotes').doc(lessonNotesData[key].id).update(data);
+                } else {
+                    const docRef = await db.collection('lessonNotes').add(data);
+                    lessonNotesData[key] = { id: docRef.id, ...data };
+                }
+                alert('Lesson note submitted for approval.');
+                updateLessonNoteStatus('pending');
+            } catch (error) {
+                console.error('Error submitting lesson note:', error);
+                alert('Error submitting: ' + error.message);
+            }
         });
 
         function updateLessonNoteStatus(status) {
