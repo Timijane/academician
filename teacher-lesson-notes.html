@@ -134,16 +134,21 @@
         .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
         .dropdown-item:hover { background: var(--hover-bg); }
 
-        /* ========== TABS ========== */
+        /* ========== SUBJECT MANAGEMENT ========== */
+        .subject-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
         .subject-tabs {
             display: flex;
             gap: 0.5rem;
-            margin-bottom: 1.5rem;
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 3rem;
             padding: 0.3rem;
-            width: fit-content;
             flex-wrap: wrap;
         }
         .subject-tab {
@@ -157,6 +162,20 @@
         .subject-tab.active {
             background: var(--accent);
             color: white;
+        }
+        .add-subject-btn {
+            background: var(--card-bg);
+            border: 1px dashed var(--border);
+            border-radius: 3rem;
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: 0.2s;
+        }
+        .add-subject-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         /* ========== CARDS ========== */
@@ -243,30 +262,31 @@
         }
 
         /* ========== AI ASSISTANT GRID ========== */
-        .prompt-grid {
+        .generator-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 1rem;
-            margin: 1rem 0;
+            margin-top: 1rem;
         }
-        .prompt-card {
+        .generator-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 1rem;
             padding: 1rem;
-            cursor: pointer;
-            transition: 0.2s;
         }
-        .prompt-card:hover {
-            border-color: var(--accent);
-            box-shadow: var(--shadow);
-        }
-        .prompt-card h4 {
+        .generator-card h4 {
             margin-bottom: 0.5rem;
         }
-        .prompt-card p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
+        .generator-card textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            resize: vertical;
+            min-height: 120px;
+            margin-bottom: 0.5rem;
         }
 
         /* ========== NOTEBOOK ========== */
@@ -292,16 +312,6 @@
             color: var(--text-primary);
             margin-bottom: 1rem;
         }
-        textarea.form-control {
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        /* ========== TAB CONTENT ========== */
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* ========== FILTER BAR ========== */
         .filter-bar {
             display: flex;
             gap: 1rem;
@@ -310,10 +320,23 @@
             align-items: center;
         }
 
-        /* ========== AI OUTPUT AREA ========== */
-        .ai-output {
-            margin-top: 1rem;
+        /* ========== ERROR MESSAGE ========== */
+        .error-message {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger-text);
         }
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        /* ========== TAB CONTENT ========== */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         /* ========== RESPONSIVE ========== */
         @media (max-width: 768px) {
@@ -325,7 +348,7 @@
     </style>
 </head>
 <body>
-    <!-- SIDEBAR (same as your teacher page) -->
+    <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <i class="fas fa-chalkboard-teacher"></i>
@@ -367,21 +390,27 @@
             </div>
         </div>
 
-        <!-- SUBJECT TABS (populated by JS) -->
-        <div class="subject-tabs" id="subjectTabs"></div>
+        <!-- SUBJECT MANAGEMENT -->
+        <div class="subject-header">
+            <div class="subject-tabs" id="subjectTabs"></div>
+            <div class="add-subject-btn" id="addSubjectBtn"><i class="fas fa-plus"></i> Add Subject</div>
+        </div>
 
-        <!-- MAIN TABS (Syllabus / Teacher Assistant / Notebook) -->
-        <div class="subject-tabs" id="mainTabs">
+        <!-- MAIN TABS -->
+        <div class="subject-tabs" id="mainTabs" style="margin-top:0.5rem;">
             <div class="subject-tab active" data-tab="syllabus">Syllabus</div>
             <div class="subject-tab" data-tab="assistant">Teacher Assistant</div>
             <div class="subject-tab" data-tab="notebook">Notebook</div>
         </div>
 
+        <!-- ERROR DISPLAY (for index issues) -->
+        <div id="indexError" class="error-message" style="display: none;"></div>
+
         <!-- ========== SYLLABUS TAB ========== -->
         <div id="tab-syllabus" class="tab-content active">
             <div class="card">
                 <div class="card-header">
-                    <h3>Syllabus for <span id="currentSubject">Loading...</span></h3>
+                    <h3>Syllabus for <span id="currentSubject">(select subject)</span></h3>
                     <div>
                         <span id="syllabusStatus" class="status-badge status-draft">Draft</span>
                     </div>
@@ -417,57 +446,59 @@
                     <h3>Teacher Assistant</h3>
                     <span id="assistantSyllabusStatus" class="status-badge"></span>
                 </div>
-                <p class="text-secondary">Select a week and use the ready-made prompts below to generate content. You can save each piece individually.</p>
+                <p class="text-secondary">Select a subject and week to generate content using AI prompts.</p>
 
                 <div class="filter-bar">
-                    <select id="weekSelect" class="form-control" style="max-width:200px;">
+                    <select id="assistantSubjectSelect" class="form-control" style="max-width:200px;">
+                        <option value="">Select Subject</option>
+                    </select>
+                    <select id="assistantWeekSelect" class="form-control" style="max-width:200px;">
                         <option value="">Select Week</option>
                     </select>
-                    <button class="btn btn-outline" id="loadWeekMaterials">Load Saved</button>
+                    <button class="btn btn-outline" id="loadAssistantMaterials">Load Saved</button>
                 </div>
 
-                <!-- Generation Grid (2 columns) -->
-                <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; margin-top:1rem;">
+                <div class="generator-grid" id="generatorGrid">
                     <!-- Lesson Note -->
-                    <div class="card" style="padding:1rem;">
+                    <div class="generator-card">
                         <h4>📝 Comprehensive Lesson Note</h4>
-                        <textarea id="lessonNoteOutput" rows="6" class="form-control" placeholder="Generated lesson note will appear here..."></textarea>
+                        <textarea id="lessonNoteOutput" placeholder="Generated lesson note..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
                             <button class="btn btn-sm btn-primary" data-prompt="lessonNote">Generate</button>
                             <button class="btn btn-sm btn-outline" data-save="lessonNote">Save Draft</button>
                         </div>
                     </div>
                     <!-- Teaching Process -->
-                    <div class="card" style="padding:1rem;">
+                    <div class="generator-card">
                         <h4>🧑‍🏫 Teaching Process</h4>
-                        <textarea id="teachingProcessOutput" rows="6" class="form-control" placeholder="Generated teaching process..."></textarea>
+                        <textarea id="teachingProcessOutput" placeholder="Step-by-step teaching process..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
                             <button class="btn btn-sm btn-primary" data-prompt="teachingProcess">Generate</button>
                             <button class="btn btn-sm btn-outline" data-save="teachingProcess">Save Draft</button>
                         </div>
                     </div>
                     <!-- Student Document Resource -->
-                    <div class="card" style="padding:1rem;">
-                        <h4>📄 Student Document Resource</h4>
-                        <textarea id="studentResourceOutput" rows="6" class="form-control" placeholder="Student-friendly explanation..."></textarea>
+                    <div class="generator-card">
+                        <h4>📄 Student Resource</h4>
+                        <textarea id="studentResourceOutput" placeholder="Student-friendly explanation..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
                             <button class="btn btn-sm btn-primary" data-prompt="studentResource">Generate</button>
                             <button class="btn btn-sm btn-outline" data-save="studentResource">Save Draft</button>
                         </div>
                     </div>
-                    <!-- Handwritten Study Notes -->
-                    <div class="card" style="padding:1rem;">
+                    <!-- Handwritten Notes -->
+                    <div class="generator-card">
                         <h4>✍️ Handwritten Study Notes</h4>
-                        <textarea id="handwrittenOutput" rows="6" class="form-control" placeholder="Handwritten-style text with doodles..."></textarea>
+                        <textarea id="handwrittenOutput" placeholder="Handwritten-style text with doodles..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
                             <button class="btn btn-sm btn-primary" data-prompt="handwritten">Generate</button>
                             <button class="btn btn-sm btn-outline" data-save="handwritten">Save Draft</button>
                         </div>
                     </div>
-                    <!-- YouTube Video Links -->
-                    <div class="card" style="padding:1rem;">
+                    <!-- YouTube Links -->
+                    <div class="generator-card">
                         <h4>📺 YouTube Video Links</h4>
-                        <textarea id="youtubeOutput" rows="6" class="form-control" placeholder="Suggested video links..."></textarea>
+                        <textarea id="youtubeOutput" placeholder="Suggested video links (one per line)..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
                             <button class="btn btn-sm btn-primary" data-prompt="youtube">Generate</button>
                             <button class="btn btn-sm btn-outline" data-save="youtube">Save Draft</button>
@@ -485,11 +516,14 @@
                     <span id="lessonNoteStatus" class="status-badge status-draft">Draft</span>
                 </div>
                 <div class="filter-bar">
+                    <select id="notebookSubjectSelect" class="form-control" style="max-width:200px;">
+                        <option value="">Select Subject</option>
+                    </select>
                     <select id="notebookWeekSelect" class="form-control" style="max-width:200px;">
                         <option value="">Select Week</option>
                     </select>
                 </div>
-                <div class="notebook" id="notebookContent" contenteditable="true" style="border:1px solid var(--border); padding:1rem; border-radius:1rem; background:var(--input-bg); min-height:300px;"></div>
+                <div class="notebook" id="notebookContent" contenteditable="true"></div>
                 <div class="actions" style="margin-top:1rem;">
                     <button class="btn btn-primary" id="saveNotebookBtn">Save Draft</button>
                     <button class="btn btn-success" id="submitLessonNoteBtn">Submit for Approval</button>
@@ -544,37 +578,67 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
-        // Auth check
+        // Global variables
         let currentUser = null;
         let userData = null;
-        let subjects = [];
+        let subjects = []; // array of subject names
         let currentSubject = null;
-        let syllabusData = {};          // { id, weeks, status }
-        let lessonPackage = {};          // key: subject_week, object with all fields
+        let syllabusMap = {}; // subject -> { id, weeks, status }
+        let lessonNotesMap = {}; // "subject_week" -> { id, lessonNote, teachingProcess, ... }
 
+        // Index error handler
+        function handleFirestoreError(error, context) {
+            console.error(`Firestore error in ${context}:`, error);
+            const errorDiv = document.getElementById('indexError');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                const url = match ? match[0] : '#';
+                errorDiv.innerHTML = `
+                    <strong>Missing Firestore index.</strong><br>
+                    Please create it by clicking 
+                    <a href="${url}" target="_blank">this link</a>.
+                `;
+                errorDiv.style.display = 'block';
+            } else if (error.code === 'permission-denied') {
+                errorDiv.textContent = 'Permission denied. Please contact administrator.';
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Auth check
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'teacher-login.html';
                 return;
             }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                auth.signOut();
-                window.location.href = 'index.html';
-                return;
-            }
-            currentUser = user;
-            userData = userDoc.data();
-            document.getElementById('profileInitials').textContent = 
-                (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-            document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Teacher'}`;
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                    auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+                currentUser = user;
+                userData = userDoc.data();
+                document.getElementById('profileInitials').textContent = 
+                    (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Teacher'}`;
 
-            // Get teacher's subjects (from user profile or default)
-            subjects = userData.subjects || ['Mathematics', 'English', 'Science'];
-            renderSubjectTabs();
+                // Load subjects from user profile, default to empty array
+                subjects = userData.subjects || [];
+                renderSubjectTabs();
 
-            if (subjects.length > 0) {
-                switchSubject(subjects[0]);
+                if (subjects.length > 0) {
+                    switchSubject(subjects[0]);
+                } else {
+                    // No subjects yet, show empty state
+                    document.getElementById('currentSubject').textContent = '(add a subject)';
+                }
+            } catch (error) {
+                handleFirestoreError(error, 'auth');
             }
         });
 
@@ -582,7 +646,7 @@
             auth.signOut().then(() => window.location.href = 'index.html');
         });
 
-        // Render subject tabs
+        // Render subject tabs from subjects array
         function renderSubjectTabs() {
             const container = document.getElementById('subjectTabs');
             container.innerHTML = '';
@@ -591,27 +655,69 @@
                 tab.className = 'subject-tab';
                 tab.textContent = sub;
                 tab.addEventListener('click', () => {
-                    document.querySelectorAll('.subject-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('#subjectTabs .subject-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     switchSubject(sub);
                 });
                 container.appendChild(tab);
             });
+            // If there are subjects, activate the first one
             if (subjects.length > 0) {
                 container.children[0].classList.add('active');
             }
+            // Populate subject dropdowns in assistant and notebook
+            populateSubjectDropdowns();
         }
 
-        // Switch subject: load syllabus and lesson packages
+        // Add new subject
+        document.getElementById('addSubjectBtn').addEventListener('click', async () => {
+            const newSubject = prompt('Enter new subject name:');
+            if (!newSubject || newSubject.trim() === '') return;
+            if (subjects.includes(newSubject.trim())) {
+                alert('Subject already exists.');
+                return;
+            }
+            subjects.push(newSubject.trim());
+            // Update user document
+            try {
+                await db.collection('users').doc(currentUser.uid).update({
+                    subjects: subjects
+                });
+                renderSubjectTabs();
+                if (subjects.length === 1) {
+                    switchSubject(subjects[0]);
+                }
+            } catch (error) {
+                handleFirestoreError(error, 'addSubject');
+            }
+        });
+
+        function populateSubjectDropdowns() {
+            const assistantSelect = document.getElementById('assistantSubjectSelect');
+            const notebookSelect = document.getElementById('notebookSubjectSelect');
+            assistantSelect.innerHTML = '<option value="">Select Subject</option>';
+            notebookSelect.innerHTML = '<option value="">Select Subject</option>';
+            subjects.forEach(sub => {
+                const opt1 = document.createElement('option');
+                opt1.value = sub;
+                opt1.textContent = sub;
+                assistantSelect.appendChild(opt1);
+                const opt2 = opt1.cloneNode(true);
+                notebookSelect.appendChild(opt2);
+            });
+        }
+
+        // Switch subject: load syllabus and lesson notes
         async function switchSubject(subject) {
             currentSubject = subject;
             document.getElementById('currentSubject').textContent = subject;
+            document.getElementById('indexError').style.display = 'none';
             await loadSyllabus(subject);
-            await loadLessonPackage(subject);
-            populateWeekSelect();
+            await loadLessonNotes(subject);
+            populateWeekSelects(subject);
         }
 
-        // Load syllabus (latest draft/pending/approved)
+        // Load syllabus for a subject
         async function loadSyllabus(subject) {
             try {
                 const snapshot = await db.collection('syllabus')
@@ -622,24 +728,22 @@
                     .get();
                 if (!snapshot.empty) {
                     const doc = snapshot.docs[0];
-                    syllabusData[subject] = { id: doc.id, ...doc.data() };
+                    syllabusMap[subject] = { id: doc.id, ...doc.data() };
                     renderSyllabusTable(doc.data().weeks || []);
                     updateSyllabusStatus(doc.data().status);
-                    // Show "Use Teacher Assistant" button if syllabus approved
                     if (doc.data().status === 'approved') {
                         document.getElementById('useAIBtn').style.display = 'inline-block';
                     } else {
                         document.getElementById('useAIBtn').style.display = 'none';
                     }
                 } else {
-                    syllabusData[subject] = { weeks: [], status: 'draft' };
+                    syllabusMap[subject] = { weeks: [], status: 'draft' };
                     renderSyllabusTable([]);
                     updateSyllabusStatus('draft');
                     document.getElementById('useAIBtn').style.display = 'none';
                 }
             } catch (error) {
-                console.error('Error loading syllabus:', error);
-                alert('Failed to load syllabus: ' + error.message);
+                handleFirestoreError(error, 'loadSyllabus');
             }
         }
 
@@ -667,29 +771,29 @@
                 input.addEventListener('input', function(e) {
                     const index = this.dataset.index;
                     const field = this.dataset.field;
-                    if (!syllabusData[currentSubject].weeks[index]) {
-                        syllabusData[currentSubject].weeks[index] = {};
+                    if (!syllabusMap[currentSubject].weeks[index]) {
+                        syllabusMap[currentSubject].weeks[index] = {};
                     }
-                    syllabusData[currentSubject].weeks[index][field] = this.value;
+                    syllabusMap[currentSubject].weeks[index][field] = this.value;
                 });
             });
         }
 
         window.deleteWeek = (index) => {
-            syllabusData[currentSubject].weeks.splice(index, 1);
-            renderSyllabusTable(syllabusData[currentSubject].weeks);
+            syllabusMap[currentSubject].weeks.splice(index, 1);
+            renderSyllabusTable(syllabusMap[currentSubject].weeks);
         };
 
         document.getElementById('addWeekBtn').addEventListener('click', () => {
-            if (!syllabusData[currentSubject]) syllabusData[currentSubject] = { weeks: [] };
-            const lastWeek = syllabusData[currentSubject].weeks.length > 0 ? syllabusData[currentSubject].weeks[syllabusData[currentSubject].weeks.length - 1].week : 0;
-            syllabusData[currentSubject].weeks.push({ week: lastWeek + 1, topic: '', objectives: '' });
-            renderSyllabusTable(syllabusData[currentSubject].weeks);
+            if (!syllabusMap[currentSubject]) syllabusMap[currentSubject] = { weeks: [] };
+            const lastWeek = syllabusMap[currentSubject].weeks.length > 0 ? syllabusMap[currentSubject].weeks[syllabusMap[currentSubject].weeks.length - 1].week : 0;
+            syllabusMap[currentSubject].weeks.push({ week: lastWeek + 1, topic: '', objectives: '' });
+            renderSyllabusTable(syllabusMap[currentSubject].weeks);
         });
 
         document.getElementById('saveSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) return;
-            const weeks = syllabusData[currentSubject]?.weeks;
+            if (!currentSubject) { alert('Select a subject.'); return; }
+            const weeks = syllabusMap[currentSubject]?.weeks;
             if (!weeks || weeks.length === 0) {
                 alert('Please add at least one week.');
                 return;
@@ -703,22 +807,21 @@
                     status: 'draft',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
-                if (syllabusData[currentSubject].id) {
-                    await db.collection('syllabus').doc(syllabusData[currentSubject].id).update(data);
+                if (syllabusMap[currentSubject].id) {
+                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
                 } else {
                     const docRef = await db.collection('syllabus').add(data);
-                    syllabusData[currentSubject].id = docRef.id;
+                    syllabusMap[currentSubject].id = docRef.id;
                 }
                 alert('Syllabus saved as draft.');
             } catch (error) {
-                console.error('Error saving syllabus:', error);
-                alert('Error saving syllabus: ' + error.message);
+                handleFirestoreError(error, 'saveSyllabus');
             }
         });
 
         document.getElementById('submitSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) return;
-            const weeks = syllabusData[currentSubject]?.weeks;
+            if (!currentSubject) { alert('Select a subject.'); return; }
+            const weeks = syllabusMap[currentSubject]?.weeks;
             if (!weeks || weeks.length === 0) {
                 alert('Please add at least one week.');
                 return;
@@ -732,23 +835,21 @@
                     status: 'pending',
                     submittedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
-                if (syllabusData[currentSubject].id) {
-                    await db.collection('syllabus').doc(syllabusData[currentSubject].id).update(data);
+                if (syllabusMap[currentSubject].id) {
+                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
                 } else {
                     const docRef = await db.collection('syllabus').add(data);
-                    syllabusData[currentSubject].id = docRef.id;
+                    syllabusMap[currentSubject].id = docRef.id;
                 }
                 alert('Syllabus submitted for approval.');
                 updateSyllabusStatus('pending');
                 document.getElementById('useAIBtn').style.display = 'none';
             } catch (error) {
-                console.error('Error submitting syllabus:', error);
-                alert('Error submitting syllabus: ' + error.message);
+                handleFirestoreError(error, 'submitSyllabus');
             }
         });
 
         document.getElementById('useAIBtn').addEventListener('click', () => {
-            // Switch to Assistant tab
             document.querySelector('[data-tab="assistant"]').click();
             alert('Select a week and use prompts to generate lesson content.');
         });
@@ -759,65 +860,68 @@
             statusEl.className = `status-badge status-${status}`;
         }
 
-        // Load lesson package for current subject (all weeks)
-        async function loadLessonPackage(subject) {
+        // Load lesson notes for a subject
+        async function loadLessonNotes(subject) {
             try {
                 const snapshot = await db.collection('lessonNotes')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', subject)
                     .get();
-                lessonPackage = {};
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const key = `${subject}_${data.week}`;
-                    lessonPackage[key] = { id: doc.id, ...data };
+                    lessonNotesMap[key] = { id: doc.id, ...data };
                 });
             } catch (error) {
-                console.error('Error loading lesson package:', error);
+                handleFirestoreError(error, 'loadLessonNotes');
             }
         }
 
-        // Populate week dropdowns from syllabus
-        function populateWeekSelect() {
-            const weeks = syllabusData[currentSubject]?.weeks || [];
-            const weekSelect = document.getElementById('weekSelect');
-            const notebookWeekSelect = document.getElementById('notebookWeekSelect');
-            weekSelect.innerHTML = '<option value="">Select Week</option>';
-            notebookWeekSelect.innerHTML = '<option value="">Select Week</option>';
-            weeks.forEach((w, idx) => {
-                const option = document.createElement('option');
-                option.value = w.week;
-                option.textContent = `Week ${w.week}: ${w.topic || 'No topic'}`;
-                weekSelect.appendChild(option.cloneNode(true));
-                notebookWeekSelect.appendChild(option.cloneNode(true));
+        // Populate week dropdowns based on selected subject's syllabus
+        function populateWeekSelects(subject) {
+            const weeks = syllabusMap[subject]?.weeks || [];
+            const assistantWeek = document.getElementById('assistantWeekSelect');
+            const notebookWeek = document.getElementById('notebookWeekSelect');
+            assistantWeek.innerHTML = '<option value="">Select Week</option>';
+            notebookWeek.innerHTML = '<option value="">Select Week</option>';
+            weeks.forEach(w => {
+                const opt1 = document.createElement('option');
+                opt1.value = w.week;
+                opt1.textContent = `Week ${w.week}: ${w.topic || 'No topic'}`;
+                assistantWeek.appendChild(opt1.cloneNode(true));
+                notebookWeek.appendChild(opt1);
             });
         }
 
-        // Mock AI generation (replace with actual API call)
+        // AI generation (mock – replace with actual API)
         function generateAIContent(promptType, weekData) {
             const topic = weekData?.topic || 'General Topic';
-            const age = '4-5'; // could be derived from class
+            const age = '4-5'; // could come from class info
             if (promptType === 'lessonNote') {
-                return `# Comprehensive Lesson Note: ${topic}\n\n**Class:** Basic 3 (Age ${age})\n**Duration:** 40 minutes\n\n## Introduction\nStart with a song about plants.\n\n## Content Development\n- What is a plant?\n- Parts of a plant: roots, stem, leaves, flowers.\n- Why plants are important (food, oxygen).\n\n## Activities\n- Draw and label a plant.\n- Plant a seed in a cup.\n\n## Conclusion\nRecap the parts of a plant and sing the song again.`;
+                return `# Comprehensive Lesson Note: ${topic}\n\n**Class:** ${userData.classTeaching} (Age ${age})\n**Duration:** 40 minutes\n\n## Introduction\n...\n## Content Development\n...\n## Activities\n...\n## Conclusion\n...`;
             } else if (promptType === 'teachingProcess') {
-                return `# Teaching Process for ${topic}\n\n## Teacher's Activities\n1. Show a real plant and ask what it is.\n2. Use a chart to explain parts.\n3. Guide students in drawing and labelling.\n4. Demonstrate planting a seed.\n\n## Student's Activities\n1. Observe and describe the plant.\n2. Answer questions about plant parts.\n3. Draw and label a plant.\n4. Plant their own seed.`;
+                return `# Teaching Process for ${topic}\n\n## Teacher's Activities\n1. ...\n## Student's Activities\n1. ...`;
             } else if (promptType === 'studentResource') {
-                return `# Student Resource: ${topic}\n\nPlants are living things. They need water, soil, and sunlight to grow. A plant has roots (under the ground), a stem (holds it up), leaves (make food), and flowers (become fruits). Plants give us food and oxygen. We should take care of them.`;
+                return `# Student Resource: ${topic}\n\nSimple explanation for students...`;
             } else if (promptType === 'handwritten') {
-                return `(Simulated handwritten note)\n\n🌱 **Plants** are green.\nThey give us food.\n- Roots\n- Stem\n- Leaves\n- Flowers\n\n*Draw a plant here with a big flower and some grass.*`;
+                return `(Simulated handwritten note)\n\n🌱 **${topic}**\n- Key point 1\n- Key point 2\n\n*Draw a diagram here*`;
             } else if (promptType === 'youtube') {
-                return `Suggested YouTube videos for ${topic} (age ${age}):\n- https://youtu.be/example1 (Parts of a Plant)\n- https://youtu.be/example2 (How Plants Grow)\n- https://youtu.be/example3 (Plant Song for Kids)`;
+                return `https://youtu.be/example1\nhttps://youtu.be/example2`;
             }
             return '';
         }
 
-        // Generate buttons
+        // Generate button listeners
         document.querySelectorAll('[data-prompt]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const promptType = e.target.dataset.prompt;
-                const weekNum = document.getElementById('weekSelect').value;
-                if (!weekNum) { alert('Please select a week first.'); return; }
-                const weekData = syllabusData[currentSubject]?.weeks?.find(w => w.week == weekNum);
+            btn.addEventListener('click', () => {
+                const subject = document.getElementById('assistantSubjectSelect').value;
+                const weekNum = document.getElementById('assistantWeekSelect').value;
+                if (!subject || !weekNum) {
+                    alert('Select both subject and week.');
+                    return;
+                }
+                const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
+                const promptType = btn.dataset.prompt;
                 const content = generateAIContent(promptType, weekData);
                 if (promptType === 'lessonNote') document.getElementById('lessonNoteOutput').value = content;
                 else if (promptType === 'teachingProcess') document.getElementById('teachingProcessOutput').value = content;
@@ -829,21 +933,29 @@
 
         // Save individual pieces
         document.querySelectorAll('[data-save]').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const field = e.target.dataset.save; // lessonNote, teachingProcess, etc.
-                const weekNum = document.getElementById('weekSelect').value;
-                if (!weekNum) { alert('Select a week.'); return; }
-                const weekData = syllabusData[currentSubject]?.weeks?.find(w => w.week == weekNum);
+            btn.addEventListener('click', async () => {
+                const field = btn.dataset.save; // lessonNote, teachingProcess, etc.
+                const subject = document.getElementById('assistantSubjectSelect').value;
+                const weekNum = document.getElementById('assistantWeekSelect').value;
+                if (!subject || !weekNum) {
+                    alert('Select both subject and week.');
+                    return;
+                }
+                const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
                 const content = document.getElementById(`${field}Output`).value;
-                if (!content.trim()) { alert('Nothing to save.'); return; }
-                const key = `${currentSubject}_${weekNum}`;
-                const existing = lessonPackage[key] || {};
+                if (!content.trim()) {
+                    alert('Nothing to save.');
+                    return;
+                }
+                const key = `${subject}_${weekNum}`;
+                const existing = lessonNotesMap[key] || {};
                 const updateData = {
                     teacherId: currentUser.uid,
-                    subject: currentSubject,
-                    week: weekNum,
+                    subject,
+                    week: parseInt(weekNum),
                     topic: weekData?.topic || '',
                     [field]: content,
+                    classId: userData.classTeaching,
                     status: existing.status || 'draft',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
@@ -852,21 +964,22 @@
                         await db.collection('lessonNotes').doc(existing.id).update(updateData);
                     } else {
                         const docRef = await db.collection('lessonNotes').add(updateData);
-                        lessonPackage[key] = { id: docRef.id, ...updateData };
+                        lessonNotesMap[key] = { id: docRef.id, ...updateData };
                     }
                     alert(`${field} saved.`);
                 } catch (error) {
-                    alert('Error saving: ' + error.message);
+                    handleFirestoreError(error, 'saveAssistant');
                 }
             });
         });
 
-        // Load saved materials when "Load Saved" clicked
-        document.getElementById('loadWeekMaterials').addEventListener('click', () => {
-            const weekNum = document.getElementById('weekSelect').value;
-            if (!weekNum) return;
-            const key = `${currentSubject}_${weekNum}`;
-            const pkg = lessonPackage[key] || {};
+        // Load saved materials for assistant
+        document.getElementById('loadAssistantMaterials').addEventListener('click', () => {
+            const subject = document.getElementById('assistantSubjectSelect').value;
+            const weekNum = document.getElementById('assistantWeekSelect').value;
+            if (!subject || !weekNum) return;
+            const key = `${subject}_${weekNum}`;
+            const pkg = lessonNotesMap[key] || {};
             document.getElementById('lessonNoteOutput').value = pkg.lessonNote || '';
             document.getElementById('teachingProcessOutput').value = pkg.teachingProcess || '';
             document.getElementById('studentResourceOutput').value = pkg.studentResource || '';
@@ -874,31 +987,49 @@
             document.getElementById('youtubeOutput').value = pkg.youtubeLinks ? pkg.youtubeLinks.join('\n') : '';
         });
 
-        // Notebook: load lesson note for selected week
+        // Notebook: subject/week change
+        document.getElementById('notebookSubjectSelect').addEventListener('change', (e) => {
+            const subject = e.target.value;
+            if (!subject) return;
+            populateWeekSelects(subject);
+        });
+
         document.getElementById('notebookWeekSelect').addEventListener('change', (e) => {
+            const subject = document.getElementById('notebookSubjectSelect').value;
             const weekNum = e.target.value;
-            if (!weekNum) { document.getElementById('notebookContent').innerText = ''; return; }
-            const key = `${currentSubject}_${weekNum}`;
-            const pkg = lessonPackage[key] || {};
+            if (!subject || !weekNum) {
+                document.getElementById('notebookContent').innerText = '';
+                return;
+            }
+            const key = `${subject}_${weekNum}`;
+            const pkg = lessonNotesMap[key] || {};
             document.getElementById('notebookContent').innerText = pkg.lessonNote || '';
             updateLessonNoteStatus(pkg.status || 'draft');
         });
 
-        // Save notebook (lesson note)
+        // Save notebook
         document.getElementById('saveNotebookBtn').addEventListener('click', async () => {
+            const subject = document.getElementById('notebookSubjectSelect').value;
             const weekNum = document.getElementById('notebookWeekSelect').value;
-            if (!weekNum) { alert('Select a week.'); return; }
-            const weekData = syllabusData[currentSubject]?.weeks?.find(w => w.week == weekNum);
+            if (!subject || !weekNum) {
+                alert('Select subject and week.');
+                return;
+            }
+            const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
             const content = document.getElementById('notebookContent').innerText;
-            if (!content.trim()) { alert('Content is empty.'); return; }
-            const key = `${currentSubject}_${weekNum}`;
-            const existing = lessonPackage[key] || {};
+            if (!content.trim()) {
+                alert('Content is empty.');
+                return;
+            }
+            const key = `${subject}_${weekNum}`;
+            const existing = lessonNotesMap[key] || {};
             const updateData = {
                 teacherId: currentUser.uid,
-                subject: currentSubject,
-                week: weekNum,
+                subject,
+                week: parseInt(weekNum),
                 topic: weekData?.topic || '',
                 lessonNote: content,
+                classId: userData.classTeaching,
                 status: existing.status || 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -907,30 +1038,38 @@
                     await db.collection('lessonNotes').doc(existing.id).update(updateData);
                 } else {
                     const docRef = await db.collection('lessonNotes').add(updateData);
-                    lessonPackage[key] = { id: docRef.id, ...updateData };
+                    lessonNotesMap[key] = { id: docRef.id, ...updateData };
                 }
                 alert('Lesson note saved.');
                 updateLessonNoteStatus('draft');
             } catch (error) {
-                alert('Error saving: ' + error.message);
+                handleFirestoreError(error, 'saveNotebook');
             }
         });
 
         // Submit lesson note for approval
         document.getElementById('submitLessonNoteBtn').addEventListener('click', async () => {
+            const subject = document.getElementById('notebookSubjectSelect').value;
             const weekNum = document.getElementById('notebookWeekSelect').value;
-            if (!weekNum) { alert('Select a week.'); return; }
-            const weekData = syllabusData[currentSubject]?.weeks?.find(w => w.week == weekNum);
+            if (!subject || !weekNum) {
+                alert('Select subject and week.');
+                return;
+            }
+            const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
             const content = document.getElementById('notebookContent').innerText;
-            if (!content.trim()) { alert('Content is empty.'); return; }
-            const key = `${currentSubject}_${weekNum}`;
-            const existing = lessonPackage[key] || {};
+            if (!content.trim()) {
+                alert('Content is empty.');
+                return;
+            }
+            const key = `${subject}_${weekNum}`;
+            const existing = lessonNotesMap[key] || {};
             const updateData = {
                 teacherId: currentUser.uid,
-                subject: currentSubject,
-                week: weekNum,
+                subject,
+                week: parseInt(weekNum),
                 topic: weekData?.topic || '',
                 lessonNote: content,
+                classId: userData.classTeaching,
                 status: 'pending',
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -939,12 +1078,12 @@
                     await db.collection('lessonNotes').doc(existing.id).update(updateData);
                 } else {
                     const docRef = await db.collection('lessonNotes').add(updateData);
-                    lessonPackage[key] = { id: docRef.id, ...updateData };
+                    lessonNotesMap[key] = { id: docRef.id, ...updateData };
                 }
                 alert('Lesson note submitted for approval.');
                 updateLessonNoteStatus('pending');
             } catch (error) {
-                alert('Error submitting: ' + error.message);
+                handleFirestoreError(error, 'submitLessonNote');
             }
         });
 
