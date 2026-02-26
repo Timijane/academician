@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Tests</title>
+    <!-- same head -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style> /* same styles */ </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">...</div>
+    <div class="main-content">
+        <div class="top-bar">...</div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Create New Test</h3>
+            </div>
+            <form id="testForm">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="subject" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="title" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="description" class="form-control" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Test Date</label>
+                    <input type="date" id="testDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Duration (minutes)</label>
+                    <input type="number" id="duration" class="form-control" value="30" required>
+                </div>
+                <div class="form-group">
+                    <label>Total Points</label>
+                    <input type="number" id="points" class="form-control" value="50" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Test</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Upcoming Tests</h3>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Title</th>
+                            <th>Date</th>
+                            <th>Duration</th>
+                            <th>Points</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="testsList">
+                        <tr><td colspan="6">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // same Firebase init
+        let currentUser, userData;
+
+        auth.onAuthStateChanged(async (user) => { /* same as assignments */ });
+
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!userData.classTeaching) return;
+            const data = {
+                teacherId: currentUser.uid,
+                classId: userData.classTeaching,
+                subject: document.getElementById('subject').value,
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                testDate: document.getElementById('testDate').value,
+                duration: parseInt(document.getElementById('duration').value),
+                points: parseInt(document.getElementById('points').value),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await db.collection('tests').add(data);
+            alert('Test created.');
+            e.target.reset();
+            loadTests();
+        });
+
+        async function loadTests() {
+            if (!userData.classTeaching) return;
+            const snapshot = await db.collection('tests')
+                .where('classId', '==', userData.classTeaching)
+                .orderBy('testDate', 'asc')
+                .get();
+            const tbody = document.getElementById('testsList');
+            if (snapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="6">No tests scheduled.</td></tr>';
+                return;
+            }
+            let html = '';
+            snapshot.forEach(doc => {
+                const t = doc.data();
+                html += `
+                <tr>
+                    <td>${t.subject}</td>
+                    <td>${t.title}</td>
+                    <td>${t.testDate}</td>
+                    <td>${t.duration} min</td>
+                    <td>${t.points}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="editTest('${doc.id}')">Edit</button>
+                        <button class="btn btn-outline btn-sm" onclick="deleteTest('${doc.id}')">Delete</button>
+                    </td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        window.deleteTest = async (id) => {
+            if (!confirm('Delete this test?')) return;
+            await db.collection('tests').doc(id).delete();
+            loadTests();
+        };
+    </script>
+</body>
+</html>
