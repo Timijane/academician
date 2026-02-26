@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Submit Assignment</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .card-header h2 { font-size: 1.5rem; font-weight: 600; }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
+
+        .assignment-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .meta-item {
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            padding: 0.8rem;
+        }
+        .meta-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .meta-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: var(--text-secondary);
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+        }
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+        }
+        .file-upload i {
+            font-size: 2rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .submission-item {
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .submission-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .submission-date {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .submission-grade {
+            font-weight: 600;
+        }
+        .submission-grade.graded { color: var(--success-text); }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Assignment Submission</h1>
+                <p>Submit your work and view feedback</p>
+            </div>
+            <div class="theme-toggle" id="themeToggle">
+                <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 id="assignmentTitle">Loading...</h2>
+                <span class="badge" id="assignmentStatus"></span>
+            </div>
+            <div class="assignment-meta">
+                <div class="meta-item"><span class="meta-label">Subject</span><div class="meta-value" id="assignmentSubject">—</div></div>
+                <div class="meta-item"><span class="meta-label">Due Date</span><div class="meta-value" id="assignmentDue">—</div></div>
+                <div class="meta-item"><span class="meta-label">Total Points</span><div class="meta-value" id="assignmentPoints">—</div></div>
+            </div>
+            <div id="assignmentDescription" class="card" style="margin-top:0; padding:1rem;">
+                <!-- Description will be inserted here -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Your Submissions</h3>
+            <div id="submissionsList"></div>
+        </div>
+
+        <div class="card">
+            <h3>New Submission</h3>
+            <form id="submissionForm">
+                <div class="form-group">
+                    <label>Comment (optional)</label>
+                    <textarea id="submissionComment" class="form-control" placeholder="Add any notes for your teacher..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Upload File</label>
+                    <div class="file-upload" id="fileUploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click or drag file to upload</p>
+                        <input type="file" id="fileInput" style="display: none;">
+                    </div>
+                    <div id="fileName" style="margin-top:0.5rem;"></div>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="history.back()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Submit Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Get assignment ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const assignmentId = urlParams.get('id');
+        if (!assignmentId) {
+            alert('No assignment specified.');
+            window.location.href = 'student-dashboard.html';
+        }
+
+        let currentUser = null;
+        let userData = null;
+        let assignment = null;
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'student-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'student') {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            userData = userDoc.data();
+
+            await loadAssignment();
+            loadSubmissions();
+        });
+
+        async function loadAssignment() {
+            const doc = await db.collection('assignments').doc(assignmentId).get();
+            if (!doc.exists) {
+                alert('Assignment not found.');
+                window.location.href = 'student-dashboard.html';
+                return;
+            }
+            assignment = doc.data();
+            document.getElementById('assignmentTitle').textContent = assignment.title;
+            document.getElementById('assignmentSubject').textContent = assignment.subject || '—';
+            document.getElementById('assignmentDue').textContent = assignment.dueDate || '—';
+            document.getElementById('assignmentPoints').textContent = assignment.points || '—';
+            document.getElementById('assignmentDescription').innerHTML = `<p>${assignment.description || 'No description provided.'}</p>`;
+
+            // Check if already submitted
+            const submissionSnap = await db.collection('submissions')
+                .where('assignmentId', '==', assignmentId)
+                .where('studentId', '==', currentUser.uid)
+                .get();
+            if (!submissionSnap.empty) {
+                document.getElementById('assignmentStatus').textContent = 'Submitted';
+                document.getElementById('assignmentStatus').className = 'badge success';
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').textContent = 'Already Submitted';
+            } else {
+                document.getElementById('assignmentStatus').textContent = 'Pending';
+                document.getElementById('assignmentStatus').className = 'badge warning';
+            }
+        }
+
+        async function loadSubmissions() {
+            const snap = await db.collection('submissions')
+                .where('assignmentId', '==', assignmentId)
+                .where('studentId', '==', currentUser.uid)
+                .orderBy('submittedAt', 'desc')
+                .get();
+            const container = document.getElementById('submissionsList');
+            if (snap.empty) {
+                container.innerHTML = '<p>No submissions yet.</p>';
+                return;
+            }
+            let html = '';
+            snap.forEach(doc => {
+                const sub = doc.data();
+                const date = sub.submittedAt ? new Date(sub.submittedAt.seconds * 1000).toLocaleString() : 'Unknown';
+                const grade = sub.grade !== undefined ? sub.grade + '%' : 'Not graded';
+                const gradeClass = sub.grade ? 'graded' : '';
+                html += `
+                <div class="submission-item">
+                    <div class="submission-header">
+                        <span class="submission-date">${date}</span>
+                        <span class="submission-grade ${gradeClass}">${grade}</span>
+                    </div>
+                    ${sub.comment ? '<p><strong>Comment:</strong> ' + sub.comment + '</p>' : ''}
+                    ${sub.fileUrl ? '<p><a href="' + sub.fileUrl + '" target="_blank">View attachment</a></p>' : ''}
+                    ${sub.feedback ? '<p><strong>Teacher Feedback:</strong> ' + sub.feedback + '</p>' : ''}
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // File upload handling
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('fileInput');
+        let selectedFile = null;
+
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.style.borderColor = 'var(--accent)';
+        });
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.style.borderColor = 'var(--border)';
+        });
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.style.borderColor = 'var(--border)';
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('fileName').textContent = `Selected: ${file.name}`;
+                fileInput.files = e.dataTransfer.files;
+            }
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                selectedFile = fileInput.files[0];
+                document.getElementById('fileName').textContent = `Selected: ${selectedFile.name}`;
+            }
+        });
+
+        // Submit form
+        document.getElementById('submissionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const comment = document.getElementById('submissionComment').value;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                let fileUrl = null;
+                if (selectedFile) {
+                    const storageRef = storage.ref(`submissions/${assignmentId}/${currentUser.uid}_${Date.now()}_${selectedFile.name}`);
+                    await storageRef.put(selectedFile);
+                    fileUrl = await storageRef.getDownloadURL();
+                }
+
+                await db.collection('submissions').add({
+                    assignmentId,
+                    studentId: currentUser.uid,
+                    studentName: userData.firstName + ' ' + userData.surname,
+                    comment,
+                    fileUrl,
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'submitted'
+                });
+
+                alert('Assignment submitted successfully!');
+                window.location.reload(); // Refresh to show new submission
+            } catch (error) {
+                console.error('Error submitting:', error);
+                alert('Error: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Assignment';
+            }
+        });
+    </script>
+</body>
+</html>
