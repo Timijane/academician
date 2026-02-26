@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Assignments</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar .logo-area {
+            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
+            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
+            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+        }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+        .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
+        .main-content.expanded { margin-left: 80px; }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: var(--text-secondary);
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+        }
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            padding: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+        }
+        .badge.active { background: var(--success-bg); color: var(--success-text); }
+        .badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <h2>Teacher Panel</h2>
+        </div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
+        <a href="teacher-assignments.html" class="nav-item active"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-exam.html" class="nav-item"><i class="fas fa-pencil-alt"></i><span>Exam</span></a>
+        <a href="teacher-test.html" class="nav-item"><i class="fas fa-vial"></i><span>Test</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-approve-students.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approve Students</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Assignments</h1>
+                <p>Create and manage assignments for your class</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">T</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Create New Assignment</h3>
+            </div>
+            <form id="assignmentForm">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="subject" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="title" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="description" class="form-control" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="dueDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Total Points</label>
+                    <input type="number" id="points" class="form-control" value="100" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Assignment</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Existing Assignments</h3>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Title</th>
+                            <th>Due Date</th>
+                            <th>Points</th>
+                            <th>Submissions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assignmentsList">
+                        <tr><td colspan="6">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submissions Modal -->
+    <div class="modal" id="submissionsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Submissions</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeSubmissionsModal()"></i>
+            </div>
+            <div id="submissionsList"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Auth check
+        let currentUser = null;
+        let userData = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'teacher-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            userData = userDoc.data();
+            document.getElementById('profileInitials').textContent = 
+                (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+
+            loadAssignments();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        // Create assignment
+        document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!userData.classTeaching) {
+                alert('You are not assigned to any class.');
+                return;
+            }
+            const subject = document.getElementById('subject').value;
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const dueDate = document.getElementById('dueDate').value;
+            const points = parseInt(document.getElementById('points').value);
+
+            try {
+                await db.collection('assignments').add({
+                    teacherId: currentUser.uid,
+                    classId: userData.classTeaching,
+                    subject,
+                    title,
+                    description,
+                    dueDate,
+                    points,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('Assignment created.');
+                document.getElementById('assignmentForm').reset();
+                loadAssignments();
+            } catch (error) {
+                console.error('Error creating assignment:', error);
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Load assignments
+        async function loadAssignments() {
+            if (!userData.classTeaching) return;
+            const snapshot = await db.collection('assignments')
+                .where('classId', '==', userData.classTeaching)
+                .orderBy('dueDate', 'asc')
+                .get();
+            const tbody = document.getElementById('assignmentsList');
+            if (snapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="6">No assignments yet.</td></tr>';
+                return;
+            }
+            let html = '';
+            for (const doc of snapshot.docs) {
+                const a = doc.data();
+                const id = doc.id;
+                // Count submissions
+                const subsSnap = await db.collection('submissions')
+                    .where('assignmentId', '==', id)
+                    .get();
+                const subCount = subsSnap.size;
+                html += `
+                <tr>
+                    <td>${a.subject}</td>
+                    <td>${a.title}</td>
+                    <td>${a.dueDate}</td>
+                    <td>${a.points}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="viewSubmissions('${id}')">${subCount} submissions</button></td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="editAssignment('${id}')">Edit</button>
+                        <button class="btn btn-outline btn-sm" onclick="deleteAssignment('${id}')">Delete</button>
+                    </td>
+                </tr>
+                `;
+            }
+            tbody.innerHTML = html;
+        }
+
+        // View submissions
+        const submissionsModal = document.getElementById('submissionsModal');
+        const submissionsList = document.getElementById('submissionsList');
+        let currentAssignmentId = null;
+
+        window.viewSubmissions = async (assignmentId) => {
+            currentAssignmentId = assignmentId;
+            const subsSnap = await db.collection('submissions')
+                .where('assignmentId', '==', assignmentId)
+                .get();
+            if (subsSnap.empty) {
+                submissionsList.innerHTML = '<p>No submissions yet.</p>';
+            } else {
+                let html = '<table><thead><tr><th>Student</th><th>Submitted</th><th>Grade</th><th>Action</th></tr></thead><tbody>';
+                for (const doc of subsSnap.docs) {
+                    const sub = doc.data();
+                    const studentSnap = await db.collection('users').doc(sub.studentId).get();
+                    const studentName = studentSnap.exists ? (studentSnap.data().firstName + ' ' + studentSnap.data().surname) : 'Unknown';
+                    const date = sub.submittedAt ? new Date(sub.submittedAt.seconds*1000).toLocaleString() : '—';
+                    html += `
+                    <tr>
+                        <td>${studentName}</td>
+                        <td>${date}</td>
+                        <td><input type="number" id="grade-${doc.id}" value="${sub.grade || ''}" style="width:60px;">%</td>
+                        <td><button class="btn btn-primary btn-sm" onclick="saveGrade('${doc.id}')">Save</button></td>
+                    </tr>
+                    `;
+                }
+                html += '</tbody></table>';
+                submissionsList.innerHTML = html;
+            }
+            submissionsModal.classList.add('active');
+        };
+
+        window.saveGrade = async (subId) => {
+            const grade = document.getElementById(`grade-${subId}`).value;
+            if (grade === '') return;
+            await db.collection('submissions').doc(subId).update({ grade: parseInt(grade) });
+            alert('Grade saved.');
+        };
+
+        window.closeSubmissionsModal = () => {
+            submissionsModal.classList.remove('active');
+        };
+
+        window.deleteAssignment = async (id) => {
+            if (!confirm('Delete this assignment?')) return;
+            await db.collection('assignments').doc(id).delete();
+            loadAssignments();
+        };
+
+        window.editAssignment = (id) => {
+            // For simplicity, just alert – you can implement a modal pre-filled with data
+            alert('Edit functionality not implemented yet.');
+        };
+    </script>
+</body>
+</html>
