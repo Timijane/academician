@@ -338,6 +338,28 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* ========== LOADING OVERLAY ========== */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .loading-spinner {
+            color: white;
+            font-size: 1.5rem;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+        }
+
         /* ========== RESPONSIVE ========== */
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
@@ -374,7 +396,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Lesson Notes</h1>
-                <p>Create syllabus, generate notes with Teacher Assistant, and manage approvals</p>
+                <p>Create syllabus, generate notes with Teacher Assistant (Gemini AI), and manage approvals</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -399,12 +421,19 @@
         <!-- MAIN TABS -->
         <div class="subject-tabs" id="mainTabs" style="margin-top:0.5rem;">
             <div class="subject-tab active" data-tab="syllabus">Syllabus</div>
-            <div class="subject-tab" data-tab="assistant">Teacher Assistant</div>
+            <div class="subject-tab" data-tab="assistant">Teacher Assistant (Gemini AI)</div>
             <div class="subject-tab" data-tab="notebook">Notebook</div>
         </div>
 
         <!-- ERROR DISPLAY (for index issues) -->
         <div id="indexError" class="error-message" style="display: none;"></div>
+
+        <!-- LOADING OVERLAY -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i> Gemini AI is thinking...
+            </div>
+        </div>
 
         <!-- ========== SYLLABUS TAB ========== -->
         <div id="tab-syllabus" class="tab-content active">
@@ -443,10 +472,10 @@
         <div id="tab-assistant" class="tab-content">
             <div class="card">
                 <div class="card-header">
-                    <h3>Teacher Assistant</h3>
+                    <h3>Teacher Assistant (Powered by Google Gemini)</h3>
                     <span id="assistantSyllabusStatus" class="status-badge"></span>
                 </div>
-                <p class="text-secondary">Select a subject and week to generate content using AI prompts.</p>
+                <p class="text-secondary">Select a subject and week, then click Generate to create Nigerian-standard educational content using Gemini AI.</p>
 
                 <div class="filter-bar">
                     <select id="assistantSubjectSelect" class="form-control" style="max-width:200px;">
@@ -462,47 +491,69 @@
                     <!-- Lesson Note -->
                     <div class="generator-card">
                         <h4>📝 Comprehensive Lesson Note</h4>
-                        <textarea id="lessonNoteOutput" placeholder="Generated lesson note..."></textarea>
+                        <textarea id="lessonNoteOutput" placeholder="Generated lesson note will appear here..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="lessonNote">Generate</button>
+                            <button class="btn btn-sm btn-primary" data-prompt="lessonNote">Generate with Gemini</button>
                             <button class="btn btn-sm btn-outline" data-save="lessonNote">Save Draft</button>
                         </div>
                     </div>
                     <!-- Teaching Process -->
                     <div class="generator-card">
                         <h4>🧑‍🏫 Teaching Process</h4>
-                        <textarea id="teachingProcessOutput" placeholder="Step-by-step teaching process..."></textarea>
+                        <textarea id="teachingProcessOutput" placeholder="Generated teaching process..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="teachingProcess">Generate</button>
+                            <button class="btn btn-sm btn-primary" data-prompt="teachingProcess">Generate with Gemini</button>
                             <button class="btn btn-sm btn-outline" data-save="teachingProcess">Save Draft</button>
                         </div>
                     </div>
-                    <!-- Student Document Resource -->
+                    <!-- Student Resource -->
                     <div class="generator-card">
                         <h4>📄 Student Resource</h4>
                         <textarea id="studentResourceOutput" placeholder="Student-friendly explanation..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="studentResource">Generate</button>
+                            <button class="btn btn-sm btn-primary" data-prompt="studentResource">Generate with Gemini</button>
                             <button class="btn btn-sm btn-outline" data-save="studentResource">Save Draft</button>
                         </div>
                     </div>
-                    <!-- Handwritten Notes -->
+                    <!-- Handwritten Notes (Text Description) -->
                     <div class="generator-card">
-                        <h4>✍️ Handwritten Study Notes</h4>
-                        <textarea id="handwrittenOutput" placeholder="Handwritten-style text with doodles..."></textarea>
+                        <h4>✍️ Handwritten Notes Description</h4>
+                        <textarea id="handwrittenOutput" placeholder="Description of handwritten notes with doodles..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="handwritten">Generate</button>
+                            <button class="btn btn-sm btn-primary" data-prompt="handwritten">Generate with Gemini</button>
                             <button class="btn btn-sm btn-outline" data-save="handwritten">Save Draft</button>
                         </div>
                     </div>
                     <!-- YouTube Links -->
                     <div class="generator-card">
                         <h4>📺 YouTube Video Links</h4>
-                        <textarea id="youtubeOutput" placeholder="Suggested video links (one per line)..."></textarea>
+                        <textarea id="youtubeOutput" placeholder="Suggested Nigerian educational video links..."></textarea>
                         <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="youtube">Generate</button>
+                            <button class="btn btn-sm btn-primary" data-prompt="youtube">Generate with Gemini</button>
                             <button class="btn btn-sm btn-outline" data-save="youtube">Save Draft</button>
                         </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top:1rem; padding:1rem; background:var(--hover-bg); border-radius:1rem;">
+                    <h4>📋 Ready-Made Prompts for Nigerian Curriculum</h4>
+                    <p class="text-secondary">Click a prompt to fill the textarea above, then click Generate.</p>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('lessonNote')">
+                            📝 Lesson Note Template
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('teachingProcess')">
+                            🧑‍🏫 Teaching Process
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('studentResource')">
+                            📄 Student Resource
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('handwritten')">
+                            ✍️ Handwritten Notes
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('youtube')">
+                            📺 Nigerian YouTube Videos
+                        </button>
                     </div>
                 </div>
             </div>
@@ -533,6 +584,234 @@
     </div>
 
     <script>
+        // ========== GEMINI API KEYS (Your provided keys) ==========
+        const GEMINI_KEYS = [
+            'AIzaSyAdXopRHqx5L2ZkQ-6yYi66NlJmGgOUB8s',  // Primary key
+            'AIzaSyD2edHbY65-5s2hfiYVw9_LZHefZ8WeSeo'   // Backup key
+        ];
+        
+        // ========== GEMINI SERVICE CLASS ==========
+        class GeminiService {
+            constructor(apiKeys) {
+                this.apiKeys = apiKeys;
+                this.currentKeyIndex = 0;
+                this.model = 'gemini-2.5-flash'; // Fast, free model
+                this.endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/';
+                this.usageCount = 0;
+                this.lastKeyReset = Date.now();
+            }
+
+            getCurrentKey() {
+                return this.apiKeys[this.currentKeyIndex];
+            }
+
+            switchToNextKey() {
+                this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+                console.log(`Switched to Gemini API key ${this.currentKeyIndex + 1}`);
+            }
+
+            async generateContent(prompt, type = 'lessonNote', context = {}) {
+                const fullPrompt = this.buildPrompt(type, prompt, context);
+                
+                // Try each key until one works
+                for (let attempt = 0; attempt < this.apiKeys.length * 2; attempt++) {
+                    try {
+                        const response = await fetch(
+                            `${this.endpoint}${this.model}:generateContent?key=${this.getCurrentKey()}`,
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    contents: [{
+                                        parts: [{ text: fullPrompt }]
+                                    }],
+                                    generationConfig: {
+                                        temperature: 0.7,
+                                        maxOutputTokens: 2048,
+                                        topP: 0.95
+                                    }
+                                })
+                            }
+                        );
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            if (response.status === 429 || response.status === 403 || response.status === 401) {
+                                // Rate limit or auth error - try next key
+                                console.warn(`Key ${this.currentKeyIndex + 1} failed, switching...`);
+                                this.switchToNextKey();
+                                continue;
+                            }
+                            throw new Error(error.error?.message || 'API call failed');
+                        }
+
+                        const data = await response.json();
+                        
+                        // Check if response has valid content
+                        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                            this.usageCount++;
+                            return data.candidates[0].content.parts[0].text;
+                        } else {
+                            throw new Error('Empty response from Gemini');
+                        }
+                        
+                    } catch (error) {
+                        console.error(`Attempt ${attempt + 1} failed:`, error);
+                        this.switchToNextKey();
+                        
+                        // If we've tried all keys twice, give up
+                        if (attempt >= this.apiKeys.length * 2 - 1) {
+                            throw new Error('All Gemini API keys failed. Please try again later.');
+                        }
+                    }
+                }
+            }
+
+            buildPrompt(type, userPrompt, context) {
+                // Nigerian educational context - CRITICAL for good results
+                const baseContext = `You are an expert Nigerian curriculum developer for Basic Education. 
+Follow these guidelines STRICTLY:
+- Use Nigerian examples (jollof rice, plantain, Lagos, Abuja, Naira)
+- Follow Nigerian Basic Education curriculum standards
+- Age-appropriate language for ${context.age || '4-5'} years old
+- 40-minute lesson duration
+- Include Nigerian cultural values (respect, community, hard work)
+- Use simple English suitable for the age group
+- Include local references children would understand
+- Format with clear sections and bullet points`;
+
+                const prompts = {
+                    lessonNote: `${baseContext}
+
+Create a comprehensive 40-minute lesson note for Week ${context.week || '1'} on "${context.topic || 'the topic'}".
+
+Topic: ${context.topic}
+Class: ${context.className || 'Basic 3'} (Age ${context.age || '4-5'})
+Objectives: ${context.objectives || 'Understand key concepts'}
+
+Structure EXACTLY:
+
+INTRODUCTION (5 mins):
+[Engaging starter activity with Nigerian context]
+
+CONTENT DEVELOPMENT (25 mins):
+• Main teaching point 1 (with Nigerian example)
+• Main teaching point 2 (with Nigerian example)
+• Main teaching point 3 (with Nigerian example)
+
+STUDENT ACTIVITIES (10 mins):
+• Activity 1
+• Activity 2
+• Activity 3
+
+CONCLUSION (5 mins):
+• Summary points
+• Assessment questions (3-4 questions)
+
+Use bullet points for clarity.`,
+
+                    teachingProcess: `${baseContext}
+
+Create a step-by-step teaching guide for "${context.topic}" (Week ${context.week}):
+
+TEACHER'S ACTIVITIES:
+Step 1 (5 mins): [What teacher says/does]
+• Key questions to ask: [Question 1 with expected answer]
+• Demonstration: [What to show]
+
+Step 2 (10 mins): [What teacher says/does]
+• Key questions: [Question 2 with expected answer]
+
+Step 3 (10 mins): [What teacher says/does]
+
+STUDENT'S ACTIVITIES:
+• What students do at each stage
+• Group/pair work arrangements
+• Expected responses
+
+MATERIALS NEEDED:
+• List all required items (Nigerian materials available)
+
+DIFFERENTIATION:
+• For struggling learners:
+• For advanced learners:`,
+
+                    studentResource: `${baseContext}
+
+Create an A4 student handout explaining "${context.topic}" for ${context.className || 'Basic 3'} students.
+
+Title: [Catchy title]
+
+WHAT YOU WILL LEARN:
+• Bullet points of key concepts
+
+LET'S UNDERSTAND:
+Simple explanation with:
+• Key words defined (Nigerian context)
+• Examples from daily life in Nigeria
+• Simple diagrams described
+
+QUICK CHECK:
+5 multiple choice questions with answers at bottom
+
+DID YOU KNOW? (3 fun facts)
+
+PRACTICE AT HOME:
+2 simple activities using household items
+
+Use very simple English with emojis where appropriate.`,
+
+                    handwritten: `${baseContext}
+
+Generate a description of handwritten study notes on "${context.topic}" for ${context.className || 'Basic 3'}.
+
+FORMAT: A4 size, student handwriting font
+
+VISUAL ELEMENTS:
+• Yellow highlighter for 5 key terms [USE [HIGHLIGHT] brackets]
+• Red circles around important numbers/dates [USE [CIRCLE] brackets]
+• Simple doodles to explain concepts [DESCRIBE in [DOODLE: description]]
+
+CONTENT:
+1. Title (big and decorated)
+2. Key definitions (highlighted)
+3. Important points (numbered with circles)
+4. Memory tips (with doodles)
+5. Quick summary box
+
+Describe exactly how the handwritten page should look.`,
+
+                    youtube: `${baseContext}
+
+Suggest 5 Nigerian educational YouTube videos for teaching "${context.topic}" to ${context.className || 'Basic 3'}.
+
+For each video provide:
+
+1. Video Title: 
+   Channel Name: 
+   Duration: 
+   Key Topics Covered: 
+   Why It's Appropriate: 
+   Search Keywords: [SEARCH: keywords to find this video]
+
+Focus on Nigerian educational channels (e.g., Yoruba for Schools, Hausa Kids TV, Nigerian Educational TV).`
+                };
+
+                return prompts[type] || userPrompt;
+            }
+
+            getUsageStats() {
+                return {
+                    totalCalls: this.usageCount,
+                    currentKey: this.currentKeyIndex + 1
+                };
+            }
+        }
+
+        // Initialize Gemini service with both keys
+        const gemini = new GeminiService(GEMINI_KEYS);
+
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
             authDomain: "edutopscholars-be54a.firebaseapp.com",
@@ -578,13 +857,22 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
+        // Loading overlay functions
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
         // Global variables
         let currentUser = null;
         let userData = null;
-        let subjects = []; // array of subject names
+        let subjects = [];
         let currentSubject = null;
-        let syllabusMap = {}; // subject -> { id, weeks, status }
-        let lessonNotesMap = {}; // "subject_week" -> { id, lessonNote, teachingProcess, ... }
+        let syllabusMap = {};          // subject -> { id, weeks, status }
+        let lessonNotesMap = {};       // "subject_week" -> { id, lessonNote, teachingProcess, studentResource, handwrittenNotes, youtubeLinks, published, status }
 
         // Index error handler
         function handleFirestoreError(error, context) {
@@ -627,14 +915,13 @@
                     (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Teacher'}`;
 
-                // Load subjects from user profile, default to empty array
+                // Load subjects from user profile
                 subjects = userData.subjects || [];
                 renderSubjectTabs();
 
                 if (subjects.length > 0) {
                     switchSubject(subjects[0]);
                 } else {
-                    // No subjects yet, show empty state
                     document.getElementById('currentSubject').textContent = '(add a subject)';
                 }
             } catch (error) {
@@ -661,11 +948,9 @@
                 });
                 container.appendChild(tab);
             });
-            // If there are subjects, activate the first one
             if (subjects.length > 0) {
                 container.children[0].classList.add('active');
             }
-            // Populate subject dropdowns in assistant and notebook
             populateSubjectDropdowns();
         }
 
@@ -678,7 +963,6 @@
                 return;
             }
             subjects.push(newSubject.trim());
-            // Update user document
             try {
                 await db.collection('users').doc(currentUser.uid).update({
                     subjects: subjects
@@ -766,7 +1050,6 @@
             });
             tbody.innerHTML = html;
 
-            // Attach input listeners
             document.querySelectorAll('#syllabusBody input').forEach(input => {
                 input.addEventListener('input', function(e) {
                     const index = this.dataset.index;
@@ -851,7 +1134,7 @@
 
         document.getElementById('useAIBtn').addEventListener('click', () => {
             document.querySelector('[data-tab="assistant"]').click();
-            alert('Select a week and use prompts to generate lesson content.');
+            alert('Select a week and use the prompts to generate content with Gemini AI.');
         });
 
         function updateSyllabusStatus(status) {
@@ -893,72 +1176,155 @@
             });
         }
 
-        // AI generation (mock – replace with actual API)
-        function generateAIContent(promptType, weekData) {
-            const topic = weekData?.topic || 'General Topic';
-            const age = '4-5'; // could come from class info
-            if (promptType === 'lessonNote') {
-                return `# Comprehensive Lesson Note: ${topic}\n\n**Class:** ${userData.classTeaching} (Age ${age})\n**Duration:** 40 minutes\n\n## Introduction\n...\n## Content Development\n...\n## Activities\n...\n## Conclusion\n...`;
-            } else if (promptType === 'teachingProcess') {
-                return `# Teaching Process for ${topic}\n\n## Teacher's Activities\n1. ...\n## Student's Activities\n1. ...`;
-            } else if (promptType === 'studentResource') {
-                return `# Student Resource: ${topic}\n\nSimple explanation for students...`;
-            } else if (promptType === 'handwritten') {
-                return `(Simulated handwritten note)\n\n🌱 **${topic}**\n- Key point 1\n- Key point 2\n\n*Draw a diagram here*`;
-            } else if (promptType === 'youtube') {
-                return `https://youtu.be/example1\nhttps://youtu.be/example2`;
+        // Fill prompt template function
+        window.fillPrompt = function(type) {
+            const subject = document.getElementById('assistantSubjectSelect').value;
+            const weekNum = document.getElementById('assistantWeekSelect').value;
+            
+            if (!subject || !weekNum) {
+                alert('Please select subject and week first.');
+                return;
             }
-            return '';
-        }
+            
+            const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
+            if (!weekData) {
+                alert('Week data not found.');
+                return;
+            }
+            
+            const prompts = {
+                lessonNote: `Write a comprehensive 40-minute lesson note for Nigerian ${userData.classTeaching || 'Basic 3'} (age 4-5) on "${weekData.topic}" (Week ${weekNum}). Include introduction, content development with Nigerian examples, student activities, and conclusion.`,
+                
+                teachingProcess: `Create a step-by-step teaching guide for "${weekData.topic}" including teacher activities, student activities, key questions to ask with expected answers, and materials needed in a Nigerian classroom.`,
+                
+                studentResource: `Create an A4 student handout explaining "${weekData.topic}" simply with Nigerian examples, definitions, and practice questions for ${userData.classTeaching || 'Basic 3'} students.`,
+                
+                handwritten: `Create handwritten study notes on "${weekData.topic}" for ${userData.classTeaching || 'Basic 3'}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around important points. Add doodles. A4 size.`,
+                
+                youtube: `Suggest 5 Nigerian educational YouTube videos for teaching "${weekData.topic}" to ${userData.classTeaching || 'Basic 3'} students. Include titles, channels, and why they're appropriate.`
+            };
+            
+            const textarea = document.getElementById(`${type}Output`);
+            if (textarea) {
+                textarea.value = prompts[type];
+            }
+        };
 
-        // Generate button listeners
+        // Gemini generate button listeners
         document.querySelectorAll('[data-prompt]').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
+                const promptType = btn.dataset.prompt; // lessonNote, teachingProcess, etc.
                 const subject = document.getElementById('assistantSubjectSelect').value;
                 const weekNum = document.getElementById('assistantWeekSelect').value;
+                
                 if (!subject || !weekNum) {
-                    alert('Select both subject and week.');
+                    alert('Please select both subject and week.');
                     return;
                 }
+
+                // Get week data from syllabus
                 const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
-                const promptType = btn.dataset.prompt;
-                const content = generateAIContent(promptType, weekData);
-                if (promptType === 'lessonNote') document.getElementById('lessonNoteOutput').value = content;
-                else if (promptType === 'teachingProcess') document.getElementById('teachingProcessOutput').value = content;
-                else if (promptType === 'studentResource') document.getElementById('studentResourceOutput').value = content;
-                else if (promptType === 'handwritten') document.getElementById('handwrittenOutput').value = content;
-                else if (promptType === 'youtube') document.getElementById('youtubeOutput').value = content;
+                if (!weekData) {
+                    alert('Week data not found. Please ensure syllabus is created for this subject.');
+                    return;
+                }
+
+                // Show loading
+                showLoading();
+
+                // Save original text
+                const textarea = document.getElementById(`${promptType}Output`);
+                const originalText = textarea.value;
+
+                try {
+                    // Build context for Gemini
+                    const context = {
+                        topic: weekData.topic,
+                        objectives: weekData.objectives,
+                        week: weekNum,
+                        age: '4-5',
+                        className: userData.classTeaching || 'Basic 3'
+                    };
+
+                    // Call Gemini (use the text from textarea if not empty, otherwise generate from scratch)
+                    const promptText = textarea.value || '';
+                    const content = await gemini.generateContent(promptText, promptType, context);
+                    
+                    // Update textarea
+                    textarea.value = content;
+                    
+                    // Show success message with usage stats
+                    const stats = gemini.getUsageStats();
+                    console.log(`Generated with Gemini (Key ${stats.currentKey}, Total calls: ${stats.totalCalls})`);
+                    
+                } catch (error) {
+                    alert('Error generating content with Gemini: ' + error.message);
+                    textarea.value = originalText;
+                } finally {
+                    hideLoading();
+                }
             });
         });
 
         // Save individual pieces
         document.querySelectorAll('[data-save]').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const field = btn.dataset.save; // lessonNote, teachingProcess, etc.
+                const field = btn.dataset.save;
                 const subject = document.getElementById('assistantSubjectSelect').value;
                 const weekNum = document.getElementById('assistantWeekSelect').value;
+                
                 if (!subject || !weekNum) {
                     alert('Select both subject and week.');
                     return;
                 }
+                
                 const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
                 const content = document.getElementById(`${field}Output`).value;
+                
                 if (!content.trim()) {
                     alert('Nothing to save.');
                     return;
                 }
+                
                 const key = `${subject}_${weekNum}`;
                 const existing = lessonNotesMap[key] || {};
+                
                 const updateData = {
                     teacherId: currentUser.uid,
                     subject,
                     week: parseInt(weekNum),
                     topic: weekData?.topic || '',
-                    [field]: content,
                     classId: userData.classTeaching,
                     status: existing.status || 'draft',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
+                
+                // Map field names to database fields
+                const fieldMap = {
+                    'lessonNote': 'lessonNote',
+                    'teachingProcess': 'teachingProcess',
+                    'studentResource': 'studentResource',
+                    'handwritten': 'handwrittenNotes',
+                    'youtube': 'youtubeLinks'
+                };
+                
+                const dbField = fieldMap[field];
+                if (field === 'youtube') {
+                    updateData[dbField] = content.split('\n').map(s => s.trim()).filter(s => s);
+                } else {
+                    updateData[dbField] = content;
+                }
+                
+                // Preserve other fields
+                if (existing.id) {
+                    Object.assign(updateData, existing);
+                    if (field === 'youtube') {
+                        updateData[dbField] = content.split('\n').map(s => s.trim()).filter(s => s);
+                    } else {
+                        updateData[dbField] = content;
+                    }
+                }
+                
                 try {
                     if (existing.id) {
                         await db.collection('lessonNotes').doc(existing.id).update(updateData);
@@ -1007,7 +1373,7 @@
             updateLessonNoteStatus(pkg.status || 'draft');
         });
 
-        // Save notebook
+        // Save notebook (lesson note)
         document.getElementById('saveNotebookBtn').addEventListener('click', async () => {
             const subject = document.getElementById('notebookSubjectSelect').value;
             const weekNum = document.getElementById('notebookWeekSelect').value;
@@ -1033,6 +1399,10 @@
                 status: existing.status || 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            if (existing.id) {
+                Object.assign(updateData, existing);
+                updateData.lessonNote = content;
+            }
             try {
                 if (existing.id) {
                     await db.collection('lessonNotes').doc(existing.id).update(updateData);
@@ -1073,6 +1443,12 @@
                 status: 'pending',
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            if (existing.id) {
+                Object.assign(updateData, existing);
+                updateData.lessonNote = content;
+                updateData.status = 'pending';
+                updateData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
+            }
             try {
                 if (existing.id) {
                     await db.collection('lessonNotes').doc(existing.id).update(updateData);
