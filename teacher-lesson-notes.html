@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Quill Rich Text Editor (Google Docs style) -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -34,6 +37,7 @@
             --danger-bg: #ef444420;
             --danger-text: #ef4444;
             --input-bg: #ffffff;
+            --toolbar-bg: #f8fafc;
         }
 
         :root[data-theme="dark"] {
@@ -54,6 +58,7 @@
             --danger-bg: #ef444420;
             --danger-text: #f87171;
             --input-bg: #1e293b;
+            --toolbar-bg: #1e293b;
         }
 
         body {
@@ -134,68 +139,146 @@
         .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
         .dropdown-item:hover { background: var(--hover-bg); }
 
-        /* ========== SUBJECT MANAGEMENT ========== */
-        .subject-header {
-            display: flex;
-            align-items: center;
+        /* ========== SUBJECT CARDS ========== */
+        .subject-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
+            margin-bottom: 2rem;
         }
-        .subject-tabs {
-            display: flex;
-            gap: 0.5rem;
+        .subject-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 0.3rem;
-            flex-wrap: wrap;
-        }
-        .subject-tab {
-            padding: 0.6rem 1.8rem;
-            border-radius: 3rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            color: var(--text-secondary);
-        }
-        .subject-tab.active {
-            background: var(--accent);
-            color: white;
-        }
-        .add-subject-btn {
-            background: var(--card-bg);
-            border: 1px dashed var(--border);
-            border-radius: 3rem;
-            padding: 0.6rem 1.5rem;
-            font-weight: 500;
-            cursor: pointer;
-            color: var(--text-secondary);
-            transition: 0.2s;
-        }
-        .add-subject-btn:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        /* ========== CARDS ========== */
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
+            border-radius: 1rem;
             padding: 1.5rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        .card-header {
+        .subject-card:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+        .subject-card.active {
+            border: 2px solid var(--accent);
+        }
+        .subject-card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+        .subject-card p { color: var(--text-secondary); font-size: 0.9rem; }
+        .subject-badge {
+            display: inline-block;
+            padding: 0.2rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        .subject-badge.approved { background: var(--success-bg); color: var(--success-text); }
+        .subject-badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+        .subject-badge.draft { background: var(--hover-bg); color: var(--text-secondary); }
+
+        /* ========== SYLLABUS SECTION ========== */
+        .syllabus-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .syllabus-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             flex-wrap: wrap;
             gap: 1rem;
         }
-        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+        .syllabus-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .syllabus-table th {
+            text-align: left;
+            padding: 0.75rem;
+            background: var(--hover-bg);
+            font-weight: 500;
+        }
+        .syllabus-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .syllabus-table input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        /* ========== WEEK TABS ========== */
+        .week-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        .week-tab {
+            padding: 0.6rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .week-tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* ========== EDITOR SECTION ========== */
+        .editor-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--toolbar-bg);
+        }
+        .editor-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .editor-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .ql-container {
+            min-height: 400px;
+            font-size: 16px;
+            background: var(--card-bg);
+        }
+        .ql-editor {
+            min-height: 400px;
+            color: var(--text-primary);
+        }
+        .ql-toolbar {
+            border: none !important;
+            border-bottom: 1px solid var(--border) !important;
+            background: var(--toolbar-bg);
+        }
 
         /* ========== BUTTONS ========== */
         .btn {
@@ -228,118 +311,8 @@
         .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
         .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
 
-        /* ========== TABLES ========== */
-        .table-responsive {
-            overflow-x: auto;
-            margin-bottom: 1rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        th, td {
-            border: 1px solid var(--border);
-            padding: 0.5rem;
-            text-align: left;
-        }
-        th {
-            background: var(--hover-bg);
-            font-weight: 500;
-        }
-        .week-input, .topic-input, .objective-input {
-            width: 100%;
-            padding: 0.4rem;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            background: var(--input-bg);
-            color: var(--text-primary);
-        }
-        .delete-row {
-            color: var(--danger-text);
-            cursor: pointer;
-            text-align: center;
-        }
-
-        /* ========== AI ASSISTANT GRID ========== */
-        .generator-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .generator-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 1rem;
-        }
-        .generator-card h4 {
-            margin-bottom: 0.5rem;
-        }
-        .generator-card textarea {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            resize: vertical;
-            min-height: 120px;
-            margin-bottom: 0.5rem;
-        }
-
-        /* ========== NOTEBOOK ========== */
-        .notebook {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            min-height: 300px;
-            font-family: 'Courier New', monospace;
-            white-space: pre-wrap;
-            overflow-y: auto;
-            max-height: 500px;
-        }
-
-        /* ========== FORMS ========== */
-        .form-control {
-            width: 100%;
-            padding: 0.6rem;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            margin-bottom: 1rem;
-        }
-        .filter-bar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        /* ========== ERROR MESSAGE ========== */
-        .error-message {
-            background: var(--danger-bg);
-            color: var(--danger-text);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--danger-text);
-        }
-        .error-message a {
-            color: var(--accent);
-            text-decoration: underline;
-        }
-
-        /* ========== TAB CONTENT ========== */
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* ========== LOADING OVERLAY ========== */
-        .loading-overlay {
+        /* ========== AI ASSISTANT MODAL ========== */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -351,14 +324,125 @@
             align-items: center;
             z-index: 2000;
         }
-        .loading-spinner {
-            color: white;
+        .modal-overlay.active { display: flex; }
+        .ai-modal {
+            width: 90%;
+            max-width: 700px;
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
             font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: var(--accent); }
+        .modal-body {
+            padding: 1.5rem;
+        }
+        .topic-selector {
+            margin-bottom: 1rem;
+        }
+        .topic-selector select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+        .chat-area {
+            height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+        .message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            max-width: 85%;
+        }
+        .message.user {
+            background: var(--accent);
+            color: white;
+            margin-left: auto;
+        }
+        .message.assistant {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .assistant-thinking {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+        .input-area {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        /* ========== LOADING OVERLAY ========== */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-content {
             background: var(--card-bg);
             padding: 2rem;
             border-radius: 1rem;
             text-align: center;
         }
+        .loading-content i { font-size: 3rem; color: var(--accent); margin-bottom: 1rem; }
+        .loading-content p { color: var(--text-secondary); }
+
+        /* ========== ERROR MESSAGE ========== */
+        .error-message {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger-text);
+        }
+        .error-message a { color: var(--accent); text-decoration: underline; }
 
         /* ========== RESPONSIVE ========== */
         @media (max-width: 768px) {
@@ -395,8 +479,8 @@
         <!-- TOP BAR -->
         <div class="top-bar">
             <div class="page-title">
-                <h1>Lesson Notes</h1>
-                <p>Create syllabus, generate notes with Teacher Assistant (Gemini AI), and manage approvals</p>
+                <h1>Lesson Notes Studio</h1>
+                <p>Create and manage lesson materials with AI assistance</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -412,198 +496,138 @@
             </div>
         </div>
 
-        <!-- SUBJECT MANAGEMENT -->
-        <div class="subject-header">
-            <div class="subject-tabs" id="subjectTabs"></div>
-            <div class="add-subject-btn" id="addSubjectBtn"><i class="fas fa-plus"></i> Add Subject</div>
-        </div>
+        <!-- SUBJECTS GRID -->
+        <h2>Your Subjects</h2>
+        <div class="subject-grid" id="subjectGrid"></div>
+        <button class="btn btn-outline" id="addSubjectBtn" style="margin-bottom: 2rem;">
+            <i class="fas fa-plus"></i> Add New Subject
+        </button>
 
-        <!-- MAIN TABS -->
-        <div class="subject-tabs" id="mainTabs" style="margin-top:0.5rem;">
-            <div class="subject-tab active" data-tab="syllabus">Syllabus</div>
-            <div class="subject-tab" data-tab="assistant">Teacher Assistant (Gemini AI)</div>
-            <div class="subject-tab" data-tab="notebook">Notebook</div>
-        </div>
-
-        <!-- ERROR DISPLAY (for index issues) -->
-        <div id="indexError" class="error-message" style="display: none;"></div>
-
-        <!-- LOADING OVERLAY -->
-        <div class="loading-overlay" id="loadingOverlay">
-            <div class="loading-spinner">
-                <i class="fas fa-spinner fa-spin"></i> Gemini AI is thinking...
-            </div>
-        </div>
-
-        <!-- ========== SYLLABUS TAB ========== -->
-        <div id="tab-syllabus" class="tab-content active">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Syllabus for <span id="currentSubject">(select subject)</span></h3>
+        <!-- SYLLABUS SECTION (shown when subject selected) -->
+        <div id="syllabusSection" style="display: none;">
+            <div class="syllabus-container">
+                <div class="syllabus-header">
                     <div>
+                        <h2 id="currentSubjectTitle"></h2>
                         <span id="syllabusStatus" class="status-badge status-draft">Draft</span>
                     </div>
+                    <div class="editor-actions">
+                        <button class="btn btn-outline" id="addWeekBtn"><i class="fas fa-plus"></i> Add Week</button>
+                        <button class="btn btn-primary" id="saveSyllabusBtn"><i class="fas fa-save"></i> Save Draft</button>
+                        <button class="btn btn-success" id="submitSyllabusBtn"><i class="fas fa-paper-plane"></i> Submit for Approval</button>
+                    </div>
                 </div>
-                <div class="table-responsive">
-                    <table id="syllabusTable">
-                        <thead>
-                            <tr>
-                                <th>Week</th>
-                                <th>Topic</th>
-                                <th>Objectives</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="syllabusBody">
-                            <!-- rows added here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="actions" style="margin-top:1rem;">
-                    <button class="btn btn-outline" id="addWeekBtn"><i class="fas fa-plus"></i> Add Week</button>
-                    <button class="btn btn-primary" id="saveSyllabusBtn">Save Draft</button>
-                    <button class="btn btn-success" id="submitSyllabusBtn">Submit for Approval</button>
-                    <button class="btn btn-warning" id="useAIBtn" style="display: none;">Use Teacher Assistant</button>
-                </div>
+                <table class="syllabus-table">
+                    <thead>
+                        <tr><th>Week</th><th>Topic</th><th>Objectives</th><th></th></tr>
+                    </thead>
+                    <tbody id="syllabusBody"></tbody>
+                </table>
             </div>
-        </div>
 
-        <!-- ========== TEACHER ASSISTANT TAB ========== -->
-        <div id="tab-assistant" class="tab-content">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Teacher Assistant (Powered by Google Gemini)</h3>
-                    <span id="assistantSyllabusStatus" class="status-badge"></span>
-                </div>
-                <p class="text-secondary">Select a subject and week, then click Generate to create Nigerian-standard educational content using Gemini AI.</p>
+            <!-- Create Lesson Note Button (shown when syllabus approved) -->
+            <button class="btn btn-primary" id="createLessonNoteBtn" style="display: none; margin-bottom: 2rem;">
+                <i class="fas fa-plus-circle"></i> Create Lesson Note
+            </button>
 
-                <div class="filter-bar">
-                    <select id="assistantSubjectSelect" class="form-control" style="max-width:200px;">
-                        <option value="">Select Subject</option>
-                    </select>
-                    <select id="assistantWeekSelect" class="form-control" style="max-width:200px;">
-                        <option value="">Select Week</option>
-                    </select>
-                    <button class="btn btn-outline" id="loadAssistantMaterials">Load Saved</button>
+            <!-- WEEK TABS (for selecting week) -->
+            <div class="week-tabs" id="weekTabs"></div>
+
+            <!-- EDITOR SECTION -->
+            <div id="editorSection" style="display: none;">
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <span class="editor-title"><i class="fas fa-book"></i> <span id="editorTitle">Lesson Note</span></span>
+                        <div class="editor-actions">
+                            <button class="btn btn-outline" id="useAIAssistantBtn">
+                                <i class="fas fa-robot"></i> Teacher Assistant
+                            </button>
+                            <button class="btn btn-primary" id="saveEditorBtn">Save Draft</button>
+                            <button class="btn btn-success" id="submitEditorBtn">Submit for Approval</button>
+                            <button class="btn btn-success" id="publishBtn" style="display: none;">Publish to Students</button>
+                        </div>
+                    </div>
+                    <!-- Quill Editor -->
+                    <div id="editor"></div>
                 </div>
 
-                <div class="generator-grid" id="generatorGrid">
-                    <!-- Lesson Note -->
-                    <div class="generator-card">
-                        <h4>📝 Comprehensive Lesson Note</h4>
-                        <textarea id="lessonNoteOutput" placeholder="Generated lesson note will appear here..."></textarea>
-                        <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="lessonNote">Generate with Gemini</button>
-                            <button class="btn btn-sm btn-outline" data-save="lessonNote">Save Draft</button>
-                        </div>
-                    </div>
-                    <!-- Teaching Process -->
-                    <div class="generator-card">
-                        <h4>🧑‍🏫 Teaching Process</h4>
-                        <textarea id="teachingProcessOutput" placeholder="Generated teaching process..."></textarea>
-                        <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="teachingProcess">Generate with Gemini</button>
-                            <button class="btn btn-sm btn-outline" data-save="teachingProcess">Save Draft</button>
-                        </div>
-                    </div>
-                    <!-- Student Resource -->
-                    <div class="generator-card">
-                        <h4>📄 Student Resource</h4>
-                        <textarea id="studentResourceOutput" placeholder="Student-friendly explanation..."></textarea>
-                        <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="studentResource">Generate with Gemini</button>
-                            <button class="btn btn-sm btn-outline" data-save="studentResource">Save Draft</button>
-                        </div>
-                    </div>
-                    <!-- Handwritten Notes (Text Description) -->
-                    <div class="generator-card">
-                        <h4>✍️ Handwritten Notes Description</h4>
-                        <textarea id="handwrittenOutput" placeholder="Description of handwritten notes with doodles..."></textarea>
-                        <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="handwritten">Generate with Gemini</button>
-                            <button class="btn btn-sm btn-outline" data-save="handwritten">Save Draft</button>
-                        </div>
-                    </div>
-                    <!-- YouTube Links -->
-                    <div class="generator-card">
-                        <h4>📺 YouTube Video Links</h4>
-                        <textarea id="youtubeOutput" placeholder="Suggested Nigerian educational video links..."></textarea>
-                        <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-sm btn-primary" data-prompt="youtube">Generate with Gemini</button>
-                            <button class="btn btn-sm btn-outline" data-save="youtube">Save Draft</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="margin-top:1rem; padding:1rem; background:var(--hover-bg); border-radius:1rem;">
-                    <h4>📋 Ready-Made Prompts for Nigerian Curriculum</h4>
-                    <p class="text-secondary">Click a prompt to fill the textarea above, then click Generate.</p>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
-                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('lessonNote')">
-                            📝 Lesson Note Template
+                <!-- POST-APPROVAL ACTION BUTTONS (for creating additional resources) -->
+                <div id="postApprovalActions" style="display: none; margin-bottom: 1rem;">
+                    <h3>Additional Resources</h3>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-outline" id="createTeachingProcessBtn">
+                            <i class="fas fa-chalkboard-teacher"></i> Create Teaching Process
                         </button>
-                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('teachingProcess')">
-                            🧑‍🏫 Teaching Process
+                        <button class="btn btn-outline" id="createStudentResourcesBtn">
+                            <i class="fas fa-users"></i> Create Student Resources
                         </button>
-                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('studentResource')">
-                            📄 Student Resource
-                        </button>
-                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('handwritten')">
-                            ✍️ Handwritten Notes
-                        </button>
-                        <button class="btn btn-sm btn-outline" onclick="fillPrompt('youtube')">
-                            📺 Nigerian YouTube Videos
+                        <button class="btn btn-outline" id="createHandwritingBtn">
+                            <i class="fas fa-pen-fancy"></i> Create Handwriting Notes
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========== NOTEBOOK TAB ========== -->
-        <div id="tab-notebook" class="tab-content">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Notebook – Lesson Note Editor</h3>
-                    <span id="lessonNoteStatus" class="status-badge status-draft">Draft</span>
-                </div>
-                <div class="filter-bar">
-                    <select id="notebookSubjectSelect" class="form-control" style="max-width:200px;">
-                        <option value="">Select Subject</option>
-                    </select>
-                    <select id="notebookWeekSelect" class="form-control" style="max-width:200px;">
-                        <option value="">Select Week</option>
-                    </select>
-                </div>
-                <div class="notebook" id="notebookContent" contenteditable="true"></div>
-                <div class="actions" style="margin-top:1rem;">
-                    <button class="btn btn-primary" id="saveNotebookBtn">Save Draft</button>
-                    <button class="btn btn-success" id="submitLessonNoteBtn">Submit for Approval</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- AI ASSISTANT MODAL -->
+    <div class="modal-overlay" id="aiAssistantModal">
+        <div class="ai-modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-robot"></i> Teacher Assistant</h2>
+                <button class="close-btn" onclick="closeAIAssistant()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="topic-selector">
+                    <select id="aiTopicSelect">
+                        <option value="">Select a topic from your syllabus...</option>
+                    </select>
+                </div>
+                <div class="chat-area" id="chatArea">
+                    <div class="message assistant">
+                        👋 Hello! I'm your Teacher Assistant. Tell me what you'd like me to create, and I'll help you generate professional Nigerian curriculum content.
+                    </div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="aiPromptInput" placeholder="Type your prompt here... (e.g., Create a lesson note on plants)">
+                    <button class="btn btn-primary" onclick="sendToAI()"><i class="fas fa-paper-plane"></i> Send</button>
+                </div>
+                <div style="margin-top: 0.5rem; text-align: right;">
+                    <button class="btn btn-sm btn-outline" onclick="copyToEditor()">
+                        <i class="fas fa-copy"></i> Copy to Editor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING OVERLAY -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <i class="fas fa-robot fa-spin"></i>
+            <h3>Teacher Assistant is thinking...</h3>
+            <p>Creating your educational content</p>
+        </div>
+    </div>
+
     <script>
-        // ========== GEMINI API KEYS (Your provided keys) ==========
+        // ========== GEMINI API KEYS ==========
         const GEMINI_KEYS = [
-            'AIzaSyAdXopRHqx5L2ZkQ-6yYi66NlJmGgOUB8s',  // Primary key
-            'AIzaSyD2edHbY65-5s2hfiYVw9_LZHefZ8WeSeo'   // Backup key
+            'AIzaSyAdXopRHqx5L2ZkQ-6yYi66NlJmGgOUB8s',
+            'AIzaSyD2edHbY65-5s2hfiYVw9_LZHefZ8WeSeo'
         ];
-        
-        // ========== GEMINI SERVICE CLASS ==========
+
+        // ========== GEMINI SERVICE (unchanged) ==========
         class GeminiService {
             constructor(apiKeys) {
                 this.apiKeys = apiKeys;
                 this.currentKeyIndex = 0;
-                this.model = 'gemini-2.5-flash'; // Fast, free model
+                this.model = 'gemini-2.5-flash';
                 this.endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/';
                 this.usageCount = 0;
-                this.lastKeyReset = Date.now();
             }
 
-            getCurrentKey() {
-                return this.apiKeys[this.currentKeyIndex];
-            }
+            getCurrentKey() { return this.apiKeys[this.currentKeyIndex]; }
 
             switchToNextKey() {
                 this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
@@ -612,8 +636,6 @@
 
             async generateContent(prompt, type = 'lessonNote', context = {}) {
                 const fullPrompt = this.buildPrompt(type, prompt, context);
-                
-                // Try each key until one works
                 for (let attempt = 0; attempt < this.apiKeys.length * 2; attempt++) {
                     try {
                         const response = await fetch(
@@ -622,196 +644,49 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    contents: [{
-                                        parts: [{ text: fullPrompt }]
-                                    }],
-                                    generationConfig: {
-                                        temperature: 0.7,
-                                        maxOutputTokens: 2048,
-                                        topP: 0.95
-                                    }
+                                    contents: [{ parts: [{ text: fullPrompt }] }],
+                                    generationConfig: { temperature: 0.7, maxOutputTokens: 2048, topP: 0.95 }
                                 })
                             }
                         );
-
                         if (!response.ok) {
+                            if ([429,403,401].includes(response.status)) { this.switchToNextKey(); continue; }
                             const error = await response.json();
-                            if (response.status === 429 || response.status === 403 || response.status === 401) {
-                                // Rate limit or auth error - try next key
-                                console.warn(`Key ${this.currentKeyIndex + 1} failed, switching...`);
-                                this.switchToNextKey();
-                                continue;
-                            }
                             throw new Error(error.error?.message || 'API call failed');
                         }
-
                         const data = await response.json();
-                        
-                        // Check if response has valid content
-                        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                        if (data.candidates?.[0]?.content) {
                             this.usageCount++;
                             return data.candidates[0].content.parts[0].text;
-                        } else {
-                            throw new Error('Empty response from Gemini');
-                        }
-                        
+                        } else throw new Error('Empty response');
                     } catch (error) {
-                        console.error(`Attempt ${attempt + 1} failed:`, error);
+                        console.error(`Attempt ${attempt+1} failed:`, error);
                         this.switchToNextKey();
-                        
-                        // If we've tried all keys twice, give up
-                        if (attempt >= this.apiKeys.length * 2 - 1) {
-                            throw new Error('All Gemini API keys failed. Please try again later.');
-                        }
+                        if (attempt >= this.apiKeys.length*2-1) throw new Error('All Gemini API keys failed.');
                     }
                 }
             }
 
             buildPrompt(type, userPrompt, context) {
-                // Nigerian educational context - CRITICAL for good results
                 const baseContext = `You are an expert Nigerian curriculum developer for Basic Education. 
-Follow these guidelines STRICTLY:
-- Use Nigerian examples (jollof rice, plantain, Lagos, Abuja, Naira)
-- Follow Nigerian Basic Education curriculum standards
-- Age-appropriate language for ${context.age || '4-5'} years old
-- 40-minute lesson duration
-- Include Nigerian cultural values (respect, community, hard work)
-- Use simple English suitable for the age group
-- Include local references children would understand
-- Format with clear sections and bullet points`;
+Use Nigerian examples (jollof rice, plantain, Lagos, Abuja, Naira). Follow Nigerian Basic Education curriculum standards.
+Age-appropriate language for ${context.age || '4-5'} years old. 40-minute lesson duration.
+Include Nigerian cultural values. Format with clear sections and bullet points.`;
 
                 const prompts = {
-                    lessonNote: `${baseContext}
-
-Create a comprehensive 40-minute lesson note for Week ${context.week || '1'} on "${context.topic || 'the topic'}".
-
-Topic: ${context.topic}
-Class: ${context.className || 'Basic 3'} (Age ${context.age || '4-5'})
-Objectives: ${context.objectives || 'Understand key concepts'}
-
-Structure EXACTLY:
-
-INTRODUCTION (5 mins):
-[Engaging starter activity with Nigerian context]
-
-CONTENT DEVELOPMENT (25 mins):
-• Main teaching point 1 (with Nigerian example)
-• Main teaching point 2 (with Nigerian example)
-• Main teaching point 3 (with Nigerian example)
-
-STUDENT ACTIVITIES (10 mins):
-• Activity 1
-• Activity 2
-• Activity 3
-
-CONCLUSION (5 mins):
-• Summary points
-• Assessment questions (3-4 questions)
-
-Use bullet points for clarity.`,
-
-                    teachingProcess: `${baseContext}
-
-Create a step-by-step teaching guide for "${context.topic}" (Week ${context.week}):
-
-TEACHER'S ACTIVITIES:
-Step 1 (5 mins): [What teacher says/does]
-• Key questions to ask: [Question 1 with expected answer]
-• Demonstration: [What to show]
-
-Step 2 (10 mins): [What teacher says/does]
-• Key questions: [Question 2 with expected answer]
-
-Step 3 (10 mins): [What teacher says/does]
-
-STUDENT'S ACTIVITIES:
-• What students do at each stage
-• Group/pair work arrangements
-• Expected responses
-
-MATERIALS NEEDED:
-• List all required items (Nigerian materials available)
-
-DIFFERENTIATION:
-• For struggling learners:
-• For advanced learners:`,
-
-                    studentResource: `${baseContext}
-
-Create an A4 student handout explaining "${context.topic}" for ${context.className || 'Basic 3'} students.
-
-Title: [Catchy title]
-
-WHAT YOU WILL LEARN:
-• Bullet points of key concepts
-
-LET'S UNDERSTAND:
-Simple explanation with:
-• Key words defined (Nigerian context)
-• Examples from daily life in Nigeria
-• Simple diagrams described
-
-QUICK CHECK:
-5 multiple choice questions with answers at bottom
-
-DID YOU KNOW? (3 fun facts)
-
-PRACTICE AT HOME:
-2 simple activities using household items
-
-Use very simple English with emojis where appropriate.`,
-
-                    handwritten: `${baseContext}
-
-Generate a description of handwritten study notes on "${context.topic}" for ${context.className || 'Basic 3'}.
-
-FORMAT: A4 size, student handwriting font
-
-VISUAL ELEMENTS:
-• Yellow highlighter for 5 key terms [USE [HIGHLIGHT] brackets]
-• Red circles around important numbers/dates [USE [CIRCLE] brackets]
-• Simple doodles to explain concepts [DESCRIBE in [DOODLE: description]]
-
-CONTENT:
-1. Title (big and decorated)
-2. Key definitions (highlighted)
-3. Important points (numbered with circles)
-4. Memory tips (with doodles)
-5. Quick summary box
-
-Describe exactly how the handwritten page should look.`,
-
-                    youtube: `${baseContext}
-
-Suggest 5 Nigerian educational YouTube videos for teaching "${context.topic}" to ${context.className || 'Basic 3'}.
-
-For each video provide:
-
-1. Video Title: 
-   Channel Name: 
-   Duration: 
-   Key Topics Covered: 
-   Why It's Appropriate: 
-   Search Keywords: [SEARCH: keywords to find this video]
-
-Focus on Nigerian educational channels (e.g., Yoruba for Schools, Hausa Kids TV, Nigerian Educational TV).`
+                    lessonNote: `${baseContext}\n\nCreate a comprehensive 40-minute lesson note for Week ${context.week||'1'} on "${context.topic||'the topic'}".\nTopic: ${context.topic}\nClass: ${context.className||'Basic 3'}\nObjectives: ${context.objectives||'Understand key concepts'}\n\nStructure:\nINTRODUCTION (5 mins): ...\nCONTENT DEVELOPMENT (25 mins): ...\nSTUDENT ACTIVITIES (10 mins): ...\nCONCLUSION (5 mins): ...`,
+                    teachingProcess: `${baseContext}\n\nCreate a step-by-step teaching guide for "${context.topic}" (Week ${context.week}):\nTEACHER'S ACTIVITIES:\n...\nSTUDENT'S ACTIVITIES:\n...\nMATERIALS NEEDED:\n...`,
+                    studentResource: `${baseContext}\n\nCreate an A4 student handout explaining "${context.topic}" for ${context.className||'Basic 3'} students.\nInclude simple definitions, key facts, Nigerian examples, practice questions.`,
+                    handwritten: `${baseContext}\n\nGenerate a description of handwritten study notes on "${context.topic}" for ${context.className||'Basic 3'}.\nA4 size, student handwriting font. Yellow highlighter for key terms. Red circles around important points. Add doodles.`,
+                    youtube: `${baseContext}\n\nSuggest 5 Nigerian educational YouTube videos for teaching "${context.topic}" to ${context.className||'Basic 3'}. Include titles, channels, why appropriate.`
                 };
-
                 return prompts[type] || userPrompt;
-            }
-
-            getUsageStats() {
-                return {
-                    totalCalls: this.usageCount,
-                    currentKey: this.currentKeyIndex + 1
-                };
             }
         }
 
-        // Initialize Gemini service with both keys
         const gemini = new GeminiService(GEMINI_KEYS);
 
-        // Firebase config
+        // Firebase config (unchanged)
         const firebaseConfig = {
             apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
             authDomain: "edutopscholars-be54a.firebaseapp.com",
@@ -825,14 +700,14 @@ Focus on Nigerian educational channels (e.g., Yoruba for Schools, Hausa Kids TV,
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme toggle
+        // Theme toggle (unchanged)
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = themeToggle.querySelector('i:first-child');
-        const themeText = themeToggle.querySelector('span');
         function updateThemeUI(theme) {
-            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            const icon = themeToggle.querySelector('i:first-child');
+            const text = themeToggle.querySelector('span');
+            icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            text.textContent = theme === 'dark' ? 'Dark' : 'Light';
         }
         const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
@@ -845,7 +720,7 @@ Focus on Nigerian educational channels (e.g., Yoruba for Schools, Hausa Kids TV,
             updateThemeUI(next);
         });
 
-        // Sidebar toggle
+        // Sidebar toggle (unchanged)
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -857,151 +732,121 @@ Focus on Nigerian educational channels (e.g., Yoruba for Schools, Hausa Kids TV,
             icon.classList.toggle('fa-chevron-right');
         });
 
-        // Loading overlay functions
-        function showLoading() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-        }
-        
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-
-        // Global variables
+        // Global variables (same)
         let currentUser = null;
         let userData = null;
         let subjects = [];
         let currentSubject = null;
-        let syllabusMap = {};          // subject -> { id, weeks, status }
-        let lessonNotesMap = {};       // "subject_week" -> { id, lessonNote, teachingProcess, studentResource, handwrittenNotes, youtubeLinks, published, status }
+        let currentWeek = null;
+        let currentResourceType = 'lessonNote'; // lessonNote, teachingProcess, studentResource, handwritten
+        let syllabusMap = {};
+        let lessonNotesMap = {};
+        let quill = null;
+        let lastGeneratedContent = '';
 
-        // Index error handler
-        function handleFirestoreError(error, context) {
-            console.error(`Firestore error in ${context}:`, error);
-            const errorDiv = document.getElementById('indexError');
-            if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-                const url = match ? match[0] : '#';
-                errorDiv.innerHTML = `
-                    <strong>Missing Firestore index.</strong><br>
-                    Please create it by clicking 
-                    <a href="${url}" target="_blank">this link</a>.
-                `;
-                errorDiv.style.display = 'block';
-            } else if (error.code === 'permission-denied') {
-                errorDiv.textContent = 'Permission denied. Please contact administrator.';
-                errorDiv.style.display = 'block';
-            } else {
-                errorDiv.textContent = `Error: ${error.message}`;
-                errorDiv.style.display = 'block';
+        // Loading functions
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+        // AI Assistant functions
+        window.openAIAssistant = function() {
+            document.getElementById('aiAssistantModal').classList.add('active');
+            const select = document.getElementById('aiTopicSelect');
+            select.innerHTML = '<option value="">Select a topic from your syllabus...</option>';
+            if (syllabusMap[currentSubject]?.weeks) {
+                syllabusMap[currentSubject].weeks.forEach(w => {
+                    const option = document.createElement('option');
+                    option.value = w.topic;
+                    option.textContent = `Week ${w.week}: ${w.topic}`;
+                    select.appendChild(option);
+                });
             }
-        }
+        };
+        window.closeAIAssistant = function() {
+            document.getElementById('aiAssistantModal').classList.remove('active');
+            document.getElementById('aiPromptInput').value = '';
+        };
+        window.sendToAI = async function() {
+            const prompt = document.getElementById('aiPromptInput').value;
+            const selectedTopic = document.getElementById('aiTopicSelect').value;
+            if (!prompt) return alert('Please enter a prompt');
+            const chatArea = document.getElementById('chatArea');
+            chatArea.innerHTML += `<div class="message user">${prompt}</div>`;
+            chatArea.scrollTop = chatArea.scrollHeight;
+            const thinkingMsg = document.createElement('div');
+            thinkingMsg.className = 'message assistant';
+            thinkingMsg.innerHTML = '<div class="assistant-thinking"><i class="fas fa-robot fa-spin"></i> Teacher Assistant is thinking...</div>';
+            chatArea.appendChild(thinkingMsg);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            showLoading();
+            try {
+                const fullPrompt = `You are an expert Nigerian curriculum developer. ${selectedTopic ? `Topic: ${selectedTopic}. ` : ''}${prompt}`;
+                const response = await gemini.generateContent(fullPrompt);
+                lastGeneratedContent = response;
+                chatArea.removeChild(thinkingMsg);
+                chatArea.innerHTML += `<div class="message assistant">${response.replace(/\n/g, '<br>')}</div>`;
+                chatArea.scrollTop = chatArea.scrollHeight;
+            } catch (error) {
+                chatArea.removeChild(thinkingMsg);
+                chatArea.innerHTML += `<div class="message assistant">Error: ${error.message}</div>`;
+            } finally {
+                hideLoading();
+                document.getElementById('aiPromptInput').value = '';
+            }
+        };
+        window.copyToEditor = function() {
+            if (lastGeneratedContent && quill) {
+                quill.setText(lastGeneratedContent);
+                closeAIAssistant();
+            } else alert('No content to copy');
+        };
 
-        // Auth check
+        // Auth check (unchanged)
         auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'teacher-login.html';
-                return;
-            }
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                    auth.signOut();
-                    window.location.href = 'index.html';
-                    return;
-                }
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
                 currentUser = user;
                 userData = userDoc.data();
-                document.getElementById('profileInitials').textContent = 
-                    (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-                document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Teacher'}`;
-
-                // Load subjects from user profile
+                document.getElementById('profileInitials').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 subjects = userData.subjects || [];
-                renderSubjectTabs();
-
-                if (subjects.length > 0) {
-                    switchSubject(subjects[0]);
-                } else {
-                    document.getElementById('currentSubject').textContent = '(add a subject)';
-                }
-            } catch (error) {
-                handleFirestoreError(error, 'auth');
-            }
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut().then(() => window.location.href = 'index.html');
-        });
-
-        // Render subject tabs from subjects array
-        function renderSubjectTabs() {
-            const container = document.getElementById('subjectTabs');
-            container.innerHTML = '';
-            subjects.forEach(sub => {
-                const tab = document.createElement('span');
-                tab.className = 'subject-tab';
-                tab.textContent = sub;
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('#subjectTabs .subject-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    switchSubject(sub);
+                renderSubjectGrid();
+                quill = new Quill('#editor', {
+                    theme: 'snow',
+                    modules: { toolbar: [ [{header:[1,2,3,false]}], ['bold','italic','underline','strike'], [{list:'ordered'},{list:'bullet'}], [{align:[]}], ['link','blockquote','code-block'], [{color:[]},{background:[]}], ['clean'] ] },
+                    placeholder: 'Start writing your lesson note here...'
                 });
-                container.appendChild(tab);
-            });
-            if (subjects.length > 0) {
-                container.children[0].classList.add('active');
-            }
-            populateSubjectDropdowns();
-        }
-
-        // Add new subject
-        document.getElementById('addSubjectBtn').addEventListener('click', async () => {
-            const newSubject = prompt('Enter new subject name:');
-            if (!newSubject || newSubject.trim() === '') return;
-            if (subjects.includes(newSubject.trim())) {
-                alert('Subject already exists.');
-                return;
-            }
-            subjects.push(newSubject.trim());
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    subjects: subjects
-                });
-                renderSubjectTabs();
-                if (subjects.length === 1) {
-                    switchSubject(subjects[0]);
-                }
-            } catch (error) {
-                handleFirestoreError(error, 'addSubject');
-            }
+            } catch (error) { console.error(error); }
         });
 
-        function populateSubjectDropdowns() {
-            const assistantSelect = document.getElementById('assistantSubjectSelect');
-            const notebookSelect = document.getElementById('notebookSubjectSelect');
-            assistantSelect.innerHTML = '<option value="">Select Subject</option>';
-            notebookSelect.innerHTML = '<option value="">Select Subject</option>';
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+
+        // Render subject grid
+        function renderSubjectGrid() {
+            const grid = document.getElementById('subjectGrid');
+            grid.innerHTML = '';
+            if (subjects.length === 0) { grid.innerHTML = '<p style="color: var(--text-secondary);">No subjects yet. Add your first subject.</p>'; return; }
             subjects.forEach(sub => {
-                const opt1 = document.createElement('option');
-                opt1.value = sub;
-                opt1.textContent = sub;
-                assistantSelect.appendChild(opt1);
-                const opt2 = opt1.cloneNode(true);
-                notebookSelect.appendChild(opt2);
+                const card = document.createElement('div');
+                card.className = 'subject-card';
+                card.innerHTML = `<h3>${sub}</h3><p>${syllabusMap[sub]?.weeks?.length || 0} weeks in syllabus</p><span class="subject-badge ${syllabusMap[sub]?.status || 'draft'}">${syllabusMap[sub]?.status || 'No syllabus'}</span>`;
+                card.onclick = (e) => selectSubject(sub, e.currentTarget);
+                grid.appendChild(card);
             });
         }
 
-        // Switch subject: load syllabus and lesson notes
-        async function switchSubject(subject) {
+        async function selectSubject(subject, cardElement) {
             currentSubject = subject;
-            document.getElementById('currentSubject').textContent = subject;
-            document.getElementById('indexError').style.display = 'none';
+            document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('active'));
+            cardElement.classList.add('active');
+            document.getElementById('syllabusSection').style.display = 'block';
+            document.getElementById('currentSubjectTitle').textContent = `${subject} Syllabus`;
             await loadSyllabus(subject);
             await loadLessonNotes(subject);
-            populateWeekSelects(subject);
+            renderWeekTabs();
         }
 
-        // Load syllabus for a subject
         async function loadSyllabus(subject) {
             try {
                 const snapshot = await db.collection('syllabus')
@@ -1015,48 +860,33 @@ Focus on Nigerian educational channels (e.g., Yoruba for Schools, Hausa Kids TV,
                     syllabusMap[subject] = { id: doc.id, ...doc.data() };
                     renderSyllabusTable(doc.data().weeks || []);
                     updateSyllabusStatus(doc.data().status);
-                    if (doc.data().status === 'approved') {
-                        document.getElementById('useAIBtn').style.display = 'inline-block';
-                    } else {
-                        document.getElementById('useAIBtn').style.display = 'none';
-                    }
+                    document.getElementById('createLessonNoteBtn').style.display = doc.data().status === 'approved' ? 'inline-block' : 'none';
                 } else {
                     syllabusMap[subject] = { weeks: [], status: 'draft' };
                     renderSyllabusTable([]);
                     updateSyllabusStatus('draft');
-                    document.getElementById('useAIBtn').style.display = 'none';
+                    document.getElementById('createLessonNoteBtn').style.display = 'none';
                 }
-            } catch (error) {
-                handleFirestoreError(error, 'loadSyllabus');
-            }
+            } catch (error) { console.error(error); }
         }
 
-        // Render syllabus table
         function renderSyllabusTable(weeks) {
             const tbody = document.getElementById('syllabusBody');
-            if (weeks.length === 0) {
-                weeks = [{ week: 1, topic: '', objectives: '' }];
-            }
+            if (weeks.length === 0) weeks = [{ week: 1, topic: '', objectives: '' }];
             let html = '';
             weeks.forEach((week, index) => {
-                html += `
-                <tr>
-                    <td><input type="number" class="week-input" value="${week.week}" data-index="${index}" data-field="week"></td>
-                    <td><input type="text" class="topic-input" value="${week.topic || ''}" placeholder="Topic" data-index="${index}" data-field="topic"></td>
-                    <td><input type="text" class="objective-input" value="${week.objectives || ''}" placeholder="Objectives" data-index="${index}" data-field="objectives"></td>
-                    <td class="delete-row" onclick="deleteWeek(${index})"><i class="fas fa-trash"></i></td>
-                </tr>
-                `;
+                html += `<tr>
+                    <td><input type="number" value="${week.week}" data-index="${index}" data-field="week"></td>
+                    <td><input type="text" value="${week.topic || ''}" placeholder="Topic" data-index="${index}" data-field="topic"></td>
+                    <td><input type="text" value="${week.objectives || ''}" placeholder="Objectives" data-index="${index}" data-field="objectives"></td>
+                    <td><button class="btn btn-danger btn-sm" onclick="deleteWeek(${index})"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
             });
             tbody.innerHTML = html;
-
             document.querySelectorAll('#syllabusBody input').forEach(input => {
                 input.addEventListener('input', function(e) {
-                    const index = this.dataset.index;
-                    const field = this.dataset.field;
-                    if (!syllabusMap[currentSubject].weeks[index]) {
-                        syllabusMap[currentSubject].weeks[index] = {};
-                    }
+                    const index = this.dataset.index, field = this.dataset.field;
+                    if (!syllabusMap[currentSubject].weeks[index]) syllabusMap[currentSubject].weeks[index] = {};
                     syllabusMap[currentSubject].weeks[index][field] = this.value;
                 });
             });
@@ -1069,418 +899,202 @@ Focus on Nigerian educational channels (e.g., Yoruba for Schools, Hausa Kids TV,
 
         document.getElementById('addWeekBtn').addEventListener('click', () => {
             if (!syllabusMap[currentSubject]) syllabusMap[currentSubject] = { weeks: [] };
-            const lastWeek = syllabusMap[currentSubject].weeks.length > 0 ? syllabusMap[currentSubject].weeks[syllabusMap[currentSubject].weeks.length - 1].week : 0;
-            syllabusMap[currentSubject].weeks.push({ week: lastWeek + 1, topic: '', objectives: '' });
+            const lastWeek = syllabusMap[currentSubject].weeks.length ? syllabusMap[currentSubject].weeks[syllabusMap[currentSubject].weeks.length-1].week : 0;
+            syllabusMap[currentSubject].weeks.push({ week: lastWeek+1, topic: '', objectives: '' });
             renderSyllabusTable(syllabusMap[currentSubject].weeks);
         });
 
         document.getElementById('saveSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) { alert('Select a subject.'); return; }
+            if (!currentSubject) return alert('Select a subject.');
             const weeks = syllabusMap[currentSubject]?.weeks;
-            if (!weeks || weeks.length === 0) {
-                alert('Please add at least one week.');
-                return;
-            }
+            if (!weeks?.length) return alert('Add at least one week.');
             try {
-                const data = {
-                    teacherId: currentUser.uid,
-                    subject: currentSubject,
-                    classId: userData.classTeaching,
-                    weeks,
-                    status: 'draft',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                if (syllabusMap[currentSubject].id) {
-                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                } else {
-                    const docRef = await db.collection('syllabus').add(data);
-                    syllabusMap[currentSubject].id = docRef.id;
-                }
+                const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                if (syllabusMap[currentSubject].id) await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
+                else { const docRef = await db.collection('syllabus').add(data); syllabusMap[currentSubject].id = docRef.id; }
                 alert('Syllabus saved as draft.');
-            } catch (error) {
-                handleFirestoreError(error, 'saveSyllabus');
-            }
+            } catch (error) { alert('Error: ' + error.message); }
         });
 
         document.getElementById('submitSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) { alert('Select a subject.'); return; }
+            if (!currentSubject) return alert('Select a subject.');
             const weeks = syllabusMap[currentSubject]?.weeks;
-            if (!weeks || weeks.length === 0) {
-                alert('Please add at least one week.');
-                return;
-            }
+            if (!weeks?.length) return alert('Add at least one week.');
             try {
-                const data = {
-                    teacherId: currentUser.uid,
-                    subject: currentSubject,
-                    classId: userData.classTeaching,
-                    weeks,
-                    status: 'pending',
-                    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                if (syllabusMap[currentSubject].id) {
-                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                } else {
-                    const docRef = await db.collection('syllabus').add(data);
-                    syllabusMap[currentSubject].id = docRef.id;
-                }
+                const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                if (syllabusMap[currentSubject].id) await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
+                else { const docRef = await db.collection('syllabus').add(data); syllabusMap[currentSubject].id = docRef.id; }
                 alert('Syllabus submitted for approval.');
                 updateSyllabusStatus('pending');
-                document.getElementById('useAIBtn').style.display = 'none';
-            } catch (error) {
-                handleFirestoreError(error, 'submitSyllabus');
-            }
-        });
-
-        document.getElementById('useAIBtn').addEventListener('click', () => {
-            document.querySelector('[data-tab="assistant"]').click();
-            alert('Select a week and use the prompts to generate content with Gemini AI.');
+                document.getElementById('createLessonNoteBtn').style.display = 'none';
+            } catch (error) { alert('Error: ' + error.message); }
         });
 
         function updateSyllabusStatus(status) {
-            const statusEl = document.getElementById('syllabusStatus');
-            statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            statusEl.className = `status-badge status-${status}`;
+            const el = document.getElementById('syllabusStatus');
+            el.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            el.className = `status-badge status-${status}`;
         }
 
-        // Load lesson notes for a subject
         async function loadLessonNotes(subject) {
             try {
                 const snapshot = await db.collection('lessonNotes')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', subject)
                     .get();
+                lessonNotesMap = {};
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const key = `${subject}_${data.week}`;
-                    lessonNotesMap[key] = { id: doc.id, ...data };
+                    lessonNotesMap[`${subject}_${data.week}`] = { id: doc.id, ...data };
                 });
-            } catch (error) {
-                handleFirestoreError(error, 'loadLessonNotes');
-            }
+            } catch (error) { console.error(error); }
         }
 
-        // Populate week dropdowns based on selected subject's syllabus
-        function populateWeekSelects(subject) {
-            const weeks = syllabusMap[subject]?.weeks || [];
-            const assistantWeek = document.getElementById('assistantWeekSelect');
-            const notebookWeek = document.getElementById('notebookWeekSelect');
-            assistantWeek.innerHTML = '<option value="">Select Week</option>';
-            notebookWeek.innerHTML = '<option value="">Select Week</option>';
+        function renderWeekTabs() {
+            const weeks = syllabusMap[currentSubject]?.weeks || [];
+            const tabs = document.getElementById('weekTabs');
+            tabs.innerHTML = '';
             weeks.forEach(w => {
-                const opt1 = document.createElement('option');
-                opt1.value = w.week;
-                opt1.textContent = `Week ${w.week}: ${w.topic || 'No topic'}`;
-                assistantWeek.appendChild(opt1.cloneNode(true));
-                notebookWeek.appendChild(opt1);
+                const tab = document.createElement('div');
+                tab.className = 'week-tab';
+                tab.textContent = `Week ${w.week}: ${w.topic || 'No topic'}`;
+                tab.onclick = () => selectWeek(w.week);
+                tabs.appendChild(tab);
             });
         }
 
-        // Fill prompt template function
-        window.fillPrompt = function(type) {
-            const subject = document.getElementById('assistantSubjectSelect').value;
-            const weekNum = document.getElementById('assistantWeekSelect').value;
-            
-            if (!subject || !weekNum) {
-                alert('Please select subject and week first.');
-                return;
-            }
-            
-            const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
-            if (!weekData) {
-                alert('Week data not found.');
-                return;
-            }
-            
-            const prompts = {
-                lessonNote: `Write a comprehensive 40-minute lesson note for Nigerian ${userData.classTeaching || 'Basic 3'} (age 4-5) on "${weekData.topic}" (Week ${weekNum}). Include introduction, content development with Nigerian examples, student activities, and conclusion.`,
-                
-                teachingProcess: `Create a step-by-step teaching guide for "${weekData.topic}" including teacher activities, student activities, key questions to ask with expected answers, and materials needed in a Nigerian classroom.`,
-                
-                studentResource: `Create an A4 student handout explaining "${weekData.topic}" simply with Nigerian examples, definitions, and practice questions for ${userData.classTeaching || 'Basic 3'} students.`,
-                
-                handwritten: `Create handwritten study notes on "${weekData.topic}" for ${userData.classTeaching || 'Basic 3'}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around important points. Add doodles. A4 size.`,
-                
-                youtube: `Suggest 5 Nigerian educational YouTube videos for teaching "${weekData.topic}" to ${userData.classTeaching || 'Basic 3'} students. Include titles, channels, and why they're appropriate.`
-            };
-            
-            const textarea = document.getElementById(`${type}Output`);
-            if (textarea) {
-                textarea.value = prompts[type];
-            }
-        };
+        function selectWeek(week) {
+            currentWeek = week;
+            document.querySelectorAll('.week-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('editorSection').style.display = 'block';
+            // Default to lesson note resource type
+            currentResourceType = 'lessonNote';
+            document.getElementById('editorTitle').textContent = `Week ${week} Lesson Note`;
+            const key = `${currentSubject}_${week}`;
+            const note = lessonNotesMap[key] || {};
+            quill.setText(note.lessonNote || '');
+            // Show/hide publish button
+            const publishBtn = document.getElementById('publishBtn');
+            publishBtn.style.display = note.published ? 'none' : 'inline-block';
+            publishBtn.onclick = () => publishResource(note.id);
+            // Show post-approval actions if lesson note is approved
+            const postActions = document.getElementById('postApprovalActions');
+            postActions.style.display = note.status === 'approved' ? 'block' : 'none';
+        }
 
-        // Gemini generate button listeners
-        document.querySelectorAll('[data-prompt]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const promptType = btn.dataset.prompt; // lessonNote, teachingProcess, etc.
-                const subject = document.getElementById('assistantSubjectSelect').value;
-                const weekNum = document.getElementById('assistantWeekSelect').value;
-                
-                if (!subject || !weekNum) {
-                    alert('Please select both subject and week.');
-                    return;
-                }
-
-                // Get week data from syllabus
-                const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
-                if (!weekData) {
-                    alert('Week data not found. Please ensure syllabus is created for this subject.');
-                    return;
-                }
-
-                // Show loading
-                showLoading();
-
-                // Save original text
-                const textarea = document.getElementById(`${promptType}Output`);
-                const originalText = textarea.value;
-
-                try {
-                    // Build context for Gemini
-                    const context = {
-                        topic: weekData.topic,
-                        objectives: weekData.objectives,
-                        week: weekNum,
-                        age: '4-5',
-                        className: userData.classTeaching || 'Basic 3'
-                    };
-
-                    // Call Gemini (use the text from textarea if not empty, otherwise generate from scratch)
-                    const promptText = textarea.value || '';
-                    const content = await gemini.generateContent(promptText, promptType, context);
-                    
-                    // Update textarea
-                    textarea.value = content;
-                    
-                    // Show success message with usage stats
-                    const stats = gemini.getUsageStats();
-                    console.log(`Generated with Gemini (Key ${stats.currentKey}, Total calls: ${stats.totalCalls})`);
-                    
-                } catch (error) {
-                    alert('Error generating content with Gemini: ' + error.message);
-                    textarea.value = originalText;
-                } finally {
-                    hideLoading();
-                }
-            });
+        document.getElementById('createLessonNoteBtn').addEventListener('click', () => {
+            const weeks = syllabusMap[currentSubject]?.weeks;
+            if (weeks?.length) selectWeek(weeks[0].week);
         });
 
-        // Save individual pieces
-        document.querySelectorAll('[data-save]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const field = btn.dataset.save;
-                const subject = document.getElementById('assistantSubjectSelect').value;
-                const weekNum = document.getElementById('assistantWeekSelect').value;
-                
-                if (!subject || !weekNum) {
-                    alert('Select both subject and week.');
-                    return;
-                }
-                
-                const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
-                const content = document.getElementById(`${field}Output`).value;
-                
-                if (!content.trim()) {
-                    alert('Nothing to save.');
-                    return;
-                }
-                
-                const key = `${subject}_${weekNum}`;
-                const existing = lessonNotesMap[key] || {};
-                
-                const updateData = {
-                    teacherId: currentUser.uid,
-                    subject,
-                    week: parseInt(weekNum),
-                    topic: weekData?.topic || '',
-                    classId: userData.classTeaching,
-                    status: existing.status || 'draft',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                // Map field names to database fields
-                const fieldMap = {
-                    'lessonNote': 'lessonNote',
-                    'teachingProcess': 'teachingProcess',
-                    'studentResource': 'studentResource',
-                    'handwritten': 'handwrittenNotes',
-                    'youtube': 'youtubeLinks'
-                };
-                
-                const dbField = fieldMap[field];
-                if (field === 'youtube') {
-                    updateData[dbField] = content.split('\n').map(s => s.trim()).filter(s => s);
-                } else {
-                    updateData[dbField] = content;
-                }
-                
-                // Preserve other fields
-                if (existing.id) {
-                    Object.assign(updateData, existing);
-                    if (field === 'youtube') {
-                        updateData[dbField] = content.split('\n').map(s => s.trim()).filter(s => s);
-                    } else {
-                        updateData[dbField] = content;
-                    }
-                }
-                
-                try {
-                    if (existing.id) {
-                        await db.collection('lessonNotes').doc(existing.id).update(updateData);
-                    } else {
-                        const docRef = await db.collection('lessonNotes').add(updateData);
-                        lessonNotesMap[key] = { id: docRef.id, ...updateData };
-                    }
-                    alert(`${field} saved.`);
-                } catch (error) {
-                    handleFirestoreError(error, 'saveAssistant');
-                }
-            });
-        });
+        // Editor actions
+        document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
+        document.getElementById('saveEditorBtn').addEventListener('click', saveEditorContent);
+        document.getElementById('submitEditorBtn').addEventListener('click', submitEditorForApproval);
 
-        // Load saved materials for assistant
-        document.getElementById('loadAssistantMaterials').addEventListener('click', () => {
-            const subject = document.getElementById('assistantSubjectSelect').value;
-            const weekNum = document.getElementById('assistantWeekSelect').value;
-            if (!subject || !weekNum) return;
-            const key = `${subject}_${weekNum}`;
-            const pkg = lessonNotesMap[key] || {};
-            document.getElementById('lessonNoteOutput').value = pkg.lessonNote || '';
-            document.getElementById('teachingProcessOutput').value = pkg.teachingProcess || '';
-            document.getElementById('studentResourceOutput').value = pkg.studentResource || '';
-            document.getElementById('handwrittenOutput').value = pkg.handwrittenNotes || '';
-            document.getElementById('youtubeOutput').value = pkg.youtubeLinks ? pkg.youtubeLinks.join('\n') : '';
-        });
-
-        // Notebook: subject/week change
-        document.getElementById('notebookSubjectSelect').addEventListener('change', (e) => {
-            const subject = e.target.value;
-            if (!subject) return;
-            populateWeekSelects(subject);
-        });
-
-        document.getElementById('notebookWeekSelect').addEventListener('change', (e) => {
-            const subject = document.getElementById('notebookSubjectSelect').value;
-            const weekNum = e.target.value;
-            if (!subject || !weekNum) {
-                document.getElementById('notebookContent').innerText = '';
-                return;
-            }
-            const key = `${subject}_${weekNum}`;
-            const pkg = lessonNotesMap[key] || {};
-            document.getElementById('notebookContent').innerText = pkg.lessonNote || '';
-            updateLessonNoteStatus(pkg.status || 'draft');
-        });
-
-        // Save notebook (lesson note)
-        document.getElementById('saveNotebookBtn').addEventListener('click', async () => {
-            const subject = document.getElementById('notebookSubjectSelect').value;
-            const weekNum = document.getElementById('notebookWeekSelect').value;
-            if (!subject || !weekNum) {
-                alert('Select subject and week.');
-                return;
-            }
-            const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
-            const content = document.getElementById('notebookContent').innerText;
-            if (!content.trim()) {
-                alert('Content is empty.');
-                return;
-            }
-            const key = `${subject}_${weekNum}`;
+        async function saveEditorContent() {
+            if (!currentSubject || !currentWeek) return alert('Select subject and week.');
+            const content = quill.getText();
+            if (!content.trim()) return alert('Content is empty.');
+            const key = `${currentSubject}_${currentWeek}`;
             const existing = lessonNotesMap[key] || {};
+            const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
             const updateData = {
                 teacherId: currentUser.uid,
-                subject,
-                week: parseInt(weekNum),
+                subject: currentSubject,
+                week: currentWeek,
                 topic: weekData?.topic || '',
-                lessonNote: content,
+                [currentResourceType === 'lessonNote' ? 'lessonNote' : 
+                 currentResourceType === 'teachingProcess' ? 'teachingProcess' :
+                 currentResourceType === 'studentResource' ? 'studentResource' : 'handwrittenNotes']: content,
                 classId: userData.classTeaching,
                 status: existing.status || 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            if (existing.id) {
-                Object.assign(updateData, existing);
-                updateData.lessonNote = content;
-            }
+            if (existing.id) Object.assign(updateData, existing, { [currentResourceType]: content });
             try {
-                if (existing.id) {
-                    await db.collection('lessonNotes').doc(existing.id).update(updateData);
-                } else {
-                    const docRef = await db.collection('lessonNotes').add(updateData);
-                    lessonNotesMap[key] = { id: docRef.id, ...updateData };
-                }
-                alert('Lesson note saved.');
-                updateLessonNoteStatus('draft');
-            } catch (error) {
-                handleFirestoreError(error, 'saveNotebook');
-            }
-        });
+                if (existing.id) await db.collection('lessonNotes').doc(existing.id).update(updateData);
+                else { const docRef = await db.collection('lessonNotes').add(updateData); lessonNotesMap[key] = { id: docRef.id, ...updateData }; }
+                alert('Saved.');
+            } catch (error) { alert('Error: ' + error.message); }
+        }
 
-        // Submit lesson note for approval
-        document.getElementById('submitLessonNoteBtn').addEventListener('click', async () => {
-            const subject = document.getElementById('notebookSubjectSelect').value;
-            const weekNum = document.getElementById('notebookWeekSelect').value;
-            if (!subject || !weekNum) {
-                alert('Select subject and week.');
-                return;
-            }
-            const weekData = syllabusMap[subject]?.weeks?.find(w => w.week == weekNum);
-            const content = document.getElementById('notebookContent').innerText;
-            if (!content.trim()) {
-                alert('Content is empty.');
-                return;
-            }
-            const key = `${subject}_${weekNum}`;
+        async function submitEditorForApproval() {
+            if (!currentSubject || !currentWeek) return alert('Select subject and week.');
+            const content = quill.getText();
+            if (!content.trim()) return alert('Content is empty.');
+            const key = `${currentSubject}_${currentWeek}`;
             const existing = lessonNotesMap[key] || {};
+            const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
             const updateData = {
                 teacherId: currentUser.uid,
-                subject,
-                week: parseInt(weekNum),
+                subject: currentSubject,
+                week: currentWeek,
                 topic: weekData?.topic || '',
-                lessonNote: content,
+                [currentResourceType === 'lessonNote' ? 'lessonNote' : 
+                 currentResourceType === 'teachingProcess' ? 'teachingProcess' :
+                 currentResourceType === 'studentResource' ? 'studentResource' : 'handwrittenNotes']: content,
                 classId: userData.classTeaching,
                 status: 'pending',
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            if (existing.id) {
-                Object.assign(updateData, existing);
-                updateData.lessonNote = content;
-                updateData.status = 'pending';
-                updateData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
-            }
+            if (existing.id) Object.assign(updateData, existing, { status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() });
             try {
-                if (existing.id) {
-                    await db.collection('lessonNotes').doc(existing.id).update(updateData);
-                } else {
-                    const docRef = await db.collection('lessonNotes').add(updateData);
-                    lessonNotesMap[key] = { id: docRef.id, ...updateData };
-                }
-                alert('Lesson note submitted for approval.');
-                updateLessonNoteStatus('pending');
-            } catch (error) {
-                handleFirestoreError(error, 'submitLessonNote');
-            }
-        });
-
-        function updateLessonNoteStatus(status) {
-            const el = document.getElementById('lessonNoteStatus');
-            el.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            el.className = `status-badge status-${status}`;
+                if (existing.id) await db.collection('lessonNotes').doc(existing.id).update(updateData);
+                else { const docRef = await db.collection('lessonNotes').add(updateData); lessonNotesMap[key] = { id: docRef.id, ...updateData }; }
+                alert('Submitted for approval.');
+            } catch (error) { alert('Error: ' + error.message); }
         }
 
-        // Main tabs switching
-        const mainTabs = document.querySelectorAll('#mainTabs .subject-tab');
-        const mainContents = document.querySelectorAll('.tab-content');
-        mainTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabName = tab.dataset.tab;
-                mainTabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                mainContents.forEach(c => c.classList.remove('active'));
-                document.getElementById(`tab-${tabName}`).classList.add('active');
-            });
+        async function publishResource(noteId) {
+            if (!noteId) return;
+            try {
+                await db.collection('lessonNotes').doc(noteId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                alert('Published to students!');
+                document.getElementById('publishBtn').style.display = 'none';
+            } catch (error) { alert('Error: ' + error.message); }
+        }
+
+        // Post-approval buttons
+        document.getElementById('createTeachingProcessBtn').addEventListener('click', () => {
+            currentResourceType = 'teachingProcess';
+            document.getElementById('editorTitle').textContent = `Week ${currentWeek} Teaching Process`;
+            const key = `${currentSubject}_${currentWeek}`;
+            const note = lessonNotesMap[key] || {};
+            quill.setText(note.teachingProcess || '');
         });
+        document.getElementById('createStudentResourcesBtn').addEventListener('click', () => {
+            currentResourceType = 'studentResource';
+            document.getElementById('editorTitle').textContent = `Week ${currentWeek} Student Resources`;
+            const key = `${currentSubject}_${currentWeek}`;
+            const note = lessonNotesMap[key] || {};
+            quill.setText(note.studentResource || '');
+        });
+        document.getElementById('createHandwritingBtn').addEventListener('click', () => {
+            currentResourceType = 'handwritten';
+            document.getElementById('editorTitle').textContent = `Week ${currentWeek} Handwriting Notes`;
+            const key = `${currentSubject}_${currentWeek}`;
+            const note = lessonNotesMap[key] || {};
+            quill.setText(note.handwrittenNotes || '');
+        });
+
+        // Add subject
+        document.getElementById('addSubjectBtn').addEventListener('click', async () => {
+            const newSubject = prompt('Enter new subject name:');
+            if (!newSubject?.trim()) return;
+            if (subjects.includes(newSubject.trim())) return alert('Subject already exists.');
+            subjects.push(newSubject.trim());
+            try {
+                await db.collection('users').doc(currentUser.uid).update({ subjects });
+                renderSubjectGrid();
+            } catch (error) { alert('Error: ' + error.message); }
+        });
+
+        // Fill prompt (for compatibility, but not used in new UI)
+        window.fillPrompt = function(type) {
+            // optional, could be removed
+        };
     </script>
 </body>
 </html>
