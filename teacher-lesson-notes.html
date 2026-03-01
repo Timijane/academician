@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Teacher Lesson Notes</title>
+    <title>EduTop Scholars · Professional Lesson Notes</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -15,7 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- Google Generative AI SDK (official) -->
+    <!-- Google Generative AI SDK (import map) -->
     <script type="importmap">
         {
             "imports": {
@@ -24,7 +24,7 @@
         }
     </script>
     <style>
-        /* (all your existing styles – unchanged) */
+        /* (keep all your existing styles – unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -146,7 +146,7 @@
         .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
         .dropdown-item:hover { background: var(--hover-bg); }
 
-        /* SUBJECT CARDS */
+        /* SUBJECT CARDS with delete icon */
         .subject-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -160,6 +160,7 @@
             padding: 1.5rem;
             cursor: pointer;
             transition: 0.2s;
+            position: relative;
         }
         .subject-card:hover {
             border-color: var(--accent);
@@ -168,7 +169,7 @@
         .subject-card.active {
             border: 2px solid var(--accent);
         }
-        .subject-card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+        .subject-card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; padding-right: 2rem; }
         .subject-card p { color: var(--text-secondary); font-size: 0.9rem; }
         .subject-badge {
             display: inline-block;
@@ -180,7 +181,22 @@
         }
         .subject-badge.approved { background: var(--success-bg); color: var(--success-text); }
         .subject-badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+        .subject-badge.rejected { background: var(--danger-bg); color: var(--danger-text); }
         .subject-badge.draft { background: var(--hover-bg); color: var(--text-secondary); }
+
+        .delete-subject {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: var(--danger-text);
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: 0.2s;
+        }
+        .delete-subject:hover { opacity: 1; transform: scale(1.1); }
 
         /* SYLLABUS SECTION */
         .syllabus-container {
@@ -443,7 +459,7 @@
             </div>
         </div>
 
-        <!-- SUBJECTS GRID -->
+        <!-- SUBJECTS GRID with delete icons -->
         <h2>Your Subjects</h2>
         <div class="subject-grid" id="subjectGrid"></div>
         <button class="btn btn-outline" id="addSubjectBtn" style="margin-bottom: 2rem;">
@@ -462,6 +478,8 @@
                         <button class="btn btn-outline" id="addWeekBtn"><i class="fas fa-plus"></i> Add Week</button>
                         <button class="btn btn-primary" id="saveSyllabusBtn"><i class="fas fa-save"></i> Save Draft</button>
                         <button class="btn btn-success" id="submitSyllabusBtn"><i class="fas fa-paper-plane"></i> Submit for Approval</button>
+                        <!-- Edit Syllabus button for rejected/approved (dynamic) -->
+                        <button class="btn btn-warning" id="editSyllabusBtn" style="display: none;"><i class="fas fa-edit"></i> Edit Syllabus</button>
                     </div>
                 </div>
                 <table class="syllabus-table">
@@ -561,8 +579,13 @@
         // ========== GEMINI SETUP ==========
         import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-        // 🔐 IMPORTANT: For production, move this to a backend proxy
-        const API_KEY = "AIzaSyAdXopRHqx5L2ZkQ-6yYi66NlJmGgOUB8s"; // Replace with your actual key
+        // 🔐 IMPORTANT: Replace with your actual Gemini API key
+        // For security, store in localStorage or prompt once.
+        let API_KEY = localStorage.getItem('gemini_api_key');
+        if (!API_KEY) {
+            API_KEY = prompt("Enter your Gemini API key (it will be saved locally):");
+            if (API_KEY) localStorage.setItem('gemini_api_key', API_KEY);
+        }
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -623,14 +646,14 @@ Describe exactly how the handwritten page should look, including the layout, hig
                 return text;
             } catch (error) {
                 console.error("AI Error:", error);
-                return "Sorry, I encountered an error. Please try again.";
+                return "Sorry, I encountered an error. Please try again. (Check your API key and console)";
             }
         }
 
         // Expose to global scope for button handlers
         window.teacherAssistant = teacherAssistant;
 
-        // ========== FIREBASE (unchanged) ==========
+        // ========== FIREBASE ==========
         const firebaseConfig = {
             apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
             authDomain: "edutopscholars-be54a.firebaseapp.com",
@@ -664,7 +687,7 @@ Describe exactly how the handwritten page should look, including the layout, hig
             updateThemeUI(next);
         });
 
-        // Sidebar toggle (unchanged)
+        // Sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -727,9 +750,7 @@ Describe exactly how the handwritten page should look, including the layout, hig
 
             showLoading();
             try {
-                // Determine which type based on context? For now use the prompt as is, but we can infer type from button clicks.
-                // We'll use a generic call; later we can pass type.
-                // For simplicity, we'll just use the prompt directly.
+                // Determine type – for simplicity use 'lesson' as base, but you can enhance.
                 const result = await teacherAssistant('lesson', selectedTopic || prompt, prompt);
                 lastGeneratedContent = result;
                 chatArea.removeChild(thinkingMsg);
@@ -750,7 +771,7 @@ Describe exactly how the handwritten page should look, including the layout, hig
             } else alert('No content to copy');
         };
 
-        // Auth check (unchanged)
+        // Auth check
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
             try {
@@ -774,7 +795,7 @@ Describe exactly how the handwritten page should look, including the layout, hig
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
 
-        // Render subject grid
+        // Render subject grid with delete button
         function renderSubjectGrid() {
             const grid = document.getElementById('subjectGrid');
             grid.innerHTML = '';
@@ -782,11 +803,44 @@ Describe exactly how the handwritten page should look, including the layout, hig
             subjects.forEach(sub => {
                 const card = document.createElement('div');
                 card.className = 'subject-card';
-                card.innerHTML = `<h3>${sub}</h3><p>${syllabusMap[sub]?.weeks?.length || 0} weeks in syllabus</p><span class="subject-badge ${syllabusMap[sub]?.status || 'draft'}">${syllabusMap[sub]?.status || 'No syllabus'}</span>`;
+                card.innerHTML = `
+                    <h3>${sub}</h3>
+                    <p>${syllabusMap[sub]?.weeks?.length || 0} weeks in syllabus</p>
+                    <span class="subject-badge ${syllabusMap[sub]?.status || 'draft'}">${syllabusMap[sub]?.status || 'No syllabus'}</span>
+                    <button class="delete-subject" onclick="event.stopPropagation(); deleteSubject('${sub}')"><i class="fas fa-trash"></i></button>
+                `;
                 card.onclick = (e) => selectSubject(sub, e.currentTarget);
                 grid.appendChild(card);
             });
         }
+
+        // Delete subject with audit
+        window.deleteSubject = async function(subject) {
+            if (!confirm(`Are you sure you want to delete subject "${subject}"? This will remove it from your list.`)) return;
+            try {
+                // Remove from local array
+                subjects = subjects.filter(s => s !== subject);
+                // Update Firestore
+                await db.collection('users').doc(currentUser.uid).update({ subjects });
+                // Log audit
+                await db.collection('auditLogs').add({
+                    teacherId: currentUser.uid,
+                    action: 'delete_subject',
+                    subject: subject,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                // Remove from syllabusMap
+                delete syllabusMap[subject];
+                // Hide syllabus section if current subject deleted
+                if (currentSubject === subject) {
+                    document.getElementById('syllabusSection').style.display = 'none';
+                    currentSubject = null;
+                }
+                renderSubjectGrid();
+            } catch (error) {
+                alert('Error deleting subject: ' + error.message);
+            }
+        };
 
         async function selectSubject(subject, cardElement) {
             currentSubject = subject;
@@ -812,12 +866,16 @@ Describe exactly how the handwritten page should look, including the layout, hig
                     syllabusMap[subject] = { id: doc.id, ...doc.data() };
                     renderSyllabusTable(doc.data().weeks || []);
                     updateSyllabusStatus(doc.data().status);
-                    document.getElementById('createLessonNoteBtn').style.display = doc.data().status === 'approved' ? 'inline-block' : 'none';
+                    // Control buttons based on status
+                    const status = doc.data().status;
+                    document.getElementById('createLessonNoteBtn').style.display = status === 'approved' ? 'inline-block' : 'none';
+                    document.getElementById('editSyllabusBtn').style.display = (status === 'rejected' || status === 'approved') ? 'inline-block' : 'none';
                 } else {
                     syllabusMap[subject] = { weeks: [], status: 'draft' };
                     renderSyllabusTable([]);
                     updateSyllabusStatus('draft');
                     document.getElementById('createLessonNoteBtn').style.display = 'none';
+                    document.getElementById('editSyllabusBtn').style.display = 'none';
                 }
             } catch (error) { console.error(error); }
         }
@@ -856,14 +914,31 @@ Describe exactly how the handwritten page should look, including the layout, hig
             renderSyllabusTable(syllabusMap[currentSubject].weeks);
         });
 
+        // Helper to log syllabus audit
+        async function logSyllabusAudit(action, subject, details = {}) {
+            await db.collection('auditLogs').add({
+                teacherId: currentUser.uid,
+                action: `syllabus_${action}`,
+                subject: subject,
+                details: details,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
         document.getElementById('saveSyllabusBtn').addEventListener('click', async () => {
             if (!currentSubject) return alert('Select a subject.');
             const weeks = syllabusMap[currentSubject]?.weeks;
             if (!weeks?.length) return alert('Add at least one week.');
             try {
                 const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-                if (syllabusMap[currentSubject].id) await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                else { const docRef = await db.collection('syllabus').add(data); syllabusMap[currentSubject].id = docRef.id; }
+                if (syllabusMap[currentSubject].id) {
+                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
+                    await logSyllabusAudit('update_draft', currentSubject, { weeks });
+                } else {
+                    const docRef = await db.collection('syllabus').add(data);
+                    syllabusMap[currentSubject].id = docRef.id;
+                    await logSyllabusAudit('create_draft', currentSubject, { weeks });
+                }
                 alert('Syllabus saved as draft.');
             } catch (error) { alert('Error: ' + error.message); }
         });
@@ -874,11 +949,41 @@ Describe exactly how the handwritten page should look, including the layout, hig
             if (!weeks?.length) return alert('Add at least one week.');
             try {
                 const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
-                if (syllabusMap[currentSubject].id) await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                else { const docRef = await db.collection('syllabus').add(data); syllabusMap[currentSubject].id = docRef.id; }
+                if (syllabusMap[currentSubject].id) {
+                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
+                    await logSyllabusAudit('submit', currentSubject, { weeks });
+                } else {
+                    const docRef = await db.collection('syllabus').add(data);
+                    syllabusMap[currentSubject].id = docRef.id;
+                    await logSyllabusAudit('submit', currentSubject, { weeks });
+                }
                 alert('Syllabus submitted for approval.');
                 updateSyllabusStatus('pending');
                 document.getElementById('createLessonNoteBtn').style.display = 'none';
+            } catch (error) { alert('Error: ' + error.message); }
+        });
+
+        // Edit Syllabus button (for rejected or approved)
+        document.getElementById('editSyllabusBtn').addEventListener('click', async () => {
+            if (!currentSubject) return;
+            const weeks = syllabusMap[currentSubject]?.weeks;
+            if (!weeks?.length) return alert('No weeks to edit.');
+            // For approved syllabus: keep status approved, just update and log
+            // For rejected: change status to draft or keep rejected? We'll keep as draft to allow resubmission.
+            const currentStatus = syllabusMap[currentSubject].status;
+            let newStatus = currentStatus === 'rejected' ? 'draft' : currentStatus; // if approved, stay approved
+            try {
+                const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
+                await logSyllabusAudit('edit', currentSubject, { weeks, fromStatus: currentStatus, toStatus: newStatus });
+                alert('Syllabus updated.');
+                updateSyllabusStatus(newStatus);
+                // If it was rejected and now draft, show appropriate buttons
+                if (newStatus === 'draft') {
+                    document.getElementById('createLessonNoteBtn').style.display = 'none';
+                } else if (newStatus === 'approved') {
+                    document.getElementById('createLessonNoteBtn').style.display = 'inline-block';
+                }
             } catch (error) { alert('Error: ' + error.message); }
         });
 
