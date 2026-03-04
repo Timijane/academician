@@ -13,186 +13,69 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (all existing styles remain exactly the same) */
+        /* (same styles as before, but we'll keep them concise) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
             --bg-sidebar: #ffffff;
             --text-primary: #0f172a;
             --text-secondary: #475569;
             --accent: #2563eb;
-            --accent-hover: #1d4ed8;
             --border: #e2e8f0;
             --card-bg: #ffffff;
             --hover-bg: #f1f5f9;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --success-bg: #22c55e20;
-            --success-text: #22c55e;
-            --warning-bg: #f59e0b20;
-            --warning-text: #f59e0b;
-            --danger-bg: #ef444420;
             --danger-text: #ef4444;
+            --success-text: #22c55e;
+            --warning-text: #f59e0b;
         }
-
         :root[data-theme="dark"] {
             --bg-primary: #0f172a;
             --bg-sidebar: #1e293b;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
             --accent: #38bdf8;
-            --accent-hover: #7dd3fc;
             --border: #334155;
             --card-bg: #1e293b;
             --hover-bg: #2d3a4f;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            --success-bg: #22c55e20;
-            --success-text: #4ade80;
-            --warning-bg: #f59e0b20;
-            --warning-text: #fbbf24;
-            --danger-bg: #ef444420;
             --danger-text: #f87171;
+            --success-text: #4ade80;
+            --warning-text: #fbbf24;
         }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); padding: 2rem 1rem; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; }
+        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s; cursor: pointer; text-decoration: none; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+        .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+        .main-content { flex: 1; margin-left: 260px; padding: 2rem; transition: margin-left 0.3s; }
+        .main-content.expanded { margin-left: 80px; }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-            width: 100%;
-        }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle { background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; color: white; }
+        .dropdown-menu { position: absolute; right: 0; top: 50px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 150px; display: none; }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
 
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .page-title h1 {
-            font-size: 2rem;
-            font-weight: 600;
-        }
-        .page-title p {
-            color: var(--text-secondary);
-        }
-        .profile-area {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-        .theme-toggle {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.5rem 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-        .profile-dropdown {
-            position: relative;
-            cursor: pointer;
-        }
-        .profile-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-        .dropdown-menu {
-            position: absolute;
-            right: 0;
-            top: 50px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 0.5rem;
-            min-width: 150px;
-            display: none;
-            z-index: 1000;
-        }
-        .profile-dropdown:hover .dropdown-menu {
-            display: block;
-        }
-        .dropdown-item {
-            padding: 0.5rem 1rem;
-            color: var(--text-primary);
-            border-radius: 0.5rem;
-        }
-        .dropdown-item:hover {
-            background: var(--hover-bg);
-        }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        .tab { padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border); }
+        .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        .tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.5rem;
-        }
-        .tab {
-            padding: 0.6rem 1.5rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            background: var(--card-bg);
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-        }
-        .tab.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .card-header h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
-
-        .btn {
-            padding: 0.5rem 1.2rem;
-            border: none;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+        .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-outline:hover { background: var(--hover-bg); }
         .btn-success { background: var(--success-text); color: white; }
@@ -200,106 +83,54 @@
         .btn-danger { background: var(--danger-text); color: white; }
         .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
 
-        .status-badge {
-            display: inline-block;
-            padding: 0.3rem 1rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-        .status-approved { background: var(--success-bg); color: var(--success-text); }
-        .status-pending { background: var(--warning-bg); color: var(--warning-text); }
-        .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
+        .status-badge { display: inline-block; padding: 0.3rem 1rem; border-radius: 2rem; font-weight: 500; font-size: 0.9rem; }
+        .status-approved { background: #22c55e20; color: var(--success-text); }
+        .status-pending { background: #f59e0b20; color: var(--warning-text); }
+        .status-rejected { background: #ef444420; color: var(--danger-text); }
         .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
-        .status-published { background: var(--success-bg); color: var(--success-text); }
 
-        .feedback-message {
-            margin-top: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: var(--danger-bg);
-            color: var(--danger-text);
-            border-radius: 0.75rem;
-            font-size: 0.9rem;
-            border-left: 4px solid var(--danger-text);
-        }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
+        th { background: var(--hover-bg); font-weight: 500; }
+        .time-input { width: 80px; }
+        .subject-input { width: 120px; }
+        .delete-row { color: var(--danger-text); cursor: pointer; text-align: center; }
 
-        .class-info {
-            background: var(--hover-bg);
-            border-radius: 1rem;
-            padding: 0.5rem 1rem;
-            display: inline-block;
-            margin-bottom: 1rem;
-        }
+        .actions { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
 
-        .table-responsive {
-            overflow-x: auto;
-            margin-bottom: 1rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        th, td {
-            border: 1px solid var(--border);
-            padding: 0.5rem;
-            text-align: left;
-        }
-        th {
-            background: var(--hover-bg);
-            font-weight: 500;
-        }
-        .time-input {
-            width: 80px;
-            max-width: 100%;
-        }
-        .subject-input {
-            width: 120px;
-            max-width: 100%;
-        }
-        .delete-row {
-            color: var(--danger-text);
-            cursor: pointer;
-            text-align: center;
-        }
+        .feedback-message { margin-top: 0.5rem; padding: 0.75rem; background: var(--danger-bg); color: var(--danger-text); border-radius: 0.75rem; }
+        .class-info { background: var(--hover-bg); border-radius: 1rem; padding: 0.5rem 1rem; display: inline-block; margin-bottom: 1rem; }
 
-        .actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-        }
+        .delete-modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index:2000; }
+        .delete-modal.active { display: flex; }
+        .delete-modal-content { background: var(--card-bg); border-radius: 1.5rem; padding: 2rem; max-width: 400px; width:90%; }
+        .delete-modal-actions { display: flex; gap:1rem; justify-content: flex-end; margin-top:2rem; }
 
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .error-message {
-            background: var(--danger-bg);
-            color: var(--danger-text);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--danger-text);
-        }
-        .error-message a {
-            color: var(--accent);
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            .container { padding: 1rem; }
-            .top-bar { flex-direction: column; align-items: flex-start; }
-            .profile-area { align-self: flex-end; }
-            .card-header { flex-direction: column; align-items: flex-start; }
-            .tabs { flex-wrap: wrap; }
-        }
+        @media (max-width:768px) { .sidebar { width:80px; } .sidebar .logo-area h2 { display:none; } .sidebar .nav-item span { display:none; } .main-content { margin-left:80px; } }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-calendar-alt"></i>
+            <h2>Teacher Panel</h2>
+        </div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
         <div class="top-bar">
             <div class="page-title">
                 <h1>Timetable</h1>
@@ -327,7 +158,7 @@
             <div class="tab" data-tab="rejected">Rejected</div>
         </div>
 
-        <!-- Draft Tab (editable table) -->
+        <!-- Draft Tab -->
         <div id="draftSection" class="card" style="display: block;">
             <div class="card-header">
                 <div>
@@ -336,57 +167,30 @@
                 </div>
             </div>
             <div class="class-info" id="classDisplay"></div>
-            <div id="draftError" class="error-message" style="display: none;"></div>
             <div class="table-responsive">
                 <table id="draftTable">
                     <thead>
                         <tr>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Monday</th>
-                            <th>Tuesday</th>
-                            <th>Wednesday</th>
-                            <th>Thursday</th>
-                            <th>Friday</th>
-                            <th></th>
+                            <th>Start</th><th>End</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th><th></th>
                         </tr>
                     </thead>
-                    <tbody id="draftBody">
-                        <!-- Rows added dynamically -->
-                    </tbody>
+                    <tbody id="draftBody"></tbody>
                 </table>
             </div>
             <div class="actions">
                 <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Period</button>
                 <button class="btn btn-primary" id="saveDraftBtn">Save Draft</button>
                 <button class="btn btn-success" id="submitBtn">Submit for Approval</button>
+                <button class="btn btn-danger" id="deleteDraftBtn" style="display: none;">Delete Entire Draft</button>
             </div>
         </div>
 
-        <!-- Pending Tab (view only) -->
+        <!-- Pending Tab -->
         <div id="pendingSection" class="card" style="display: none;">
-            <div class="card-header">
-                <h3>Pending Approval</h3>
-            </div>
+            <div class="card-header"><h3>Pending Approval</h3></div>
             <div class="class-info" id="pendingClass"></div>
-            <div id="pendingError" class="error-message" style="display: none;"></div>
             <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Monday</th>
-                            <th>Tuesday</th>
-                            <th>Wednesday</th>
-                            <th>Thursday</th>
-                            <th>Friday</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pendingBody">
-                        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
-                    </tbody>
-                </table>
+                <table><thead><tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr></thead><tbody id="pendingBody"></tbody></table>
             </div>
             <div class="actions">
                 <button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button>
@@ -395,64 +199,40 @@
 
         <!-- Approved Tab -->
         <div id="approvedSection" class="card" style="display: none;">
-            <div class="card-header">
-                <h3>Approved Timetable</h3>
-            </div>
+            <div class="card-header"><h3>Approved Timetable</h3></div>
             <div class="class-info" id="approvedClass"></div>
-            <div id="approvedError" class="error-message" style="display: none;"></div>
             <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Monday</th>
-                            <th>Tuesday</th>
-                            <th>Wednesday</th>
-                            <th>Thursday</th>
-                            <th>Friday</th>
-                        </tr>
-                    </thead>
-                    <tbody id="approvedBody">
-                        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
-                    </tbody>
-                </table>
+                <table><thead><tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr></thead><tbody id="approvedBody"></tbody></table>
             </div>
             <div class="actions">
                 <button class="btn btn-success" id="publishBtn">Publish to Students</button>
                 <button class="btn btn-warning" id="editApprovedBtn">Edit (create new draft)</button>
-                <button class="btn btn-outline" id="viewStudentLink" onclick="window.open('student-timetable.html', '_blank')">View Student View</button>
+                <button class="btn btn-outline" onclick="window.open('student-timetable.html','_blank')">View Student View</button>
             </div>
         </div>
 
         <!-- Rejected Tab -->
         <div id="rejectedSection" class="card" style="display: none;">
-            <div class="card-header">
-                <h3>Rejected Proposal</h3>
-            </div>
+            <div class="card-header"><h3>Rejected Proposal</h3></div>
             <div id="rejectedFeedback" class="feedback-message" style="display: none;"></div>
             <div class="class-info" id="rejectedClass"></div>
-            <div id="rejectedError" class="error-message" style="display: none;"></div>
             <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Monday</th>
-                            <th>Tuesday</th>
-                            <th>Wednesday</th>
-                            <th>Thursday</th>
-                            <th>Friday</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rejectedBody">
-                        <tr><td colspan="7" class="empty-state">Loading...</td></tr>
-                    </tbody>
-                </table>
+                <table><thead><tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr></thead><tbody id="rejectedBody"></tbody></table>
             </div>
             <div class="actions">
                 <button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="delete-modal" id="deleteModal">
+        <div class="delete-modal-content">
+            <h3>Confirm Deletion</h3>
+            <p id="deleteMessage">Are you sure you want to delete this draft? This cannot be undone.</p>
+            <div class="delete-modal-actions">
+                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
             </div>
         </div>
     </div>
@@ -471,81 +251,74 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme toggle
+        // Theme & sidebar
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
         const themeText = themeToggle.querySelector('span');
-        function updateThemeUI(theme) {
-            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
-        }
-        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        function updateThemeUI(theme) { themeIcon.className = theme==='dark'?'fas fa-moon':'fas fa-sun'; themeText.textContent = theme==='dark'?'Dark':'Light'; }
+        const savedTheme = localStorage.getItem('edutopscholars-theme')||'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
-        themeToggle.addEventListener('click', () => {
+        themeToggle.addEventListener('click', ()=>{
             const current = html.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
+            const next = current==='dark'?'light':'dark';
             html.setAttribute('data-theme', next);
             localStorage.setItem('edutopscholars-theme', next);
             updateThemeUI(next);
         });
 
-        // Auth check
-        let currentUser = null;
-        let userData = null;
-        let currentClassId = null;
-        // State for each tab
-        let draftProposalId = null;
-        let draftData = [];
-        let pendingProposalId = null;
-        let pendingData = [];
-        let approvedData = null; // from timetables collection
-        let rejectedProposalId = null;
-        let rejectedData = [];
-        let rejectedFeedback = '';
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', ()=>{
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
 
+        // Global vars
+        let currentUser = null, userData = null, currentClassId = null;
+        let draftProposalId = null, draftData = [];
+        let pendingProposalId = null, pendingData = [];
+        let approvedData = null;
+        let rejectedProposalId = null, rejectedData = [], rejectedFeedback = '';
+
+        // Audit logging
+        async function logAudit(action, details) {
+            if (!currentUser || !userData) return;
+            await db.collection('auditLogs').add({
+                userId: currentUser.uid,
+                userName: `${userData.firstName||''} ${userData.surname||''}`.trim() || 'Teacher',
+                userEmail: userData.email || currentUser.email,
+                role: 'teacher',
+                action,
+                details,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userAgent: navigator.userAgent
+            });
+        }
+
+        // Auth
         auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'teacher-login.html';
-                return;
-            }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                auth.signOut();
-                window.location.href = 'index.html';
-                return;
-            }
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            const doc = await db.collection('users').doc(user.uid).get();
+            if (!doc.exists || doc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
             currentUser = user;
-            userData = userDoc.data();
-            document.getElementById('profileInitials').textContent = 
-                (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-            document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Teacher'}`;
-
+            userData = doc.data();
+            document.getElementById('profileInitials').textContent = (userData.firstName?.[0]||'T') + (userData.surname?.[0]||'E');
             currentClassId = userData.classTeaching;
             if (!currentClassId) {
                 document.getElementById('classDisplay').innerHTML = 'You are not assigned to any class.';
-                disableAllButtons();
                 return;
             }
             document.getElementById('classDisplay').innerHTML = `Class: <strong>${currentClassId}</strong>`;
-
-            // Check if teacher is approved – otherwise submission will fail
-            if (!userData.approved) {
-                alert('Your account is not approved yet. You cannot submit timetables.');
-                return;
-            }
-
             await loadAllData();
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut().then(() => window.location.href = 'index.html');
-        });
-
-        function disableAllButtons() {
-            document.querySelectorAll('button').forEach(btn => btn.disabled = true);
-        }
+        document.getElementById('logoutBtn').addEventListener('click', ()=> auth.signOut().then(()=>window.location.href='index.html'));
 
         // Tab switching
         const tabs = document.querySelectorAll('.tab');
@@ -555,16 +328,12 @@
             approved: document.getElementById('approvedSection'),
             rejected: document.getElementById('rejectedSection')
         };
-
         tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', ()=>{
                 const tabName = tab.dataset.tab;
-                tabs.forEach(t => t.classList.remove('active'));
+                tabs.forEach(t=>t.classList.remove('active'));
                 tab.classList.add('active');
-                Object.keys(sections).forEach(key => {
-                    sections[key].style.display = key === tabName ? 'block' : 'none';
-                });
-                // Refresh data if needed
+                Object.keys(sections).forEach(k=> sections[k].style.display = k===tabName ? 'block' : 'none');
                 if (tabName === 'draft') renderDraft();
                 else if (tabName === 'pending') renderPending();
                 else if (tabName === 'approved') renderApproved();
@@ -573,401 +342,234 @@
         });
 
         async function loadAllData() {
-            // Clear previous errors
-            document.getElementById('draftError').style.display = 'none';
-            document.getElementById('pendingError').style.display = 'none';
-            document.getElementById('rejectedError').style.display = 'none';
-            document.getElementById('approvedError').style.display = 'none';
-
-            // Load draft (status draft)
+            // Draft
             try {
-                const draftSnap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClassId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'draft')
-                    .orderBy('updatedAt', 'desc')
-                    .limit(1)
-                    .get();
-                if (!draftSnap.empty) {
-                    const doc = draftSnap.docs[0];
+                const snap = await db.collection('timetableProposals')
+                    .where('classId','==',currentClassId)
+                    .where('teacherId','==',currentUser.uid)
+                    .where('status','==','draft')
+                    .orderBy('updatedAt','desc').limit(1).get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
                     draftProposalId = doc.id;
                     draftData = doc.data().periods || [];
-                } else {
-                    draftProposalId = null;
-                    draftData = [];
-                }
-            } catch (error) {
-                console.error('Error loading draft:', error);
-                handleIndexError(error, 'draftError');
-                draftData = [];
-            }
+                } else { draftProposalId = null; draftData = []; }
+            } catch(e) { console.error(e); draftData = []; }
+            if (draftData.length === 0) draftData = [{ startTime:'08:00', endTime:'08:40', monday:'', tuesday:'', wednesday:'', thursday:'', friday:'' }];
 
-            // Load pending
+            // Pending
             try {
-                const pendingSnap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClassId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'pending')
-                    .orderBy('submittedAt', 'desc')
-                    .limit(1)
-                    .get();
-                if (!pendingSnap.empty) {
-                    const doc = pendingSnap.docs[0];
+                const snap = await db.collection('timetableProposals')
+                    .where('classId','==',currentClassId)
+                    .where('teacherId','==',currentUser.uid)
+                    .where('status','==','pending')
+                    .orderBy('submittedAt','desc').limit(1).get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
                     pendingProposalId = doc.id;
                     pendingData = doc.data().periods || [];
-                } else {
-                    pendingProposalId = null;
-                    pendingData = [];
-                }
-            } catch (error) {
-                console.error('Error loading pending:', error);
-                handleIndexError(error, 'pendingError');
-                pendingData = [];
-            }
+                } else { pendingProposalId = null; pendingData = []; }
+            } catch(e) { console.error(e); pendingData = []; }
 
-            // Load approved timetable from timetables collection
+            // Approved
             try {
-                const approvedSnap = await db.collection('timetables').doc(currentClassId).get();
-                if (approvedSnap.exists) {
-                    approvedData = approvedSnap.data();
-                } else {
-                    approvedData = null;
-                }
-            } catch (error) {
-                console.error('Error loading approved:', error);
-                handleIndexError(error, 'approvedError');
-                approvedData = null;
-            }
+                const snap = await db.collection('timetables').doc(currentClassId).get();
+                if (snap.exists) approvedData = snap.data();
+                else approvedData = null;
+            } catch(e) { console.error(e); approvedData = null; }
 
-            // Load rejected
+            // Rejected
             try {
-                const rejectedSnap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClassId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'rejected')
-                    .orderBy('submittedAt', 'desc')
-                    .limit(1)
-                    .get();
-                if (!rejectedSnap.empty) {
-                    const doc = rejectedSnap.docs[0];
+                const snap = await db.collection('timetableProposals')
+                    .where('classId','==',currentClassId)
+                    .where('teacherId','==',currentUser.uid)
+                    .where('status','==','rejected')
+                    .orderBy('submittedAt','desc').limit(1).get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
                     rejectedProposalId = doc.id;
                     rejectedData = doc.data().periods || [];
                     rejectedFeedback = doc.data().feedback || '';
-                } else {
-                    rejectedProposalId = null;
-                    rejectedData = [];
-                    rejectedFeedback = '';
-                }
-            } catch (error) {
-                console.error('Error loading rejected:', error);
-                handleIndexError(error, 'rejectedError');
-                rejectedData = [];
-            }
+                } else { rejectedProposalId = null; rejectedData = []; rejectedFeedback = ''; }
+            } catch(e) { console.error(e); rejectedData = []; }
 
-            // If no draft exists, initialize with one empty row
-            if (draftData.length === 0 && !document.getElementById('draftError').style.display === 'block') {
-                draftData = [{
-                    startTime: '08:00',
-                    endTime: '08:40',
-                    monday: '',
-                    tuesday: '',
-                    wednesday: '',
-                    thursday: '',
-                    friday: ''
-                }];
-            }
-
-            // Render current tab
             const activeTab = document.querySelector('.tab.active').dataset.tab;
             if (activeTab === 'draft') renderDraft();
             else if (activeTab === 'pending') renderPending();
             else if (activeTab === 'approved') renderApproved();
             else if (activeTab === 'rejected') renderRejected();
+
+            document.getElementById('deleteDraftBtn').style.display = draftProposalId ? 'inline-block' : 'none';
         }
 
-        // Helper to display index creation link
-        function handleIndexError(error, errorDivId) {
-            const errorDiv = document.getElementById(errorDivId);
-            if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-                const url = match ? match[0] : '#';
-                errorDiv.innerHTML = `
-                    <strong>Missing Firestore index.</strong><br>
-                    Please create it by clicking 
-                    <a href="${url}" target="_blank">this link</a>.
-                `;
-                errorDiv.style.display = 'block';
-            } else if (error.code === 'permission-denied') {
-                errorDiv.textContent = 'Permission denied. Please contact your administrator.';
-                errorDiv.style.display = 'block';
-            } else {
-                errorDiv.textContent = `Error: ${error.message}`;
-                errorDiv.style.display = 'block';
-            }
-        }
-
-        // ---------- Draft Tab ----------
+        // ========== DRAFT ==========
         function renderDraft() {
             const tbody = document.getElementById('draftBody');
             let html = '';
-            draftData.forEach((period, index) => {
-                html += `
-                <tr>
-                    <td><input type="time" class="time-input" value="${period.startTime}" data-index="${index}" data-field="startTime"></td>
-                    <td><input type="time" class="time-input" value="${period.endTime}" data-index="${index}" data-field="endTime"></td>
-                    <td><input type="text" class="subject-input" value="${period.monday || ''}" placeholder="Subject" data-index="${index}" data-field="monday"></td>
-                    <td><input type="text" class="subject-input" value="${period.tuesday || ''}" placeholder="Subject" data-index="${index}" data-field="tuesday"></td>
-                    <td><input type="text" class="subject-input" value="${period.wednesday || ''}" placeholder="Subject" data-index="${index}" data-field="wednesday"></td>
-                    <td><input type="text" class="subject-input" value="${period.thursday || ''}" placeholder="Subject" data-index="${index}" data-field="thursday"></td>
-                    <td><input type="text" class="subject-input" value="${period.friday || ''}" placeholder="Subject" data-index="${index}" data-field="friday"></td>
-                    <td class="delete-row" onclick="deleteDraftRow(${index})"><i class="fas fa-trash"></i></td>
-                </tr>
-                `;
+            draftData.forEach((p,i) => {
+                html += `<tr>
+                    <td><input type="time" class="time-input" value="${p.startTime}" data-index="${i}" data-field="startTime"></td>
+                    <td><input type="time" class="time-input" value="${p.endTime}" data-index="${i}" data-field="endTime"></td>
+                    <td><input type="text" class="subject-input" value="${p.monday||''}" placeholder="Subject" data-index="${i}" data-field="monday"></td>
+                    <td><input type="text" class="subject-input" value="${p.tuesday||''}" data-index="${i}" data-field="tuesday"></td>
+                    <td><input type="text" class="subject-input" value="${p.wednesday||''}" data-index="${i}" data-field="wednesday"></td>
+                    <td><input type="text" class="subject-input" value="${p.thursday||''}" data-index="${i}" data-field="thursday"></td>
+                    <td><input type="text" class="subject-input" value="${p.friday||''}" data-index="${i}" data-field="friday"></td>
+                    <td class="delete-row" onclick="deleteDraftRow(${i})"><i class="fas fa-trash"></i></td>
+                </tr>`;
             });
             tbody.innerHTML = html;
-
-            // Attach input listeners
-            document.querySelectorAll('#draftBody input[data-index]').forEach(input => {
-                input.addEventListener('input', function(e) {
-                    const index = this.dataset.index;
-                    const field = this.dataset.field;
-                    draftData[index][field] = this.value;
+            document.querySelectorAll('#draftBody input[data-index]').forEach(inp => {
+                inp.addEventListener('input', function(e) {
+                    const i = this.dataset.index, f = this.dataset.field;
+                    draftData[i][f] = this.value;
                 });
             });
         }
 
         window.deleteDraftRow = (index) => {
-            draftData.splice(index, 1);
+            draftData.splice(index,1);
             renderDraft();
         };
 
         document.getElementById('addRowBtn').addEventListener('click', () => {
-            draftData.push({
-                startTime: '08:00',
-                endTime: '08:40',
-                monday: '',
-                tuesday: '',
-                wednesday: '',
-                thursday: '',
-                friday: ''
-            });
+            draftData.push({ startTime:'08:00', endTime:'08:40', monday:'', tuesday:'', wednesday:'', thursday:'', friday:'' });
             renderDraft();
         });
 
         document.getElementById('saveDraftBtn').addEventListener('click', async () => {
-            if (!currentClassId) return;
-            const data = {
-                classId: currentClassId,
-                teacherId: currentUser.uid,
-                periods: draftData,
-                status: 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: draftData, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
             try {
                 if (draftProposalId) {
                     await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                    await logAudit('timetable_update_draft', { classId: currentClassId, periodsCount: draftData.length });
                 } else {
                     const ref = await db.collection('timetableProposals').add(data);
                     draftProposalId = ref.id;
+                    await logAudit('timetable_create_draft', { classId: currentClassId, periodsCount: draftData.length });
                 }
                 alert('Draft saved.');
-            } catch (error) {
-                console.error('Save draft error:', error);
-                alert('Failed to save draft: ' + error.message);
-            }
+                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
+            } catch(e) { alert(e.message); }
         });
 
         document.getElementById('submitBtn').addEventListener('click', async () => {
-            if (!currentClassId) return;
-            if (draftData.length === 0) {
-                alert('Please add at least one period.');
-                return;
-            }
-            const data = {
-                classId: currentClassId,
-                teacherId: currentUser.uid,
-                periods: draftData,
-                status: 'pending',
-                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            if (draftData.length === 0) return alert('Add at least one period.');
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: draftData, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
             try {
                 if (draftProposalId) {
                     await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                    await logAudit('timetable_submit', { classId: currentClassId, periodsCount: draftData.length });
                 } else {
                     await db.collection('timetableProposals').add(data);
+                    await logAudit('timetable_submit', { classId: currentClassId, periodsCount: draftData.length });
                 }
-                alert('Timetable submitted for approval.');
+                alert('Submitted for approval.');
                 await loadAllData();
                 document.querySelector('.tab[data-tab="pending"]').click();
-            } catch (error) {
-                console.error('Submit error:', error);
-                alert('Failed to submit: ' + error.message);
-            }
+            } catch(e) { alert(e.message); }
         });
 
-        // ---------- Pending Tab ----------
+        // Delete entire draft
+        document.getElementById('deleteDraftBtn').addEventListener('click', () => {
+            openDeleteModal('Delete this entire draft?', async () => {
+                if (!draftProposalId) return;
+                await db.collection('timetableProposals').doc(draftProposalId).delete();
+                await logAudit('timetable_delete_draft', { classId: currentClassId });
+                draftProposalId = null;
+                draftData = [{ startTime:'08:00', endTime:'08:40', monday:'', tuesday:'', wednesday:'', thursday:'', friday:'' }];
+                renderDraft();
+                document.getElementById('deleteDraftBtn').style.display = 'none';
+                closeDeleteModal();
+            });
+        });
+
+        // ========== PENDING ==========
         function renderPending() {
             const tbody = document.getElementById('pendingBody');
-            const classSpan = document.getElementById('pendingClass');
-            classSpan.innerHTML = `Class: <strong>${currentClassId}</strong>`;
-            if (pendingData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No pending proposal.</td></tr>';
-                document.getElementById('editPendingBtn').style.display = 'none';
-                return;
-            }
-            document.getElementById('editPendingBtn').style.display = 'inline-block';
+            if (pendingData.length === 0) { tbody.innerHTML = '<tr><td colspan="7">No pending proposal.</td></tr>'; return; }
             let html = '';
             pendingData.forEach(p => {
-                html += `
-                <tr>
-                    <td>${p.startTime}</td>
-                    <td>${p.endTime}</td>
-                    <td>${p.monday || '—'}</td>
-                    <td>${p.tuesday || '—'}</td>
-                    <td>${p.wednesday || '—'}</td>
-                    <td>${p.thursday || '—'}</td>
-                    <td>${p.friday || '—'}</td>
-                </tr>
-                `;
+                html += `<tr><td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||'—'}</td><td>${p.tuesday||'—'}</td><td>${p.wednesday||'—'}</td><td>${p.thursday||'—'}</td><td>${p.friday||'—'}</td></tr>`;
             });
             tbody.innerHTML = html;
+            document.getElementById('pendingClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
         }
 
         document.getElementById('editPendingBtn').addEventListener('click', async () => {
             if (!pendingProposalId) return;
-            try {
-                await db.collection('timetableProposals').doc(pendingProposalId).update({
-                    status: 'draft',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                await loadAllData();
-                document.querySelector('.tab[data-tab="draft"]').click();
-            } catch (error) {
-                console.error('Edit pending error:', error);
-                alert('Failed to edit: ' + error.message);
-            }
+            await db.collection('timetableProposals').doc(pendingProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await logAudit('timetable_edit_pending', { classId: currentClassId });
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // ---------- Approved Tab ----------
+        // ========== APPROVED ==========
         function renderApproved() {
             const tbody = document.getElementById('approvedBody');
-            const classSpan = document.getElementById('approvedClass');
-            classSpan.innerHTML = `Class: <strong>${currentClassId}</strong>`;
             if (!approvedData || !approvedData.periods || approvedData.periods.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No approved timetable.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7">No approved timetable.</td></tr>';
                 document.getElementById('publishBtn').style.display = 'none';
-                document.getElementById('editApprovedBtn').style.display = 'none';
-                document.getElementById('viewStudentLink').style.display = 'none';
                 return;
             }
-            const periods = approvedData.periods.sort((a,b) => a.startTime.localeCompare(b.startTime));
+            const periods = approvedData.periods.sort((a,b)=> a.startTime.localeCompare(b.startTime));
             let html = '';
             periods.forEach(p => {
-                html += `
-                <tr>
-                    <td>${p.startTime}</td>
-                    <td>${p.endTime}</td>
-                    <td>${p.monday || '—'}</td>
-                    <td>${p.tuesday || '—'}</td>
-                    <td>${p.wednesday || '—'}</td>
-                    <td>${p.thursday || '—'}</td>
-                    <td>${p.friday || '—'}</td>
-                </tr>
-                `;
+                html += `<tr><td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||'—'}</td><td>${p.tuesday||'—'}</td><td>${p.wednesday||'—'}</td><td>${p.thursday||'—'}</td><td>${p.friday||'—'}</td></tr>`;
             });
             tbody.innerHTML = html;
+            document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
             document.getElementById('publishBtn').style.display = approvedData.published ? 'none' : 'inline-block';
-            document.getElementById('editApprovedBtn').style.display = 'inline-block';
-            document.getElementById('viewStudentLink').style.display = 'inline-block';
         }
 
         document.getElementById('publishBtn').addEventListener('click', async () => {
             if (!currentClassId || !approvedData) return;
-            try {
-                await db.collection('timetables').doc(currentClassId).update({
-                    published: true,
-                    publishedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                alert('Timetable published to students.');
-                await loadAllData();
-                renderApproved();
-            } catch (error) {
-                console.error('Publish error:', error);
-                alert('Failed to publish: ' + error.message);
-            }
+            await db.collection('timetables').doc(currentClassId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await logAudit('timetable_publish', { classId: currentClassId });
+            alert('Published to students.');
+            await loadAllData();
+            renderApproved();
         });
 
         document.getElementById('editApprovedBtn').addEventListener('click', async () => {
             if (!approvedData) return;
-            try {
-                const data = {
-                    classId: currentClassId,
-                    teacherId: currentUser.uid,
-                    periods: approvedData.periods,
-                    status: 'draft',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                const ref = await db.collection('timetableProposals').add(data);
-                draftProposalId = ref.id;
-                draftData = approvedData.periods.slice(); // copy
-                await loadAllData();
-                document.querySelector('.tab[data-tab="draft"]').click();
-            } catch (error) {
-                console.error('Edit approved error:', error);
-                alert('Failed to edit: ' + error.message);
-            }
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: approvedData.periods, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            const ref = await db.collection('timetableProposals').add(data);
+            await logAudit('timetable_edit_approved', { classId: currentClassId });
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // ---------- Rejected Tab ----------
+        // ========== REJECTED ==========
         function renderRejected() {
             const tbody = document.getElementById('rejectedBody');
-            const classSpan = document.getElementById('rejectedClass');
-            const feedbackEl = document.getElementById('rejectedFeedback');
-            classSpan.innerHTML = `Class: <strong>${currentClassId}</strong>`;
-            if (rejectedData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No rejected proposal.</td></tr>';
-                feedbackEl.style.display = 'none';
-                document.getElementById('editRejectedBtn').style.display = 'none';
-                return;
-            }
-            document.getElementById('editRejectedBtn').style.display = 'inline-block';
-            if (rejectedFeedback) {
-                feedbackEl.textContent = `Rejection feedback: ${rejectedFeedback}`;
-                feedbackEl.style.display = 'block';
-            } else {
-                feedbackEl.style.display = 'none';
-            }
+            if (rejectedData.length === 0) { tbody.innerHTML = '<tr><td colspan="7">No rejected proposal.</td></tr>'; return; }
             let html = '';
             rejectedData.forEach(p => {
-                html += `
-                <tr>
-                    <td>${p.startTime}</td>
-                    <td>${p.endTime}</td>
-                    <td>${p.monday || '—'}</td>
-                    <td>${p.tuesday || '—'}</td>
-                    <td>${p.wednesday || '—'}</td>
-                    <td>${p.thursday || '—'}</td>
-                    <td>${p.friday || '—'}</td>
-                </tr>
-                `;
+                html += `<tr><td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||'—'}</td><td>${p.tuesday||'—'}</td><td>${p.wednesday||'—'}</td><td>${p.thursday||'—'}</td><td>${p.friday||'—'}</td></tr>`;
             });
             tbody.innerHTML = html;
+            document.getElementById('rejectedClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
+            const feedbackEl = document.getElementById('rejectedFeedback');
+            if (rejectedFeedback) { feedbackEl.textContent = `Feedback: ${rejectedFeedback}`; feedbackEl.style.display = 'block'; } else feedbackEl.style.display = 'none';
         }
 
         document.getElementById('editRejectedBtn').addEventListener('click', async () => {
             if (!rejectedProposalId) return;
-            try {
-                await db.collection('timetableProposals').doc(rejectedProposalId).update({
-                    status: 'draft',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                await loadAllData();
-                document.querySelector('.tab[data-tab="draft"]').click();
-            } catch (error) {
-                console.error('Edit rejected error:', error);
-                alert('Failed to edit: ' + error.message);
-            }
+            await db.collection('timetableProposals').doc(rejectedProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await logAudit('timetable_edit_rejected', { classId: currentClassId });
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
         });
+
+        // Delete modal
+        const deleteModal = document.getElementById('deleteModal');
+        function openDeleteModal(msg, callback) {
+            document.getElementById('deleteMessage').textContent = msg;
+            deleteModal.classList.add('active');
+            document.getElementById('confirmDeleteBtn').onclick = callback;
+        }
+        window.closeDeleteModal = () => deleteModal.classList.remove('active');
     </script>
 </body>
 </html>
