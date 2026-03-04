@@ -3,26 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Professional Lesson Notes</title>
+    <title>EduTop Scholars · Lesson Notes Studio</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <!-- Quill Rich Text Editor -->
+    <!-- Quill Rich Text Editor (full Google Docs style) -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- Google Generative AI SDK (import map) -->
-    <script type="importmap">
-        {
-            "imports": {
-                "@google/generative-ai": "https://esm.run/@google/generative-ai"
-            }
-        }
-    </script>
     <style>
         /* ========== ROOT VARIABLES (LIGHT/DARK) ========== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,7 +69,7 @@
             display: flex;
         }
 
-        /* SIDEBAR */
+        /* SIDEBAR (unchanged) */
         .sidebar {
             width: 260px;
             background: var(--bg-sidebar);
@@ -237,7 +229,7 @@
             color: var(--text-primary);
         }
 
-        /* MAIN TABS (Syllabus, Notebook, Teach) */
+        /* MAIN TABS */
         .main-tabs {
             display: flex;
             gap: 0.5rem;
@@ -357,7 +349,7 @@
         .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
         .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
 
-        /* AI MODAL */
+        /* AI MODAL (unchanged) */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -412,6 +404,32 @@
             background: var(--input-bg); color: var(--text-primary);
         }
 
+        /* DELETE CONFIRMATION MODAL */
+        .delete-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2100;
+        }
+        .delete-modal.active { display: flex; }
+        .delete-modal-content {
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+        }
+        .delete-modal-content h3 { margin-bottom: 1rem; }
+        .delete-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
         /* LOADING OVERLAY */
         .loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -424,13 +442,6 @@
         .loading-content i { font-size: 3rem; color: var(--accent); margin-bottom: 1rem; }
         .loading-content p { color: var(--text-secondary); }
 
-        /* ERROR MESSAGE */
-        .error-message {
-            background: var(--danger-bg); color: var(--danger-text); padding: 1rem; border-radius: 0.75rem;
-            margin-bottom: 1rem; border-left: 4px solid var(--danger-text);
-        }
-        .error-message a { color: var(--accent); text-decoration: underline; }
-
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .sidebar .logo-area h2 { display: none; }
@@ -440,7 +451,7 @@
     </style>
 </head>
 <body>
-    <!-- SIDEBAR (unchanged) -->
+    <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <i class="fas fa-chalkboard-teacher"></i>
@@ -466,7 +477,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Lesson Notes Studio</h1>
-                <p>Create and manage lesson materials with AI assistance</p>
+                <p>Create and manage lesson materials with full editing tools</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -482,14 +493,14 @@
             </div>
         </div>
 
-        <!-- MAIN TABS (Syllabus, Notebook, Teach) -->
+        <!-- MAIN TABS -->
         <div class="main-tabs" id="mainTabs">
             <div class="main-tab active" data-tab="syllabus">Syllabus</div>
             <div class="main-tab" data-tab="notebook">Notebook</div>
             <div class="main-tab" data-tab="teach">Teach</div>
         </div>
 
-        <!-- SUBJECTS GRID (visible in Syllabus & Notebook tabs) -->
+        <!-- SUBJECTS GRID -->
         <div id="subjectsSection">
             <h2>Your Subjects</h2>
             <div class="subject-grid" id="subjectGrid"></div>
@@ -500,7 +511,6 @@
 
         <!-- SYLLABUS TAB CONTENT -->
         <div id="tab-syllabus" class="tab-content active">
-            <!-- SYLLABUS SECTION (shown when subject selected) -->
             <div id="syllabusSection" style="display: none;">
                 <div class="syllabus-container">
                     <div class="syllabus-header">
@@ -512,18 +522,14 @@
                             <button class="btn btn-outline" id="addWeekBtn"><i class="fas fa-plus"></i> Add Week</button>
                             <button class="btn btn-primary" id="saveSyllabusBtn"><i class="fas fa-save"></i> Save Draft</button>
                             <button class="btn btn-success" id="submitSyllabusBtn"><i class="fas fa-paper-plane"></i> Submit for Approval</button>
-                            <!-- Edit Syllabus button for rejected/approved (dynamic) -->
                             <button class="btn btn-warning" id="editSyllabusBtn" style="display: none;"><i class="fas fa-edit"></i> Edit Syllabus</button>
                         </div>
                     </div>
                     <table class="syllabus-table">
-                        <thead>
-                            <tr><th>Week</th><th>Topic</th><th>Objectives</th><th></th></tr>
-                        </thead>
+                        <thead><tr><th>Week</th><th>Topic</th><th>Objectives</th><th></th></tr></thead>
                         <tbody id="syllabusBody"></tbody>
                     </table>
                 </div>
-                <!-- Create Lesson Note Button (shown when syllabus approved) -->
                 <button class="btn btn-primary" id="createLessonNoteBtn" style="display: none; margin-bottom: 2rem;">
                     <i class="fas fa-plus-circle"></i> Create Lesson Note
                 </button>
@@ -532,26 +538,29 @@
 
         <!-- NOTEBOOK TAB CONTENT -->
         <div id="tab-notebook" class="tab-content">
-            <!-- WEEK TABS (visible after subject selection) -->
             <div class="week-tabs" id="weekTabs"></div>
-            <!-- EDITOR SECTION -->
             <div id="editorSection" style="display: none;">
                 <div class="editor-container">
                     <div class="editor-header">
                         <span class="editor-title"><i class="fas fa-book"></i> <span id="editorTitle">Lesson Note</span></span>
                         <div class="editor-actions">
-                            <button class="btn btn-outline" id="useAIAssistantBtn">
-                                <i class="fas fa-robot"></i> Teacher Assistant
-                            </button>
+                            <button class="btn btn-outline" id="useAIAssistantBtn"><i class="fas fa-robot"></i> Teacher Assistant</button>
                             <button class="btn btn-primary" id="saveEditorBtn">Save Draft</button>
                             <button class="btn btn-success" id="submitEditorBtn">Submit for Approval</button>
-                            <button class="btn btn-success" id="publishBtn" style="display: none;">Publish to Students</button>
+                            <button class="btn btn-danger" id="deleteResourceBtn" style="display: none;">Delete</button>
+                            <button class="btn btn-success" id="publishResourceBtn" style="display: none;">Publish to Students</button>
                         </div>
                     </div>
-                    <!-- Quill Editor -->
                     <div id="editor"></div>
                 </div>
-                <!-- POST-APPROVAL ACTION BUTTONS (for approved lesson note, now moved to Teach tab) -->
+                <div id="postApprovalActions" style="display: none; margin-bottom: 1rem;">
+                    <h3>Additional Resources</h3>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-outline" id="createTeachingProcessBtn"><i class="fas fa-chalkboard-teacher"></i> Teaching Process</button>
+                        <button class="btn btn-outline" id="createStudentResourcesBtn"><i class="fas fa-users"></i> Student Resources</button>
+                        <button class="btn btn-outline" id="createHandwritingBtn"><i class="fas fa-pen-fancy"></i> Handwriting Notes</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -573,24 +582,30 @@
             </div>
             <div class="modal-body">
                 <div class="topic-selector">
-                    <select id="aiTopicSelect">
-                        <option value="">Select a topic from your syllabus...</option>
-                    </select>
+                    <select id="aiTopicSelect"><option value="">Select a topic...</option></select>
                 </div>
                 <div class="chat-area" id="chatArea">
-                    <div class="message assistant">
-                        👋 Hello! I'm your Teacher Assistant. Tell me what you'd like me to create, and I'll help you generate professional Nigerian curriculum content.
-                    </div>
+                    <div class="message assistant">👋 Hello! I'm your Teacher Assistant. Ask me to create any lesson material.</div>
                 </div>
                 <div class="input-area">
-                    <input type="text" id="aiPromptInput" placeholder="Type your prompt here... (e.g., Create a lesson note on plants)">
+                    <input type="text" id="aiPromptInput" placeholder="Type your prompt...">
                     <button class="btn btn-primary" onclick="sendToAI()"><i class="fas fa-paper-plane"></i> Send</button>
                 </div>
                 <div style="margin-top: 0.5rem; text-align: right;">
-                    <button class="btn btn-sm btn-outline" onclick="copyToEditor()">
-                        <i class="fas fa-copy"></i> Copy to Editor
-                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="copyToEditor()"><i class="fas fa-copy"></i> Copy to Editor</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div class="delete-modal" id="deleteModal">
+        <div class="delete-modal-content">
+            <h3>Confirm Deletion</h3>
+            <p id="deleteMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
+            <div class="delete-modal-actions">
+                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
             </div>
         </div>
     </div>
@@ -599,83 +614,16 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
             <i class="fas fa-robot fa-spin"></i>
-            <h3>Teacher Assistant is thinking...</h3>
-            <p>Creating your educational content</p>
+            <h3>Processing...</h3>
         </div>
     </div>
 
     <script type="module">
-        // ========== GEMINI SETUP ==========
+        // ========== IMPORTS ==========
         import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
-
-        // 🔐 REPLACE WITH YOUR ACTUAL GEMINI API KEY (store in GitHub secret for production)
         const API_KEY = "AIzaSyAdXopRHqx5L2ZkQ-6yYi66NlJmGgOUB8s"; // Replace with your key
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        // Universal Teacher Assistant function
-        async function teacherAssistant(type, topic, extraInfo = "") {
-            let prompt = "";
-
-            const baseContext = `You are an expert Nigerian curriculum developer for Basic Education.
-Use Nigerian examples (jollof rice, plantain, Lagos, Abuja, Naira).
-Follow Nigerian Basic Education curriculum standards.
-Age-appropriate language for 4-5 years old. 40-minute lesson duration.
-Include Nigerian cultural values. Format with clear sections and bullet points.\n\n`;
-
-            if (type === "lesson") {
-                prompt = baseContext + `Create a comprehensive 40-minute lesson note on "${topic}".
-
-Include:
-- Objectives
-- Materials
-- Introduction (5 mins)
-- Content Development (25 mins) with Nigerian examples
-- Student Activities (10 mins)
-- Evaluation / Conclusion (5 mins)`;
-            } else if (type === "process") {
-                prompt = baseContext + `Based on the lesson topic "${topic}", create a clear teaching process guide for the teacher.
-
-Include:
-- Step-by-step teacher activities
-- Key questions to ask students (with expected answers)
-- Student activities
-- Classroom management tips
-- Materials needed`;
-            } else if (type === "resource") {
-                prompt = baseContext + `Create a student-friendly study resource (max 200 words) on "${topic}" for young learners.
-
-Make it simple and engaging. Include:
-- Simple definitions
-- Key facts
-- Nigerian examples
-- 3 practice questions
-
-Also suggest 3 appropriate educational YouTube video titles (not fake links) that would help students learn this topic.`;
-            } else if (type === "handwriting") {
-                prompt = baseContext + `Create handwritten study notes on "${topic}".
-Use student handwriting font on lined paper.
-Yellow highlighter for key terms.
-Red circles around dates.
-Add doodles to explain concepts.
-A4 size.
-
-Describe exactly how the handwritten page should look, including the layout, highlighted terms, circled dates, and doodle descriptions.`;
-            }
-
-            try {
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                const text = response.text();
-                return text;
-            } catch (error) {
-                console.error("AI Error:", error);
-                return "Sorry, I encountered an error. Please check your API key and try again.";
-            }
-        }
-
-        // Expose to global scope for button handlers
-        window.teacherAssistant = teacherAssistant;
 
         // ========== FIREBASE ==========
         const firebaseConfig = {
@@ -691,9 +639,20 @@ Describe exactly how the handwritten page should look, including the layout, hig
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme toggle
+        // ========== THEME & SIDEBAR ==========
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
         function updateThemeUI(theme) {
             const icon = themeToggle.querySelector('i:first-child');
             const text = themeToggle.querySelector('span');
@@ -711,19 +670,7 @@ Describe exactly how the handwritten page should look, including the layout, hig
             updateThemeUI(next);
         });
 
-        // Sidebar toggle
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const toggleBtn = document.getElementById('sidebarToggle');
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            const icon = toggleBtn.querySelector('i');
-            icon.classList.toggle('fa-chevron-left');
-            icon.classList.toggle('fa-chevron-right');
-        });
-
-        // Global variables
+        // ========== GLOBAL VARIABLES ==========
         let currentUser = null;
         let userData = null;
         let subjects = [];
@@ -735,141 +682,104 @@ Describe exactly how the handwritten page should look, including the layout, hig
         let quill = null;
         let lastGeneratedContent = '';
 
-        // Loading functions
+        // For deletion
+        let itemToDelete = null; // { type, id, subject, week }
+
+        // ========== UI HELPERS ==========
         function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
 
-        // AI Assistant functions
-        window.openAIAssistant = function() {
-            document.getElementById('aiAssistantModal').classList.add('active');
-            const select = document.getElementById('aiTopicSelect');
-            select.innerHTML = '<option value="">Select a topic from your syllabus...</option>';
-            if (syllabusMap[currentSubject]?.weeks) {
-                syllabusMap[currentSubject].weeks.forEach(w => {
-                    const option = document.createElement('option');
-                    option.value = w.topic;
-                    option.textContent = `Week ${w.week}: ${w.topic}`;
-                    select.appendChild(option);
-                });
-            }
-        };
-        window.closeAIAssistant = function() {
-            document.getElementById('aiAssistantModal').classList.remove('active');
-            document.getElementById('aiPromptInput').value = '';
-        };
-        window.sendToAI = async function() {
-            const prompt = document.getElementById('aiPromptInput').value;
-            const selectedTopic = document.getElementById('aiTopicSelect').value;
-            if (!prompt) return alert('Please enter a prompt');
-
-            const chatArea = document.getElementById('chatArea');
-            chatArea.innerHTML += `<div class="message user">${prompt}</div>`;
-            chatArea.scrollTop = chatArea.scrollHeight;
-
-            const thinkingMsg = document.createElement('div');
-            thinkingMsg.className = 'message assistant';
-            thinkingMsg.innerHTML = '<div class="assistant-thinking"><i class="fas fa-robot fa-spin"></i> Teacher Assistant is thinking...</div>';
-            chatArea.appendChild(thinkingMsg);
-            chatArea.scrollTop = chatArea.scrollHeight;
-
-            showLoading();
+        // ========== AUDIT LOGGING ==========
+        async function logAudit(action, details) {
+            if (!currentUser || !userData) return;
             try {
-                // Determine type based on currentResourceType? For simplicity, use 'lesson' for now.
-                const result = await teacherAssistant('lesson', selectedTopic || prompt, prompt);
-                lastGeneratedContent = result;
-                chatArea.removeChild(thinkingMsg);
-                chatArea.innerHTML += `<div class="message assistant">${result.replace(/\n/g, '<br>')}</div>`;
-                chatArea.scrollTop = chatArea.scrollHeight;
-            } catch (error) {
-                chatArea.removeChild(thinkingMsg);
-                chatArea.innerHTML += `<div class="message assistant">Error: ${error.message}</div>`;
-            } finally {
-                hideLoading();
-                document.getElementById('aiPromptInput').value = '';
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
+                    userEmail: userData.email || currentUser.email,
+                    role: 'teacher',
+                    action,
+                    details,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch (e) {
+                console.warn('Audit log failed', e);
             }
-        };
-        window.copyToEditor = function() {
-            if (lastGeneratedContent && quill) {
-                quill.setText(lastGeneratedContent);
-                closeAIAssistant();
-            } else alert('No content to copy');
-        };
+        }
 
-        // Auth check
+        // ========== AUTH ==========
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                    auth.signOut(); window.location.href = 'index.html'; return;
+                }
                 currentUser = user;
                 userData = userDoc.data();
-                document.getElementById('profileInitials').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileInitials').textContent = 
+                    (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
 
                 subjects = userData.subjects || [];
                 renderSubjectGrid();
 
                 quill = new Quill('#editor', {
                     theme: 'snow',
-                    modules: { toolbar: [ [{header:[1,2,3,false]}], ['bold','italic','underline','strike'], [{list:'ordered'},{list:'bullet'}], [{align:[]}], ['link','blockquote','code-block'], [{color:[]},{background:[]}], ['clean'] ] },
-                    placeholder: 'Start writing your lesson note here...'
+                    modules: {
+                        toolbar: [
+                            [{ 'header': [1,2,3,4,5,6,false] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'align': [] }],
+                            ['link', 'blockquote', 'code-block'],
+                            [{ 'color': [] }, { 'background': [] }],
+                            ['clean']
+                        ]
+                    },
+                    placeholder: 'Start writing...'
                 });
 
-                // Load all lesson notes for the teacher to populate Teach tab
                 await loadAllLessonNotes();
                 renderTeachTab();
-
             } catch (error) { console.error(error); }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
 
-        // Render subject grid with delete button
+        // ========== SUBJECT GRID ==========
         function renderSubjectGrid() {
             const grid = document.getElementById('subjectGrid');
             grid.innerHTML = '';
-            if (subjects.length === 0) { grid.innerHTML = '<p style="color: var(--text-secondary);">No subjects yet. Add your first subject.</p>'; return; }
+            if (subjects.length === 0) { grid.innerHTML = '<p class="text-secondary">No subjects yet.</p>'; return; }
             subjects.forEach(sub => {
                 const card = document.createElement('div');
                 card.className = 'subject-card';
                 card.innerHTML = `
                     <h3>${sub}</h3>
-                    <p>${syllabusMap[sub]?.weeks?.length || 0} weeks in syllabus</p>
+                    <p>${syllabusMap[sub]?.weeks?.length || 0} weeks</p>
                     <span class="subject-badge ${syllabusMap[sub]?.status || 'draft'}">${syllabusMap[sub]?.status || 'No syllabus'}</span>
                     <button class="delete-subject" onclick="event.stopPropagation(); deleteSubject('${sub}')"><i class="fas fa-trash"></i></button>
                 `;
-                card.onclick = (e) => selectSubject(sub, e.currentTarget);
+                card.onclick = () => selectSubject(sub, card);
                 grid.appendChild(card);
             });
         }
 
-        // Delete subject with audit
         window.deleteSubject = async function(subject) {
-            if (!confirm(`Are you sure you want to delete subject "${subject}"? This will remove it from your list.`)) return;
-            try {
-                subjects = subjects.filter(s => s !== subject);
-                await db.collection('users').doc(currentUser.uid).update({ subjects });
-                await db.collection('auditLogs').add({
-                    teacherId: currentUser.uid,
-                    action: 'delete_subject',
-                    subject: subject,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                delete syllabusMap[subject];
-                if (currentSubject === subject) {
-                    document.getElementById('syllabusSection').style.display = 'none';
-                    document.getElementById('editorSection').style.display = 'none';
-                    currentSubject = null;
-                }
-                renderSubjectGrid();
-            } catch (error) {
-                alert('Error deleting subject: ' + error.message);
-            }
+            if (!confirm(`Delete subject "${subject}"?`)) return;
+            subjects = subjects.filter(s => s !== subject);
+            await db.collection('users').doc(currentUser.uid).update({ subjects });
+            await logAudit('delete_subject', { subject });
+            delete syllabusMap[subject];
+            if (currentSubject === subject) document.getElementById('syllabusSection').style.display = 'none';
+            renderSubjectGrid();
         };
 
-        async function selectSubject(subject, cardElement) {
+        async function selectSubject(subject, card) {
             currentSubject = subject;
             document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('active'));
-            cardElement.classList.add('active');
+            card.classList.add('active');
             document.getElementById('syllabusSection').style.display = 'block';
             document.getElementById('currentSubjectTitle').textContent = `${subject} Syllabus`;
             await loadSyllabus(subject);
@@ -879,20 +789,18 @@ Describe exactly how the handwritten page should look, including the layout, hig
 
         async function loadSyllabus(subject) {
             try {
-                const snapshot = await db.collection('syllabus')
+                const snap = await db.collection('syllabus')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', subject)
                     .orderBy('submittedAt', 'desc')
-                    .limit(1)
-                    .get();
-                if (!snapshot.empty) {
-                    const doc = snapshot.docs[0];
+                    .limit(1).get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
                     syllabusMap[subject] = { id: doc.id, ...doc.data() };
                     renderSyllabusTable(doc.data().weeks || []);
                     updateSyllabusStatus(doc.data().status);
-                    const status = doc.data().status;
-                    document.getElementById('createLessonNoteBtn').style.display = status === 'approved' ? 'inline-block' : 'none';
-                    document.getElementById('editSyllabusBtn').style.display = (status === 'rejected' || status === 'approved') ? 'inline-block' : 'none';
+                    document.getElementById('createLessonNoteBtn').style.display = doc.data().status === 'approved' ? 'inline-block' : 'none';
+                    document.getElementById('editSyllabusBtn').style.display = (doc.data().status === 'rejected' || doc.data().status === 'approved') ? 'inline-block' : 'none';
                 } else {
                     syllabusMap[subject] = { weeks: [], status: 'draft' };
                     renderSyllabusTable([]);
@@ -900,27 +808,26 @@ Describe exactly how the handwritten page should look, including the layout, hig
                     document.getElementById('createLessonNoteBtn').style.display = 'none';
                     document.getElementById('editSyllabusBtn').style.display = 'none';
                 }
-            } catch (error) { console.error(error); }
+            } catch (e) { console.error(e); }
         }
 
         function renderSyllabusTable(weeks) {
-            const tbody = document.getElementById('syllabusBody');
-            if (weeks.length === 0) weeks = [{ week: 1, topic: '', objectives: '' }];
+            if (!weeks.length) weeks = [{ week: 1, topic: '', objectives: '' }];
             let html = '';
-            weeks.forEach((week, index) => {
+            weeks.forEach((w, i) => {
                 html += `<tr>
-                    <td><input type="number" value="${week.week}" data-index="${index}" data-field="week"></td>
-                    <td><input type="text" value="${week.topic || ''}" placeholder="Topic" data-index="${index}" data-field="topic"></td>
-                    <td><input type="text" value="${week.objectives || ''}" placeholder="Objectives" data-index="${index}" data-field="objectives"></td>
-                    <td><button class="btn btn-danger btn-sm" onclick="deleteWeek(${index})"><i class="fas fa-trash"></i></button></td>
+                    <td><input type="number" value="${w.week}" data-index="${i}" data-field="week"></td>
+                    <td><input type="text" value="${w.topic || ''}" data-index="${i}" data-field="topic"></td>
+                    <td><input type="text" value="${w.objectives || ''}" data-index="${i}" data-field="objectives"></td>
+                    <td><button class="btn btn-danger btn-sm" onclick="deleteWeek(${i})"><i class="fas fa-trash"></i></button></td>
                 </tr>`;
             });
-            tbody.innerHTML = html;
-            document.querySelectorAll('#syllabusBody input').forEach(input => {
-                input.addEventListener('input', function(e) {
-                    const index = this.dataset.index, field = this.dataset.field;
-                    if (!syllabusMap[currentSubject].weeks[index]) syllabusMap[currentSubject].weeks[index] = {};
-                    syllabusMap[currentSubject].weeks[index][field] = this.value;
+            document.getElementById('syllabusBody').innerHTML = html;
+            document.querySelectorAll('#syllabusBody input').forEach(inp => {
+                inp.addEventListener('input', function(e) {
+                    const i = this.dataset.index, f = this.dataset.field;
+                    if (!syllabusMap[currentSubject].weeks[i]) syllabusMap[currentSubject].weeks[i] = {};
+                    syllabusMap[currentSubject].weeks[i][f] = this.value;
                 });
             });
         }
@@ -932,79 +839,67 @@ Describe exactly how the handwritten page should look, including the layout, hig
 
         document.getElementById('addWeekBtn').addEventListener('click', () => {
             if (!syllabusMap[currentSubject]) syllabusMap[currentSubject] = { weeks: [] };
-            const lastWeek = syllabusMap[currentSubject].weeks.length ? syllabusMap[currentSubject].weeks[syllabusMap[currentSubject].weeks.length-1].week : 0;
-            syllabusMap[currentSubject].weeks.push({ week: lastWeek+1, topic: '', objectives: '' });
+            const last = syllabusMap[currentSubject].weeks.length ? syllabusMap[currentSubject].weeks[syllabusMap[currentSubject].weeks.length-1].week : 0;
+            syllabusMap[currentSubject].weeks.push({ week: last+1, topic: '', objectives: '' });
             renderSyllabusTable(syllabusMap[currentSubject].weeks);
         });
 
-        // Helper to log syllabus audit
-        async function logSyllabusAudit(action, subject, details = {}) {
-            await db.collection('auditLogs').add({
-                teacherId: currentUser.uid,
-                action: `syllabus_${action}`,
-                subject: subject,
-                details: details,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
+        async function logSyllabusAudit(action, details) {
+            await logAudit(`syllabus_${action}`, { subject: currentSubject, ...details });
         }
 
         document.getElementById('saveSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) return alert('Select a subject.');
+            if (!currentSubject) return;
             const weeks = syllabusMap[currentSubject]?.weeks;
             if (!weeks?.length) return alert('Add at least one week.');
+            const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
             try {
-                const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 if (syllabusMap[currentSubject].id) {
                     await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                    await logSyllabusAudit('update_draft', currentSubject, { weeks });
+                    await logSyllabusAudit('update_draft', { weeks });
                 } else {
-                    const docRef = await db.collection('syllabus').add(data);
-                    syllabusMap[currentSubject].id = docRef.id;
-                    await logSyllabusAudit('create_draft', currentSubject, { weeks });
+                    const ref = await db.collection('syllabus').add(data);
+                    syllabusMap[currentSubject].id = ref.id;
+                    await logSyllabusAudit('create_draft', { weeks });
                 }
-                alert('Syllabus saved as draft.');
-            } catch (error) { alert('Error: ' + error.message); }
+                alert('Saved draft.');
+            } catch (e) { alert(e.message); }
         });
 
         document.getElementById('submitSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) return alert('Select a subject.');
+            if (!currentSubject) return;
             const weeks = syllabusMap[currentSubject]?.weeks;
             if (!weeks?.length) return alert('Add at least one week.');
+            const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
             try {
-                const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 if (syllabusMap[currentSubject].id) {
                     await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                    await logSyllabusAudit('submit', currentSubject, { weeks });
+                    await logSyllabusAudit('submit', { weeks });
                 } else {
-                    const docRef = await db.collection('syllabus').add(data);
-                    syllabusMap[currentSubject].id = docRef.id;
-                    await logSyllabusAudit('submit', currentSubject, { weeks });
+                    const ref = await db.collection('syllabus').add(data);
+                    syllabusMap[currentSubject].id = ref.id;
+                    await logSyllabusAudit('submit', { weeks });
                 }
-                alert('Syllabus submitted for approval.');
+                alert('Submitted for approval.');
                 updateSyllabusStatus('pending');
                 document.getElementById('createLessonNoteBtn').style.display = 'none';
-            } catch (error) { alert('Error: ' + error.message); }
+            } catch (e) { alert(e.message); }
         });
 
-        // Edit Syllabus button (for rejected or approved)
         document.getElementById('editSyllabusBtn').addEventListener('click', async () => {
             if (!currentSubject) return;
             const weeks = syllabusMap[currentSubject]?.weeks;
-            if (!weeks?.length) return alert('No weeks to edit.');
+            if (!weeks?.length) return alert('No weeks.');
             const currentStatus = syllabusMap[currentSubject].status;
             let newStatus = currentStatus === 'rejected' ? 'draft' : currentStatus;
             try {
                 const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                await logSyllabusAudit('edit', currentSubject, { weeks, fromStatus: currentStatus, toStatus: newStatus });
-                alert('Syllabus updated.');
+                await logSyllabusAudit('edit', { from: currentStatus, to: newStatus, weeks });
+                alert('Updated.');
                 updateSyllabusStatus(newStatus);
-                if (newStatus === 'draft') {
-                    document.getElementById('createLessonNoteBtn').style.display = 'none';
-                } else if (newStatus === 'approved') {
-                    document.getElementById('createLessonNoteBtn').style.display = 'inline-block';
-                }
-            } catch (error) { alert('Error: ' + error.message); }
+                document.getElementById('createLessonNoteBtn').style.display = newStatus === 'approved' ? 'inline-block' : 'none';
+            } catch (e) { alert(e.message); }
         });
 
         function updateSyllabusStatus(status) {
@@ -1015,28 +910,28 @@ Describe exactly how the handwritten page should look, including the layout, hig
 
         async function loadLessonNotes(subject) {
             try {
-                const snapshot = await db.collection('lessonNotes')
+                const snap = await db.collection('lessonNotes')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', subject)
                     .get();
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    lessonNotesMap[`${subject}_${data.week}`] = { id: doc.id, ...data };
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    lessonNotesMap[`${subject}_${d.week}`] = { id: doc.id, ...d };
                 });
-            } catch (error) { console.error(error); }
+            } catch (e) { console.error(e); }
         }
 
         async function loadAllLessonNotes() {
             try {
-                const snapshot = await db.collection('lessonNotes')
+                const snap = await db.collection('lessonNotes')
                     .where('teacherId', '==', currentUser.uid)
                     .get();
                 lessonNotesMap = {};
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    lessonNotesMap[`${data.subject}_${data.week}`] = { id: doc.id, ...data };
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    lessonNotesMap[`${d.subject}_${d.week}`] = { id: doc.id, ...d };
                 });
-            } catch (error) { console.error(error); }
+            } catch (e) { console.error(e); }
         }
 
         function renderWeekTabs() {
@@ -1062,116 +957,171 @@ Describe exactly how the handwritten page should look, including the layout, hig
             const key = `${currentSubject}_${week}`;
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
-            const publishBtn = document.getElementById('publishBtn');
-            publishBtn.style.display = note.published ? 'none' : 'inline-block';
-            publishBtn.onclick = () => publishResource(note.id);
+            updateEditorButtons(note);
         }
 
-        document.getElementById('createLessonNoteBtn').addEventListener('click', () => {
-            const weeks = syllabusMap[currentSubject]?.weeks;
-            if (weeks?.length) selectWeek(weeks[0].week);
-            // Switch to Notebook tab
-            document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('[data-tab="notebook"]').classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById('tab-notebook').classList.add('active');
-        });
+        function updateEditorButtons(note) {
+            const deleteBtn = document.getElementById('deleteResourceBtn');
+            const publishBtn = document.getElementById('publishResourceBtn');
+            if (note.id) {
+                deleteBtn.style.display = 'inline-block';
+                deleteBtn.onclick = () => promptDelete('lessonNote', note.id, currentSubject, currentWeek);
+                if (currentResourceType === 'studentResource' || currentResourceType === 'handwritten') {
+                    const published = (currentResourceType === 'studentResource') ? note.studentResourcePublished : note.handwrittenPublished;
+                    publishBtn.style.display = published ? 'none' : 'inline-block';
+                    publishBtn.onclick = () => publishResource(note.id, currentResourceType);
+                } else {
+                    publishBtn.style.display = 'none';
+                }
+            } else {
+                deleteBtn.style.display = 'none';
+                publishBtn.style.display = 'none';
+            }
+        }
 
-        // Editor actions
-        document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
-        document.getElementById('saveEditorBtn').addEventListener('click', saveEditorContent);
-        document.getElementById('submitEditorBtn').addEventListener('click', submitEditorForApproval);
+        // ========== DELETE HANDLING ==========
+        const deleteModal = document.getElementById('deleteModal');
+        function openDeleteModal(message, callback) {
+            document.getElementById('deleteMessage').textContent = message;
+            deleteModal.classList.add('active');
+            document.getElementById('confirmDeleteBtn').onclick = callback;
+        }
+        window.closeDeleteModal = () => deleteModal.classList.remove('active');
 
-        async function saveEditorContent() {
-            if (!currentSubject || !currentWeek) return alert('Select subject and week.');
+        function promptDelete(type, docId, subject, week) {
+            itemToDelete = { type, docId, subject, week };
+            openDeleteModal(`Delete this ${type}? This cannot be undone.`, async () => {
+                await performDelete();
+            });
+        }
+
+        async function performDelete() {
+            if (!itemToDelete) return;
+            const { type, docId, subject, week } = itemToDelete;
+            try {
+                await db.collection('lessonNotes').doc(docId).delete();
+                await logAudit('delete_resource', { type, subject, week });
+                alert('Deleted.');
+                closeDeleteModal();
+                // Refresh data
+                await loadAllLessonNotes();
+                if (currentSubject === subject && currentWeek === week) {
+                    const key = `${subject}_${week}`;
+                    const note = lessonNotesMap[key] || {};
+                    quill.setText('');
+                    updateEditorButtons(note);
+                }
+                renderTeachTab();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                itemToDelete = null;
+            }
+        }
+
+        async function publishResource(docId, type) {
+            const update = type === 'studentResource' ? { studentResourcePublished: true } : { handwrittenPublished: true };
+            try {
+                await db.collection('lessonNotes').doc(docId).update(update);
+                await logAudit('publish_resource', { type, subject: currentSubject, week: currentWeek });
+                alert('Published to students.');
+                await loadAllLessonNotes();
+                const key = `${currentSubject}_${currentWeek}`;
+                const note = lessonNotesMap[key] || {};
+                updateEditorButtons(note);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        // ========== EDITOR ACTIONS ==========
+        document.getElementById('saveEditorBtn').addEventListener('click', async () => {
+            if (!currentSubject || !currentWeek) return;
             const content = quill.getText();
-            if (!content.trim()) return alert('Content is empty.');
+            if (!content.trim()) return alert('Empty content.');
             const key = `${currentSubject}_${currentWeek}`;
             const existing = lessonNotesMap[key] || {};
             const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
+            const fieldMap = {
+                lessonNote: 'lessonNote',
+                teachingProcess: 'teachingProcess',
+                studentResource: 'studentResource',
+                handwritten: 'handwrittenNotes'
+            };
             const updateData = {
                 teacherId: currentUser.uid,
                 subject: currentSubject,
                 week: currentWeek,
                 topic: weekData?.topic || '',
-                [currentResourceType === 'lessonNote' ? 'lessonNote' : 
-                 currentResourceType === 'teachingProcess' ? 'teachingProcess' :
-                 currentResourceType === 'studentResource' ? 'studentResource' : 'handwrittenNotes']: content,
+                [fieldMap[currentResourceType]]: content,
                 classId: userData.classTeaching,
                 status: existing.status || 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            if (existing.id) Object.assign(updateData, existing, { [currentResourceType]: content });
+            if (existing.id) Object.assign(updateData, existing, { [fieldMap[currentResourceType]]: content });
             try {
-                if (existing.id) await db.collection('lessonNotes').doc(existing.id).update(updateData);
-                else { const docRef = await db.collection('lessonNotes').add(updateData); lessonNotesMap[key] = { id: docRef.id, ...updateData }; }
+                if (existing.id) {
+                    await db.collection('lessonNotes').doc(existing.id).update(updateData);
+                    await logAudit('update_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
+                } else {
+                    const ref = await db.collection('lessonNotes').add(updateData);
+                    lessonNotesMap[key] = { id: ref.id, ...updateData };
+                    await logAudit('create_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
+                }
                 alert('Saved.');
-                // Refresh teach tab
                 await loadAllLessonNotes();
-                renderTeachTab();
-            } catch (error) { alert('Error: ' + error.message); }
-        }
+                updateEditorButtons(lessonNotesMap[key] || {});
+            } catch (e) { alert(e.message); }
+        });
 
-        async function submitEditorForApproval() {
-            if (!currentSubject || !currentWeek) return alert('Select subject and week.');
+        document.getElementById('submitEditorBtn').addEventListener('click', async () => {
+            if (!currentSubject || !currentWeek) return;
             const content = quill.getText();
-            if (!content.trim()) return alert('Content is empty.');
+            if (!content.trim()) return alert('Empty content.');
             const key = `${currentSubject}_${currentWeek}`;
             const existing = lessonNotesMap[key] || {};
             const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
+            const fieldMap = {
+                lessonNote: 'lessonNote',
+                teachingProcess: 'teachingProcess',
+                studentResource: 'studentResource',
+                handwritten: 'handwrittenNotes'
+            };
             const updateData = {
                 teacherId: currentUser.uid,
                 subject: currentSubject,
                 week: currentWeek,
                 topic: weekData?.topic || '',
-                [currentResourceType === 'lessonNote' ? 'lessonNote' : 
-                 currentResourceType === 'teachingProcess' ? 'teachingProcess' :
-                 currentResourceType === 'studentResource' ? 'studentResource' : 'handwrittenNotes']: content,
+                [fieldMap[currentResourceType]]: content,
                 classId: userData.classTeaching,
                 status: 'pending',
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             if (existing.id) Object.assign(updateData, existing, { status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() });
             try {
-                if (existing.id) await db.collection('lessonNotes').doc(existing.id).update(updateData);
-                else { const docRef = await db.collection('lessonNotes').add(updateData); lessonNotesMap[key] = { id: docRef.id, ...updateData }; }
+                if (existing.id) {
+                    await db.collection('lessonNotes').doc(existing.id).update(updateData);
+                    await logAudit('submit_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
+                } else {
+                    const ref = await db.collection('lessonNotes').add(updateData);
+                    lessonNotesMap[key] = { id: ref.id, ...updateData };
+                    await logAudit('submit_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
+                }
                 alert('Submitted for approval.');
                 await loadAllLessonNotes();
                 renderTeachTab();
-            } catch (error) { alert('Error: ' + error.message); }
-        }
+            } catch (e) { alert(e.message); }
+        });
 
-        async function publishResource(noteId) {
-            if (!noteId) return;
-            try {
-                await db.collection('lessonNotes').doc(noteId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                alert('Published to students!');
-                document.getElementById('publishBtn').style.display = 'none';
-                await loadAllLessonNotes();
-                renderTeachTab();
-            } catch (error) { alert('Error: ' + error.message); }
-        }
-
-        // ========== TEACH TAB FUNCTIONS ==========
+        // ========== TEACH TAB ==========
         function renderTeachTab() {
             const approvedDiv = document.getElementById('approvedNotesList');
             const pendingDiv = document.getElementById('pendingNotesList');
             approvedDiv.innerHTML = '';
             pendingDiv.innerHTML = '';
 
-            const approved = [];
-            const pending = [];
-
-            Object.values(lessonNotesMap).forEach(note => {
-                if (note.status === 'approved') {
-                    approved.push(note);
-                } else if (note.status === 'pending') {
-                    pending.push(note);
-                }
-            });
-
-            if (approved.length === 0) approvedDiv.innerHTML = '<p class="text-secondary">No approved lesson notes yet.</p>';
-            if (pending.length === 0) pendingDiv.innerHTML = '<p class="text-secondary">No pending lesson notes.</p>';
+            const approved = Object.values(lessonNotesMap).filter(n => n.status === 'approved');
+            const pending = Object.values(lessonNotesMap).filter(n => n.status === 'pending');
 
             approved.forEach(note => {
                 const card = document.createElement('div');
@@ -1183,72 +1133,55 @@ Describe exactly how the handwritten page should look, including the layout, hig
                             <span class="status-badge status-approved">Approved</span>
                         </div>
                         <button class="btn btn-outline btn-sm" onclick="viewApprovedLesson('${note.subject}', ${note.week})">
-                            <i class="fas fa-eye"></i> View Lesson Note
+                            <i class="fas fa-eye"></i> View
                         </button>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button class="btn btn-outline btn-sm" onclick="openResourceEditor('${note.subject}', ${note.week}, 'teachingProcess')">
-                            <i class="fas fa-chalkboard-teacher"></i> Create Teaching Process
+                            <i class="fas fa-chalkboard-teacher"></i> Teaching Process
                         </button>
                         <button class="btn btn-outline btn-sm" onclick="openResourceEditor('${note.subject}', ${note.week}, 'studentResource')">
-                            <i class="fas fa-users"></i> Create Student Resources
+                            <i class="fas fa-users"></i> Student Resources
                         </button>
                         <button class="btn btn-outline btn-sm" onclick="openResourceEditor('${note.subject}', ${note.week}, 'handwritten')">
-                            <i class="fas fa-pen-fancy"></i> Create Handwriting Notes
+                            <i class="fas fa-pen-fancy"></i> Handwriting
                         </button>
                     </div>
                 `;
                 approvedDiv.appendChild(card);
             });
 
-            pending.forEach(note => {
-                const card = document.createElement('div');
-                card.className = 'syllabus-container';
-                card.innerHTML = `
-                    <div>
-                        <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
-                        <span class="status-badge status-pending">Pending Approval</span>
-                    </div>
-                `;
-                pendingDiv.appendChild(card);
-            });
+            if (approved.length === 0) approvedDiv.innerHTML = '<p class="text-secondary">No approved notes.</p>';
+            if (pending.length === 0) pendingDiv.innerHTML = '<p class="text-secondary">No pending notes.</p>';
         }
 
-        // View approved lesson note (read-only, switch to notebook and disable editing)
         window.viewApprovedLesson = function(subject, week) {
             currentSubject = subject;
             currentWeek = week;
             const key = `${subject}_${week}`;
             const note = lessonNotesMap[key] || {};
-            // Switch to Notebook tab
             document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
             document.querySelector('[data-tab="notebook"]').classList.add('active');
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById('tab-notebook').classList.add('active');
-            // Load editor with lesson note and disable editing
             document.getElementById('editorSection').style.display = 'block';
             currentResourceType = 'lessonNote';
             document.getElementById('editorTitle').textContent = `Week ${week} Lesson Note (Read Only)`;
             quill.setText(note.lessonNote || '');
-            quill.enable(false); // disable editing
-            // Hide save/submit buttons, show a message
-            document.querySelectorAll('#saveEditorBtn, #submitEditorBtn, #useAIAssistantBtn').forEach(btn => btn.style.display = 'none');
-            document.getElementById('publishBtn').style.display = 'none';
+            quill.enable(false);
+            document.querySelectorAll('#saveEditorBtn, #submitEditorBtn, #useAIAssistantBtn, #deleteResourceBtn, #publishResourceBtn').forEach(b => b.style.display = 'none');
         };
 
-        // Open editor for a resource (teaching process, student resource, handwritten)
         window.openResourceEditor = function(subject, week, type) {
             currentSubject = subject;
             currentWeek = week;
             currentResourceType = type;
             const key = `${subject}_${week}`;
             const note = lessonNotesMap[key] || {};
-            // Switch to Notebook tab
             document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
             document.querySelector('[data-tab="notebook"]').classList.add('active');
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById('tab-notebook').classList.add('active');
-            // Enable editor
             quill.enable(true);
             document.getElementById('editorSection').style.display = 'block';
             let content = '';
@@ -1257,53 +1190,102 @@ Describe exactly how the handwritten page should look, including the layout, hig
             else if (type === 'handwritten') content = note.handwrittenNotes || '';
             quill.setText(content);
             document.getElementById('editorTitle').textContent = `Week ${week} ${type.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}`;
-            // Show appropriate buttons: Save only (no submit, no publish yet)
-            document.getElementById('saveEditorBtn').style.display = 'inline-block';
-            document.getElementById('submitEditorBtn').style.display = 'none';
-            document.getElementById('useAIAssistantBtn').style.display = 'inline-block';
-            document.getElementById('publishBtn').style.display = 'inline-block';
-            document.getElementById('publishBtn').textContent = 'Publish to Students';
-            document.getElementById('publishBtn').onclick = async () => {
-                if (!note.id) { alert('Save first'); return; }
-                const update = {};
-                if (type === 'teachingProcess') update.teachingProcessPublished = true;
-                else if (type === 'studentResource') update.studentResourcePublished = true;
-                else if (type === 'handwritten') update.handwrittenPublished = true;
-                await db.collection('lessonNotes').doc(note.id).update(update);
-                alert('Published');
-                document.getElementById('publishBtn').style.display = 'none';
-                await loadAllLessonNotes();
-            };
+            document.querySelectorAll('#saveEditorBtn, #submitEditorBtn, #useAIAssistantBtn').forEach(b => b.style.display = 'inline-block');
+            document.getElementById('submitEditorBtn').style.display = 'none'; // resources don't need approval
+            document.getElementById('deleteResourceBtn').style.display = note.id ? 'inline-block' : 'none';
+            document.getElementById('deleteResourceBtn').onclick = () => promptDelete(type, note.id, subject, week);
+            const publishBtn = document.getElementById('publishResourceBtn');
+            if (type === 'studentResource' || type === 'handwritten') {
+                const published = (type === 'studentResource') ? note.studentResourcePublished : note.handwrittenPublished;
+                publishBtn.style.display = published ? 'none' : 'inline-block';
+                publishBtn.onclick = () => publishResource(note.id, type);
+            } else {
+                publishBtn.style.display = 'none';
+            }
         };
 
-        // Add subject
-        document.getElementById('addSubjectBtn').addEventListener('click', async () => {
-            const newSubject = prompt('Enter new subject name:');
-            if (!newSubject?.trim()) return;
-            if (subjects.includes(newSubject.trim())) return alert('Subject already exists.');
-            subjects.push(newSubject.trim());
-            try {
-                await db.collection('users').doc(currentUser.uid).update({ subjects });
-                renderSubjectGrid();
-            } catch (error) { alert('Error: ' + error.message); }
+        document.getElementById('createLessonNoteBtn').addEventListener('click', () => {
+            const weeks = syllabusMap[currentSubject]?.weeks;
+            if (weeks?.length) selectWeek(weeks[0].week);
+            document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="notebook"]').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-notebook').classList.add('active');
         });
+
+        // Post-approval buttons
+        document.getElementById('createTeachingProcessBtn').addEventListener('click', () => openResourceEditor(currentSubject, currentWeek, 'teachingProcess'));
+        document.getElementById('createStudentResourcesBtn').addEventListener('click', () => openResourceEditor(currentSubject, currentWeek, 'studentResource'));
+        document.getElementById('createHandwritingBtn').addEventListener('click', () => openResourceEditor(currentSubject, currentWeek, 'handwritten'));
+
+        // ========== AI ASSISTANT ==========
+        window.openAIAssistant = function() {
+            document.getElementById('aiAssistantModal').classList.add('active');
+            const sel = document.getElementById('aiTopicSelect');
+            sel.innerHTML = '<option value="">Select topic...</option>';
+            if (syllabusMap[currentSubject]?.weeks) {
+                syllabusMap[currentSubject].weeks.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w.topic;
+                    opt.textContent = `Week ${w.week}: ${w.topic}`;
+                    sel.appendChild(opt);
+                });
+            }
+        };
+        window.closeAIAssistant = () => document.getElementById('aiAssistantModal').classList.remove('active');
+        window.sendToAI = async () => {
+            const prompt = document.getElementById('aiPromptInput').value;
+            const topic = document.getElementById('aiTopicSelect').value;
+            if (!prompt) return;
+            const chat = document.getElementById('chatArea');
+            chat.innerHTML += `<div class="message user">${prompt}</div>`;
+            const thinking = document.createElement('div');
+            thinking.className = 'message assistant';
+            thinking.innerHTML = '<div class="assistant-thinking"><i class="fas fa-robot fa-spin"></i> Thinking...</div>';
+            chat.appendChild(thinking);
+            showLoading();
+            try {
+                const result = await model.generateContent(`You are a Nigerian curriculum expert. Use Nigerian examples. Age 4-5. Keep lessons 40 minutes. Create content based on: ${prompt} Topic: ${topic}`);
+                const text = result.response.text();
+                lastGeneratedContent = text;
+                chat.removeChild(thinking);
+                chat.innerHTML += `<div class="message assistant">${text.replace(/\n/g, '<br>')}</div>`;
+            } catch (e) {
+                chat.removeChild(thinking);
+                chat.innerHTML += `<div class="message assistant">Error: ${e.message}</div>`;
+            } finally {
+                hideLoading();
+                document.getElementById('aiPromptInput').value = '';
+            }
+        };
+        window.copyToEditor = () => {
+            if (lastGeneratedContent && quill) {
+                quill.setText(lastGeneratedContent);
+                closeAIAssistant();
+            }
+        };
+        document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
 
         // Tab switching
         document.querySelectorAll('.main-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                const tabName = tab.dataset.tab;
+                const name = tab.dataset.tab;
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                if (tabName === 'syllabus') {
-                    document.getElementById('tab-syllabus').classList.add('active');
-                } else if (tabName === 'notebook') {
-                    document.getElementById('tab-notebook').classList.add('active');
-                } else if (tabName === 'teach') {
-                    document.getElementById('tab-teach').classList.add('active');
-                    renderTeachTab();
-                }
+                if (name === 'syllabus') document.getElementById('tab-syllabus').classList.add('active');
+                else if (name === 'notebook') document.getElementById('tab-notebook').classList.add('active');
+                else if (name === 'teach') { document.getElementById('tab-teach').classList.add('active'); renderTeachTab(); }
             });
+        });
+
+        document.getElementById('addSubjectBtn').addEventListener('click', async () => {
+            const newSub = prompt('New subject name:');
+            if (!newSub?.trim()) return;
+            if (subjects.includes(newSub.trim())) return alert('Exists.');
+            subjects.push(newSub.trim());
+            await db.collection('users').doc(currentUser.uid).update({ subjects });
+            renderSubjectGrid();
         });
     </script>
 </body>
