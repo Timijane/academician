@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Same base styles */
+        /* (same base styles as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -182,10 +182,7 @@
             transition: 0.2s;
             color: var(--text-secondary);
         }
-        .week-tab.active {
-            background: var(--accent);
-            color: white;
-        }
+        .week-tab.active { background: var(--accent); color: white; }
 
         .resource-grid {
             display: grid;
@@ -200,66 +197,33 @@
             padding: 1rem;
             box-shadow: var(--shadow);
         }
-        .resource-card h4 {
-            margin-bottom: 0.5rem;
-        }
-        .resource-card p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-        .resource-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        .youtube-link {
-            color: var(--accent);
-            text-decoration: none;
-        }
+        .resource-card h4 { margin-bottom: 0.5rem; }
+        .resource-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .resource-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .youtube-link { color: var(--accent); text-decoration: none; }
 
         .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;
         }
         .modal.active { display: flex; }
         .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 2rem;
-            max-width: 500px;
-            width: 90%;
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
+            padding: 2rem; max-width: 500px; width: 90%;
         }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.3rem;
-            color: var(--text-secondary);
-        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.3rem; color: var(--text-secondary); }
         .form-control {
-            width: 100%;
-            padding: 0.6rem 1rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            color: var(--text-primary);
+            width: 100%; padding: 0.6rem 1rem; background: var(--input-bg);
+            border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2 { display: none; }
+            .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; }
         }
     </style>
 </head>
@@ -418,7 +382,7 @@
         let currentSubject = null;
         let weeks = [];
         let currentWeekIndex = 0;
-        let resources = {}; // key: subject_week, value: { lessonNote, teachingProcess, documentResource, handwriting, youtubeLinks }
+        let resources = {}; // key: subject_week, value: { lessonNote, teachingProcess, studentResource, handwrittenNotes, youtubeLinks }
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -435,17 +399,39 @@
             userData = userDoc.data();
             document.getElementById('profileInitials').textContent = 
                 (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-            document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Teacher'}`;
 
-            subjects = userData.subjects || ['Mathematics', 'English', 'Science'];
+            subjects = userData.subjects || [];
             renderSubjectTabs();
 
-            if (subjects.length > 0) {
+            // Check for query params to pre-select subject and week
+            const urlParams = new URLSearchParams(window.location.search);
+            const subj = urlParams.get('subject');
+            const wk = urlParams.get('week');
+            if (subj && wk) {
+                currentSubject = subj;
+                // Find the tab and click it
+                setTimeout(() => {
+                    const tabs = document.querySelectorAll('#subjectTabs .week-tab');
+                    for (let tab of tabs) {
+                        if (tab.textContent === subj) {
+                            tab.click();
+                            // After loading weeks, select the week
+                            setTimeout(() => {
+                                const weekTabs = document.querySelectorAll('#weekTabs .week-tab');
+                                for (let wt of weekTabs) {
+                                    if (wt.textContent.includes(`Week ${wk}`)) {
+                                        wt.click();
+                                        break;
+                                    }
+                                }
+                            }, 500);
+                            break;
+                        }
+                    }
+                }, 1000);
+            } else if (subjects.length > 0) {
                 switchSubject(subjects[0]);
             }
-
-            // Load resources from Firestore (mock for now)
-            loadResources();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -477,7 +463,7 @@
         }
 
         async function loadWeeksForSubject(subject) {
-            // Fetch approved lesson notes for this subject from lessonNotes collection
+            // Fetch approved lesson notes for this subject
             const snapshot = await db.collection('lessonNotes')
                 .where('teacherId', '==', currentUser.uid)
                 .where('subject', '==', subject)
@@ -520,94 +506,85 @@
             currentWeekIndex = index;
             const week = weeks[index];
             document.getElementById('currentWeek').textContent = week.week;
-            loadResourcesForWeek(week);
+            renderResources(week);
         }
 
-        async function loadResourcesForWeek(week) {
-            // In a real app, fetch from a 'resources' collection
-            // For now, mock resources
-            const key = `${currentSubject}_${week.week}`;
-            if (!resources[key]) {
-                resources[key] = {
-                    lessonNote: week.content || 'No lesson note available.',
-                    teachingProcess: 'Step-by-step teaching process will be generated by AI.',
-                    documentResource: 'Student-friendly document explaining the topic.',
-                    handwriting: 'https://via.placeholder.com/300x400?text=Handwritten+Notes',
-                    youtubeLinks: ['https://youtu.be/example1', 'https://youtu.be/example2']
-                };
-            }
-            renderResources(resources[key]);
-        }
-
-        function renderResources(res) {
+        function renderResources(week) {
             const container = document.getElementById('resourcesContainer');
             container.innerHTML = `
-                <div class="resource-card">
-                    <h4>📝 Lesson Note</h4>
-                    <p>${res.lessonNote.substring(0, 150)}...</p>
-                    <div class="resource-actions">
-                        <button class="btn btn-outline btn-sm" onclick="viewResource('lessonNote')">View</button>
-                        <button class="btn btn-primary btn-sm" onclick="publishResource('lessonNote')">Publish to Students</button>
+                <div class="resource-grid">
+                    <div class="resource-card">
+                        <h4>📝 Lesson Note</h4>
+                        <p>${week.lessonNote ? week.lessonNote.substring(0,150)+'...' : 'No lesson note.'}</p>
+                        <div class="resource-actions">
+                            <button class="btn btn-outline btn-sm" onclick="viewResource('lessonNote', ${week.week})">View</button>
+                            <button class="btn btn-primary btn-sm" onclick="publishResource('lessonNote', ${week.week})">Publish</button>
+                        </div>
                     </div>
-                </div>
-                <div class="resource-card">
-                    <h4>🧑‍🏫 Teaching Process</h4>
-                    <p>${res.teachingProcess.substring(0, 150)}...</p>
-                    <div class="resource-actions">
-                        <button class="btn btn-outline btn-sm" onclick="viewResource('teachingProcess')">View</button>
-                        <button class="btn btn-primary btn-sm" onclick="publishResource('teachingProcess')">Publish</button>
+                    <div class="resource-card">
+                        <h4>🧑‍🏫 Teaching Process</h4>
+                        <p>${week.teachingProcess ? week.teachingProcess.substring(0,150)+'...' : 'No teaching process.'}</p>
+                        <div class="resource-actions">
+                            <button class="btn btn-outline btn-sm" onclick="viewResource('teachingProcess', ${week.week})">View</button>
+                            <button class="btn btn-primary btn-sm" onclick="publishResource('teachingProcess', ${week.week})">Publish</button>
+                        </div>
                     </div>
-                </div>
-                <div class="resource-card">
-                    <h4>📄 Document Resource</h4>
-                    <p>${res.documentResource.substring(0, 150)}...</p>
-                    <div class="resource-actions">
-                        <button class="btn btn-outline btn-sm" onclick="viewResource('documentResource')">View</button>
-                        <button class="btn btn-primary btn-sm" onclick="publishResource('documentResource')">Publish</button>
+                    <div class="resource-card">
+                        <h4>📄 Student Resource</h4>
+                        <p>${week.studentResource ? week.studentResource.substring(0,150)+'...' : 'No student resource.'}</p>
+                        <div class="resource-actions">
+                            <button class="btn btn-outline btn-sm" onclick="viewResource('studentResource', ${week.week})">View</button>
+                            ${week.studentResourcePublished ? '<span class="badge success">Published</span>' : '<button class="btn btn-primary btn-sm" onclick="publishResource(\'studentResource\', '+week.week+')">Publish</button>'}
+                        </div>
                     </div>
-                </div>
-                <div class="resource-card">
-                    <h4>✍️ Handwriting Notes</h4>
-                    <img src="${res.handwriting}" style="max-width:100%; height:auto; border-radius:0.5rem;">
-                    <div class="resource-actions">
-                        <button class="btn btn-primary btn-sm" onclick="publishResource('handwriting')">Publish</button>
+                    <div class="resource-card">
+                        <h4>✍️ Handwriting Notes</h4>
+                        <p>${week.handwrittenNotes ? week.handwrittenNotes.substring(0,150)+'...' : 'No handwriting notes.'}</p>
+                        <div class="resource-actions">
+                            <button class="btn btn-outline btn-sm" onclick="viewResource('handwrittenNotes', ${week.week})">View</button>
+                            ${week.handwrittenPublished ? '<span class="badge success">Published</span>' : '<button class="btn btn-primary btn-sm" onclick="publishResource(\'handwrittenNotes\', '+week.week+')">Publish</button>'}
+                        </div>
                     </div>
-                </div>
-                <div class="resource-card">
-                    <h4>📺 YouTube Links</h4>
-                    <ul>
-                        ${res.youtubeLinks.map(link => `<li><a href="${link}" target="_blank" class="youtube-link">${link}</a></li>`).join('')}
-                    </ul>
-                    <div class="resource-actions">
-                        <button class="btn btn-primary btn-sm" onclick="publishResource('youtubeLinks')">Publish</button>
+                    <div class="resource-card">
+                        <h4>📺 YouTube Links</h4>
+                        <ul>
+                            ${week.youtubeLinks ? week.youtubeLinks.map(link => `<li><a href="${link}" target="_blank" class="youtube-link">${link}</a></li>`).join('') : '<li>No links</li>'}
+                        </ul>
+                        <div class="resource-actions">
+                            <button class="btn btn-primary btn-sm" onclick="publishResource('youtubeLinks', ${week.week})">Publish</button>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        window.viewResource = (type) => {
-            const week = weeks[currentWeekIndex];
-            const key = `${currentSubject}_${week.week}`;
-            const res = resources[key];
-            if (res && res[type]) {
-                alert(res[type]); // For demo; in real app, open modal with full content
+        window.viewResource = (type, weekNum) => {
+            const week = weeks.find(w => w.week == weekNum);
+            if (week && week[type]) {
+                alert(week[type]); // For demo; in real app, open modal with formatted content
             }
         };
 
-        window.publishResource = async (type) => {
-            const week = weeks[currentWeekIndex];
-            const resource = {
-                classId: userData.classTeaching,
-                subject: currentSubject,
-                week: week.week,
-                type: type,
-                content: resources[`${currentSubject}_${week.week}`][type],
-                publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                teacherId: currentUser.uid
-            };
-            // Save to 'publishedResources' collection
-            await db.collection('publishedResources').add(resource);
-            alert('Resource published to students!');
+        window.publishResource = async (type, weekNum) => {
+            const week = weeks.find(w => w.week == weekNum);
+            if (!week) return;
+            let updateField = {};
+            if (type === 'studentResource') updateField.studentResourcePublished = true;
+            else if (type === 'handwrittenNotes') updateField.handwrittenPublished = true;
+            else if (type === 'lessonNote' || type === 'teachingProcess' || type === 'youtubeLinks') {
+                // For these, maybe they are always visible? But we can set a generic published flag
+                updateField.published = true;
+            }
+            try {
+                await db.collection('lessonNotes').doc(week.id).update(updateField);
+                alert('Resource published to students!');
+                // Refresh week data
+                const refreshed = await db.collection('lessonNotes').doc(week.id).get();
+                Object.assign(week, refreshed.data());
+                renderResources(week);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
         };
 
         // Virtual class modal
@@ -620,9 +597,9 @@
             customLinkGroup.style.display = platformSelect.value === 'custom' ? 'block' : 'none';
         });
 
-        window.startVirtualClass = () => {
+        document.getElementById('startVirtualClassBtn').addEventListener('click', () => {
             virtualModal.classList.add('active');
-        };
+        });
 
         window.closeVirtualModal = () => {
             virtualModal.classList.remove('active');
@@ -639,15 +616,10 @@
             if (platform === 'custom') {
                 link = customLink.value;
             } else {
-                // Generate a dummy link based on platform
                 const meetingId = Math.random().toString(36).substring(7);
-                if (platform === 'zoom') {
-                    link = `https://zoom.us/j/${meetingId}`;
-                } else if (platform === 'google-meet') {
-                    link = `https://meet.google.com/${meetingId}`;
-                } else if (platform === 'jitsi') {
-                    link = `https://meet.jit.si/${meetingId}`;
-                }
+                if (platform === 'zoom') link = `https://zoom.us/j/${meetingId}`;
+                else if (platform === 'google-meet') link = `https://meet.google.com/${meetingId}`;
+                else if (platform === 'jitsi') link = `https://meet.jit.si/${meetingId}`;
             }
 
             const session = {
