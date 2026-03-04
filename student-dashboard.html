@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Quill (for viewing resources) -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -239,6 +242,42 @@
             flex: 1;
         }
 
+        /* Modal for viewing resources */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .modal-header h3 { font-size: 1.5rem; }
+        .close-btn {
+            background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;
+        }
+        .close-btn:hover { color: var(--accent); }
+        #resourceViewer { min-height: 300px; background: var(--hover-bg); border-radius: 1rem; padding: 1rem; }
+
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .sidebar .logo-area h2 { display: none; }
@@ -368,6 +407,17 @@
         </div>
     </div>
 
+    <!-- Modal for viewing resource content -->
+    <div class="modal-overlay" id="resourceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="resourceModalTitle">Resource</h3>
+                <button class="close-btn" onclick="closeResourceModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="resourceViewer"></div>
+        </div>
+    </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
@@ -418,13 +468,13 @@
         const navItems = document.querySelectorAll('.nav-item');
         const sections = document.querySelectorAll('.content-section');
         const pageTitle = document.getElementById('pageTitle');
-        function switchSection(sectionId) {
+        window.switchSection = function(sectionId) {
             navItems.forEach(n => n.classList.remove('active'));
             document.querySelector(`.nav-item[data-section="${sectionId}"]`).classList.add('active');
             sections.forEach(s => s.classList.remove('active'));
             document.getElementById(`section-${sectionId}`).classList.add('active');
             pageTitle.textContent = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
-        }
+        };
         navItems.forEach(item => {
             item.addEventListener('click', () => {
                 switchSection(item.dataset.section);
@@ -523,13 +573,16 @@
             const rate = ((presentDays / totalDays) * 100).toFixed(1);
             document.getElementById('attendanceRate').textContent = rate + '%';
 
-            // Today's classes (from timetable)
+            // Today's classes (from timetable - we'll count from the published timetable)
             const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-            const timetableSnap = await db.collection('timetable')
-                .where('classId', '==', userData.class)
-                .where('day', '==', today)
-                .get();
-            document.getElementById('upcomingClasses').textContent = timetableSnap.size;
+            const timetableDoc = await db.collection('timetables').doc(userData.class).get();
+            if (timetableDoc.exists && timetableDoc.data().published) {
+                const periods = timetableDoc.data().periods || [];
+                const todayPeriods = periods.filter(p => p.day === today);
+                document.getElementById('upcomingClasses').textContent = todayPeriods.length;
+            } else {
+                document.getElementById('upcomingClasses').textContent = '0';
+            }
 
             // Recent assignments table
             document.getElementById('recentAssignments').innerHTML = recentRows.length ? recentRows.join('') : '<tr><td colspan="4">No recent assignments</td></tr>';
@@ -577,7 +630,6 @@
             document.getElementById('submittedAssignmentsTable').innerHTML = submittedRows || '<tr><td colspan="4">No submitted assignments</td></tr>';
         }
 
-        // Updated submitAssignment function to redirect to the dedicated submission page
         window.submitAssignment = (assignmentId) => {
             window.location.href = `student-assignment-submit.html?id=${assignmentId}`;
         };
@@ -612,28 +664,36 @@
             document.getElementById('evalContent').innerHTML = html;
         }
 
-        // Classroom
+        // Classroom: Resources, Virtual Classes, Timetable
         async function loadClassroom() {
             if (!userData.class) return;
 
-            // Resources
-            const resourcesSnap = await db.collection('publishedResources')
+            // ----- Published Resources (from lessonNotes) -----
+            const resourcesSnap = await db.collection('lessonNotes')
                 .where('classId', '==', userData.class)
-                .orderBy('publishedAt', 'desc')
                 .get();
+            const resources = [];
+            resourcesSnap.forEach(doc => {
+                const d = doc.data();
+                if (d.studentResourcePublished && d.studentResource) {
+                    resources.push({ id: doc.id, subject: d.subject, week: d.week, type: 'Student Resource', content: d.studentResource });
+                }
+                if (d.handwrittenPublished && d.handwrittenNotes) {
+                    resources.push({ id: doc.id, subject: d.subject, week: d.week, type: 'Handwriting Notes', content: d.handwrittenNotes });
+                }
+            });
             let resourcesHtml = '<table><thead><tr><th>Subject</th><th>Week</th><th>Type</th><th>Action</th></tr></thead><tbody>';
-            if (resourcesSnap.empty) {
-                resourcesHtml = '<p>No published resources.</p>';
+            if (resources.length === 0) {
+                resourcesHtml = '<p>No published resources yet.</p>';
             } else {
-                resourcesSnap.forEach(doc => {
-                    const r = doc.data();
-                    resourcesHtml += `<tr><td>${r.subject}</td><td>Week ${r.week}</td><td>${r.type}</td><td><a href="#" class="btn btn-outline btn-sm">View</a></td></tr>`;
+                resources.forEach(r => {
+                    resourcesHtml += `<tr><td>${r.subject}</td><td>Week ${r.week}</td><td>${r.type}</td><td><button class="btn btn-outline btn-sm" onclick="viewResource('${r.type}', \`${r.content.replace(/`/g, '\\`')}\`)">View</button></td></tr>`;
                 });
                 resourcesHtml += '</tbody></table>';
             }
             document.getElementById('resourcesList').innerHTML = resourcesHtml;
 
-            // Virtual classes
+            // ----- Virtual Classes (unchanged) -----
             const now = new Date().toISOString().split('T')[0];
             const virtualSnap = await db.collection('virtualClasses')
                 .where('classId', '==', userData.class)
@@ -653,11 +713,11 @@
             }
             document.getElementById('virtualClassesList').innerHTML = virtualHtml;
 
-            // Timetable
+            // ----- Timetable -----
             const timetableDoc = await db.collection('timetables').doc(userData.class).get();
             if (timetableDoc.exists && timetableDoc.data().published) {
                 const periods = timetableDoc.data().periods || [];
-                // Group by start time
+                // Group by start time and day
                 const times = [...new Set(periods.map(p => p.startTime))].sort();
                 let tableHtml = '<table><thead><tr><th>Time</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th></tr></thead><tbody>';
                 times.forEach(t => {
@@ -674,6 +734,33 @@
                 document.getElementById('timetableView').innerHTML = '<p>Timetable not published yet.</p>';
             }
         }
+
+        // Resource viewing modal
+        const modal = document.getElementById('resourceModal');
+        const modalTitle = document.getElementById('resourceModalTitle');
+        const viewer = document.getElementById('resourceViewer');
+        let resourceQuill = null;
+
+        window.viewResource = (type, content) => {
+            modalTitle.textContent = type;
+            // Use Quill to render content (read-only)
+            if (!resourceQuill) {
+                resourceQuill = new Quill(viewer, {
+                    theme: 'snow',
+                    modules: { toolbar: false },
+                    readOnly: true
+                });
+            }
+            resourceQuill.setText(content); // Use setText to preserve simple text; if HTML, use root.innerHTML
+            // If content is HTML, you might need to set innerHTML of a hidden div and copy; but for simplicity we treat as text.
+            // If your content is HTML from Quill, you can use resourceQuill.root.innerHTML = content;
+            // We'll assume it's plain text for now.
+            modal.classList.add('active');
+        };
+
+        window.closeResourceModal = () => {
+            modal.classList.remove('active');
+        };
 
         // Profile
         function loadProfile() {
