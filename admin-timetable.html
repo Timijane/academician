@@ -325,10 +325,12 @@
             <div class="tab" data-tab="rejected">Rejected</div>
         </div>
 
+        <!-- Error display (visible if something goes wrong) -->
+        <div id="indexError" class="error-message" style="display: none;"></div>
+
         <!-- Pending Tab -->
         <div id="pendingSection" class="card" style="display:block;">
             <div class="card-header"><h3>Pending Proposals</h3></div>
-            <div id="pendingError" class="error-message" style="display:none;"></div>
             <div class="table-responsive">
                 <table>
                     <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Status</th></tr></thead>
@@ -340,7 +342,6 @@
         <!-- Approved Tab -->
         <div id="approvedSection" class="card" style="display:none;">
             <div class="card-header"><h3>Approved Timetables</h3></div>
-            <div id="approvedError" class="error-message" style="display:none;"></div>
             <div class="table-responsive">
                 <table>
                     <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Approved On</th><th>Published</th></tr></thead>
@@ -352,7 +353,6 @@
         <!-- Rejected Tab -->
         <div id="rejectedSection" class="card" style="display:none;">
             <div class="card-header"><h3>Rejected Proposals</h3></div>
-            <div id="rejectedError" class="error-message" style="display:none;"></div>
             <div class="table-responsive">
                 <table>
                     <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Feedback</th></tr></thead>
@@ -422,28 +422,47 @@
             updateThemeUI(next);
         });
 
-        // Auth check (only master admin or co‑admin with reviewLessons permission)
+        // Auth check with detailed error display
         let currentUser = null;
         let currentUserData = null;
+
         auth.onAuthStateChanged(async (user) => {
+            const errorDiv = document.getElementById('indexError');
             if (!user) {
                 window.location.href = 'admin-login.html';
                 return;
             }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().permissions?.reviewLessons)) {
-                auth.signOut();
-                window.location.href = 'index.html';
-                return;
-            }
-            currentUser = user;
-            currentUserData = userDoc.data();
-            document.getElementById('profileInitials').textContent = (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
-            document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    errorDiv.innerHTML = `User document not found for UID: ${user.uid}. Please contact admin.`;
+                    errorDiv.style.display = 'block';
+                    auth.signOut();
+                    setTimeout(() => window.location.href = 'index.html', 3000);
+                    return;
+                }
+                const userData = userDoc.data();
+                // Check if user is masterAdmin OR has reviewLessons permission
+                if (userData.role !== 'masterAdmin' && !(userData.permissions && userData.permissions.reviewLessons === true)) {
+                    errorDiv.innerHTML = `Access denied: user ${user.email} has role "${userData.role}" and does not have reviewLessons permission.`;
+                    errorDiv.style.display = 'block';
+                    auth.signOut();
+                    setTimeout(() => window.location.href = 'index.html', 3000);
+                    return;
+                }
+                currentUser = user;
+                currentUserData = userData;
+                document.getElementById('profileInitials').textContent = (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
+                document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
 
-            loadPending();
-            loadApproved();
-            loadRejected();
+                loadPending();
+                loadApproved();
+                loadRejected();
+            } catch (error) {
+                errorDiv.innerHTML = `Error during authentication: ${error.message}`;
+                errorDiv.style.display = 'block';
+                console.error(error);
+            }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -469,7 +488,7 @@
             });
         });
 
-        // ========== HEADER HELPERS (same as teacher) ==========
+        // ========== HEADER HELPERS ==========
         function getHeaders(type) {
             switch(type) {
                 case 'academic': return ['Start','End','Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -515,7 +534,7 @@
         // ========== LOAD PENDING ==========
         async function loadPending() {
             const tbody = document.getElementById('pendingBody');
-            const errorDiv = document.getElementById('pendingError');
+            const errorDiv = document.getElementById('indexError');
             tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
             errorDiv.style.display = 'none';
             try {
@@ -562,7 +581,7 @@
         // ========== LOAD APPROVED ==========
         async function loadApproved() {
             const tbody = document.getElementById('approvedBody');
-            const errorDiv = document.getElementById('approvedError');
+            const errorDiv = document.getElementById('indexError');
             tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
             errorDiv.style.display = 'none';
             try {
@@ -600,7 +619,7 @@
         // ========== LOAD REJECTED ==========
         async function loadRejected() {
             const tbody = document.getElementById('rejectedBody');
-            const errorDiv = document.getElementById('rejectedError');
+            const errorDiv = document.getElementById('indexError');
             tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
             errorDiv.style.display = 'none';
             try {
@@ -697,7 +716,7 @@
                     reviewedBy: auth.currentUser.uid,
                     feedback: feedbackInput.value
                 });
-                // Log audit
+                // Log audit with full details
                 await db.collection('auditLogs').add({
                     userId: auth.currentUser.uid,
                     userName: currentUserData?.firstName + ' ' + currentUserData?.surname,
