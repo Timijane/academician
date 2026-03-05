@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (keep existing styles, add new ones below) */
+        /* (keep existing styles) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
@@ -68,15 +68,40 @@
         .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
         .dropdown-item:hover { background: var(--hover-bg); }
 
+        .type-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .type-selector select, .type-selector .type-dropdown {
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .type-selector .btn {
+            background: var(--accent);
+            color: white;
+            padding: 0.5rem 2rem;
+        }
+
         .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
         .tab { padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border); }
         .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        .type-selector { display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
-        .type-selector select { padding: 0.5rem 1rem; border-radius: 2rem; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-primary); }
-
         .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+        .type-heading {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--accent); color: white; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
@@ -96,8 +121,8 @@
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
         th { background: var(--hover-bg); font-weight: 500; }
-        input { width: 100%; padding: 0.3rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--input-bg); color: var(--text-primary); }
-        .delete-row { color: var(--danger-text); cursor: pointer; text-align: center; }
+        input { width: 100%; padding: 0.4rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--input-bg); color: var(--text-primary); }
+        .delete-row { color: var(--danger-text); cursor: pointer; text-align: center; font-size: 1.2rem; }
 
         .actions { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
 
@@ -108,6 +133,15 @@
         .delete-modal.active { display: flex; }
         .delete-modal-content { background: var(--card-bg); border-radius: 1.5rem; padding: 2rem; max-width: 400px; width:90%; }
         .delete-modal-actions { display: flex; gap:1rem; justify-content: flex-end; margin-top:2rem; }
+
+        .type-badge {
+            background: var(--accent);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+        }
 
         @media (max-width:768px) { .sidebar { width:80px; } .sidebar .logo-area h2 { display:none; } .sidebar .nav-item span { display:none; } .main-content { margin-left:80px; } }
     </style>
@@ -135,8 +169,8 @@
     <div class="main-content" id="mainContent">
         <div class="top-bar">
             <div class="page-title">
-                <h1>Timetable</h1>
-                <p>Create and manage your class timetables</p>
+                <h1>Timetable Studio</h1>
+                <p>Create and manage all your class timetables</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -152,16 +186,16 @@
             </div>
         </div>
 
-        <!-- Timetable Type Selector -->
+        <!-- Type Selector and Create New Button -->
         <div class="type-selector">
             <label for="timetableType">Timetable Type:</label>
             <select id="timetableType">
-                <option value="academic">Academic (Daily)</option>
-                <option value="hairstyle">Hairstyle Weekly</option>
-                <option value="test">Test Schedule</option>
-                <option value="exam">Exam Timetable</option>
+                <option value="academic">📚 Academic (Daily)</option>
+                <option value="hairstyle">💇 Hairstyle Weekly</option>
+                <option value="test">📝 Test Schedule</option>
+                <option value="exam">🎓 Exam Timetable</option>
             </select>
-            <button class="btn btn-primary" id="createNewBtn">Create New Draft</button>
+            <button class="btn" id="createNewBtn">+ Create New Draft</button>
         </div>
 
         <!-- Tabs -->
@@ -176,16 +210,14 @@
         <div id="draftSection" class="card" style="display: block;">
             <div class="card-header">
                 <div>
-                    <h3>Draft <span id="draftTypeLabel">Academic</span> Timetable</h3>
+                    <div class="type-heading" id="draftTypeHeading">ACADEMIC TIMETABLE</div>
                     <div id="draftFeedback" class="feedback-message" style="display: none;"></div>
                 </div>
             </div>
             <div class="class-info" id="classDisplay"></div>
             <div class="table-responsive">
                 <table id="draftTable">
-                    <thead id="draftTableHeader">
-                        <!-- Header will be injected by JS -->
-                    </thead>
+                    <thead id="draftTableHeader"></thead>
                     <tbody id="draftBody"></tbody>
                 </table>
             </div>
@@ -211,7 +243,14 @@
 
         <!-- Approved Tab -->
         <div id="approvedSection" class="card" style="display: none;">
-            <div class="card-header"><h3>Approved Timetable</h3></div>
+            <div class="card-header">
+                <h3>Approved Timetable</h3>
+                <div class="type-selector" style="margin:0;">
+                    <select id="approvedTypeSelect" class="type-dropdown">
+                        <option value="">Select type</option>
+                    </select>
+                </div>
+            </div>
             <div class="class-info" id="approvedClass"></div>
             <div class="table-responsive">
                 <table><thead id="approvedTableHeader"></thead><tbody id="approvedBody"></tbody></table>
@@ -263,7 +302,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme & sidebar
+        // Theme & sidebar (unchanged)
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -293,52 +332,53 @@
 
         // Global vars
         let currentUser = null, userData = null, currentClassId = null;
-        let currentType = 'academic'; // selected type
+        let currentType = 'academic';
         let draftProposalId = null, draftData = [], draftType = 'academic';
         let pendingProposalId = null, pendingData = [], pendingType = 'academic';
-        let approvedData = null, approvedType = 'academic';
+        let approvedTimetables = []; // array of { type, data }
+        let currentApprovedType = null;
         let rejectedProposalId = null, rejectedData = [], rejectedType = 'academic', rejectedFeedback = '';
 
-        // Helper to get column headers based on type
+        // Helper: get column headers based on type
         function getHeaders(type) {
             switch(type) {
                 case 'academic':
                     return ['Start', 'End', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', ''];
                 case 'hairstyle':
-                    return ['Week', 'Hairstyle', 'Description', '', '', '', '', ''];
+                    return ['Week', 'Hairstyle', 'Description', ''];
                 case 'test':
                 case 'exam':
-                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration', '', '', ''];
+                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration', ''];
                 default:
                     return [];
             }
         }
 
-        // Helper to map a period object to row cells based on type
+        // Helper: map period to row cells for display (no inputs)
         function periodToRow(p, type) {
             switch(type) {
                 case 'academic':
                     return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
                 case 'hairstyle':
-                    return [p.startTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday, ''];
+                    return [p.startTime, p.monday, p.tuesday];
                 case 'test':
                 case 'exam':
-                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
+                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday];
                 default:
                     return [];
             }
         }
 
-        // Helper to create empty period for a type
+        // Helper: create empty period for a type
         function emptyPeriod(type) {
             switch(type) {
                 case 'academic':
                     return { startTime: '08:00', endTime: '08:40', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
                 case 'hairstyle':
-                    return { startTime: '1', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
+                    return { startTime: '1', monday: '', tuesday: '' }; // startTime used as week number
                 case 'test':
                 case 'exam':
-                    return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
+                    return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '' };
                 default:
                     return {};
             }
@@ -353,27 +393,32 @@
             const tbody = document.getElementById('draftBody');
             let html = '';
             draftData.forEach((p, i) => {
-                const cells = periodToRow(p, currentType);
                 html += '<tr>';
-                cells.forEach((val, idx) => {
-                    // Map field names based on type and index
-                    let fieldName = '';
-                    if (currentType === 'academic') {
-                        const fields = ['startTime', 'endTime', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-                        fieldName = fields[idx];
-                    } else if (currentType === 'hairstyle') {
-                        const fields = ['startTime', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-                        fieldName = fields[idx] || '';
-                    } else {
-                        const fields = ['startTime', 'endTime', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-                        fieldName = fields[idx];
-                    }
-                    if (fieldName) {
-                        html += `<td><input type="text" value="${val || ''}" data-index="${i}" data-field="${fieldName}"></td>`;
-                    } else {
-                        html += `<td></td>`;
-                    }
-                });
+                if (currentType === 'academic') {
+                    html += `
+                        <td><input type="time" value="${p.startTime}" data-index="${i}" data-field="startTime"></td>
+                        <td><input type="time" value="${p.endTime}" data-index="${i}" data-field="endTime"></td>
+                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday"></td>
+                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday"></td>
+                        <td><input type="text" value="${p.wednesday || ''}" data-index="${i}" data-field="wednesday"></td>
+                        <td><input type="text" value="${p.thursday || ''}" data-index="${i}" data-field="thursday"></td>
+                        <td><input type="text" value="${p.friday || ''}" data-index="${i}" data-field="friday"></td>
+                    `;
+                } else if (currentType === 'hairstyle') {
+                    html += `
+                        <td><input type="text" value="${p.startTime}" data-index="${i}" data-field="startTime" placeholder="Week #"></td>
+                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday" placeholder="Hairstyle"></td>
+                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday" placeholder="Description"></td>
+                    `;
+                } else { // test/exam
+                    html += `
+                        <td><input type="text" value="${p.startTime}" data-index="${i}" data-field="startTime" placeholder="Date (e.g., 2025-04-10)"></td>
+                        <td><input type="text" value="${p.endTime}" data-index="${i}" data-field="endTime" placeholder="Time"></td>
+                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday" placeholder="Subject"></td>
+                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday" placeholder="Venue"></td>
+                        <td><input type="text" value="${p.wednesday || ''}" data-index="${i}" data-field="wednesday" placeholder="Duration"></td>
+                    `;
+                }
                 html += `<td class="delete-row" onclick="deleteDraftRow(${i})"><i class="fas fa-trash"></i></td>`;
                 html += '</tr>';
             });
@@ -386,7 +431,13 @@
                 });
             });
 
-            document.getElementById('draftTypeLabel').textContent = currentType.charAt(0).toUpperCase() + currentType.slice(1);
+            const typeDisplay = {
+                academic: 'ACADEMIC TIMETABLE',
+                hairstyle: 'HAIRSTYLE WEEKLY SCHEDULE',
+                test: 'TEST SCHEDULE',
+                exam: 'EXAM TIMETABLE'
+            };
+            document.getElementById('draftTypeHeading').textContent = typeDisplay[currentType] || 'TIMETABLE';
         }
 
         window.deleteDraftRow = (index) => {
@@ -399,28 +450,24 @@
             renderDraft();
         });
 
-        // Create new draft for selected type
         document.getElementById('createNewBtn').addEventListener('click', async () => {
             const type = document.getElementById('timetableType').value;
             currentType = type;
-            // Reset draft data
             draftProposalId = null;
             draftData = [emptyPeriod(type)];
             renderDraft();
             document.getElementById('deleteDraftBtn').style.display = 'none';
-            // Switch to draft tab
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Save draft
         document.getElementById('saveDraftBtn').addEventListener('click', async () => {
             if (!currentClassId) return alert('No class assigned.');
             const data = {
                 classId: currentClassId,
                 teacherId: currentUser.uid,
                 periods: draftData,
+                type: currentType,
                 status: 'draft',
-                type: currentType, // Add type field
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             try {
@@ -435,7 +482,6 @@
             } catch(e) { alert(e.message); }
         });
 
-        // Submit for approval
         document.getElementById('submitBtn').addEventListener('click', async () => {
             if (!currentClassId) return alert('No class assigned.');
             if (draftData.length === 0) return alert('Add at least one entry.');
@@ -443,8 +489,8 @@
                 classId: currentClassId,
                 teacherId: currentUser.uid,
                 periods: draftData,
-                status: 'pending',
                 type: currentType,
+                status: 'pending',
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             try {
@@ -459,7 +505,6 @@
             } catch(e) { alert(e.message); }
         });
 
-        // Delete entire draft
         document.getElementById('deleteDraftBtn').addEventListener('click', () => {
             openDeleteModal('Delete this entire draft?', async () => {
                 if (!draftProposalId) return;
@@ -472,16 +517,8 @@
             });
         });
 
-        // Load all data for the class (for all types)
+        // Load all data
         async function loadAllData() {
-            // For simplicity, we load the latest of each status, but we need to separate by type.
-            // In a real app, you'd want to show the latest for each type separately.
-            // Here we'll just load the latest regardless of type, and show the type info.
-            // But we need to handle multiple drafts per type? The user can create a new draft for each type.
-            // We'll keep it simple: each status (draft/pending/approved/rejected) we load the latest document for that status.
-            // If there are multiple types in the same status, we only show one. That's a limitation.
-            // Better would be to show a list of drafts per type. But for now, we'll assume one active draft per status.
-
             // Draft
             try {
                 const snap = await db.collection('timetableProposals')
@@ -516,14 +553,20 @@
                 } else { pendingProposalId = null; pendingData = []; }
             } catch(e) { console.error(e); pendingData = []; }
 
-            // Approved (from timetables collection)
+            // Approved: fetch all timetables for this class
+            approvedTimetables = [];
             try {
-                const snap = await db.collection('timetables').doc(currentClassId).get();
-                if (snap.exists) {
-                    approvedData = snap.data();
-                    approvedType = approvedData.type || 'academic';
-                } else { approvedData = null; }
-            } catch(e) { console.error(e); approvedData = null; }
+                const snap = await db.collection('timetables').get();
+                snap.forEach(doc => {
+                    if (doc.id.startsWith(currentClassId)) {
+                        const data = doc.data();
+                        const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                        approvedTimetables.push({ type, data });
+                    }
+                });
+                // Sort by type for consistency
+                approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
+            } catch(e) { console.error(e); }
 
             // Rejected
             try {
@@ -541,21 +584,36 @@
                 } else { rejectedProposalId = null; rejectedData = []; }
             } catch(e) { console.error(e); rejectedData = []; }
 
-            // Set currentType to draft type (if any) or default
+            // Populate approved type dropdown
+            const select = document.getElementById('approvedTypeSelect');
+            select.innerHTML = '<option value="">Select type</option>';
+            approvedTimetables.forEach(at => {
+                const option = document.createElement('option');
+                option.value = at.type;
+                option.textContent = at.type.charAt(0).toUpperCase() + at.type.slice(1);
+                select.appendChild(option);
+            });
+            if (approvedTimetables.length > 0) {
+                select.value = approvedTimetables[0].type;
+                currentApprovedType = approvedTimetables[0].type;
+            } else {
+                currentApprovedType = null;
+            }
+
+            // Set currentType to draft type if any, else default
             if (draftProposalId) currentType = draftType;
             else currentType = 'academic';
 
-            // Render current tab
             const activeTab = document.querySelector('.tab.active').dataset.tab;
-            if (activeTab === 'draft') { renderDraft(); }
-            else if (activeTab === 'pending') { renderPending(); }
-            else if (activeTab === 'approved') { renderApproved(); }
-            else if (activeTab === 'rejected') { renderRejected(); }
+            if (activeTab === 'draft') renderDraft();
+            else if (activeTab === 'pending') renderPending();
+            else if (activeTab === 'approved') renderApproved();
+            else if (activeTab === 'rejected') renderRejected();
 
             document.getElementById('deleteDraftBtn').style.display = draftProposalId ? 'inline-block' : 'none';
         }
 
-        // Render pending tab
+        // Render pending
         function renderPending() {
             const header = document.getElementById('pendingTableHeader');
             const headers = getHeaders(pendingType);
@@ -569,7 +627,8 @@
                 html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
             });
             tbody.innerHTML = html;
-            document.getElementById('pendingClass').innerHTML = `Class: <strong>${currentClassId}</strong> (${pendingType})`;
+            const typeDisplay = pendingType.charAt(0).toUpperCase() + pendingType.slice(1);
+            document.getElementById('pendingClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${typeDisplay}</span>`;
         }
 
         document.getElementById('editPendingBtn').addEventListener('click', async () => {
@@ -579,32 +638,45 @@
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Render approved tab
+        // Render approved based on selected type
         function renderApproved() {
-            const header = document.getElementById('approvedTableHeader');
-            const headers = getHeaders(approvedType);
-            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-
-            const tbody = document.getElementById('approvedBody');
-            if (!approvedData || !approvedData.periods || approvedData.periods.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8">No approved timetable.</td></tr>';
+            const select = document.getElementById('approvedTypeSelect');
+            const selectedType = select.value;
+            if (!selectedType || approvedTimetables.length === 0) {
+                document.getElementById('approvedBody').innerHTML = '<tr><td colspan="8">No approved timetable.</td></tr>';
+                document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
                 document.getElementById('publishBtn').style.display = 'none';
                 return;
             }
-            const periods = approvedData.periods.sort((a,b)=> a.startTime?.localeCompare(b.startTime) || 0);
+
+            const at = approvedTimetables.find(at => at.type === selectedType);
+            if (!at) return;
+
+            const { type, data } = at;
+            const headers = getHeaders(type);
+            document.getElementById('approvedTableHeader').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const periods = data.periods || [];
+            periods.sort((a,b)=> (a.startTime || '').localeCompare(b.startTime || ''));
             let html = '';
             periods.forEach(p => {
-                const cells = periodToRow(p, approvedType);
+                const cells = periodToRow(p, type);
                 html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
             });
-            tbody.innerHTML = html;
-            document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong> (${approvedType})`;
-            document.getElementById('publishBtn').style.display = approvedData.published ? 'none' : 'inline-block';
+            document.getElementById('approvedBody').innerHTML = html;
+            document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${type.charAt(0).toUpperCase() + type.slice(1)}</span>`;
+            document.getElementById('publishBtn').style.display = data.published ? 'none' : 'inline-block';
+            // Store current approved data for edit/publish
+            approvedData = data;
+            approvedType = type;
         }
+
+        document.getElementById('approvedTypeSelect').addEventListener('change', renderApproved);
 
         document.getElementById('publishBtn').addEventListener('click', async () => {
             if (!currentClassId || !approvedData) return;
-            await db.collection('timetables').doc(currentClassId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            const docId = `${currentClassId}_${approvedType}`;
+            await db.collection('timetables').doc(docId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
             alert('Published to students.');
             await loadAllData();
             renderApproved();
@@ -612,13 +684,13 @@
 
         document.getElementById('editApprovedBtn').addEventListener('click', async () => {
             if (!approvedData) return;
-            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: approvedData.periods, status: 'draft', type: approvedType, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: approvedData.periods, type: approvedType, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
             const ref = await db.collection('timetableProposals').add(data);
             await loadAllData();
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Render rejected tab
+        // Render rejected
         function renderRejected() {
             const header = document.getElementById('rejectedTableHeader');
             const headers = getHeaders(rejectedType);
@@ -632,7 +704,8 @@
                 html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
             });
             tbody.innerHTML = html;
-            document.getElementById('rejectedClass').innerHTML = `Class: <strong>${currentClassId}</strong> (${rejectedType})`;
+            const typeDisplay = rejectedType.charAt(0).toUpperCase() + rejectedType.slice(1);
+            document.getElementById('rejectedClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${typeDisplay}</span>`;
             const feedbackEl = document.getElementById('rejectedFeedback');
             if (rejectedFeedback) { feedbackEl.textContent = `Feedback: ${rejectedFeedback}`; feedbackEl.style.display = 'block'; } else feedbackEl.style.display = 'none';
         }
