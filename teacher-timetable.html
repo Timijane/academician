@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (keep existing styles) */
+        /* (keep existing styles – they are already comprehensive) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
@@ -302,7 +302,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme & sidebar (unchanged)
+        // Theme & sidebar
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -335,11 +335,11 @@
         let currentType = 'academic';
         let draftProposalId = null, draftData = [], draftType = 'academic';
         let pendingProposalId = null, pendingData = [], pendingType = 'academic';
-        let approvedTimetables = []; // array of { type, data }
+        let approvedTimetables = []; // { type, data }
         let currentApprovedType = null;
         let rejectedProposalId = null, rejectedData = [], rejectedType = 'academic', rejectedFeedback = '';
 
-        // Helper: get column headers based on type
+        // ========== HEADER HELPERS ==========
         function getHeaders(type) {
             switch(type) {
                 case 'academic':
@@ -354,7 +354,6 @@
             }
         }
 
-        // Helper: map period to row cells for display (no inputs)
         function periodToRow(p, type) {
             switch(type) {
                 case 'academic':
@@ -369,13 +368,12 @@
             }
         }
 
-        // Helper: create empty period for a type
         function emptyPeriod(type) {
             switch(type) {
                 case 'academic':
                     return { startTime: '08:00', endTime: '08:40', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
                 case 'hairstyle':
-                    return { startTime: '1', monday: '', tuesday: '' }; // startTime used as week number
+                    return { startTime: '1', monday: '', tuesday: '' };
                 case 'test':
                 case 'exam':
                     return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '' };
@@ -384,7 +382,7 @@
             }
         }
 
-        // Render draft table with current type
+        // ========== DRAFT RENDERING ==========
         function renderDraft() {
             const header = document.getElementById('draftTableHeader');
             const headers = getHeaders(currentType);
@@ -517,7 +515,7 @@
             });
         });
 
-        // Load all data
+        // ========== LOAD ALL DATA (including approved) ==========
         async function loadAllData() {
             // Draft
             try {
@@ -553,7 +551,7 @@
                 } else { pendingProposalId = null; pendingData = []; }
             } catch(e) { console.error(e); pendingData = []; }
 
-            // Approved: fetch all timetables for this class
+            // Approved – fetch all timetables for this class
             approvedTimetables = [];
             try {
                 const snap = await db.collection('timetables').get();
@@ -564,7 +562,6 @@
                         approvedTimetables.push({ type, data });
                     }
                 });
-                // Sort by type for consistency
                 approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
             } catch(e) { console.error(e); }
 
@@ -600,7 +597,6 @@
                 currentApprovedType = null;
             }
 
-            // Set currentType to draft type if any, else default
             if (draftProposalId) currentType = draftType;
             else currentType = 'academic';
 
@@ -613,7 +609,7 @@
             document.getElementById('deleteDraftBtn').style.display = draftProposalId ? 'inline-block' : 'none';
         }
 
-        // Render pending
+        // ========== PENDING ==========
         function renderPending() {
             const header = document.getElementById('pendingTableHeader');
             const headers = getHeaders(pendingType);
@@ -638,7 +634,7 @@
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Render approved based on selected type
+        // ========== APPROVED ==========
         function renderApproved() {
             const select = document.getElementById('approvedTypeSelect');
             const selectedType = select.value;
@@ -690,7 +686,7 @@
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Render rejected
+        // ========== REJECTED ==========
         function renderRejected() {
             const header = document.getElementById('rejectedTableHeader');
             const headers = getHeaders(rejectedType);
@@ -717,7 +713,7 @@
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Auth
+        // ========== AUTH ==========
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
             const doc = await db.collection('users').doc(user.uid).get();
@@ -736,7 +732,7 @@
 
         document.getElementById('logoutBtn').addEventListener('click', ()=> auth.signOut().then(()=>window.location.href='index.html'));
 
-        // Tab switching
+        // ========== TAB SWITCHING ==========
         const tabs = document.querySelectorAll('.tab');
         const sections = {
             draft: document.getElementById('draftSection'),
@@ -757,7 +753,7 @@
             });
         });
 
-        // Delete modal
+        // ========== DELETE MODAL ==========
         const deleteModal = document.getElementById('deleteModal');
         function openDeleteModal(msg, callback) {
             document.getElementById('deleteMessage').textContent = msg;
