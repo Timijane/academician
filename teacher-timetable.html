@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (keep all existing styles – they are already comprehensive) */
+        /* (keep existing styles – they are already comprehensive) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
@@ -147,7 +147,6 @@
     </style>
 </head>
 <body>
-    <!-- SIDEBAR (unchanged) -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <i class="fas fa-calendar-alt"></i>
@@ -168,7 +167,6 @@
     </div>
 
     <div class="main-content" id="mainContent">
-        <!-- TOP BAR (unchanged) -->
         <div class="top-bar">
             <div class="page-title">
                 <h1>Timetable Studio</h1>
@@ -304,7 +302,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme & sidebar (unchanged)
+        // Theme & sidebar
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -519,6 +517,7 @@
 
         // ========== LOAD ALL DATA (including approved) ==========
         async function loadAllData() {
+            console.log('Loading data for class:', currentClassId);
             // Draft
             try {
                 const snap = await db.collection('timetableProposals')
@@ -557,11 +556,18 @@
             approvedTimetables = [];
             try {
                 const snap = await db.collection('timetables').get();
+                console.log('All timetables:', snap.docs.map(d => d.id));
                 snap.forEach(doc => {
                     if (doc.id.startsWith(currentClassId)) {
                         const data = doc.data();
-                        const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                        // Determine type: first from data.type, then from id suffix, else academic
+                        let type = data.type;
+                        if (!type) {
+                            const parts = doc.id.split('_');
+                            type = parts.length > 1 ? parts[1] : 'academic';
+                        }
                         approvedTimetables.push({ type, data });
+                        console.log('Found approved timetable:', type);
                     }
                 });
                 approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
@@ -665,15 +671,15 @@
             document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${type.charAt(0).toUpperCase() + type.slice(1)}</span>`;
             document.getElementById('publishBtn').style.display = data.published ? 'none' : 'inline-block';
             // Store current approved data for edit/publish
-            approvedData = data;
-            approvedType = type;
+            window.approvedData = data;
+            window.approvedType = type;
         }
 
         document.getElementById('approvedTypeSelect').addEventListener('change', renderApproved);
 
         document.getElementById('publishBtn').addEventListener('click', async () => {
-            if (!currentClassId || !approvedData) return;
-            const docId = `${currentClassId}_${approvedType}`;
+            if (!currentClassId || !window.approvedData) return;
+            const docId = `${currentClassId}_${window.approvedType}`;
             await db.collection('timetables').doc(docId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
             alert('Published to students.');
             await loadAllData();
@@ -681,8 +687,8 @@
         });
 
         document.getElementById('editApprovedBtn').addEventListener('click', async () => {
-            if (!approvedData) return;
-            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: approvedData.periods, type: approvedType, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            if (!window.approvedData) return;
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: window.approvedData.periods, type: window.approvedType, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
             const ref = await db.collection('timetableProposals').add(data);
             await loadAllData();
             document.querySelector('.tab[data-tab="draft"]').click();
