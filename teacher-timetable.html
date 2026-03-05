@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
+        /* (same styles as before – keep unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -63,7 +64,6 @@
             display: flex;
         }
 
-        /* ========== SIDEBAR ========== */
         .sidebar {
             width: 260px;
             background: var(--bg-sidebar);
@@ -97,7 +97,6 @@
         .sidebar.collapsed .nav-item span { display: none; }
         .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
 
-        /* ========== MAIN CONTENT ========== */
         .main-content {
             flex: 1;
             margin-left: 260px;
@@ -133,7 +132,6 @@
         .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
         .dropdown-item:hover { background: var(--hover-bg); }
 
-        /* ========== TYPE SELECTOR ========== */
         .type-selector {
             display: flex;
             align-items: center;
@@ -155,7 +153,6 @@
             padding: 0.5rem 2rem;
         }
 
-        /* ========== TABS ========== */
         .tabs {
             display: flex;
             gap: 0.5rem;
@@ -178,7 +175,6 @@
             border-color: var(--accent);
         }
 
-        /* ========== CARDS ========== */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -205,7 +201,6 @@
             letter-spacing: 1px;
         }
 
-        /* ========== BUTTONS ========== */
         .btn {
             padding: 0.5rem 1.2rem;
             border: none;
@@ -223,7 +218,6 @@
         .btn-danger { background: var(--danger-text); color: white; }
         .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
 
-        /* ========== STATUS BADGES ========== */
         .status-badge {
             display: inline-block;
             padding: 0.3rem 1rem;
@@ -236,7 +230,6 @@
         .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
         .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
 
-        /* ========== TABLES ========== */
         .table-responsive {
             overflow-x: auto;
             margin-bottom: 1rem;
@@ -340,12 +333,9 @@
     </style>
 </head>
 <body>
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR (unchanged) -->
     <div class="sidebar" id="sidebar">
-        <div class="logo-area">
-            <i class="fas fa-calendar-alt"></i>
-            <h2>Teacher Panel</h2>
-        </div>
+        <div class="logo-area"><i class="fas fa-calendar-alt"></i><h2>Teacher Panel</h2></div>
         <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
         <a href="teacher-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
@@ -363,14 +353,9 @@
     <!-- MAIN CONTENT -->
     <div class="main-content" id="mainContent">
         <div class="top-bar">
-            <div class="page-title">
-                <h1>Timetable Studio</h1>
-                <p>Create and manage all your class timetables</p>
-            </div>
+            <div class="page-title"><h1>Timetable Studio</h1><p>Create and manage all your class timetables</p></div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
-                </div>
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
                 <div class="profile-dropdown">
                     <div class="profile-icon" id="profileInitials">T</div>
                     <div class="dropdown-menu">
@@ -434,9 +419,7 @@
                     <tbody id="pendingBody"></tbody>
                 </table>
             </div>
-            <div class="actions">
-                <button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button>
-            </div>
+            <div class="actions"><button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button></div>
         </div>
 
         <!-- Approved Tab -->
@@ -474,9 +457,7 @@
                     <tbody id="rejectedBody"></tbody>
                 </table>
             </div>
-            <div class="actions">
-                <button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button>
-            </div>
+            <div class="actions"><button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button></div>
         </div>
     </div>
 
@@ -493,7 +474,6 @@
     </div>
 
     <script>
-        // ========== FIREBASE CONFIG ==========
         const firebaseConfig = {
             apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
             authDomain: "edutopscholars-be54a.firebaseapp.com",
@@ -540,11 +520,11 @@
 
         // ========== GLOBAL VARIABLES ==========
         let currentUser = null, userData = null, currentClassId = null;
-        let currentType = 'academic';
+        let currentType = 'academic'; // for draft
         let draftProposalId = null, draftData = [], draftType = 'academic';
         let pendingProposalId = null, pendingData = [], pendingType = 'academic';
         let approvedTimetables = []; // { type, data }
-        let currentApprovedType = null;
+        let currentApprovedType = null; // stores the currently selected approved type
         let rejectedProposalId = null, rejectedData = [], rejectedType = 'academic', rejectedFeedback = '';
 
         // ========== HEADER HELPERS (based on type) ==========
@@ -766,7 +746,7 @@
                 }
             } catch(e) { console.error(e); pendingData = []; }
 
-            // Approved – query by classId (the field we now store)
+            // Approved – query by classId
             approvedTimetables = [];
             try {
                 const snap = await db.collection('timetables')
@@ -800,22 +780,6 @@
                     rejectedData = [];
                 }
             } catch(e) { console.error(e); rejectedData = []; }
-
-            // Populate approved type dropdown
-            const select = document.getElementById('approvedTypeSelect');
-            select.innerHTML = '<option value="">Select type</option>';
-            approvedTimetables.forEach(at => {
-                const option = document.createElement('option');
-                option.value = at.type;
-                option.textContent = at.type.charAt(0).toUpperCase() + at.type.slice(1);
-                select.appendChild(option);
-            });
-            if (approvedTimetables.length > 0) {
-                select.value = approvedTimetables[0].type;
-                currentApprovedType = approvedTimetables[0].type;
-            } else {
-                currentApprovedType = null;
-            }
 
             if (draftProposalId) currentType = draftType;
             else currentType = 'academic';
@@ -852,7 +816,28 @@
         // ========== APPROVED RENDERING ==========
         function renderApproved() {
             const select = document.getElementById('approvedTypeSelect');
-            const selectedType = select.value;
+            // Rebuild dropdown options
+            select.innerHTML = '<option value="">Select type</option>';
+            approvedTimetables.forEach(at => {
+                const option = document.createElement('option');
+                option.value = at.type;
+                option.textContent = at.type.charAt(0).toUpperCase() + at.type.slice(1);
+                select.appendChild(option);
+            });
+
+            // Restore previously selected type if it exists, otherwise pick first
+            let selectedType = currentApprovedType;
+            if (selectedType && approvedTimetables.some(at => at.type === selectedType)) {
+                select.value = selectedType;
+            } else if (approvedTimetables.length > 0) {
+                selectedType = approvedTimetables[0].type;
+                select.value = selectedType;
+                currentApprovedType = selectedType;
+            } else {
+                selectedType = null;
+                currentApprovedType = null;
+            }
+
             if (!selectedType || approvedTimetables.length === 0) {
                 document.getElementById('approvedBody').innerHTML = '<tr><td colspan="8">No approved timetable.</td></tr>';
                 document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
@@ -877,12 +862,14 @@
             document.getElementById('approvedBody').innerHTML = html;
             document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${type.charAt(0).toUpperCase() + type.slice(1)}</span>`;
             document.getElementById('publishBtn').style.display = data.published ? 'none' : 'inline-block';
-            // store for later use
             window.approvedData = data;
             window.approvedType = type;
         }
 
-        document.getElementById('approvedTypeSelect').addEventListener('change', renderApproved);
+        document.getElementById('approvedTypeSelect').addEventListener('change', (e) => {
+            currentApprovedType = e.target.value;
+            renderApproved();
+        });
 
         document.getElementById('publishBtn').addEventListener('click', async () => {
             if (!currentClassId || !window.approvedData) return;
