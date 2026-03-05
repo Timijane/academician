@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Timetable Review</title>
+    <title>EduTop Scholars · Admin Timetable Review</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -13,7 +13,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (existing styles unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -62,7 +61,6 @@
             display: flex;
         }
 
-        /* Sidebar, main-content, top-bar, tabs, etc. (same as before) */
         .sidebar {
             width: 260px;
             background: var(--bg-sidebar);
@@ -281,9 +279,10 @@
         .type-badge {
             background: var(--accent);
             color: white;
-            padding: 0.2rem 0.5rem;
+            padding: 0.2rem 0.6rem;
             border-radius: 1rem;
             font-size: 0.8rem;
+            margin-right: 0.5rem;
         }
     </style>
 </head>
@@ -407,7 +406,7 @@
         </div>
     </div>
 
-    <!-- Review Modal -->
+    <!-- Review Modal (only for pending) -->
     <div class="modal" id="reviewModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -415,7 +414,7 @@
                 <i class="fas fa-times" style="cursor:pointer;" onclick="closeReviewModal()"></i>
             </div>
             <div id="modalContent"></div>
-            <textarea id="feedbackInput" class="feedback-input" placeholder="Feedback (optional, especially for rejection)"></textarea>
+            <textarea id="feedbackInput" class="feedback-input" placeholder="Feedback (required for rejection)"></textarea>
             <div class="modal-actions">
                 <button class="btn btn-success" onclick="handleApprove()">Approve</button>
                 <button class="btn btn-danger" onclick="handleReject()">Reject</button>
@@ -438,7 +437,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Sidebar toggle (unchanged)
+        // Sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -450,7 +449,7 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
-        // Theme toggle (unchanged)
+        // Theme toggle
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -518,37 +517,36 @@
             });
         });
 
-        // Helper to get table headers for a type
+        // ========== HEADER HELPERS (same as teacher) ==========
         function getHeaders(type) {
             switch(type) {
                 case 'academic':
                     return ['Start', 'End', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
                 case 'hairstyle':
-                    return ['Week', 'Hairstyle', 'Description', '', '', '', ''];
+                    return ['Week', 'Hairstyle', 'Description'];
                 case 'test':
                 case 'exam':
-                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration', '', ''];
+                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration'];
                 default:
-                    return ['Start', 'End', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']; // fallback
+                    return [];
             }
         }
 
-        // Helper to convert period to row cells
         function periodToRow(p, type) {
             switch(type) {
                 case 'academic':
                     return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
                 case 'hairstyle':
-                    return [p.startTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday, ''];
+                    return [p.startTime, p.monday, p.tuesday];
                 case 'test':
                 case 'exam':
-                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
+                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday];
                 default:
-                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
+                    return [];
             }
         }
 
-        // Load pending
+        // ========== LOAD PENDING ==========
         async function loadPending() {
             const tbody = document.getElementById('pendingBody');
             const errorDiv = document.getElementById('pendingError');
@@ -607,7 +605,7 @@
             }
         }
 
-        // Load approved (all timetables)
+        // ========== LOAD APPROVED ==========
         async function loadApproved() {
             const tbody = document.getElementById('approvedBody');
             const errorDiv = document.getElementById('approvedError');
@@ -632,7 +630,7 @@
                     const publishedBadge = t.published ? 
                         '<span class="badge published">Published</span>' : 
                         '<span class="badge approved">Not Published</span>';
-                    const type = t.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic'); // guess type from id if not present
+                    const type = t.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
                     html += `
                     <tr>
                         <td><span class="type-badge">${type}</span></td>
@@ -652,7 +650,7 @@
             }
         }
 
-        // Load rejected
+        // ========== LOAD REJECTED ==========
         async function loadRejected() {
             const tbody = document.getElementById('rejectedBody');
             const errorDiv = document.getElementById('rejectedError');
@@ -708,6 +706,7 @@
             }
         }
 
+        // ========== FETCH TEACHER NAMES ==========
         async function fetchTeacherNames(teacherIds) {
             const teacherMap = {};
             if (teacherIds.length === 0) return teacherMap;
@@ -724,7 +723,7 @@
             return teacherMap;
         }
 
-        // Review Modal
+        // ========== REVIEW MODAL ==========
         const reviewModal = document.getElementById('reviewModal');
         const modalContent = document.getElementById('modalContent');
         const modalTypeSpan = document.getElementById('modalType');
@@ -763,11 +762,10 @@
             const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
             const proposal = doc.data();
             const type = proposal.type || 'academic';
-            // Use composite id to avoid overwriting different types
             const timetableDocId = `${proposal.classId}_${type}`;
 
             try {
-                // Save to timetables collection with composite id
+                // Save to timetables with composite ID
                 await db.collection('timetables').doc(timetableDocId).set({
                     periods: proposal.periods,
                     teacherId: proposal.teacherId,
@@ -804,6 +802,11 @@
 
         window.handleReject = async () => {
             if (!currentProposalId) return;
+            const feedback = feedbackInput.value;
+            if (!feedback) {
+                alert('Please provide feedback for rejection.');
+                return;
+            }
             const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
             const proposal = doc.data();
 
@@ -812,7 +815,7 @@
                     status: 'rejected',
                     reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     reviewedBy: auth.currentUser.uid,
-                    feedback: feedbackInput.value
+                    feedback
                 });
 
                 await db.collection('auditLogs').add({
