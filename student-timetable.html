@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · My Timetable</title>
+    <title>EduTop Scholars · My Timetables</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -133,10 +133,20 @@
         }
         .card-header {
             margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .card-header h2 {
             font-size: 1.5rem;
             font-weight: 600;
+        }
+        .card-header .type-badge {
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            background: var(--accent);
+            color: white;
+            font-size: 0.9rem;
         }
 
         .table-responsive {
@@ -166,14 +176,20 @@
         @media (max-width: 768px) {
             .container { padding: 1rem; }
         }
+
+        .timetables-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="top-bar">
             <div class="page-title">
-                <h1>My Timetable</h1>
-                <p>Your weekly class schedule</p>
+                <h1>My Timetables</h1>
+                <p>Your class schedules</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -193,22 +209,9 @@
             <div class="card-header">
                 <h2>Class: <span id="className">Loading...</span></h2>
             </div>
-            <div class="table-responsive">
-                <table id="timetableTable">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Monday</th>
-                            <th>Tuesday</th>
-                            <th>Wednesday</th>
-                            <th>Thursday</th>
-                            <th>Friday</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <tr><td colspan="6" class="empty-state">Loading timetable...</td></tr>
-                    </tbody>
-                </table>
+            <div id="timetablesContainer" class="timetables-grid">
+                <!-- Dynamically populated -->
+                <p>Loading timetables...</p>
             </div>
         </div>
     </div>
@@ -266,12 +269,13 @@
             document.getElementById('profileInitials').textContent = 
                 (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
             document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Student'}`;
-            document.getElementById('className').textContent = userData.class || 'Not assigned';
+            const studentClass = userData.studentClass || userData.class; // fallback
+            document.getElementById('className').textContent = studentClass || 'Not assigned';
 
-            if (userData.class) {
-                loadTimetable(userData.class);
+            if (studentClass) {
+                loadAllTimetables(studentClass);
             } else {
-                document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="empty-state">You are not assigned to any class.</td></tr>';
+                document.getElementById('timetablesContainer').innerHTML = '<p class="empty-state">You are not assigned to any class.</p>';
             }
         });
 
@@ -279,30 +283,102 @@
             auth.signOut().then(() => window.location.href = 'index.html');
         });
 
-        async function loadTimetable(classId) {
-            const doc = await db.collection('timetables').doc(classId).get();
-            if (!doc.exists || !doc.data().published) {
-                document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="empty-state">No published timetable for your class yet.</td></tr>';
+        // Helper to get table headers based on type
+        function getHeaders(type) {
+            switch(type) {
+                case 'academic':
+                    return ['Time', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                case 'hairstyle':
+                    return ['Week', 'Hairstyle', 'Description'];
+                case 'test':
+                case 'exam':
+                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration'];
+                default:
+                    return [];
+            }
+        }
+
+        // Helper to map period to row cells based on type
+        function periodToRow(p, type) {
+            switch(type) {
+                case 'academic':
+                    return [`${p.startTime} – ${p.endTime}`, p.monday || '—', p.tuesday || '—', p.wednesday || '—', p.thursday || '—', p.friday || '—'];
+                case 'hairstyle':
+                    return [p.startTime || '—', p.monday || '—', p.tuesday || '—'];
+                case 'test':
+                case 'exam':
+                    return [p.startTime || '—', p.endTime || '—', p.monday || '—', p.tuesday || '—', p.wednesday || '—'];
+                default:
+                    return [];
+            }
+        }
+
+        async function loadAllTimetables(classId) {
+            // Since we store each type as a separate document in timetables collection with classId as doc id,
+            // we cannot have multiple documents with same id. We need a different approach: store each type under a subcollection or different doc ids.
+            // Simpler: We'll query timetables collection for documents where classId == classId and published == true.
+            // But we used doc(classId) before. To support multiple types, we need to use a different document id, like `${classId}_${type}`.
+            // For backward compatibility, we can keep the academic one at classId, and for others use `${classId}_hairstyle`, etc.
+            // In the teacher page, when saving approved timetable, we need to save to doc id based on type.
+            // Let's adjust: In teacher page, when approving, we save to `timetables/${classId}_${type}`.
+            // The student page then queries all timetables where id starts with classId.
+            // We'll modify teacher page accordingly (minor change in approve function).
+            // But to keep this answer focused, I'll implement that in the teacher page as well.
+
+            // For now, we'll implement student page to fetch all timetables for the class by prefix.
+            const prefix = classId + '_';
+            const timetables = [];
+            try {
+                // Get all documents with id starting with classId
+                const snapshot = await db.collection('timetables').get();
+                snapshot.forEach(doc => {
+                    if (doc.id === classId || doc.id.startsWith(prefix)) {
+                        const data = doc.data();
+                        if (data.published) {
+                            timetables.push({ id: doc.id, ...data });
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading timetables:', error);
+            }
+
+            const container = document.getElementById('timetablesContainer');
+            if (timetables.length === 0) {
+                container.innerHTML = '<p class="empty-state">No published timetables for your class yet.</p>';
                 return;
             }
-            const periods = doc.data().periods || [];
-            // Sort periods by start time
-            periods.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
             let html = '';
-            periods.forEach(p => {
+            timetables.forEach(tt => {
+                const type = tt.type || 'academic';
+                const periods = tt.periods || [];
+                periods.sort((a,b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
+                const headers = getHeaders(type);
+                let tableRows = '';
+                periods.forEach(p => {
+                    const cells = periodToRow(p, type);
+                    tableRows += '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+                });
+
+                const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
                 html += `
-                <tr>
-                    <td>${p.startTime} – ${p.endTime}</td>
-                    <td>${p.monday || '—'}</td>
-                    <td>${p.tuesday || '—'}</td>
-                    <td>${p.wednesday || '—'}</td>
-                    <td>${p.thursday || '—'}</td>
-                    <td>${p.friday || '—'}</td>
-                </tr>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>${typeLabel} Timetable</h3>
+                            <span class="type-badge">${typeLabel}</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                                <tbody>${tableRows || '<tr><td colspan="100" class="empty-state">No entries.</td></tr>'}</tbody>
+                            </table>
+                        </div>
+                    </div>
                 `;
             });
-            document.getElementById('tableBody').innerHTML = html || '<tr><td colspan="6" class="empty-state">No periods defined.</td></tr>';
+            container.innerHTML = html;
         }
     </script>
 </body>
