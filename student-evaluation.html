@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Evaluation</title>
+    <!-- same head -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style> /* same styles plus tabs */ 
+        .tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 1.5rem;
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem;
+            width: fit-content;
+        }
+        .tab {
+            padding: 0.6rem 1.8rem; border-radius: 3rem; font-weight: 500; cursor: pointer;
+            transition: 0.2s; color: var(--text-secondary);
+        }
+        .tab.active { background: var(--accent); color: white; }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-user-graduate"></i>
+            <h2>Student Panel</h2>
+        </div>
+        <a href="student-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="student-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="student-evaluation.html" class="nav-item active"><i class="fas fa-chart-bar"></i><span>Evaluation</span></a>
+        <a href="student-classroom.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Classroom</span></a>
+        <a href="student-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Evaluation</h1>
+                <p>Your scores across different categories</p>
+            </div>
+            <div class="profile-area"> <!-- theme toggle and dropdown --> </div>
+        </div>
+
+        <div class="tabs" id="evalTabs">
+            <div class="tab active" data-eval="classwork">Classwork</div>
+            <div class="tab" data-eval="homework">Homework</div>
+            <div class="tab" data-eval="test">Test</div>
+            <div class="tab" data-eval="exam">Exam</div>
+        </div>
+
+        <div class="card" id="evalContent">
+            <!-- dynamic content -->
+        </div>
+    </div>
+
+    <script>
+        // Firebase init, auth, etc.
+        const evalTabs = document.querySelectorAll('.tab');
+        let currentEval = 'classwork';
+        evalTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                evalTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentEval = tab.dataset.eval;
+                loadEvaluation();
+            });
+        });
+
+        async function loadEvaluation() {
+            const scoresSnap = await db.collection('scores')
+                .where('studentId', '==', currentUser.uid)
+                .where('category', '==', currentEval)
+                .get();
+            let html = '<h3>' + currentEval.charAt(0).toUpperCase() + currentEval.slice(1) + ' Scores</h3>';
+            if (scoresSnap.empty) {
+                html += '<p>No scores found.</p>';
+            } else {
+                html += '<table><thead><tr><th>Subject</th><th>Score</th><th>Date</th></tr></thead><tbody>';
+                scoresSnap.forEach(doc => {
+                    const s = doc.data();
+                    html += `<tr><td>${s.subject || '—'}</td><td>${s.score}%</td><td>${s.date || '—'}</td></tr>`;
+                });
+                html += '</tbody></table>';
+            }
+            document.getElementById('evalContent').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
