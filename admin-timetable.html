@@ -13,8 +13,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (same styles as before – kept minimal) */
+        /* (same styles as admin timetable – kept minimal) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root[data-theme="light"] {
             --bg-primary: #f8fafc; --bg-sidebar: #ffffff; --text-primary: #0f172a; --text-secondary: #475569;
             --accent: #2563eb; --border: #e2e8f0; --card-bg: #ffffff; --hover-bg: #f1f5f9;
@@ -45,23 +46,16 @@
         .page-title h1 { font-size: 2rem; font-weight: 600; }
         .profile-area { display: flex; align-items: center; gap: 1.5rem; }
         .theme-toggle { background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
-        .profile-dropdown { position: relative; cursor: pointer; }
-        .profile-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; color: white; }
-        .dropdown-menu { position: absolute; right: 0; top: 50px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 150px; display: none; }
-        .profile-dropdown:hover .dropdown-menu { display: block; }
-        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
-        .dropdown-item:hover { background: var(--hover-bg); }
 
         .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
         .tab { padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border); }
-        .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .tab.active { background: var(--accent); color: white; }
 
         .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
         .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--accent); color: white; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-outline:hover { background: var(--hover-bg); }
         .btn-success { background: var(--success-text); color: white; }
         .btn-danger { background: var(--danger-text); color: white; }
 
@@ -84,12 +78,11 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:1.5rem; }
         .modal-actions { display: flex; gap:1rem; margin-top:1rem; }
         .feedback-input { width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:0.5rem; background:var(--input-bg); color:var(--text-primary); margin-bottom:1rem; }
-        .error-message { background: var(--danger-bg); color: var(--danger-text); padding:1rem; border-radius:0.75rem; margin-bottom:1rem; border-left:4px solid var(--danger-text); }
+        .error-message { background: #ef444420; color: var(--danger-text); padding:1rem; border-radius:0.75rem; margin-bottom:1rem; border-left:4px solid var(--danger-text); }
         .type-badge { background: var(--accent); color: white; padding:0.2rem 0.6rem; border-radius:1rem; font-size:0.8rem; margin-right:0.5rem; }
     </style>
 </head>
 <body>
-    <!-- sidebar (unchanged) -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area"><i class="fas fa-graduation-cap"></i><h2>EduTop Admin</h2></div>
         <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
@@ -111,13 +104,7 @@
             <div class="page-title"><h1>Timetable Review</h1><p>Manage teacher timetable submissions</p></div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
-                <div class="profile-dropdown">
-                    <div class="profile-icon" id="profileInitials">MA</div>
-                    <div class="dropdown-menu">
-                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
-                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
-                    </div>
-                </div>
+                <div class="profile-icon" id="profileInitials">MA</div>
             </div>
         </div>
 
@@ -133,7 +120,10 @@
             <div class="card-header"><h3>Pending Proposals</h3></div>
             <div id="pendingError" class="error-message" style="display:none;"></div>
             <div class="table-responsive">
-                <table><thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Status</th></tr></thead><tbody id="pendingBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+                <table>
+                    <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Status</th></tr></thead>
+                    <tbody id="pendingBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                </table>
             </div>
         </div>
 
@@ -142,7 +132,10 @@
             <div class="card-header"><h3>Approved Timetables</h3></div>
             <div id="approvedError" class="error-message" style="display:none;"></div>
             <div class="table-responsive">
-                <table><thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Approved On</th><th>Published</th></tr></thead><tbody id="approvedBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+                <table>
+                    <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Approved On</th><th>Published</th></tr></thead>
+                    <tbody id="approvedBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                </table>
             </div>
         </div>
 
@@ -151,7 +144,10 @@
             <div class="card-header"><h3>Rejected Proposals</h3></div>
             <div id="rejectedError" class="error-message" style="display:none;"></div>
             <div class="table-responsive">
-                <table><thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Feedback</th></tr></thead><tbody id="rejectedBody"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+                <table>
+                    <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Feedback</th></tr></thead>
+                    <tbody id="rejectedBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -171,16 +167,24 @@
     </div>
 
     <script>
-        const firebaseConfig = { /* your config */ };
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Sidebar & theme (unchanged)
+        // Sidebar & theme (minimal)
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
-        toggleBtn.addEventListener('click', ()=>{
+        toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
             const icon = toggleBtn.querySelector('i');
@@ -192,13 +196,16 @@
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
         const themeText = themeToggle.querySelector('span');
-        function updateThemeUI(theme) { themeIcon.className = theme==='dark'?'fas fa-moon':'fas fa-sun'; themeText.textContent = theme==='dark'?'Dark':'Light'; }
-        const savedTheme = localStorage.getItem('edutopscholars-theme')||'dark';
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
-        themeToggle.addEventListener('click', ()=>{
+        themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
-            const next = current==='dark'?'light':'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
             localStorage.setItem('edutopscholars-theme', next);
             updateThemeUI(next);
@@ -208,25 +215,31 @@
         let currentUser = null;
         let currentUserData = null;
         auth.onAuthStateChanged(async (user) => {
-            if (!user) { window.location.href = 'admin-login.html'; return; }
+            if (!user) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().permissions?.reviewLessons)) {
-                auth.signOut(); window.location.href = 'index.html'; return;
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
             }
             currentUser = user;
             currentUserData = userDoc.data();
-            document.getElementById('profileInitials').textContent = (currentUserData.firstName?.[0]||'A') + (currentUserData.surname?.[0]||'A');
-            document.querySelector('.page-title p').textContent = `Welcome back, ${currentUserData.firstName || 'Admin'}`;
+            document.getElementById('profileInitials').textContent = (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
             loadPending();
             loadApproved();
             loadRejected();
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(()=>window.location.href='index.html'));
-
         // Tab switching
         const tabs = document.querySelectorAll('.tab');
-        const sections = { pending: document.getElementById('pendingSection'), approved: document.getElementById('approvedSection'), rejected: document.getElementById('rejectedSection') };
+        const sections = {
+            pending: document.getElementById('pendingSection'),
+            approved: document.getElementById('approvedSection'),
+            rejected: document.getElementById('rejectedSection')
+        };
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabName = tab.dataset.tab;
@@ -239,7 +252,7 @@
             });
         });
 
-        // ========== HEADER HELPERS ==========
+        // ========== HEADER HELPERS (same as teacher) ==========
         function getHeaders(type) {
             switch(type) {
                 case 'academic': return ['Start','End','Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -257,7 +270,7 @@
             }
         }
 
-        // Fetch teacher names with robust fallback
+        // Fetch teacher names with fallback
         async function fetchTeacherNames(teacherIds) {
             const teacherMap = {};
             if (teacherIds.length === 0) return teacherMap;
@@ -265,13 +278,8 @@
                 const chunk = teacherIds.slice(i, i+10);
                 const snaps = await Promise.all(chunk.map(id => db.collection('users').doc(id).get()));
                 snaps.forEach(snap => {
-                    if (snap.exists) {
-                        const data = snap.data();
-                        teacherMap[snap.id] = data;
-                    } else {
-                        // if document missing, still put an entry so we know
-                        teacherMap[snap.id] = null;
-                    }
+                    if (snap.exists) teacherMap[snap.id] = snap.data();
+                    else teacherMap[snap.id] = null;
                 });
             }
             return teacherMap;
@@ -279,7 +287,7 @@
 
         function getTeacherDisplay(teacherId, teacherMap) {
             const teacher = teacherMap[teacherId];
-            if (!teacher) return teacherId; // fallback to ID if no doc
+            if (!teacher) return teacherId;
             const name = [teacher.firstName, teacher.surname].filter(Boolean).join(' ');
             if (name) return name;
             if (teacher.email) return teacher.email;
@@ -295,9 +303,13 @@
             errorDiv.style.display = 'none';
             try {
                 const snapshot = await db.collection('timetableProposals')
-                    .where('status','==','pending')
-                    .orderBy('submittedAt','desc').get();
-                if (snapshot.empty) { tbody.innerHTML = '<tr><td colspan="5">No pending proposals.</td></tr>'; return; }
+                    .where('status', '==', 'pending')
+                    .orderBy('submittedAt', 'desc')
+                    .get();
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="5">No pending proposals.</td></tr>';
+                    return;
+                }
                 const teacherIds = [...new Set(snapshot.docs.map(d => d.data().teacherId))];
                 const teacherMap = await fetchTeacherNames(teacherIds);
                 let html = '';
@@ -338,7 +350,10 @@
             errorDiv.style.display = 'none';
             try {
                 const snapshot = await db.collection('timetables').get();
-                if (snapshot.empty) { tbody.innerHTML = '<tr><td colspan="5">No approved timetables.</td></tr>'; return; }
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="5">No approved timetables.</td></tr>';
+                    return;
+                }
                 const teacherIds = [...new Set(snapshot.docs.map(d => d.data().teacherId))];
                 const teacherMap = await fetchTeacherNames(teacherIds);
                 let html = '';
@@ -373,9 +388,13 @@
             errorDiv.style.display = 'none';
             try {
                 const snapshot = await db.collection('timetableProposals')
-                    .where('status','==','rejected')
-                    .orderBy('submittedAt','desc').get();
-                if (snapshot.empty) { tbody.innerHTML = '<tr><td colspan="5">No rejected proposals.</td></tr>'; return; }
+                    .where('status', '==', 'rejected')
+                    .orderBy('submittedAt', 'desc')
+                    .get();
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="5">No rejected proposals.</td></tr>';
+                    return;
+                }
                 const teacherIds = [...new Set(snapshot.docs.map(d => d.data().teacherId))];
                 const teacherMap = await fetchTeacherNames(teacherIds);
                 let html = '';
@@ -432,42 +451,80 @@
             reviewModal.classList.add('active');
         };
 
-        window.closeReviewModal = () => { reviewModal.classList.remove('active'); currentProposalId = null; };
+        window.closeReviewModal = () => {
+            reviewModal.classList.remove('active');
+            currentProposalId = null;
+        };
 
         window.handleApprove = async () => {
             if (!currentProposalId) return;
             const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
             const proposal = doc.data();
             const type = proposal.type || 'academic';
-            const timetableDocId = `${proposal.classId}_${type}`;
+            const timetableDocId = `${proposal.classId}_${type}`; // composite ID
             try {
+                // Save to timetables with classId and type fields
                 await db.collection('timetables').doc(timetableDocId).set({
                     periods: proposal.periods,
                     teacherId: proposal.teacherId,
+                    classId: proposal.classId,
                     type: type,
                     approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     approvedBy: auth.currentUser.uid,
                     published: false
                 });
-                await doc.ref.update({ status: 'approved', reviewedAt: firebase.firestore.FieldValue.serverTimestamp(), reviewedBy: auth.currentUser.uid, feedback: feedbackInput.value });
-                await db.collection('auditLogs').add({ userId: auth.currentUser.uid, action: `Approved ${type} timetable for ${proposal.classId}`, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                // Update proposal status
+                await doc.ref.update({
+                    status: 'approved',
+                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    reviewedBy: auth.currentUser.uid,
+                    feedback: feedbackInput.value
+                });
+                // Log audit
+                await db.collection('auditLogs').add({
+                    userId: auth.currentUser.uid,
+                    action: `Approved ${type} timetable for ${proposal.classId}`,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
                 closeReviewModal();
-                loadPending(); loadApproved(); loadRejected();
-            } catch (error) { alert('Failed to approve: ' + error.message); }
+                loadPending();
+                loadApproved();
+                loadRejected();
+            } catch (error) {
+                console.error('Approve error:', error);
+                alert('Failed to approve: ' + error.message);
+            }
         };
 
         window.handleReject = async () => {
             if (!currentProposalId) return;
             const feedback = feedbackInput.value;
-            if (!feedback) { alert('Please provide feedback for rejection.'); return; }
+            if (!feedback) {
+                alert('Please provide feedback for rejection.');
+                return;
+            }
             const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
             const proposal = doc.data();
             try {
-                await doc.ref.update({ status: 'rejected', reviewedAt: firebase.firestore.FieldValue.serverTimestamp(), reviewedBy: auth.currentUser.uid, feedback });
-                await db.collection('auditLogs').add({ userId: auth.currentUser.uid, action: `Rejected timetable proposal for ${proposal.classId}`, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                await doc.ref.update({
+                    status: 'rejected',
+                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    reviewedBy: auth.currentUser.uid,
+                    feedback
+                });
+                await db.collection('auditLogs').add({
+                    userId: auth.currentUser.uid,
+                    action: `Rejected timetable proposal for ${proposal.classId}`,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
                 closeReviewModal();
-                loadPending(); loadApproved(); loadRejected();
-            } catch (error) { alert('Failed to reject: ' + error.message); }
+                loadPending();
+                loadApproved();
+                loadRejected();
+            } catch (error) {
+                console.error('Reject error:', error);
+                alert('Failed to reject: ' + error.message);
+            }
         };
     </script>
 </body>
