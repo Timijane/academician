@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
+        /* (keep existing styles – unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
@@ -146,11 +147,9 @@
     </style>
 </head>
 <body>
+    <!-- (sidebar and top bar unchanged) -->
     <div class="sidebar" id="sidebar">
-        <div class="logo-area">
-            <i class="fas fa-calendar-alt"></i>
-            <h2>Teacher Panel</h2>
-        </div>
+        <div class="logo-area"><i class="fas fa-calendar-alt"></i><h2>Teacher Panel</h2></div>
         <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
         <a href="teacher-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
@@ -167,14 +166,9 @@
 
     <div class="main-content" id="mainContent">
         <div class="top-bar">
-            <div class="page-title">
-                <h1>Timetable Studio</h1>
-                <p>Create and manage all your class timetables</p>
-            </div>
+            <div class="page-title"><h1>Timetable Studio</h1><p>Create and manage all your class timetables</p></div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
-                </div>
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
                 <div class="profile-dropdown">
                     <div class="profile-icon" id="profileInitials">T</div>
                     <div class="dropdown-menu">
@@ -215,10 +209,7 @@
             </div>
             <div class="class-info" id="classDisplay"></div>
             <div class="table-responsive">
-                <table id="draftTable">
-                    <thead id="draftTableHeader"></thead>
-                    <tbody id="draftBody"></tbody>
-                </table>
+                <table id="draftTable"><thead id="draftTableHeader"></thead><tbody id="draftBody"></tbody></table>
             </div>
             <div class="actions">
                 <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Entry</button>
@@ -235,9 +226,7 @@
             <div class="table-responsive">
                 <table><thead id="pendingTableHeader"></thead><tbody id="pendingBody"></tbody></table>
             </div>
-            <div class="actions">
-                <button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button>
-            </div>
+            <div class="actions"><button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button></div>
         </div>
 
         <!-- Approved Tab -->
@@ -245,9 +234,7 @@
             <div class="card-header">
                 <h3>Approved Timetable</h3>
                 <div class="type-selector" style="margin:0;">
-                    <select id="approvedTypeSelect" class="type-dropdown">
-                        <option value="">Select type</option>
-                    </select>
+                    <select id="approvedTypeSelect" class="type-dropdown"><option value="">Select type</option></select>
                 </div>
             </div>
             <div class="class-info" id="approvedClass"></div>
@@ -269,22 +256,14 @@
             <div class="table-responsive">
                 <table><thead id="rejectedTableHeader"></thead><tbody id="rejectedBody"></tbody></table>
             </div>
-            <div class="actions">
-                <button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button>
-            </div>
+            <div class="actions"><button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button></div>
         </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
     <div class="delete-modal" id="deleteModal">
-        <div class="delete-modal-content">
-            <h3>Confirm Deletion</h3>
-            <p id="deleteMessage">Are you sure you want to delete this draft? This cannot be undone.</p>
-            <div class="delete-modal-actions">
-                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
-                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
-            </div>
-        </div>
+        <div class="delete-modal-content"><h3>Confirm Deletion</h3><p id="deleteMessage">Are you sure you want to delete this draft? This cannot be undone.</p>
+        <div class="delete-modal-actions"><button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button><button class="btn btn-danger" id="confirmDeleteBtn">Delete</button></div></div>
     </div>
 
     <script>
@@ -301,7 +280,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme & sidebar
+        // Theme & sidebar (unchanged)
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -341,43 +320,28 @@
         // ========== HEADER HELPERS ==========
         function getHeaders(type) {
             switch(type) {
-                case 'academic':
-                    return ['Start', 'End', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', ''];
-                case 'hairstyle':
-                    return ['Week', 'Hairstyle', 'Description', ''];
-                case 'test':
-                case 'exam':
-                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration', ''];
-                default:
-                    return [];
+                case 'academic': return ['Start', 'End', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', ''];
+                case 'hairstyle': return ['Week', 'Hairstyle', 'Description', ''];
+                case 'test': case 'exam': return ['Date', 'Time', 'Subject', 'Venue', 'Duration', ''];
+                default: return [];
             }
         }
 
         function periodToRow(p, type) {
             switch(type) {
-                case 'academic':
-                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
-                case 'hairstyle':
-                    return [p.startTime, p.monday, p.tuesday];
-                case 'test':
-                case 'exam':
-                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday];
-                default:
-                    return [];
+                case 'academic': return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
+                case 'hairstyle': return [p.startTime, p.monday, p.tuesday];
+                case 'test': case 'exam': return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday];
+                default: return [];
             }
         }
 
         function emptyPeriod(type) {
             switch(type) {
-                case 'academic':
-                    return { startTime: '08:00', endTime: '08:40', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
-                case 'hairstyle':
-                    return { startTime: '1', monday: '', tuesday: '' };
-                case 'test':
-                case 'exam':
-                    return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '' };
-                default:
-                    return {};
+                case 'academic': return { startTime: '08:00', endTime: '08:40', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
+                case 'hairstyle': return { startTime: '1', monday: '', tuesday: '' };
+                case 'test': case 'exam': return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '' };
+                default: return {};
             }
         }
 
@@ -386,7 +350,6 @@
             const header = document.getElementById('draftTableHeader');
             const headers = getHeaders(currentType);
             header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-
             const tbody = document.getElementById('draftBody');
             let html = '';
             draftData.forEach((p, i) => {
@@ -407,7 +370,7 @@
                         <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday" placeholder="Hairstyle"></td>
                         <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday" placeholder="Description"></td>
                     `;
-                } else { // test/exam
+                } else {
                     html += `
                         <td><input type="text" value="${p.startTime}" data-index="${i}" data-field="startTime" placeholder="Date (e.g., 2025-04-10)"></td>
                         <td><input type="text" value="${p.endTime}" data-index="${i}" data-field="endTime" placeholder="Time"></td>
@@ -420,33 +383,19 @@
                 html += '</tr>';
             });
             tbody.innerHTML = html;
-
             document.querySelectorAll('#draftBody input').forEach(inp => {
                 inp.addEventListener('input', function(e) {
                     const i = this.dataset.index, f = this.dataset.field;
                     draftData[i][f] = this.value;
                 });
             });
-
-            const typeDisplay = {
-                academic: 'ACADEMIC TIMETABLE',
-                hairstyle: 'HAIRSTYLE WEEKLY SCHEDULE',
-                test: 'TEST SCHEDULE',
-                exam: 'EXAM TIMETABLE'
-            };
+            const typeDisplay = { academic:'ACADEMIC TIMETABLE', hairstyle:'HAIRSTYLE WEEKLY SCHEDULE', test:'TEST SCHEDULE', exam:'EXAM TIMETABLE' };
             document.getElementById('draftTypeHeading').textContent = typeDisplay[currentType] || 'TIMETABLE';
         }
 
-        window.deleteDraftRow = (index) => {
-            draftData.splice(index, 1);
-            renderDraft();
-        };
+        window.deleteDraftRow = (index) => { draftData.splice(index,1); renderDraft(); };
 
-        document.getElementById('addRowBtn').addEventListener('click', () => {
-            draftData.push(emptyPeriod(currentType));
-            renderDraft();
-        });
-
+        document.getElementById('addRowBtn').addEventListener('click', () => { draftData.push(emptyPeriod(currentType)); renderDraft(); });
         document.getElementById('createNewBtn').addEventListener('click', async () => {
             const type = document.getElementById('timetableType').value;
             currentType = type;
@@ -456,52 +405,27 @@
             document.getElementById('deleteDraftBtn').style.display = 'none';
             document.querySelector('.tab[data-tab="draft"]').click();
         });
-
         document.getElementById('saveDraftBtn').addEventListener('click', async () => {
             if (!currentClassId) return alert('No class assigned.');
-            const data = {
-                classId: currentClassId,
-                teacherId: currentUser.uid,
-                periods: draftData,
-                type: currentType,
-                status: 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: draftData, type: currentType, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
             try {
-                if (draftProposalId) {
-                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
-                } else {
-                    const ref = await db.collection('timetableProposals').add(data);
-                    draftProposalId = ref.id;
-                }
-                alert('Draft saved.');
-                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
+                if (draftProposalId) await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                else { const ref = await db.collection('timetableProposals').add(data); draftProposalId = ref.id; }
+                alert('Draft saved.'); document.getElementById('deleteDraftBtn').style.display = 'inline-block';
             } catch(e) { alert(e.message); }
         });
-
         document.getElementById('submitBtn').addEventListener('click', async () => {
             if (!currentClassId) return alert('No class assigned.');
             if (draftData.length === 0) return alert('Add at least one entry.');
-            const data = {
-                classId: currentClassId,
-                teacherId: currentUser.uid,
-                periods: draftData,
-                type: currentType,
-                status: 'pending',
-                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: draftData, type: currentType, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
             try {
-                if (draftProposalId) {
-                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
-                } else {
-                    await db.collection('timetableProposals').add(data);
-                }
+                if (draftProposalId) await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                else await db.collection('timetableProposals').add(data);
                 alert('Submitted for approval.');
                 await loadAllData();
                 document.querySelector('.tab[data-tab="pending"]').click();
             } catch(e) { alert(e.message); }
         });
-
         document.getElementById('deleteDraftBtn').addEventListener('click', () => {
             openDeleteModal('Delete this entire draft?', async () => {
                 if (!draftProposalId) return;
@@ -514,7 +438,7 @@
             });
         });
 
-        // ========== LOAD ALL DATA (including approved) ==========
+        // ========== LOAD ALL DATA (reloads everything) ==========
         async function loadAllData() {
             // Draft
             try {
@@ -528,11 +452,7 @@
                     draftProposalId = doc.id;
                     draftData = doc.data().periods || [];
                     draftType = doc.data().type || 'academic';
-                } else {
-                    draftProposalId = null;
-                    draftData = [emptyPeriod('academic')];
-                    draftType = 'academic';
-                }
+                } else { draftProposalId = null; draftData = [emptyPeriod('academic')]; draftType = 'academic'; }
             } catch(e) { console.error(e); draftData = [emptyPeriod('academic')]; }
 
             // Pending
@@ -550,14 +470,13 @@
                 } else { pendingProposalId = null; pendingData = []; }
             } catch(e) { console.error(e); pendingData = []; }
 
-            // Approved – fetch all timetables for this class
+            // Approved
             approvedTimetables = [];
             try {
                 const snap = await db.collection('timetables').get();
                 snap.forEach(doc => {
                     if (doc.id.startsWith(currentClassId)) {
                         const data = doc.data();
-                        // Determine type: first from data.type, then from id suffix, else academic
                         let type = data.type;
                         if (!type) {
                             const parts = doc.id.split('_');
@@ -597,20 +516,10 @@
             if (approvedTimetables.length > 0) {
                 select.value = approvedTimetables[0].type;
                 currentApprovedType = approvedTimetables[0].type;
-            } else {
-                currentApprovedType = null;
-            }
+            } else { currentApprovedType = null; }
 
             if (draftProposalId) currentType = draftType;
             else currentType = 'academic';
-
-            const activeTab = document.querySelector('.tab.active').dataset.tab;
-            if (activeTab === 'draft') renderDraft();
-            else if (activeTab === 'pending') renderPending();
-            else if (activeTab === 'approved') renderApproved();
-            else if (activeTab === 'rejected') renderRejected();
-
-            document.getElementById('deleteDraftBtn').style.display = draftProposalId ? 'inline-block' : 'none';
         }
 
         // ========== PENDING ==========
@@ -618,7 +527,6 @@
             const header = document.getElementById('pendingTableHeader');
             const headers = getHeaders(pendingType);
             header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-
             const tbody = document.getElementById('pendingBody');
             if (pendingData.length === 0) { tbody.innerHTML = '<tr><td colspan="8">No pending proposal.</td></tr>'; return; }
             let html = '';
@@ -655,7 +563,6 @@
             const { type, data } = at;
             const headers = getHeaders(type);
             document.getElementById('approvedTableHeader').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-
             const periods = data.periods || [];
             periods.sort((a,b)=> (a.startTime || '').localeCompare(b.startTime || ''));
             let html = '';
@@ -666,7 +573,6 @@
             document.getElementById('approvedBody').innerHTML = html;
             document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${type.charAt(0).toUpperCase() + type.slice(1)}</span>`;
             document.getElementById('publishBtn').style.display = data.published ? 'none' : 'inline-block';
-            // Store current approved data for edit/publish
             window.approvedData = data;
             window.approvedType = type;
         }
@@ -695,7 +601,6 @@
             const header = document.getElementById('rejectedTableHeader');
             const headers = getHeaders(rejectedType);
             header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-
             const tbody = document.getElementById('rejectedBody');
             if (rejectedData.length === 0) { tbody.innerHTML = '<tr><td colspan="8">No rejected proposal.</td></tr>'; return; }
             let html = '';
@@ -717,7 +622,7 @@
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // ========== AUTH ==========
+        // ========== AUTH & TAB SWITCHING ==========
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
             const doc = await db.collection('users').doc(user.uid).get();
@@ -726,29 +631,25 @@
             userData = doc.data();
             document.getElementById('profileInitials').textContent = (userData.firstName?.[0]||'T') + (userData.surname?.[0]||'E');
             currentClassId = userData.classTeaching;
-            if (!currentClassId) {
-                document.getElementById('classDisplay').innerHTML = 'You are not assigned to any class.';
-                return;
-            }
+            if (!currentClassId) { document.getElementById('classDisplay').innerHTML = 'You are not assigned to any class.'; return; }
             document.getElementById('classDisplay').innerHTML = `Class: <strong>${currentClassId}</strong>`;
             await loadAllData();
+            // Show the default tab (draft)
+            document.querySelector('.tab[data-tab="draft"]').click();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', ()=> auth.signOut().then(()=>window.location.href='index.html'));
 
-        // ========== TAB SWITCHING ==========
+        // Tab switching with data reload
         const tabs = document.querySelectorAll('.tab');
-        const sections = {
-            draft: document.getElementById('draftSection'),
-            pending: document.getElementById('pendingSection'),
-            approved: document.getElementById('approvedSection'),
-            rejected: document.getElementById('rejectedSection')
-        };
+        const sections = { draft: document.getElementById('draftSection'), pending: document.getElementById('pendingSection'), approved: document.getElementById('approvedSection'), rejected: document.getElementById('rejectedSection') };
         tabs.forEach(tab => {
-            tab.addEventListener('click', ()=>{
+            tab.addEventListener('click', async () => {
                 const tabName = tab.dataset.tab;
                 tabs.forEach(t=>t.classList.remove('active'));
                 tab.classList.add('active');
+                // Reload data before rendering
+                await loadAllData();
                 Object.keys(sections).forEach(k=> sections[k].style.display = k===tabName ? 'block' : 'none');
                 if (tabName === 'draft') { currentType = draftType; renderDraft(); }
                 else if (tabName === 'pending') renderPending();
@@ -757,7 +658,7 @@
             });
         });
 
-        // ========== DELETE MODAL ==========
+        // Delete modal
         const deleteModal = document.getElementById('deleteModal');
         function openDeleteModal(msg, callback) {
             document.getElementById('deleteMessage').textContent = msg;
