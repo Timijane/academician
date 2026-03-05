@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (same styles as before, but we'll keep them concise) */
+        /* (keep existing styles, add new ones below) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
@@ -72,6 +72,9 @@
         .tab { padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border); }
         .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
+        .type-selector { display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
+        .type-selector select { padding: 0.5rem 1rem; border-radius: 2rem; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-primary); }
+
         .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
         .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
@@ -93,13 +96,12 @@
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
         th { background: var(--hover-bg); font-weight: 500; }
-        .time-input { width: 80px; }
-        .subject-input { width: 120px; }
+        input { width: 100%; padding: 0.3rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--input-bg); color: var(--text-primary); }
         .delete-row { color: var(--danger-text); cursor: pointer; text-align: center; }
 
         .actions { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
 
-        .feedback-message { margin-top: 0.5rem; padding: 0.75rem; background: var(--danger-bg); color: var(--danger-text); border-radius: 0.75rem; }
+        .feedback-message { margin-top: 0.5rem; padding: 0.75rem; background: #ef444420; color: var(--danger-text); border-radius: 0.75rem; }
         .class-info { background: var(--hover-bg); border-radius: 1rem; padding: 0.5rem 1rem; display: inline-block; margin-bottom: 1rem; }
 
         .delete-modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index:2000; }
@@ -134,7 +136,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Timetable</h1>
-                <p>Create and manage your class timetable</p>
+                <p>Create and manage your class timetables</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -150,6 +152,18 @@
             </div>
         </div>
 
+        <!-- Timetable Type Selector -->
+        <div class="type-selector">
+            <label for="timetableType">Timetable Type:</label>
+            <select id="timetableType">
+                <option value="academic">Academic (Daily)</option>
+                <option value="hairstyle">Hairstyle Weekly</option>
+                <option value="test">Test Schedule</option>
+                <option value="exam">Exam Timetable</option>
+            </select>
+            <button class="btn btn-primary" id="createNewBtn">Create New Draft</button>
+        </div>
+
         <!-- Tabs -->
         <div class="tabs">
             <div class="tab active" data-tab="draft">Draft</div>
@@ -162,23 +176,21 @@
         <div id="draftSection" class="card" style="display: block;">
             <div class="card-header">
                 <div>
-                    <h3>Draft Timetable</h3>
+                    <h3>Draft <span id="draftTypeLabel">Academic</span> Timetable</h3>
                     <div id="draftFeedback" class="feedback-message" style="display: none;"></div>
                 </div>
             </div>
             <div class="class-info" id="classDisplay"></div>
             <div class="table-responsive">
                 <table id="draftTable">
-                    <thead>
-                        <tr>
-                            <th>Start</th><th>End</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th><th></th>
-                        </tr>
+                    <thead id="draftTableHeader">
+                        <!-- Header will be injected by JS -->
                     </thead>
                     <tbody id="draftBody"></tbody>
                 </table>
             </div>
             <div class="actions">
-                <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Period</button>
+                <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Entry</button>
                 <button class="btn btn-primary" id="saveDraftBtn">Save Draft</button>
                 <button class="btn btn-success" id="submitBtn">Submit for Approval</button>
                 <button class="btn btn-danger" id="deleteDraftBtn" style="display: none;">Delete Entire Draft</button>
@@ -190,7 +202,7 @@
             <div class="card-header"><h3>Pending Approval</h3></div>
             <div class="class-info" id="pendingClass"></div>
             <div class="table-responsive">
-                <table><thead><tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr></thead><tbody id="pendingBody"></tbody></table>
+                <table><thead id="pendingTableHeader"></thead><tbody id="pendingBody"></tbody></table>
             </div>
             <div class="actions">
                 <button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button>
@@ -202,7 +214,7 @@
             <div class="card-header"><h3>Approved Timetable</h3></div>
             <div class="class-info" id="approvedClass"></div>
             <div class="table-responsive">
-                <table><thead><tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr></thead><tbody id="approvedBody"></tbody></table>
+                <table><thead id="approvedTableHeader"></thead><tbody id="approvedBody"></tbody></table>
             </div>
             <div class="actions">
                 <button class="btn btn-success" id="publishBtn">Publish to Students</button>
@@ -217,7 +229,7 @@
             <div id="rejectedFeedback" class="feedback-message" style="display: none;"></div>
             <div class="class-info" id="rejectedClass"></div>
             <div class="table-responsive">
-                <table><thead><tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr></thead><tbody id="rejectedBody"></tbody></table>
+                <table><thead id="rejectedTableHeader"></thead><tbody id="rejectedBody"></tbody></table>
             </div>
             <div class="actions">
                 <button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button>
@@ -281,25 +293,356 @@
 
         // Global vars
         let currentUser = null, userData = null, currentClassId = null;
-        let draftProposalId = null, draftData = [];
-        let pendingProposalId = null, pendingData = [];
-        let approvedData = null;
-        let rejectedProposalId = null, rejectedData = [], rejectedFeedback = '';
+        let currentType = 'academic'; // selected type
+        let draftProposalId = null, draftData = [], draftType = 'academic';
+        let pendingProposalId = null, pendingData = [], pendingType = 'academic';
+        let approvedData = null, approvedType = 'academic';
+        let rejectedProposalId = null, rejectedData = [], rejectedType = 'academic', rejectedFeedback = '';
 
-        // Audit logging
-        async function logAudit(action, details) {
-            if (!currentUser || !userData) return;
-            await db.collection('auditLogs').add({
-                userId: currentUser.uid,
-                userName: `${userData.firstName||''} ${userData.surname||''}`.trim() || 'Teacher',
-                userEmail: userData.email || currentUser.email,
-                role: 'teacher',
-                action,
-                details,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userAgent: navigator.userAgent
-            });
+        // Helper to get column headers based on type
+        function getHeaders(type) {
+            switch(type) {
+                case 'academic':
+                    return ['Start', 'End', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', ''];
+                case 'hairstyle':
+                    return ['Week', 'Hairstyle', 'Description', '', '', '', '', ''];
+                case 'test':
+                case 'exam':
+                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration', '', '', ''];
+                default:
+                    return [];
+            }
         }
+
+        // Helper to map a period object to row cells based on type
+        function periodToRow(p, type) {
+            switch(type) {
+                case 'academic':
+                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
+                case 'hairstyle':
+                    return [p.startTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday, ''];
+                case 'test':
+                case 'exam':
+                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
+                default:
+                    return [];
+            }
+        }
+
+        // Helper to create empty period for a type
+        function emptyPeriod(type) {
+            switch(type) {
+                case 'academic':
+                    return { startTime: '08:00', endTime: '08:40', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
+                case 'hairstyle':
+                    return { startTime: '1', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
+                case 'test':
+                case 'exam':
+                    return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
+                default:
+                    return {};
+            }
+        }
+
+        // Render draft table with current type
+        function renderDraft() {
+            const header = document.getElementById('draftTableHeader');
+            const headers = getHeaders(currentType);
+            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const tbody = document.getElementById('draftBody');
+            let html = '';
+            draftData.forEach((p, i) => {
+                const cells = periodToRow(p, currentType);
+                html += '<tr>';
+                cells.forEach((val, idx) => {
+                    // Map field names based on type and index
+                    let fieldName = '';
+                    if (currentType === 'academic') {
+                        const fields = ['startTime', 'endTime', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                        fieldName = fields[idx];
+                    } else if (currentType === 'hairstyle') {
+                        const fields = ['startTime', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                        fieldName = fields[idx] || '';
+                    } else {
+                        const fields = ['startTime', 'endTime', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                        fieldName = fields[idx];
+                    }
+                    if (fieldName) {
+                        html += `<td><input type="text" value="${val || ''}" data-index="${i}" data-field="${fieldName}"></td>`;
+                    } else {
+                        html += `<td></td>`;
+                    }
+                });
+                html += `<td class="delete-row" onclick="deleteDraftRow(${i})"><i class="fas fa-trash"></i></td>`;
+                html += '</tr>';
+            });
+            tbody.innerHTML = html;
+
+            document.querySelectorAll('#draftBody input').forEach(inp => {
+                inp.addEventListener('input', function(e) {
+                    const i = this.dataset.index, f = this.dataset.field;
+                    draftData[i][f] = this.value;
+                });
+            });
+
+            document.getElementById('draftTypeLabel').textContent = currentType.charAt(0).toUpperCase() + currentType.slice(1);
+        }
+
+        window.deleteDraftRow = (index) => {
+            draftData.splice(index, 1);
+            renderDraft();
+        };
+
+        document.getElementById('addRowBtn').addEventListener('click', () => {
+            draftData.push(emptyPeriod(currentType));
+            renderDraft();
+        });
+
+        // Create new draft for selected type
+        document.getElementById('createNewBtn').addEventListener('click', async () => {
+            const type = document.getElementById('timetableType').value;
+            currentType = type;
+            // Reset draft data
+            draftProposalId = null;
+            draftData = [emptyPeriod(type)];
+            renderDraft();
+            document.getElementById('deleteDraftBtn').style.display = 'none';
+            // Switch to draft tab
+            document.querySelector('.tab[data-tab="draft"]').click();
+        });
+
+        // Save draft
+        document.getElementById('saveDraftBtn').addEventListener('click', async () => {
+            if (!currentClassId) return alert('No class assigned.');
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: draftData,
+                status: 'draft',
+                type: currentType, // Add type field
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                if (draftProposalId) {
+                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                } else {
+                    const ref = await db.collection('timetableProposals').add(data);
+                    draftProposalId = ref.id;
+                }
+                alert('Draft saved.');
+                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
+            } catch(e) { alert(e.message); }
+        });
+
+        // Submit for approval
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            if (!currentClassId) return alert('No class assigned.');
+            if (draftData.length === 0) return alert('Add at least one entry.');
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: draftData,
+                status: 'pending',
+                type: currentType,
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                if (draftProposalId) {
+                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                } else {
+                    await db.collection('timetableProposals').add(data);
+                }
+                alert('Submitted for approval.');
+                await loadAllData();
+                document.querySelector('.tab[data-tab="pending"]').click();
+            } catch(e) { alert(e.message); }
+        });
+
+        // Delete entire draft
+        document.getElementById('deleteDraftBtn').addEventListener('click', () => {
+            openDeleteModal('Delete this entire draft?', async () => {
+                if (!draftProposalId) return;
+                await db.collection('timetableProposals').doc(draftProposalId).delete();
+                draftProposalId = null;
+                draftData = [emptyPeriod(currentType)];
+                renderDraft();
+                document.getElementById('deleteDraftBtn').style.display = 'none';
+                closeDeleteModal();
+            });
+        });
+
+        // Load all data for the class (for all types)
+        async function loadAllData() {
+            // For simplicity, we load the latest of each status, but we need to separate by type.
+            // In a real app, you'd want to show the latest for each type separately.
+            // Here we'll just load the latest regardless of type, and show the type info.
+            // But we need to handle multiple drafts per type? The user can create a new draft for each type.
+            // We'll keep it simple: each status (draft/pending/approved/rejected) we load the latest document for that status.
+            // If there are multiple types in the same status, we only show one. That's a limitation.
+            // Better would be to show a list of drafts per type. But for now, we'll assume one active draft per status.
+
+            // Draft
+            try {
+                const snap = await db.collection('timetableProposals')
+                    .where('classId','==',currentClassId)
+                    .where('teacherId','==',currentUser.uid)
+                    .where('status','==','draft')
+                    .orderBy('updatedAt','desc').limit(1).get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
+                    draftProposalId = doc.id;
+                    draftData = doc.data().periods || [];
+                    draftType = doc.data().type || 'academic';
+                } else {
+                    draftProposalId = null;
+                    draftData = [emptyPeriod('academic')];
+                    draftType = 'academic';
+                }
+            } catch(e) { console.error(e); draftData = [emptyPeriod('academic')]; }
+
+            // Pending
+            try {
+                const snap = await db.collection('timetableProposals')
+                    .where('classId','==',currentClassId)
+                    .where('teacherId','==',currentUser.uid)
+                    .where('status','==','pending')
+                    .orderBy('submittedAt','desc').limit(1).get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
+                    pendingProposalId = doc.id;
+                    pendingData = doc.data().periods || [];
+                    pendingType = doc.data().type || 'academic';
+                } else { pendingProposalId = null; pendingData = []; }
+            } catch(e) { console.error(e); pendingData = []; }
+
+            // Approved (from timetables collection)
+            try {
+                const snap = await db.collection('timetables').doc(currentClassId).get();
+                if (snap.exists) {
+                    approvedData = snap.data();
+                    approvedType = approvedData.type || 'academic';
+                } else { approvedData = null; }
+            } catch(e) { console.error(e); approvedData = null; }
+
+            // Rejected
+            try {
+                const snap = await db.collection('timetableProposals')
+                    .where('classId','==',currentClassId)
+                    .where('teacherId','==',currentUser.uid)
+                    .where('status','==','rejected')
+                    .orderBy('submittedAt','desc').limit(1).get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
+                    rejectedProposalId = doc.id;
+                    rejectedData = doc.data().periods || [];
+                    rejectedType = doc.data().type || 'academic';
+                    rejectedFeedback = doc.data().feedback || '';
+                } else { rejectedProposalId = null; rejectedData = []; }
+            } catch(e) { console.error(e); rejectedData = []; }
+
+            // Set currentType to draft type (if any) or default
+            if (draftProposalId) currentType = draftType;
+            else currentType = 'academic';
+
+            // Render current tab
+            const activeTab = document.querySelector('.tab.active').dataset.tab;
+            if (activeTab === 'draft') { renderDraft(); }
+            else if (activeTab === 'pending') { renderPending(); }
+            else if (activeTab === 'approved') { renderApproved(); }
+            else if (activeTab === 'rejected') { renderRejected(); }
+
+            document.getElementById('deleteDraftBtn').style.display = draftProposalId ? 'inline-block' : 'none';
+        }
+
+        // Render pending tab
+        function renderPending() {
+            const header = document.getElementById('pendingTableHeader');
+            const headers = getHeaders(pendingType);
+            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const tbody = document.getElementById('pendingBody');
+            if (pendingData.length === 0) { tbody.innerHTML = '<tr><td colspan="8">No pending proposal.</td></tr>'; return; }
+            let html = '';
+            pendingData.forEach(p => {
+                const cells = periodToRow(p, pendingType);
+                html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
+            });
+            tbody.innerHTML = html;
+            document.getElementById('pendingClass').innerHTML = `Class: <strong>${currentClassId}</strong> (${pendingType})`;
+        }
+
+        document.getElementById('editPendingBtn').addEventListener('click', async () => {
+            if (!pendingProposalId) return;
+            await db.collection('timetableProposals').doc(pendingProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
+        });
+
+        // Render approved tab
+        function renderApproved() {
+            const header = document.getElementById('approvedTableHeader');
+            const headers = getHeaders(approvedType);
+            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const tbody = document.getElementById('approvedBody');
+            if (!approvedData || !approvedData.periods || approvedData.periods.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No approved timetable.</td></tr>';
+                document.getElementById('publishBtn').style.display = 'none';
+                return;
+            }
+            const periods = approvedData.periods.sort((a,b)=> a.startTime?.localeCompare(b.startTime) || 0);
+            let html = '';
+            periods.forEach(p => {
+                const cells = periodToRow(p, approvedType);
+                html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
+            });
+            tbody.innerHTML = html;
+            document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong> (${approvedType})`;
+            document.getElementById('publishBtn').style.display = approvedData.published ? 'none' : 'inline-block';
+        }
+
+        document.getElementById('publishBtn').addEventListener('click', async () => {
+            if (!currentClassId || !approvedData) return;
+            await db.collection('timetables').doc(currentClassId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            alert('Published to students.');
+            await loadAllData();
+            renderApproved();
+        });
+
+        document.getElementById('editApprovedBtn').addEventListener('click', async () => {
+            if (!approvedData) return;
+            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: approvedData.periods, status: 'draft', type: approvedType, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            const ref = await db.collection('timetableProposals').add(data);
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
+        });
+
+        // Render rejected tab
+        function renderRejected() {
+            const header = document.getElementById('rejectedTableHeader');
+            const headers = getHeaders(rejectedType);
+            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const tbody = document.getElementById('rejectedBody');
+            if (rejectedData.length === 0) { tbody.innerHTML = '<tr><td colspan="8">No rejected proposal.</td></tr>'; return; }
+            let html = '';
+            rejectedData.forEach(p => {
+                const cells = periodToRow(p, rejectedType);
+                html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
+            });
+            tbody.innerHTML = html;
+            document.getElementById('rejectedClass').innerHTML = `Class: <strong>${currentClassId}</strong> (${rejectedType})`;
+            const feedbackEl = document.getElementById('rejectedFeedback');
+            if (rejectedFeedback) { feedbackEl.textContent = `Feedback: ${rejectedFeedback}`; feedbackEl.style.display = 'block'; } else feedbackEl.style.display = 'none';
+        }
+
+        document.getElementById('editRejectedBtn').addEventListener('click', async () => {
+            if (!rejectedProposalId) return;
+            await db.collection('timetableProposals').doc(rejectedProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await loadAllData();
+            document.querySelector('.tab[data-tab="draft"]').click();
+        });
 
         // Auth
         auth.onAuthStateChanged(async (user) => {
@@ -334,232 +677,11 @@
                 tabs.forEach(t=>t.classList.remove('active'));
                 tab.classList.add('active');
                 Object.keys(sections).forEach(k=> sections[k].style.display = k===tabName ? 'block' : 'none');
-                if (tabName === 'draft') renderDraft();
+                if (tabName === 'draft') { currentType = draftType; renderDraft(); }
                 else if (tabName === 'pending') renderPending();
                 else if (tabName === 'approved') renderApproved();
                 else if (tabName === 'rejected') renderRejected();
             });
-        });
-
-        async function loadAllData() {
-            // Draft
-            try {
-                const snap = await db.collection('timetableProposals')
-                    .where('classId','==',currentClassId)
-                    .where('teacherId','==',currentUser.uid)
-                    .where('status','==','draft')
-                    .orderBy('updatedAt','desc').limit(1).get();
-                if (!snap.empty) {
-                    const doc = snap.docs[0];
-                    draftProposalId = doc.id;
-                    draftData = doc.data().periods || [];
-                } else { draftProposalId = null; draftData = []; }
-            } catch(e) { console.error(e); draftData = []; }
-            if (draftData.length === 0) draftData = [{ startTime:'08:00', endTime:'08:40', monday:'', tuesday:'', wednesday:'', thursday:'', friday:'' }];
-
-            // Pending
-            try {
-                const snap = await db.collection('timetableProposals')
-                    .where('classId','==',currentClassId)
-                    .where('teacherId','==',currentUser.uid)
-                    .where('status','==','pending')
-                    .orderBy('submittedAt','desc').limit(1).get();
-                if (!snap.empty) {
-                    const doc = snap.docs[0];
-                    pendingProposalId = doc.id;
-                    pendingData = doc.data().periods || [];
-                } else { pendingProposalId = null; pendingData = []; }
-            } catch(e) { console.error(e); pendingData = []; }
-
-            // Approved
-            try {
-                const snap = await db.collection('timetables').doc(currentClassId).get();
-                if (snap.exists) approvedData = snap.data();
-                else approvedData = null;
-            } catch(e) { console.error(e); approvedData = null; }
-
-            // Rejected
-            try {
-                const snap = await db.collection('timetableProposals')
-                    .where('classId','==',currentClassId)
-                    .where('teacherId','==',currentUser.uid)
-                    .where('status','==','rejected')
-                    .orderBy('submittedAt','desc').limit(1).get();
-                if (!snap.empty) {
-                    const doc = snap.docs[0];
-                    rejectedProposalId = doc.id;
-                    rejectedData = doc.data().periods || [];
-                    rejectedFeedback = doc.data().feedback || '';
-                } else { rejectedProposalId = null; rejectedData = []; rejectedFeedback = ''; }
-            } catch(e) { console.error(e); rejectedData = []; }
-
-            const activeTab = document.querySelector('.tab.active').dataset.tab;
-            if (activeTab === 'draft') renderDraft();
-            else if (activeTab === 'pending') renderPending();
-            else if (activeTab === 'approved') renderApproved();
-            else if (activeTab === 'rejected') renderRejected();
-
-            document.getElementById('deleteDraftBtn').style.display = draftProposalId ? 'inline-block' : 'none';
-        }
-
-        // ========== DRAFT ==========
-        function renderDraft() {
-            const tbody = document.getElementById('draftBody');
-            let html = '';
-            draftData.forEach((p,i) => {
-                html += `<tr>
-                    <td><input type="time" class="time-input" value="${p.startTime}" data-index="${i}" data-field="startTime"></td>
-                    <td><input type="time" class="time-input" value="${p.endTime}" data-index="${i}" data-field="endTime"></td>
-                    <td><input type="text" class="subject-input" value="${p.monday||''}" placeholder="Subject" data-index="${i}" data-field="monday"></td>
-                    <td><input type="text" class="subject-input" value="${p.tuesday||''}" data-index="${i}" data-field="tuesday"></td>
-                    <td><input type="text" class="subject-input" value="${p.wednesday||''}" data-index="${i}" data-field="wednesday"></td>
-                    <td><input type="text" class="subject-input" value="${p.thursday||''}" data-index="${i}" data-field="thursday"></td>
-                    <td><input type="text" class="subject-input" value="${p.friday||''}" data-index="${i}" data-field="friday"></td>
-                    <td class="delete-row" onclick="deleteDraftRow(${i})"><i class="fas fa-trash"></i></td>
-                </tr>`;
-            });
-            tbody.innerHTML = html;
-            document.querySelectorAll('#draftBody input[data-index]').forEach(inp => {
-                inp.addEventListener('input', function(e) {
-                    const i = this.dataset.index, f = this.dataset.field;
-                    draftData[i][f] = this.value;
-                });
-            });
-        }
-
-        window.deleteDraftRow = (index) => {
-            draftData.splice(index,1);
-            renderDraft();
-        };
-
-        document.getElementById('addRowBtn').addEventListener('click', () => {
-            draftData.push({ startTime:'08:00', endTime:'08:40', monday:'', tuesday:'', wednesday:'', thursday:'', friday:'' });
-            renderDraft();
-        });
-
-        document.getElementById('saveDraftBtn').addEventListener('click', async () => {
-            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: draftData, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try {
-                if (draftProposalId) {
-                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
-                    await logAudit('timetable_update_draft', { classId: currentClassId, periodsCount: draftData.length });
-                } else {
-                    const ref = await db.collection('timetableProposals').add(data);
-                    draftProposalId = ref.id;
-                    await logAudit('timetable_create_draft', { classId: currentClassId, periodsCount: draftData.length });
-                }
-                alert('Draft saved.');
-                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
-            } catch(e) { alert(e.message); }
-        });
-
-        document.getElementById('submitBtn').addEventListener('click', async () => {
-            if (draftData.length === 0) return alert('Add at least one period.');
-            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: draftData, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try {
-                if (draftProposalId) {
-                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
-                    await logAudit('timetable_submit', { classId: currentClassId, periodsCount: draftData.length });
-                } else {
-                    await db.collection('timetableProposals').add(data);
-                    await logAudit('timetable_submit', { classId: currentClassId, periodsCount: draftData.length });
-                }
-                alert('Submitted for approval.');
-                await loadAllData();
-                document.querySelector('.tab[data-tab="pending"]').click();
-            } catch(e) { alert(e.message); }
-        });
-
-        // Delete entire draft
-        document.getElementById('deleteDraftBtn').addEventListener('click', () => {
-            openDeleteModal('Delete this entire draft?', async () => {
-                if (!draftProposalId) return;
-                await db.collection('timetableProposals').doc(draftProposalId).delete();
-                await logAudit('timetable_delete_draft', { classId: currentClassId });
-                draftProposalId = null;
-                draftData = [{ startTime:'08:00', endTime:'08:40', monday:'', tuesday:'', wednesday:'', thursday:'', friday:'' }];
-                renderDraft();
-                document.getElementById('deleteDraftBtn').style.display = 'none';
-                closeDeleteModal();
-            });
-        });
-
-        // ========== PENDING ==========
-        function renderPending() {
-            const tbody = document.getElementById('pendingBody');
-            if (pendingData.length === 0) { tbody.innerHTML = '<tr><td colspan="7">No pending proposal.</td></tr>'; return; }
-            let html = '';
-            pendingData.forEach(p => {
-                html += `<tr><td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||'—'}</td><td>${p.tuesday||'—'}</td><td>${p.wednesday||'—'}</td><td>${p.thursday||'—'}</td><td>${p.friday||'—'}</td></tr>`;
-            });
-            tbody.innerHTML = html;
-            document.getElementById('pendingClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
-        }
-
-        document.getElementById('editPendingBtn').addEventListener('click', async () => {
-            if (!pendingProposalId) return;
-            await db.collection('timetableProposals').doc(pendingProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            await logAudit('timetable_edit_pending', { classId: currentClassId });
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
-        });
-
-        // ========== APPROVED ==========
-        function renderApproved() {
-            const tbody = document.getElementById('approvedBody');
-            if (!approvedData || !approvedData.periods || approvedData.periods.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7">No approved timetable.</td></tr>';
-                document.getElementById('publishBtn').style.display = 'none';
-                return;
-            }
-            const periods = approvedData.periods.sort((a,b)=> a.startTime.localeCompare(b.startTime));
-            let html = '';
-            periods.forEach(p => {
-                html += `<tr><td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||'—'}</td><td>${p.tuesday||'—'}</td><td>${p.wednesday||'—'}</td><td>${p.thursday||'—'}</td><td>${p.friday||'—'}</td></tr>`;
-            });
-            tbody.innerHTML = html;
-            document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
-            document.getElementById('publishBtn').style.display = approvedData.published ? 'none' : 'inline-block';
-        }
-
-        document.getElementById('publishBtn').addEventListener('click', async () => {
-            if (!currentClassId || !approvedData) return;
-            await db.collection('timetables').doc(currentClassId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            await logAudit('timetable_publish', { classId: currentClassId });
-            alert('Published to students.');
-            await loadAllData();
-            renderApproved();
-        });
-
-        document.getElementById('editApprovedBtn').addEventListener('click', async () => {
-            if (!approvedData) return;
-            const data = { classId: currentClassId, teacherId: currentUser.uid, periods: approvedData.periods, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            const ref = await db.collection('timetableProposals').add(data);
-            await logAudit('timetable_edit_approved', { classId: currentClassId });
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
-        });
-
-        // ========== REJECTED ==========
-        function renderRejected() {
-            const tbody = document.getElementById('rejectedBody');
-            if (rejectedData.length === 0) { tbody.innerHTML = '<tr><td colspan="7">No rejected proposal.</td></tr>'; return; }
-            let html = '';
-            rejectedData.forEach(p => {
-                html += `<tr><td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||'—'}</td><td>${p.tuesday||'—'}</td><td>${p.wednesday||'—'}</td><td>${p.thursday||'—'}</td><td>${p.friday||'—'}</td></tr>`;
-            });
-            tbody.innerHTML = html;
-            document.getElementById('rejectedClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
-            const feedbackEl = document.getElementById('rejectedFeedback');
-            if (rejectedFeedback) { feedbackEl.textContent = `Feedback: ${rejectedFeedback}`; feedbackEl.style.display = 'block'; } else feedbackEl.style.display = 'none';
-        }
-
-        document.getElementById('editRejectedBtn').addEventListener('click', async () => {
-            if (!rejectedProposalId) return;
-            await db.collection('timetableProposals').doc(rejectedProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            await logAudit('timetable_edit_rejected', { classId: currentClassId });
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
         });
 
         // Delete modal
