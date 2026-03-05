@@ -13,7 +13,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (same styles as before – keep unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -64,6 +63,7 @@
             display: flex;
         }
 
+        /* ========== SIDEBAR ========== */
         .sidebar {
             width: 260px;
             background: var(--bg-sidebar);
@@ -97,6 +97,7 @@
         .sidebar.collapsed .nav-item span { display: none; }
         .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
 
+        /* ========== MAIN CONTENT ========== */
         .main-content {
             flex: 1;
             margin-left: 260px;
@@ -132,6 +133,7 @@
         .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
         .dropdown-item:hover { background: var(--hover-bg); }
 
+        /* ========== TYPE SELECTOR ========== */
         .type-selector {
             display: flex;
             align-items: center;
@@ -153,6 +155,7 @@
             padding: 0.5rem 2rem;
         }
 
+        /* ========== TABS ========== */
         .tabs {
             display: flex;
             gap: 0.5rem;
@@ -175,6 +178,7 @@
             border-color: var(--accent);
         }
 
+        /* ========== CARDS ========== */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -201,6 +205,7 @@
             letter-spacing: 1px;
         }
 
+        /* ========== BUTTONS ========== */
         .btn {
             padding: 0.5rem 1.2rem;
             border: none;
@@ -218,6 +223,7 @@
         .btn-danger { background: var(--danger-text); color: white; }
         .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
 
+        /* ========== STATUS BADGES ========== */
         .status-badge {
             display: inline-block;
             padding: 0.3rem 1rem;
@@ -230,6 +236,7 @@
         .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
         .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
 
+        /* ========== TABLES ========== */
         .table-responsive {
             overflow-x: auto;
             margin-bottom: 1rem;
@@ -324,6 +331,19 @@
             margin-left: 0.5rem;
         }
 
+        .error-message {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger-text);
+        }
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .sidebar .logo-area h2 { display: none; }
@@ -333,9 +353,12 @@
     </style>
 </head>
 <body>
-    <!-- SIDEBAR (unchanged) -->
+    <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-        <div class="logo-area"><i class="fas fa-calendar-alt"></i><h2>Teacher Panel</h2></div>
+        <div class="logo-area">
+            <i class="fas fa-calendar-alt"></i>
+            <h2>Teacher Panel</h2>
+        </div>
         <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
         <a href="teacher-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
@@ -353,9 +376,14 @@
     <!-- MAIN CONTENT -->
     <div class="main-content" id="mainContent">
         <div class="top-bar">
-            <div class="page-title"><h1>Timetable Studio</h1><p>Create and manage all your class timetables</p></div>
+            <div class="page-title">
+                <h1>Timetable Studio</h1>
+                <p>Create and manage all your class timetables</p>
+            </div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
                 <div class="profile-dropdown">
                     <div class="profile-icon" id="profileInitials">T</div>
                     <div class="dropdown-menu">
@@ -377,6 +405,9 @@
             </select>
             <button class="btn" id="createNewBtn">+ Create New Draft</button>
         </div>
+
+        <!-- Error display for index issues -->
+        <div id="indexError" class="error-message" style="display: none;"></div>
 
         <!-- Tabs -->
         <div class="tabs">
@@ -419,7 +450,9 @@
                     <tbody id="pendingBody"></tbody>
                 </table>
             </div>
-            <div class="actions"><button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button></div>
+            <div class="actions">
+                <button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button>
+            </div>
         </div>
 
         <!-- Approved Tab -->
@@ -457,7 +490,9 @@
                     <tbody id="rejectedBody"></tbody>
                 </table>
             </div>
-            <div class="actions"><button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button></div>
+            <div class="actions">
+                <button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button>
+            </div>
         </div>
     </div>
 
@@ -524,8 +559,30 @@
         let draftProposalId = null, draftData = [], draftType = 'academic';
         let pendingProposalId = null, pendingData = [], pendingType = 'academic';
         let approvedTimetables = []; // { type, data }
-        let currentApprovedType = null; // stores the currently selected approved type
+        let currentApprovedType = null;
         let rejectedProposalId = null, rejectedData = [], rejectedType = 'academic', rejectedFeedback = '';
+
+        // ========== INDEX ERROR HANDLER ==========
+        function handleFirestoreError(error, context) {
+            console.error(`Firestore error in ${context}:`, error);
+            const errorDiv = document.getElementById('indexError');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                const url = match ? match[0] : '#';
+                errorDiv.innerHTML = `
+                    <strong>Missing Firestore index.</strong><br>
+                    Please create it by clicking 
+                    <a href="${url}" target="_blank">this link</a>.
+                `;
+                errorDiv.style.display = 'block';
+            } else if (error.code === 'permission-denied') {
+                errorDiv.textContent = 'Permission denied. Please contact administrator.';
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
 
         // ========== HEADER HELPERS (based on type) ==========
         function getHeaders(type) {
@@ -636,13 +693,30 @@
             renderDraft();
         });
 
+        // ========== CREATE NEW DRAFT (IMMEDIATELY SAVED) ==========
         document.getElementById('createNewBtn').addEventListener('click', async () => {
             const type = document.getElementById('timetableType').value;
             currentType = type;
-            draftProposalId = null;
-            draftData = [emptyPeriod(type)];
-            renderDraft();
-            document.getElementById('deleteDraftBtn').style.display = 'none';
+            const newDraft = [emptyPeriod(type)];
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: newDraft,
+                type: currentType,
+                status: 'draft',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                const ref = await db.collection('timetableProposals').add(data);
+                draftProposalId = ref.id;
+                draftData = newDraft;
+                draftType = type;
+                renderDraft();
+                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
+                alert('New draft created.');
+            } catch(e) {
+                handleFirestoreError(e, 'createNewDraft');
+            }
             document.querySelector('.tab[data-tab="draft"]').click();
         });
 
@@ -665,7 +739,9 @@
                 }
                 alert('Draft saved.');
                 document.getElementById('deleteDraftBtn').style.display = 'inline-block';
-            } catch(e) { alert(e.message); }
+            } catch(e) {
+                handleFirestoreError(e, 'saveDraft');
+            }
         });
 
         document.getElementById('submitBtn').addEventListener('click', async () => {
@@ -688,18 +764,24 @@
                 alert('Submitted for approval.');
                 await loadAllData();
                 document.querySelector('.tab[data-tab="pending"]').click();
-            } catch(e) { alert(e.message); }
+            } catch(e) {
+                handleFirestoreError(e, 'submit');
+            }
         });
 
         document.getElementById('deleteDraftBtn').addEventListener('click', () => {
             openDeleteModal('Delete this entire draft?', async () => {
                 if (!draftProposalId) return;
-                await db.collection('timetableProposals').doc(draftProposalId).delete();
-                draftProposalId = null;
-                draftData = [emptyPeriod(currentType)];
-                renderDraft();
-                document.getElementById('deleteDraftBtn').style.display = 'none';
-                closeDeleteModal();
+                try {
+                    await db.collection('timetableProposals').doc(draftProposalId).delete();
+                    draftProposalId = null;
+                    draftData = [emptyPeriod(currentType)];
+                    renderDraft();
+                    document.getElementById('deleteDraftBtn').style.display = 'none';
+                    closeDeleteModal();
+                } catch(e) {
+                    handleFirestoreError(e, 'deleteDraft');
+                }
             });
         });
 
@@ -724,7 +806,7 @@
                     draftData = [emptyPeriod('academic')];
                     draftType = 'academic';
                 }
-            } catch(e) { console.error(e); draftData = [emptyPeriod('academic')]; }
+            } catch(e) { handleFirestoreError(e, 'loadDraft'); }
 
             // Pending
             try {
@@ -744,9 +826,9 @@
                     pendingProposalId = null;
                     pendingData = [];
                 }
-            } catch(e) { console.error(e); pendingData = []; }
+            } catch(e) { handleFirestoreError(e, 'loadPending'); }
 
-            // Approved – query by classId
+            // Approved – query by classId (the field we now store)
             approvedTimetables = [];
             try {
                 const snap = await db.collection('timetables')
@@ -758,7 +840,7 @@
                     approvedTimetables.push({ type, data });
                 });
                 approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
-            } catch(e) { console.error(e); }
+            } catch(e) { handleFirestoreError(e, 'loadApproved'); }
 
             // Rejected
             try {
@@ -779,7 +861,7 @@
                     rejectedProposalId = null;
                     rejectedData = [];
                 }
-            } catch(e) { console.error(e); rejectedData = []; }
+            } catch(e) { handleFirestoreError(e, 'loadRejected'); }
 
             if (draftProposalId) currentType = draftType;
             else currentType = 'academic';
@@ -808,9 +890,13 @@
 
         document.getElementById('editPendingBtn').addEventListener('click', async () => {
             if (!pendingProposalId) return;
-            await db.collection('timetableProposals').doc(pendingProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
+            try {
+                await db.collection('timetableProposals').doc(pendingProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch(e) {
+                handleFirestoreError(e, 'editPending');
+            }
         });
 
         // ========== APPROVED RENDERING ==========
@@ -874,10 +960,14 @@
         document.getElementById('publishBtn').addEventListener('click', async () => {
             if (!currentClassId || !window.approvedData) return;
             const docId = `${currentClassId}_${window.approvedType}`;
-            await db.collection('timetables').doc(docId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            alert('Published to students.');
-            await loadAllData();
-            renderApproved();
+            try {
+                await db.collection('timetables').doc(docId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                alert('Published to students.');
+                await loadAllData();
+                renderApproved();
+            } catch(e) {
+                handleFirestoreError(e, 'publish');
+            }
         });
 
         document.getElementById('editApprovedBtn').addEventListener('click', async () => {
@@ -890,9 +980,13 @@
                 status: 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            const ref = await db.collection('timetableProposals').add(data);
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
+            try {
+                const ref = await db.collection('timetableProposals').add(data);
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch(e) {
+                handleFirestoreError(e, 'editApproved');
+            }
         });
 
         // ========== REJECTED RENDERING ==========
@@ -925,9 +1019,13 @@
 
         document.getElementById('editRejectedBtn').addEventListener('click', async () => {
             if (!rejectedProposalId) return;
-            await db.collection('timetableProposals').doc(rejectedProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
+            try {
+                await db.collection('timetableProposals').doc(rejectedProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch(e) {
+                handleFirestoreError(e, 'editRejected');
+            }
         });
 
         // ========== AUTH ==========
