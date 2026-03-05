@@ -107,7 +107,10 @@
         .main-content.expanded { margin-left: 80px; }
 
         .top-bar {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
             flex-wrap: wrap;
             gap: 1rem;
         }
@@ -576,7 +579,7 @@
                 `;
                 errorDiv.style.display = 'block';
             } else if (error.code === 'permission-denied') {
-                errorDiv.textContent = 'Permission denied. Please contact administrator.';
+                errorDiv.textContent = `Permission denied: ${error.message}`;
                 errorDiv.style.display = 'block';
             } else {
                 errorDiv.textContent = `Error: ${error.message}`;
@@ -828,18 +831,41 @@
                 }
             } catch(e) { handleFirestoreError(e, 'loadPending'); }
 
-            // Approved – query by classId (the field we now store)
+            // Approved – try by classId first, then fallback to document ID prefix
             approvedTimetables = [];
+            let byClassId = 0;
+            let byPrefix = 0;
             try {
                 const snap = await db.collection('timetables')
                     .where('classId', '==', currentClassId)
                     .get();
+                byClassId = snap.size;
                 snap.forEach(doc => {
                     const data = doc.data();
                     const type = data.type || 'academic';
                     approvedTimetables.push({ type, data });
                 });
+
+                // If no timetables found by classId, fallback to prefix match (for backward compatibility)
+                if (approvedTimetables.length === 0) {
+                    console.log('No timetables found by classId, trying prefix fallback...');
+                    const allSnap = await db.collection('timetables').get();
+                    allSnap.forEach(doc => {
+                        if (doc.id.startsWith(currentClassId)) {
+                            const data = doc.data();
+                            const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                            approvedTimetables.push({ type, data });
+                            byPrefix++;
+                        }
+                    });
+                }
                 approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
+
+                // Show debug info
+                const errorDiv = document.getElementById('indexError');
+                errorDiv.innerHTML = `Debug: Found ${byClassId} timetables by classId, ${byPrefix} by prefix. Total ${approvedTimetables.length}`;
+                errorDiv.style.display = 'block';
+                setTimeout(() => errorDiv.style.display = 'none', 5000);
             } catch(e) { handleFirestoreError(e, 'loadApproved'); }
 
             // Rejected
