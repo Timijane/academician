@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Admin Timetable Review</title>
+    <title>EduTop Scholars · Teacher Timetable</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -13,155 +13,497 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (same styles as admin timetable – kept minimal) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc; --bg-sidebar: #ffffff; --text-primary: #0f172a; --text-secondary: #475569;
-            --accent: #2563eb; --border: #e2e8f0; --card-bg: #ffffff; --hover-bg: #f1f5f9;
-            --danger-text: #ef4444; --success-text: #22c55e; --warning-text: #f59e0b;
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+            --input-bg: #ffffff;
         }
+
         :root[data-theme="dark"] {
-            --bg-primary: #0f172a; --bg-sidebar: #1e293b; --text-primary: #f1f5f9; --text-secondary: #94a3b8;
-            --accent: #38bdf8; --border: #334155; --card-bg: #1e293b; --hover-bg: #2d3a4f;
-            --danger-text: #f87171; --success-text: #4ade80; --warning-text: #fbbf24;
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+            --input-bg: #1e293b;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); display: flex; min-height: 100vh; }
-        .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); padding: 2rem 1rem; position: fixed; height: 100vh; overflow-y: auto; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
         .sidebar.collapsed { width: 80px; }
-        .sidebar .logo-area { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; }
+        .sidebar .logo-area {
+            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+        }
         .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
-        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
         .sidebar.collapsed .logo-area h2 { display: none; }
-        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s; cursor: pointer; text-decoration: none; }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
+            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
+            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+        }
         .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
         .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
         .sidebar.collapsed .nav-item span { display: none; }
-        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
 
-        .main-content { flex: 1; margin-left: 260px; padding: 2rem; transition: margin-left 0.3s; }
+        /* ========== MAIN CONTENT ========== */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
         .main-content.expanded { margin-left: 80px; }
 
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
         .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
         .profile-area { display: flex; align-items: center; gap: 1.5rem; }
-        .theme-toggle { background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
 
-        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
-        .tab { padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border); }
-        .tab.active { background: var(--accent); color: white; }
+        /* ========== TYPE SELECTOR ========== */
+        .type-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .type-selector select, .type-selector .type-dropdown {
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .type-selector .btn {
+            background: var(--accent);
+            color: white;
+            padding: 0.5rem 2rem;
+        }
 
-        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
+        /* ========== TABS ========== */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+        .tab {
+            padding: 0.6rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* ========== CARDS ========== */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+
+        .type-heading {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
         .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
         .btn-success { background: var(--success-text); color: white; }
+        .btn-warning { background: var(--warning-text); color: white; }
         .btn-danger { background: var(--danger-text); color: white; }
+        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
 
-        .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th, td { border: 1px solid var(--border); padding: 0.5rem; text-align: left; }
-        th { background: var(--hover-bg); font-weight: 500; }
-        .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 500; }
-        .badge.pending { background: #f59e0b20; color: var(--warning-text); }
-        .badge.approved { background: #22c55e20; color: var(--success-text); }
-        .badge.rejected { background: #ef444420; color: var(--danger-text); }
-        .badge.published { background: #22c55e20; color: var(--success-text); }
+        /* ========== STATUS BADGES ========== */
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .status-approved { background: var(--success-bg); color: var(--success-text); }
+        .status-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
+        .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
 
-        .proposal-item { cursor: pointer; transition: background 0.2s; }
-        .proposal-item:hover { background: var(--hover-bg); }
+        /* ========== TABLES ========== */
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            text-align: left;
+        }
+        th {
+            background: var(--hover-bg);
+            font-weight: 500;
+        }
+        input {
+            width: 100%;
+            padding: 0.4rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+        .delete-row {
+            color: var(--danger-text);
+            cursor: pointer;
+            text-align: center;
+            font-size: 1.2rem;
+        }
 
-        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index:1000; }
-        .modal.active { display: flex; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 2rem; max-width: 800px; width:90%; max-height:80vh; overflow-y:auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:1.5rem; }
-        .modal-actions { display: flex; gap:1rem; margin-top:1rem; }
-        .feedback-input { width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:0.5rem; background:var(--input-bg); color:var(--text-primary); margin-bottom:1rem; }
-        .error-message { background: #ef444420; color: var(--danger-text); padding:1rem; border-radius:0.75rem; margin-bottom:1rem; border-left:4px solid var(--danger-text); }
-        .type-badge { background: var(--accent); color: white; padding:0.2rem 0.6rem; border-radius:1rem; font-size:0.8rem; margin-right:0.5rem; }
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .feedback-message {
+            margin-top: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border-radius: 0.75rem;
+            border-left: 4px solid var(--danger-text);
+        }
+
+        .class-info {
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            padding: 0.5rem 1rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .delete-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .delete-modal.active { display: flex; }
+        .delete-modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+        }
+        .delete-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .type-badge {
+            background: var(--accent);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+        }
+
+        .error-message {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger-text);
+        }
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2 { display: none; }
+            .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; }
+        }
     </style>
 </head>
 <body>
+    <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-        <div class="logo-area"><i class="fas fa-graduation-cap"></i><h2>EduTop Admin</h2></div>
-        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
-        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
-        <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
-        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
-        <a href="admin-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
-        <a href="admin-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
-        <a href="admin-payments.html" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
-        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
-        <a href="admin-audit.html" class="nav-item"><i class="fas fa-history"></i><span>Audit Logs</span></a>
-        <a href="admin-settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <div class="logo-area">
+            <i class="fas fa-calendar-alt"></i>
+            <h2>Teacher Panel</h2>
+        </div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
+    <!-- MAIN CONTENT -->
     <div class="main-content" id="mainContent">
         <div class="top-bar">
-            <div class="page-title"><h1>Timetable Review</h1><p>Manage teacher timetable submissions</p></div>
+            <div class="page-title">
+                <h1>Timetable Studio</h1>
+                <p>Create and manage all your class timetables</p>
+            </div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
-                <div class="profile-icon" id="profileInitials">MA</div>
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">T</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
             </div>
         </div>
 
+        <!-- Type Selector and Create New Draft Button -->
+        <div class="type-selector">
+            <label for="timetableType">Timetable Type:</label>
+            <select id="timetableType">
+                <option value="academic">📚 Academic (Daily)</option>
+                <option value="hairstyle">💇 Hairstyle Weekly</option>
+                <option value="test">📝 Test Schedule</option>
+                <option value="exam">🎓 Exam Timetable</option>
+            </select>
+            <button class="btn" id="createNewBtn">+ Create New Draft</button>
+        </div>
+
+        <!-- Error display for index issues -->
+        <div id="indexError" class="error-message" style="display: none;"></div>
+
         <!-- Tabs -->
         <div class="tabs">
-            <div class="tab active" data-tab="pending">Pending</div>
+            <div class="tab active" data-tab="draft">Draft</div>
+            <div class="tab" data-tab="pending">Pending</div>
             <div class="tab" data-tab="approved">Approved</div>
             <div class="tab" data-tab="rejected">Rejected</div>
         </div>
 
+        <!-- Draft Tab -->
+        <div id="draftSection" class="card" style="display: block;">
+            <div class="card-header">
+                <div>
+                    <div class="type-heading" id="draftTypeHeading">ACADEMIC TIMETABLE</div>
+                    <div id="draftFeedback" class="feedback-message" style="display: none;"></div>
+                </div>
+            </div>
+            <div class="class-info" id="classDisplay"></div>
+            <div class="table-responsive">
+                <table id="draftTable">
+                    <thead id="draftTableHeader"></thead>
+                    <tbody id="draftBody"></tbody>
+                </table>
+            </div>
+            <div class="actions">
+                <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Entry</button>
+                <button class="btn btn-primary" id="saveDraftBtn">Save Draft</button>
+                <button class="btn btn-success" id="submitBtn">Submit for Approval</button>
+                <button class="btn btn-danger" id="deleteDraftBtn" style="display: none;">Delete Entire Draft</button>
+            </div>
+        </div>
+
         <!-- Pending Tab -->
-        <div id="pendingSection" class="card" style="display:block;">
-            <div class="card-header"><h3>Pending Proposals</h3></div>
-            <div id="pendingError" class="error-message" style="display:none;"></div>
+        <div id="pendingSection" class="card" style="display: none;">
+            <div class="card-header"><h3>Pending Approval</h3></div>
+            <div class="class-info" id="pendingClass"></div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Status</th></tr></thead>
-                    <tbody id="pendingBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                    <thead id="pendingTableHeader"></thead>
+                    <tbody id="pendingBody"></tbody>
                 </table>
+            </div>
+            <div class="actions">
+                <button class="btn btn-warning" id="editPendingBtn">Edit (convert to draft)</button>
             </div>
         </div>
 
         <!-- Approved Tab -->
-        <div id="approvedSection" class="card" style="display:none;">
-            <div class="card-header"><h3>Approved Timetables</h3></div>
-            <div id="approvedError" class="error-message" style="display:none;"></div>
+        <div id="approvedSection" class="card" style="display: none;">
+            <div class="card-header">
+                <h3>Approved Timetable</h3>
+                <div class="type-selector" style="margin:0;">
+                    <select id="approvedTypeSelect" class="type-dropdown">
+                        <option value="">Select type</option>
+                    </select>
+                </div>
+            </div>
+            <div class="class-info" id="approvedClass"></div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Approved On</th><th>Published</th></tr></thead>
-                    <tbody id="approvedBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                    <thead id="approvedTableHeader"></thead>
+                    <tbody id="approvedBody"></tbody>
                 </table>
+            </div>
+            <div class="actions">
+                <button class="btn btn-success" id="publishBtn">Publish to Students</button>
+                <button class="btn btn-warning" id="editApprovedBtn">Edit (create new draft)</button>
+                <button class="btn btn-outline" onclick="window.open('student-timetable.html','_blank')">View Student View</button>
             </div>
         </div>
 
         <!-- Rejected Tab -->
-        <div id="rejectedSection" class="card" style="display:none;">
-            <div class="card-header"><h3>Rejected Proposals</h3></div>
-            <div id="rejectedError" class="error-message" style="display:none;"></div>
+        <div id="rejectedSection" class="card" style="display: none;">
+            <div class="card-header"><h3>Rejected Proposal</h3></div>
+            <div id="rejectedFeedback" class="feedback-message" style="display: none;"></div>
+            <div class="class-info" id="rejectedClass"></div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Feedback</th></tr></thead>
-                    <tbody id="rejectedBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                    <thead id="rejectedTableHeader"></thead>
+                    <tbody id="rejectedBody"></tbody>
                 </table>
+            </div>
+            <div class="actions">
+                <button class="btn btn-warning" id="editRejectedBtn">Edit (convert to draft)</button>
             </div>
         </div>
     </div>
 
-    <!-- Review Modal -->
-    <div class="modal" id="reviewModal">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Review Timetable (<span id="modalType"></span>)</h3><i class="fas fa-times" style="cursor:pointer;" onclick="closeReviewModal()"></i></div>
-            <div id="modalContent"></div>
-            <textarea id="feedbackInput" class="feedback-input" placeholder="Feedback (required for rejection)"></textarea>
-            <div class="modal-actions">
-                <button class="btn btn-success" onclick="handleApprove()">Approve</button>
-                <button class="btn btn-danger" onclick="handleReject()">Reject</button>
-                <button class="btn btn-outline" onclick="closeReviewModal()">Cancel</button>
+    <!-- Delete Confirmation Modal -->
+    <div class="delete-modal" id="deleteModal">
+        <div class="delete-modal-content">
+            <h3>Confirm Deletion</h3>
+            <p id="deleteMessage">Are you sure you want to delete this draft? This cannot be undone.</p>
+            <div class="delete-modal-actions">
+                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
             </div>
         </div>
     </div>
@@ -180,18 +522,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Sidebar & theme (minimal)
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-        const toggleBtn = document.getElementById('sidebarToggle');
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            const icon = toggleBtn.querySelector('i');
-            icon.classList.toggle('fa-chevron-left');
-            icon.classList.toggle('fa-chevron-right');
-        });
-
+        // ========== THEME & SIDEBAR ==========
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -211,321 +542,572 @@
             updateThemeUI(next);
         });
 
-        // Auth
-        let currentUser = null;
-        let currentUserData = null;
-        auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'admin-login.html';
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        // ========== GLOBAL VARIABLES ==========
+        let currentUser = null, userData = null, currentClassId = null;
+        let currentType = 'academic'; // for draft
+        let draftProposalId = null, draftData = [], draftType = 'academic';
+        let pendingProposalId = null, pendingData = [], pendingType = 'academic';
+        let approvedTimetables = []; // { type, data }
+        let currentApprovedType = null;
+        let rejectedProposalId = null, rejectedData = [], rejectedType = 'academic', rejectedFeedback = '';
+
+        // ========== INDEX ERROR HANDLER ==========
+        function handleFirestoreError(error, context) {
+            console.error(`Firestore error in ${context}:`, error);
+            const errorDiv = document.getElementById('indexError');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                const url = match ? match[0] : '#';
+                errorDiv.innerHTML = `
+                    <strong>Missing Firestore index.</strong><br>
+                    Please create it by clicking 
+                    <a href="${url}" target="_blank">this link</a>.
+                `;
+                errorDiv.style.display = 'block';
+            } else if (error.code === 'permission-denied') {
+                errorDiv.textContent = `Permission denied: ${error.message}`;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // ========== HEADER HELPERS (based on type) ==========
+        function getHeaders(type) {
+            switch(type) {
+                case 'academic':
+                    return ['Start', 'End', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', ''];
+                case 'hairstyle':
+                    return ['Week', 'Hairstyle', 'Description', ''];
+                case 'test':
+                case 'exam':
+                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration', ''];
+                default:
+                    return [];
+            }
+        }
+
+        function periodToRow(p, type) {
+            switch(type) {
+                case 'academic':
+                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
+                case 'hairstyle':
+                    return [p.startTime, p.monday, p.tuesday];
+                case 'test':
+                case 'exam':
+                    return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday];
+                default:
+                    return [];
+            }
+        }
+
+        function emptyPeriod(type) {
+            switch(type) {
+                case 'academic':
+                    return { startTime: '08:00', endTime: '08:40', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
+                case 'hairstyle':
+                    return { startTime: '1', monday: '', tuesday: '' }; // startTime used as week number
+                case 'test':
+                case 'exam':
+                    return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '' };
+                default:
+                    return {};
+            }
+        }
+
+        // ========== DRAFT RENDERING ==========
+        function renderDraft() {
+            const header = document.getElementById('draftTableHeader');
+            const headers = getHeaders(currentType);
+            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const tbody = document.getElementById('draftBody');
+            let html = '';
+            draftData.forEach((p, i) => {
+                html += '<tr>';
+                if (currentType === 'academic') {
+                    html += `
+                        <td><input type="time" value="${p.startTime}" data-index="${i}" data-field="startTime"></td>
+                        <td><input type="time" value="${p.endTime}" data-index="${i}" data-field="endTime"></td>
+                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday"></td>
+                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday"></td>
+                        <td><input type="text" value="${p.wednesday || ''}" data-index="${i}" data-field="wednesday"></td>
+                        <td><input type="text" value="${p.thursday || ''}" data-index="${i}" data-field="thursday"></td>
+                        <td><input type="text" value="${p.friday || ''}" data-index="${i}" data-field="friday"></td>
+                    `;
+                } else if (currentType === 'hairstyle') {
+                    html += `
+                        <td><input type="text" value="${p.startTime}" data-index="${i}" data-field="startTime" placeholder="Week #"></td>
+                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday" placeholder="Hairstyle"></td>
+                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday" placeholder="Description"></td>
+                    `;
+                } else { // test / exam
+                    html += `
+                        <td><input type="text" value="${p.startTime}" data-index="${i}" data-field="startTime" placeholder="Date (e.g., 2025-04-10)"></td>
+                        <td><input type="text" value="${p.endTime}" data-index="${i}" data-field="endTime" placeholder="Time"></td>
+                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday" placeholder="Subject"></td>
+                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday" placeholder="Venue"></td>
+                        <td><input type="text" value="${p.wednesday || ''}" data-index="${i}" data-field="wednesday" placeholder="Duration"></td>
+                    `;
+                }
+                html += `<td class="delete-row" onclick="deleteDraftRow(${i})"><i class="fas fa-trash"></i></td>`;
+                html += '</tr>';
+            });
+            tbody.innerHTML = html;
+
+            document.querySelectorAll('#draftBody input').forEach(inp => {
+                inp.addEventListener('input', function(e) {
+                    const i = this.dataset.index, f = this.dataset.field;
+                    draftData[i][f] = this.value;
+                });
+            });
+
+            const typeDisplay = {
+                academic: 'ACADEMIC TIMETABLE',
+                hairstyle: 'HAIRSTYLE WEEKLY SCHEDULE',
+                test: 'TEST SCHEDULE',
+                exam: 'EXAM TIMETABLE'
+            };
+            document.getElementById('draftTypeHeading').textContent = typeDisplay[currentType] || 'TIMETABLE';
+        }
+
+        window.deleteDraftRow = (index) => {
+            draftData.splice(index, 1);
+            renderDraft();
+        };
+
+        document.getElementById('addRowBtn').addEventListener('click', () => {
+            draftData.push(emptyPeriod(currentType));
+            renderDraft();
+        });
+
+        // ========== CREATE NEW DRAFT (IMMEDIATELY SAVED) ==========
+        document.getElementById('createNewBtn').addEventListener('click', async () => {
+            const type = document.getElementById('timetableType').value;
+            currentType = type;
+            const newDraft = [emptyPeriod(type)];
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: newDraft,
+                type: currentType,
+                status: 'draft',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                const ref = await db.collection('timetableProposals').add(data);
+                draftProposalId = ref.id;
+                draftData = newDraft;
+                draftType = type;
+                renderDraft();
+                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
+                alert('New draft created.');
+            } catch(e) {
+                handleFirestoreError(e, 'createNewDraft');
+            }
+            document.querySelector('.tab[data-tab="draft"]').click();
+        });
+
+        document.getElementById('saveDraftBtn').addEventListener('click', async () => {
+            if (!currentClassId) return alert('No class assigned.');
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: draftData,
+                type: currentType,
+                status: 'draft',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                if (draftProposalId) {
+                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                } else {
+                    const ref = await db.collection('timetableProposals').add(data);
+                    draftProposalId = ref.id;
+                }
+                alert('Draft saved.');
+                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
+            } catch(e) {
+                handleFirestoreError(e, 'saveDraft');
+            }
+        });
+
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            if (!currentClassId) return alert('No class assigned.');
+            if (draftData.length === 0) return alert('Add at least one entry.');
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: draftData,
+                type: currentType,
+                status: 'pending',
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                if (draftProposalId) {
+                    await db.collection('timetableProposals').doc(draftProposalId).update(data);
+                } else {
+                    await db.collection('timetableProposals').add(data);
+                }
+                alert('Submitted for approval.');
+                await loadAllData();
+                document.querySelector('.tab[data-tab="pending"]').click();
+            } catch(e) {
+                handleFirestoreError(e, 'submit');
+            }
+        });
+
+        document.getElementById('deleteDraftBtn').addEventListener('click', () => {
+            openDeleteModal('Delete this entire draft?', async () => {
+                if (!draftProposalId) return;
+                try {
+                    await db.collection('timetableProposals').doc(draftProposalId).delete();
+                    draftProposalId = null;
+                    draftData = [emptyPeriod(currentType)];
+                    renderDraft();
+                    document.getElementById('deleteDraftBtn').style.display = 'none';
+                    closeDeleteModal();
+                } catch(e) {
+                    handleFirestoreError(e, 'deleteDraft');
+                }
+            });
+        });
+
+        // ========== LOAD ALL DATA (for the current class) ==========
+        async function loadAllData() {
+            // Draft
+            try {
+                const snap = await db.collection('timetableProposals')
+                    .where('classId', '==', currentClassId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'draft')
+                    .orderBy('updatedAt', 'desc')
+                    .limit(1)
+                    .get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
+                    draftProposalId = doc.id;
+                    draftData = doc.data().periods || [];
+                    draftType = doc.data().type || 'academic';
+                } else {
+                    draftProposalId = null;
+                    draftData = [emptyPeriod('academic')];
+                    draftType = 'academic';
+                }
+            } catch(e) { handleFirestoreError(e, 'loadDraft'); }
+
+            // Pending
+            try {
+                const snap = await db.collection('timetableProposals')
+                    .where('classId', '==', currentClassId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'pending')
+                    .orderBy('submittedAt', 'desc')
+                    .limit(1)
+                    .get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
+                    pendingProposalId = doc.id;
+                    pendingData = doc.data().periods || [];
+                    pendingType = doc.data().type || 'academic';
+                } else {
+                    pendingProposalId = null;
+                    pendingData = [];
+                }
+            } catch(e) { handleFirestoreError(e, 'loadPending'); }
+
+            // Approved – try by classId first, then fallback to document ID prefix
+            approvedTimetables = [];
+            try {
+                const snap = await db.collection('timetables')
+                    .where('classId', '==', currentClassId)
+                    .get();
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const type = data.type || 'academic';
+                    approvedTimetables.push({ type, data });
+                });
+
+                // If no timetables found by classId, fallback to prefix match (for backward compatibility)
+                if (approvedTimetables.length === 0) {
+                    console.log('No timetables found by classId, trying prefix fallback...');
+                    const allSnap = await db.collection('timetables').get();
+                    allSnap.forEach(doc => {
+                        if (doc.id.startsWith(currentClassId)) {
+                            const data = doc.data();
+                            const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                            approvedTimetables.push({ type, data });
+                        }
+                    });
+                }
+                approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
+            } catch(e) { handleFirestoreError(e, 'loadApproved'); }
+
+            // Rejected
+            try {
+                const snap = await db.collection('timetableProposals')
+                    .where('classId', '==', currentClassId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'rejected')
+                    .orderBy('submittedAt', 'desc')
+                    .limit(1)
+                    .get();
+                if (!snap.empty) {
+                    const doc = snap.docs[0];
+                    rejectedProposalId = doc.id;
+                    rejectedData = doc.data().periods || [];
+                    rejectedType = doc.data().type || 'academic';
+                    rejectedFeedback = doc.data().feedback || '';
+                } else {
+                    rejectedProposalId = null;
+                    rejectedData = [];
+                }
+            } catch(e) { handleFirestoreError(e, 'loadRejected'); }
+
+            if (draftProposalId) currentType = draftType;
+            else currentType = 'academic';
+        }
+
+        // ========== PENDING RENDERING ==========
+        function renderPending() {
+            const header = document.getElementById('pendingTableHeader');
+            const headers = getHeaders(pendingType);
+            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const tbody = document.getElementById('pendingBody');
+            if (pendingData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No pending proposal.</td></tr>';
                 return;
             }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().permissions?.reviewLessons)) {
+            let html = '';
+            pendingData.forEach(p => {
+                const cells = periodToRow(p, pendingType);
+                html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
+            });
+            tbody.innerHTML = html;
+            const typeDisplay = pendingType.charAt(0).toUpperCase() + pendingType.slice(1);
+            document.getElementById('pendingClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${typeDisplay}</span>`;
+        }
+
+        document.getElementById('editPendingBtn').addEventListener('click', async () => {
+            if (!pendingProposalId) return;
+            try {
+                await db.collection('timetableProposals').doc(pendingProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch(e) {
+                handleFirestoreError(e, 'editPending');
+            }
+        });
+
+        // ========== APPROVED RENDERING ==========
+        function renderApproved() {
+            const select = document.getElementById('approvedTypeSelect');
+            // Rebuild dropdown options
+            select.innerHTML = '<option value="">Select type</option>';
+            approvedTimetables.forEach(at => {
+                const option = document.createElement('option');
+                option.value = at.type;
+                option.textContent = at.type.charAt(0).toUpperCase() + at.type.slice(1);
+                select.appendChild(option);
+            });
+
+            // Restore previously selected type if it exists, otherwise pick first
+            let selectedType = currentApprovedType;
+            if (selectedType && approvedTimetables.some(at => at.type === selectedType)) {
+                select.value = selectedType;
+            } else if (approvedTimetables.length > 0) {
+                selectedType = approvedTimetables[0].type;
+                select.value = selectedType;
+                currentApprovedType = selectedType;
+            } else {
+                selectedType = null;
+                currentApprovedType = null;
+            }
+
+            if (!selectedType || approvedTimetables.length === 0) {
+                document.getElementById('approvedBody').innerHTML = '<tr><td colspan="8">No approved timetable.</td></tr>';
+                document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong>`;
+                document.getElementById('publishBtn').style.display = 'none';
+                return;
+            }
+
+            const at = approvedTimetables.find(at => at.type === selectedType);
+            if (!at) return;
+
+            const { type, data } = at;
+            const headers = getHeaders(type);
+            document.getElementById('approvedTableHeader').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const periods = data.periods || [];
+            periods.sort((a,b) => (a.startTime || '').localeCompare(b.startTime || ''));
+            let html = '';
+            periods.forEach(p => {
+                const cells = periodToRow(p, type);
+                html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
+            });
+            document.getElementById('approvedBody').innerHTML = html;
+            document.getElementById('approvedClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${type.charAt(0).toUpperCase() + type.slice(1)}</span>`;
+            document.getElementById('publishBtn').style.display = data.published ? 'none' : 'inline-block';
+            window.approvedData = data;
+            window.approvedType = type;
+        }
+
+        document.getElementById('approvedTypeSelect').addEventListener('change', (e) => {
+            currentApprovedType = e.target.value;
+            renderApproved();
+        });
+
+        document.getElementById('publishBtn').addEventListener('click', async () => {
+            if (!currentClassId || !window.approvedData) return;
+            const docId = `${currentClassId}_${window.approvedType}`;
+            try {
+                await db.collection('timetables').doc(docId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                alert('Published to students.');
+                await loadAllData();
+                renderApproved();
+            } catch(e) {
+                handleFirestoreError(e, 'publish');
+            }
+        });
+
+        document.getElementById('editApprovedBtn').addEventListener('click', async () => {
+            if (!window.approvedData) return;
+            const data = {
+                classId: currentClassId,
+                teacherId: currentUser.uid,
+                periods: window.approvedData.periods,
+                type: window.approvedType,
+                status: 'draft',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                const ref = await db.collection('timetableProposals').add(data);
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch(e) {
+                handleFirestoreError(e, 'editApproved');
+            }
+        });
+
+        // ========== REJECTED RENDERING ==========
+        function renderRejected() {
+            const header = document.getElementById('rejectedTableHeader');
+            const headers = getHeaders(rejectedType);
+            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            const tbody = document.getElementById('rejectedBody');
+            if (rejectedData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No rejected proposal.</td></tr>';
+                return;
+            }
+            let html = '';
+            rejectedData.forEach(p => {
+                const cells = periodToRow(p, rejectedType);
+                html += '<tr>' + cells.map(c => `<td>${c || '—'}</td>`).join('') + '<td></td></tr>';
+            });
+            tbody.innerHTML = html;
+            const typeDisplay = rejectedType.charAt(0).toUpperCase() + rejectedType.slice(1);
+            document.getElementById('rejectedClass').innerHTML = `Class: <strong>${currentClassId}</strong> <span class="type-badge">${typeDisplay}</span>`;
+            const feedbackEl = document.getElementById('rejectedFeedback');
+            if (rejectedFeedback) {
+                feedbackEl.textContent = `Feedback: ${rejectedFeedback}`;
+                feedbackEl.style.display = 'block';
+            } else {
+                feedbackEl.style.display = 'none';
+            }
+        }
+
+        document.getElementById('editRejectedBtn').addEventListener('click', async () => {
+            if (!rejectedProposalId) return;
+            try {
+                await db.collection('timetableProposals').doc(rejectedProposalId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await loadAllData();
+                document.querySelector('.tab[data-tab="draft"]').click();
+            } catch(e) {
+                handleFirestoreError(e, 'editRejected');
+            }
+        });
+
+        // ========== AUTH ==========
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'teacher-login.html';
+                return;
+            }
+            const doc = await db.collection('users').doc(user.uid).get();
+            if (!doc.exists || doc.data().role !== 'teacher') {
                 auth.signOut();
                 window.location.href = 'index.html';
                 return;
             }
             currentUser = user;
-            currentUserData = userDoc.data();
-            document.getElementById('profileInitials').textContent = (currentUserData.firstName?.[0] || 'A') + (currentUserData.surname?.[0] || 'A');
-            loadPending();
-            loadApproved();
-            loadRejected();
+            userData = doc.data();
+            document.getElementById('profileInitials').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+            currentClassId = userData.classTeaching;
+            if (!currentClassId) {
+                document.getElementById('classDisplay').innerHTML = 'You are not assigned to any class.';
+                return;
+            }
+            document.getElementById('classDisplay').innerHTML = `Class: <strong>${currentClassId}</strong>`;
+            await loadAllData();
+            // show default tab (draft)
+            document.querySelector('.tab[data-tab="draft"]').click();
         });
 
-        // Tab switching
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        // ========== TAB SWITCHING WITH DATA RELOAD ==========
         const tabs = document.querySelectorAll('.tab');
         const sections = {
+            draft: document.getElementById('draftSection'),
             pending: document.getElementById('pendingSection'),
             approved: document.getElementById('approvedSection'),
             rejected: document.getElementById('rejectedSection')
         };
         tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', async () => {
                 const tabName = tab.dataset.tab;
                 tabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
+                // always reload data before rendering
+                await loadAllData();
                 Object.keys(sections).forEach(k => sections[k].style.display = k === tabName ? 'block' : 'none');
-                if (tabName === 'pending') loadPending();
-                else if (tabName === 'approved') loadApproved();
-                else if (tabName === 'rejected') loadRejected();
+                if (tabName === 'draft') {
+                    currentType = draftType;
+                    renderDraft();
+                } else if (tabName === 'pending') {
+                    renderPending();
+                } else if (tabName === 'approved') {
+                    renderApproved();
+                } else if (tabName === 'rejected') {
+                    renderRejected();
+                }
             });
         });
 
-        // ========== HEADER HELPERS (same as teacher) ==========
-        function getHeaders(type) {
-            switch(type) {
-                case 'academic': return ['Start','End','Monday','Tuesday','Wednesday','Thursday','Friday'];
-                case 'hairstyle': return ['Week','Hairstyle','Description'];
-                case 'test': case 'exam': return ['Date','Time','Subject','Venue','Duration'];
-                default: return [];
-            }
+        // ========== DELETE MODAL ==========
+        const deleteModal = document.getElementById('deleteModal');
+        function openDeleteModal(msg, callback) {
+            document.getElementById('deleteMessage').textContent = msg;
+            deleteModal.classList.add('active');
+            document.getElementById('confirmDeleteBtn').onclick = callback;
         }
-        function periodToRow(p, type) {
-            switch(type) {
-                case 'academic': return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday, p.thursday, p.friday];
-                case 'hairstyle': return [p.startTime, p.monday, p.tuesday];
-                case 'test': case 'exam': return [p.startTime, p.endTime, p.monday, p.tuesday, p.wednesday];
-                default: return [];
-            }
-        }
-
-        // Fetch teacher names with fallback
-        async function fetchTeacherNames(teacherIds) {
-            const teacherMap = {};
-            if (teacherIds.length === 0) return teacherMap;
-            for (let i = 0; i < teacherIds.length; i += 10) {
-                const chunk = teacherIds.slice(i, i+10);
-                const snaps = await Promise.all(chunk.map(id => db.collection('users').doc(id).get()));
-                snaps.forEach(snap => {
-                    if (snap.exists) teacherMap[snap.id] = snap.data();
-                    else teacherMap[snap.id] = null;
-                });
-            }
-            return teacherMap;
-        }
-
-        function getTeacherDisplay(teacherId, teacherMap) {
-            const teacher = teacherMap[teacherId];
-            if (!teacher) return teacherId;
-            const name = [teacher.firstName, teacher.surname].filter(Boolean).join(' ');
-            if (name) return name;
-            if (teacher.email) return teacher.email;
-            if (teacher.phone) return teacher.phone;
-            return teacherId;
-        }
-
-        // ========== LOAD PENDING ==========
-        async function loadPending() {
-            const tbody = document.getElementById('pendingBody');
-            const errorDiv = document.getElementById('pendingError');
-            tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
-            errorDiv.style.display = 'none';
-            try {
-                const snapshot = await db.collection('timetableProposals')
-                    .where('status', '==', 'pending')
-                    .orderBy('submittedAt', 'desc')
-                    .get();
-                if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="5">No pending proposals.</td></tr>';
-                    return;
-                }
-                const teacherIds = [...new Set(snapshot.docs.map(d => d.data().teacherId))];
-                const teacherMap = await fetchTeacherNames(teacherIds);
-                let html = '';
-                snapshot.forEach(doc => {
-                    const p = doc.data();
-                    const teacherName = getTeacherDisplay(p.teacherId, teacherMap);
-                    const date = p.submittedAt ? p.submittedAt.toDate().toLocaleString() : 'N/A';
-                    const type = p.type || 'academic';
-                    html += `<tr class="proposal-item" onclick="openReviewModal('${doc.id}')">
-                        <td><span class="type-badge">${type}</span></td>
-                        <td>${p.classId}</td>
-                        <td>${teacherName}</td>
-                        <td>${date}</td>
-                        <td><span class="badge pending">Pending</span></td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-            } catch (error) {
-                console.error(error);
-                errorDiv.style.display = 'block';
-                if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                    const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-                    errorDiv.innerHTML = `<strong>Missing Firestore index.</strong><br>Please create it by clicking <a href="${match?.[0]||'#'}" target="_blank">this link</a>.`;
-                } else if (error.code === 'permission-denied') {
-                    errorDiv.textContent = 'Permission denied. Ensure your admin account has the "reviewLessons" permission.';
-                } else {
-                    errorDiv.textContent = `Error: ${error.message}`;
-                }
-                tbody.innerHTML = '<tr><td colspan="5">Failed to load data.</td></tr>';
-            }
-        }
-
-        // ========== LOAD APPROVED ==========
-        async function loadApproved() {
-            const tbody = document.getElementById('approvedBody');
-            const errorDiv = document.getElementById('approvedError');
-            tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
-            errorDiv.style.display = 'none';
-            try {
-                const snapshot = await db.collection('timetables').get();
-                if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="5">No approved timetables.</td></tr>';
-                    return;
-                }
-                const teacherIds = [...new Set(snapshot.docs.map(d => d.data().teacherId))];
-                const teacherMap = await fetchTeacherNames(teacherIds);
-                let html = '';
-                snapshot.forEach(doc => {
-                    const t = doc.data();
-                    const teacherName = getTeacherDisplay(t.teacherId, teacherMap);
-                    const approvedDate = t.approvedAt ? t.approvedAt.toDate().toLocaleString() : 'N/A';
-                    const publishedBadge = t.published ? '<span class="badge published">Published</span>' : '<span class="badge approved">Not Published</span>';
-                    const type = t.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
-                    html += `<tr>
-                        <td><span class="type-badge">${type}</span></td>
-                        <td>${doc.id}</td>
-                        <td>${teacherName}</td>
-                        <td>${approvedDate}</td>
-                        <td>${publishedBadge}</td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-            } catch (error) {
-                console.error(error);
-                errorDiv.style.display = 'block';
-                errorDiv.textContent = `Error: ${error.message}`;
-                tbody.innerHTML = '<tr><td colspan="5">Failed to load data.</td></tr>';
-            }
-        }
-
-        // ========== LOAD REJECTED ==========
-        async function loadRejected() {
-            const tbody = document.getElementById('rejectedBody');
-            const errorDiv = document.getElementById('rejectedError');
-            tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
-            errorDiv.style.display = 'none';
-            try {
-                const snapshot = await db.collection('timetableProposals')
-                    .where('status', '==', 'rejected')
-                    .orderBy('submittedAt', 'desc')
-                    .get();
-                if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="5">No rejected proposals.</td></tr>';
-                    return;
-                }
-                const teacherIds = [...new Set(snapshot.docs.map(d => d.data().teacherId))];
-                const teacherMap = await fetchTeacherNames(teacherIds);
-                let html = '';
-                snapshot.forEach(doc => {
-                    const p = doc.data();
-                    const teacherName = getTeacherDisplay(p.teacherId, teacherMap);
-                    const date = p.submittedAt ? p.submittedAt.toDate().toLocaleString() : 'N/A';
-                    const feedback = p.feedback || '—';
-                    const type = p.type || 'academic';
-                    html += `<tr>
-                        <td><span class="type-badge">${type}</span></td>
-                        <td>${p.classId}</td>
-                        <td>${teacherName}</td>
-                        <td>${date}</td>
-                        <td>${feedback}</td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-            } catch (error) {
-                console.error(error);
-                errorDiv.style.display = 'block';
-                if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                    const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-                    errorDiv.innerHTML = `<strong>Missing Firestore index.</strong><br>Please create it by clicking <a href="${match?.[0]||'#'}" target="_blank">this link</a>.`;
-                } else {
-                    errorDiv.textContent = `Error: ${error.message}`;
-                }
-                tbody.innerHTML = '<tr><td colspan="5">Failed to load data.</td></tr>';
-            }
-        }
-
-        // ========== REVIEW MODAL ==========
-        const reviewModal = document.getElementById('reviewModal');
-        const modalContent = document.getElementById('modalContent');
-        const modalTypeSpan = document.getElementById('modalType');
-        const feedbackInput = document.getElementById('feedbackInput');
-        let currentProposalId = null;
-
-        window.openReviewModal = async (proposalId) => {
-            currentProposalId = proposalId;
-            const doc = await db.collection('timetableProposals').doc(proposalId).get();
-            const proposal = doc.data();
-            const type = proposal.type || 'academic';
-            modalTypeSpan.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            const headers = getHeaders(type);
-            let periodsHtml = '<table><thead><tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
-            proposal.periods.forEach(p => {
-                const cells = periodToRow(p, type);
-                periodsHtml += '<tr>'+cells.map(c=>`<td>${c||''}</td>`).join('')+'</tr>';
-            });
-            periodsHtml += '</tbody></table>';
-            modalContent.innerHTML = `<p><strong>Class:</strong> ${proposal.classId}</p>${periodsHtml}`;
-            feedbackInput.value = '';
-            reviewModal.classList.add('active');
-        };
-
-        window.closeReviewModal = () => {
-            reviewModal.classList.remove('active');
-            currentProposalId = null;
-        };
-
-        window.handleApprove = async () => {
-            if (!currentProposalId) return;
-            const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
-            const proposal = doc.data();
-            const type = proposal.type || 'academic';
-            const timetableDocId = `${proposal.classId}_${type}`; // composite ID
-            try {
-                // Save to timetables with classId and type fields
-                await db.collection('timetables').doc(timetableDocId).set({
-                    periods: proposal.periods,
-                    teacherId: proposal.teacherId,
-                    classId: proposal.classId,
-                    type: type,
-                    approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    approvedBy: auth.currentUser.uid,
-                    published: false
-                });
-                // Update proposal status
-                await doc.ref.update({
-                    status: 'approved',
-                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    reviewedBy: auth.currentUser.uid,
-                    feedback: feedbackInput.value
-                });
-                // Log audit
-                await db.collection('auditLogs').add({
-                    userId: auth.currentUser.uid,
-                    action: `Approved ${type} timetable for ${proposal.classId}`,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                closeReviewModal();
-                loadPending();
-                loadApproved();
-                loadRejected();
-            } catch (error) {
-                console.error('Approve error:', error);
-                alert('Failed to approve: ' + error.message);
-            }
-        };
-
-        window.handleReject = async () => {
-            if (!currentProposalId) return;
-            const feedback = feedbackInput.value;
-            if (!feedback) {
-                alert('Please provide feedback for rejection.');
-                return;
-            }
-            const doc = await db.collection('timetableProposals').doc(currentProposalId).get();
-            const proposal = doc.data();
-            try {
-                await doc.ref.update({
-                    status: 'rejected',
-                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    reviewedBy: auth.currentUser.uid,
-                    feedback
-                });
-                await db.collection('auditLogs').add({
-                    userId: auth.currentUser.uid,
-                    action: `Rejected timetable proposal for ${proposal.classId}`,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                closeReviewModal();
-                loadPending();
-                loadApproved();
-                loadRejected();
-            } catch (error) {
-                console.error('Reject error:', error);
-                alert('Failed to reject: ' + error.message);
-            }
-        };
+        window.closeDeleteModal = () => deleteModal.classList.remove('active');
     </script>
 </body>
 </html>
