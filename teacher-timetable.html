@@ -457,15 +457,14 @@
             const errorDiv = document.getElementById('indexError');
             let debugMessages = [];
 
-            // Check current user
             if (currentUser) {
                 debugMessages.push(`User UID: ${currentUser.uid}`);
             }
             if (userData) {
-                debugMessages.push(`Approved: ${userData.approved}, Role: ${userData.role}`);
+                debugMessages.push(`Approved: ${userData.approved}, Role: ${userData.role}, classTeaching: ${userData.classTeaching}`);
             }
 
-            // Draft (unchanged)
+            // Draft
             try {
                 const snap = await db.collection('timetableProposals')
                     .where('classId', '==', currentClassId)
@@ -481,7 +480,7 @@
                 } else { draftProposalId = null; draftData = [emptyPeriod('academic')]; draftType = 'academic'; }
             } catch(e) { handleFirestoreError(e, 'loadDraft'); }
 
-            // Pending (unchanged)
+            // Pending
             try {
                 const snap = await db.collection('timetableProposals')
                     .where('classId', '==', currentClassId)
@@ -497,73 +496,42 @@
                 } else { pendingProposalId = null; pendingData = []; }
             } catch(e) { handleFirestoreError(e, 'loadPending'); }
 
-            // Approved – try by classId first, then fallback to document ID prefix
+            // Approved – try direct read of a known document, then fallback to prefix
             approvedTimetables = [];
-            let byClassId = 0;
-            let byPrefix = 0;
-            let classIdDocs = [];
-            let prefixDocs = [];
+            let directResult = '';
 
             // Test reading a single known document to isolate permission
             try {
                 const testDocId = `${currentClassId}_academic`;
                 const testSnap = await db.collection('timetables').doc(testDocId).get();
                 if (testSnap.exists) {
-                    debugMessages.push(`Single doc ${testDocId} exists and readable.`);
+                    directResult = `Single doc ${testDocId} exists and readable.`;
                 } else {
-                    debugMessages.push(`Single doc ${testDocId} does not exist.`);
+                    directResult = `Single doc ${testDocId} does not exist.`;
                 }
             } catch (e) {
-                debugMessages.push(`Error reading single doc: ${e.message} (code ${e.code})`);
+                directResult = `Error reading single doc: ${e.message} (code ${e.code})`;
             }
+            debugMessages.push(directResult);
 
+            // Prefix fallback
             try {
-                const snap = await db.collection('timetables')
-                    .where('classId', '==', currentClassId)
-                    .get();
-                byClassId = snap.size;
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    const type = data.type || 'academic';
-                    approvedTimetables.push({ type, data });
-                    classIdDocs.push(doc.id);
+                const allSnap = await db.collection('timetables').get();
+                allSnap.forEach(doc => {
+                    if (doc.id.startsWith(currentClassId)) {
+                        const data = doc.data();
+                        const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                        approvedTimetables.push({ type, data });
+                    }
                 });
+                approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
+                debugMessages.push(`Prefix fallback found ${approvedTimetables.length} timetables.`);
             } catch (e) {
-                debugMessages.push(`classId query error: ${e.message} (code ${e.code})`);
-                handleFirestoreError(e, 'loadApproved (classId)');
+                debugMessages.push(`Prefix fallback error: ${e.message} (code ${e.code})`);
+                handleFirestoreError(e, 'loadApproved');
             }
 
-            // If no timetables found by classId, fallback to prefix match
-            if (approvedTimetables.length === 0) {
-                try {
-                    const allSnap = await db.collection('timetables').get();
-                    allSnap.forEach(doc => {
-                        if (doc.id.startsWith(currentClassId)) {
-                            const data = doc.data();
-                            const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
-                            approvedTimetables.push({ type, data });
-                            byPrefix++;
-                            prefixDocs.push(doc.id);
-                        }
-                    });
-                } catch (e) {
-                    debugMessages.push(`prefix query error: ${e.message} (code ${e.code})`);
-                    handleFirestoreError(e, 'loadApproved (prefix)');
-                }
-            }
-
-            approvedTimetables.sort((a,b) => a.type.localeCompare(b.type));
-
-            let finalMsg = debugMessages.join(' | ') + 
-                ` | Found ${byClassId} by classId, ${byPrefix} by prefix. Total ${approvedTimetables.length}.`;
-            if (byClassId > 0) finalMsg += ` ClassId docs: ${classIdDocs.join(', ')}.`;
-            if (byPrefix > 0) finalMsg += ` Prefix docs: ${prefixDocs.join(', ')}.`;
-
-            errorDiv.innerHTML = finalMsg;
-            errorDiv.style.display = 'block';
-            setTimeout(() => errorDiv.style.display = 'none', 10000);
-
-            // Rejected (unchanged)
+            // Rejected
             try {
                 const snap = await db.collection('timetableProposals')
                     .where('classId', '==', currentClassId)
@@ -582,6 +550,11 @@
 
             if (draftProposalId) currentType = draftType;
             else currentType = 'academic';
+
+            // Display debug info
+            errorDiv.innerHTML = debugMessages.join(' | ');
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 10000);
         }
 
         // ========== PENDING RENDERING ==========
