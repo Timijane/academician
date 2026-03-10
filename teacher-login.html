@@ -2,42 +2,47 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>EduTop Scholars · Teacher</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Google Font: Inter + Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* === SAME STYLES AS ADMIN PAGE (copy exactly) === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
             --bg-image: url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80');
-            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-bg: rgba(255, 255, 255, 0.75);
             --text-primary: #0f172a;
             --text-secondary: #334155;
             --accent: #2563eb;
+            --accent-glow: #3b82f6;
             --border: rgba(0, 0, 0, 0.1);
             --input-bg: rgba(255, 255, 255, 0.9);
             --error: #dc2626;
             --success: #16a34a;
+            --orb-1: rgba(37, 99, 235, 0.15);
+            --orb-2: rgba(124, 58, 237, 0.15);
         }
 
         :root[data-theme="dark"] {
             --bg-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80');
-            --glass-bg: rgba(15, 23, 42, 0.9);
+            --glass-bg: rgba(15, 23, 42, 0.85);
             --text-primary: #f1f5f9;
             --text-secondary: #cbd5e1;
             --accent: #38bdf8;
+            --accent-glow: #60a5fa;
             --border: rgba(255, 255, 255, 0.1);
             --input-bg: rgba(30, 41, 59, 0.8);
             --error: #ef4444;
             --success: #4ade80;
+            --orb-1: rgba(56, 189, 248, 0.2);
+            --orb-2: rgba(168, 85, 247, 0.2);
         }
 
         body {
@@ -49,6 +54,54 @@
             background: var(--bg-image) no-repeat center center/cover fixed;
             color: var(--text-primary);
             padding: 1rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, var(--orb-1), transparent 70%);
+            filter: blur(60px);
+            z-index: 0;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, var(--orb-2), transparent); animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 40px) scale(1.1); }
+        }
+
+        /* Back to homepage button */
+        .back-home {
+            position: fixed;
+            top: 24px;
+            left: 24px;
+            z-index: 1001;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 60px;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .back-home i { font-size: 1.2rem; color: var(--accent); }
+        .back-home:hover {
+            transform: scale(1.02) translateY(-2px);
+            border-color: var(--accent);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
         }
 
         .theme-toggle {
@@ -59,14 +112,23 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 1.8rem; color: var(--accent); cursor: pointer;
             z-index: 1000; transition: 0.2s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
         .theme-toggle:hover { transform: scale(1.05); border-color: var(--accent); }
 
         .glass-card {
             background: var(--glass-bg); backdrop-filter: blur(16px);
             border: 1px solid var(--border); border-radius: 2.5rem;
-            padding: 2.5rem 2rem; width: min(580px, 100%);
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            padding: 2.5rem 2rem; width: min(650px, 100%);
+            box-shadow: 0 30px 60px -15px rgba(0,0,0,0.5);
+            position: relative;
+            z-index: 10;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .tabs {
@@ -121,14 +183,45 @@
         }
         .toggle-password:hover { color: var(--accent); }
 
+        .forgot-link {
+            text-align: right; margin-top: 0.2rem;
+        }
+        .forgot-link a {
+            color: var(--accent); font-size: 0.9rem;
+            text-decoration: none; font-weight: 500;
+        }
+        .forgot-link a:hover { text-decoration: underline; }
+
+        .forgot-panel {
+            background: rgba(0,0,0,0.1); border-radius: 1.5rem;
+            padding: 1rem; margin: 1rem 0; display: none;
+        }
+        .forgot-panel.show { display: block; }
+
+        .checkbox-group {
+            display: flex; align-items: center; gap: 0.8rem;
+            margin: 1rem 0;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 1.2rem; height: 1.2rem; accent-color: var(--accent);
+        }
+        .checkbox-group label {
+            color: var(--text-secondary); font-size: 0.95rem;
+        }
+        .checkbox-group a { color: var(--accent); text-decoration: none; }
+        .checkbox-group a:hover { text-decoration: underline; }
+
         .btn-primary {
-            width: 100%; background: var(--accent); border: none;
+            width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            border: none;
             border-radius: 3rem; padding: 1.2rem;
             font-size: 1.2rem; font-weight: 600; color: white;
             cursor: pointer; transition: 0.2s; margin-top: 1rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
         }
         .btn-primary:hover {
             filter: brightness(1.1); transform: scale(1.02);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
         }
         .btn-primary:disabled {
             opacity: 0.6; cursor: not-allowed;
@@ -136,10 +229,11 @@
 
         .message {
             font-size: 0.9rem; margin-top: 0.5rem; display: none;
+            padding: 0.75rem; border-radius: 1rem; background: rgba(0,0,0,0.1);
         }
-        .error-message { color: var(--error); }
-        .success-message { color: var(--success); }
-        .info-message { color: var(--accent); }
+        .error-message { color: var(--error); border-left: 4px solid var(--error); }
+        .success-message { color: var(--success); border-left: 4px solid var(--success); }
+        .info-message { color: var(--accent); border-left: 4px solid var(--accent); }
 
         .footer-note {
             margin-top: 1.5rem; text-align: center; font-size: 0.9rem;
@@ -170,6 +264,14 @@
     </style>
 </head>
 <body>
+    <!-- Floating orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- Back to homepage button -->
+    <a href="index.html" class="back-home"><i class="fas fa-arrow-left"></i> Home</a>
+
+    <!-- Theme toggle -->
     <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
 
     <div class="glass-card">
@@ -198,14 +300,31 @@
                         <input type="password" id="loginPassword" placeholder="••••••••" required>
                         <i class="fas fa-eye toggle-password" onclick="togglePassword('loginPassword', this)"></i>
                     </div>
+                    <div class="forgot-link">
+                        <a href="#" id="forgotPasswordLink">Forgot password?</a>
+                    </div>
                 </div>
+
+                <!-- Forgot password panel (hidden) -->
+                <div class="forgot-panel" id="forgotPanel">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Enter your email to receive a password reset link.</p>
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="resetEmail" placeholder="Your email">
+                        </div>
+                    </div>
+                    <button type="button" class="btn-primary" id="resetPasswordBtn" style="padding: 0.8rem;">Send Reset Link</button>
+                    <div class="message info-message" id="resetMessage"></div>
+                </div>
+
                 <div class="message error-message" id="loginError"></div>
                 <div class="message info-message" id="loginInfo"></div>
                 <button type="submit" class="btn-primary" id="loginBtn">Sign in</button>
             </form>
         </div>
 
-        <!-- Signup Form (initially hidden) -->
+        <!-- Signup Form (enhanced) -->
         <div id="signupForm" class="hidden">
             <h2>Become a teacher</h2>
             <div class="sub">Fill in your details (approval required)</div>
@@ -236,7 +355,7 @@
                 </div>
                 <!-- Schools attended (four levels) -->
                 <div class="input-group">
-                    <label>Schools Attended</label>
+                    <label>Schools Attended (optional)</label>
                     <div class="schools-group">
                         <div class="school-input">
                             <i class="fas fa-school"></i>
@@ -319,6 +438,11 @@
                         <i class="fas fa-eye toggle-password" onclick="togglePassword('signupConfirm', this)"></i>
                     </div>
                 </div>
+                <!-- Terms and conditions -->
+                <div class="checkbox-group">
+                    <input type="checkbox" id="termsCheckbox" required>
+                    <label for="termsCheckbox">I agree to the <a href="#" target="_blank">Terms & Conditions</a> and <a href="#" target="_blank">Privacy Policy</a>.</label>
+                </div>
                 <div class="message error-message" id="signupError"></div>
                 <div class="message success-message" id="signupSuccess"></div>
                 <button type="submit" class="btn-primary" id="signupBtn">Register</button>
@@ -331,15 +455,15 @@
     </div>
 
     <script>
-        // ==================== FIREBASE INIT ====================
+        // ==================== FIREBASE INIT (NEW CONFIG) ====================
         const firebaseConfig = {
-            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
-            authDomain: "edutopscholars-be54a.firebaseapp.com",
-            projectId: "edutopscholars-be54a",
-            storageBucket: "edutopscholars-be54a.firebasestorage.app",
-            messagingSenderId: "713866508372",
-            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
-            measurementId: "G-CCCDYZQ6LE"
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085",
+            measurementId: "G-ELBMT8WHQ9"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -381,6 +505,7 @@
             loginDiv.classList.remove('hidden');
             signupDiv.classList.add('hidden');
             clearMessages();
+            hideForgotPanel();
         });
 
         signupTab.addEventListener('click', () => {
@@ -396,7 +521,51 @@
             document.getElementById('loginInfo').style.display = 'none';
             document.getElementById('signupError').style.display = 'none';
             document.getElementById('signupSuccess').style.display = 'none';
+            document.getElementById('resetMessage').style.display = 'none';
         }
+
+        // ==================== FORGOT PASSWORD ====================
+        const forgotLink = document.getElementById('forgotPasswordLink');
+        const forgotPanel = document.getElementById('forgotPanel');
+        const resetEmail = document.getElementById('resetEmail');
+        const resetBtn = document.getElementById('resetPasswordBtn');
+        const resetMessage = document.getElementById('resetMessage');
+
+        forgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            forgotPanel.classList.toggle('show');
+        });
+
+        function hideForgotPanel() {
+            forgotPanel.classList.remove('show');
+        }
+
+        resetBtn.addEventListener('click', async () => {
+            const email = resetEmail.value.trim();
+            if (!email) {
+                resetMessage.textContent = 'Please enter your email.';
+                resetMessage.style.display = 'block';
+                return;
+            }
+            resetBtn.disabled = true;
+            resetBtn.textContent = 'Sending...';
+            try {
+                await auth.sendPasswordResetEmail(email);
+                resetMessage.textContent = 'Password reset email sent! Check your inbox.';
+                resetMessage.style.display = 'block';
+                resetMessage.classList.remove('error-message');
+                resetMessage.classList.add('success-message');
+                resetEmail.value = '';
+            } catch (error) {
+                resetMessage.textContent = error.message;
+                resetMessage.style.display = 'block';
+                resetMessage.classList.remove('success-message');
+                resetMessage.classList.add('error-message');
+            } finally {
+                resetBtn.disabled = false;
+                resetBtn.textContent = 'Send Reset Link';
+            }
+        });
 
         // ==================== PASSWORD TOGGLE ====================
         window.togglePassword = function(fieldId, eyeIcon) {
@@ -488,7 +657,7 @@
                     return;
                 }
 
-                // Check approval
+                // Check approval (approved boolean)
                 if (!userData.approved) {
                     await auth.signOut();
                     errorDiv.textContent = 'Your account is pending admin approval. You cannot log in yet.';
@@ -498,7 +667,7 @@
                     return;
                 }
 
-                // Redirect to teacher dashboard
+                // Redirect to teacher dashboard (to be built later)
                 window.location.href = 'teacher-dashboard.html';
             } catch (error) {
                 console.error('Login error:', error);
@@ -524,6 +693,7 @@
             const classTeaching = document.getElementById('signupClass').value;
             const password = document.getElementById('signupPassword').value.trim();
             const confirm = document.getElementById('signupConfirm').value.trim();
+            const terms = document.getElementById('termsCheckbox').checked;
             const errorDiv = document.getElementById('signupError');
             const successDiv = document.getElementById('signupSuccess');
             const signupBtn = document.getElementById('signupBtn');
@@ -544,6 +714,11 @@
             }
             if (password !== confirm) {
                 errorDiv.textContent = 'Passwords do not match.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (!terms) {
+                errorDiv.textContent = 'You must agree to the Terms & Conditions.';
                 errorDiv.style.display = 'block';
                 return;
             }
