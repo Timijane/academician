@@ -2,13 +2,13 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>EduTop Scholars · Student Dashboard</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <!-- Firebase SDK -->
+    <!-- Google Font: Inter + Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -16,40 +16,44 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-sidebar: #ffffff;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --border: #e2e8f0;
-            --card-bg: #ffffff;
-            --hover-bg: #f1f5f9;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --success-bg: #22c55e20;
-            --success-text: #22c55e;
-            --warning-bg: #f59e0b20;
-            --warning-text: #f59e0b;
-            --danger-bg: #ef444420;
-            --danger-text: #ef4444;
+            --bg-primary: #f0f5fa;
+            --bg-sidebar: rgba(255,255,255,0.75);
+            --glass-border: rgba(255,255,255,0.3);
+            --text-primary: #0b1e33;
+            --text-secondary: #2c3e50;
+            --accent: #1e3c72;
+            --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7);
+            --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --stat-icon: #1e3c72;
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #b91c1c;
         }
 
         :root[data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-sidebar: #1e293b;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --accent: #38bdf8;
-            --accent-hover: #7dd3fc;
-            --border: #334155;
-            --card-bg: #1e293b;
-            --hover-bg: #2d3a4f;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            --success-bg: #22c55e20;
+            --bg-primary: #0a0f1e;
+            --bg-sidebar: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255,255,255,0.08);
+            --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9;
+            --accent: #3b82f6;
+            --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --hover-bg: rgba(30, 41, 59, 0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --stat-icon: #60a5fa;
+            --success-bg: rgba(34,197,94,0.2);
             --success-text: #4ade80;
-            --warning-bg: #f59e0b20;
+            --warning-bg: rgba(245,158,11,0.2);
             --warning-text: #fbbf24;
-            --danger-bg: #ef444420;
+            --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #f87171;
         }
 
@@ -59,112 +63,314 @@
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
+            transition: background 0.3s;
+            position: relative;
+            overflow-x: hidden;
         }
 
+        /* Floating orbs (2030 vibe) */
+        .orb {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            animation: float 25s infinite alternate ease-in-out;
+        }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.2); }
+        }
+
+        /* Sidebar */
         .sidebar {
-            width: 260px;
+            width: 280px;
             background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-right: 1px solid var(--border);
             padding: 2rem 1rem;
             display: flex;
             flex-direction: column;
-            transition: width 0.3s;
+            transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
             position: fixed;
             top: 0;
             left: 0;
             height: 100vh;
             overflow-y: auto;
             z-index: 100;
+            box-shadow: var(--shadow);
         }
-        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed {
+            width: 90px;
+        }
         .sidebar .logo-area {
-            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            padding: 0 0.5rem;
         }
-        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
-        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
-        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .logo-area i {
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar .logo-area h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            white-space: nowrap;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar.collapsed .logo-area h2 {
+            display: none;
+        }
         .sidebar .nav-item {
-            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
-            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
-            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.9rem 1.2rem;
+            border-radius: 1.2rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.4rem;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            border: 1px solid transparent;
         }
-        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
-        .sidebar .nav-item.active { background: var(--accent); color: white; }
-        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
-        .sidebar.collapsed .nav-item span { display: none; }
-        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+        .sidebar .nav-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+            border-color: var(--border);
+            transform: translateX(5px);
+        }
+        .sidebar .nav-item.active {
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            color: white;
+            box-shadow: 0 8px 20px -5px var(--accent);
+        }
+        .sidebar .nav-item i {
+            font-size: 1.3rem;
+            width: 1.8rem;
+            text-align: center;
+        }
+        .sidebar.collapsed .nav-item span {
+            display: none;
+        }
+        .sidebar .toggle-btn {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+        .sidebar .toggle-btn:hover {
+            color: var(--accent);
+        }
 
+        /* Main content */
         .main-content {
             flex: 1;
-            margin-left: 260px;
+            margin-left: 280px;
             padding: 2rem;
-            transition: margin-left 0.3s;
+            transition: margin-left 0.3s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+            z-index: 5;
         }
-        .main-content.expanded { margin-left: 80px; }
+        .main-content.expanded {
+            margin-left: 90px;
+        }
 
+        /* Top bar */
         .top-bar {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        .page-title h1 { font-size: 2rem; font-weight: 600; }
-        .page-title p { color: var(--text-secondary); }
-        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
-        .theme-toggle {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
-            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+        .page-title h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.2rem;
+        }
+        .page-title p {
             color: var(--text-secondary);
+            font-weight: 400;
         }
-        .profile-dropdown { position: relative; cursor: pointer; }
-        .profile-icon {
-            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        .profile-area {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.6rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+        }
+        .profile-dropdown {
+            position: relative;
+            cursor: pointer;
+        }
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.4rem 0.4rem 0.4rem 1rem;
+        }
+        .profile-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .profile-pic {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            box-shadow: 0 5px 15px var(--accent);
+            background-size: cover;
+            background-position: center;
         }
         .dropdown-menu {
-            position: absolute; right: 0; top: 50px; background: var(--card-bg);
-            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
-            min-width: 150px; display: none; z-index: 1000;
+            position: absolute;
+            right: 0;
+            top: 60px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1.2rem;
+            padding: 0.5rem;
+            min-width: 180px;
+            display: none;
+            z-index: 1000;
+            box-shadow: var(--shadow);
         }
-        .profile-dropdown:hover .dropdown-menu { display: block; }
-        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
-        .dropdown-item:hover { background: var(--hover-bg); }
+        .profile-dropdown:hover .dropdown-menu {
+            display: block;
+            animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-item {
+            padding: 0.8rem 1.2rem;
+            color: var(--text-primary);
+            border-radius: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: 0.2s;
+        }
+        .dropdown-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+        }
 
+        /* Cards */
         .card {
             background: var(--card-bg);
+            backdrop-filter: blur(8px);
             border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
+            border-radius: 2rem;
+            padding: 1.8rem;
             box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px var(--accent);
+            border-color: var(--accent);
         }
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
-        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+        .card-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
 
+        /* Stats grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1rem;
         }
         .stat-card {
             background: var(--card-bg);
+            backdrop-filter: blur(8px);
             border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 1rem;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
             text-align: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px -8px var(--accent);
+            border-color: var(--accent);
         }
         .stat-value {
-            font-size: 2rem;
-            font-weight: 600;
+            font-size: 2.2rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
             color: var(--accent);
+            line-height: 1.2;
         }
         .stat-label {
             color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
         }
 
+        /* Table */
         .table-responsive {
             overflow-x: auto;
         }
@@ -174,41 +380,71 @@
         }
         th {
             text-align: left;
-            padding: 0.8rem;
+            padding: 1rem 0.8rem;
             color: var(--text-secondary);
             font-weight: 500;
             border-bottom: 1px solid var(--border);
         }
         td {
-            padding: 0.8rem;
+            padding: 1rem 0.8rem;
             border-bottom: 1px solid var(--border);
         }
-        .btn {
-            padding: 0.25rem 0.8rem;
-            border: none;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .badge {
-            padding: 0.25rem 0.6rem;
-            border-radius: 1rem;
-            font-size: 0.8rem;
+            padding: 0.25rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-block;
         }
         .badge.warning { background: var(--warning-bg); color: var(--warning-text); }
         .badge.success { background: var(--success-bg); color: var(--success-text); }
 
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            background: transparent;
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: var(--hover-bg);
+            border-color: var(--accent);
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Mobile adjustments */
         @media (max-width: 768px) {
-            .sidebar { width: 80px; }
+            .sidebar { width: 90px; }
             .sidebar .logo-area h2 { display: none; }
             .sidebar .nav-item span { display: none; }
-            .main-content { margin-left: 80px; }
+            .main-content { margin-left: 90px; }
+            .sidebar.collapsed { width: 90px; }
+            .main-content.expanded { margin-left: 90px; }
+            .top-bar { flex-direction: column; align-items: flex-start; }
+        }
+        @media (max-width: 480px) {
+            .profile-name { display: none; }
         }
     </style>
 </head>
 <body>
+    <!-- Floating orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <i class="fas fa-user-graduate"></i>
@@ -225,7 +461,9 @@
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
+    <!-- Main Content -->
     <div class="main-content" id="mainContent">
+        <!-- Top Bar -->
         <div class="top-bar">
             <div class="page-title">
                 <h1>Dashboard</h1>
@@ -233,10 +471,15 @@
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                    <span>Light</span>
+                    <i class="fas fa-moon"></i>
                 </div>
                 <div class="profile-dropdown">
-                    <div class="profile-icon" id="profileInitials">S</div>
+                    <div class="profile-trigger">
+                        <span class="profile-name" id="profileName">Student</span>
+                        <div class="profile-pic" id="profilePic">ST</div>
+                    </div>
                     <div class="dropdown-menu">
                         <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
                         <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
@@ -245,45 +488,69 @@
             </div>
         </div>
 
+        <!-- Overview Card -->
         <div class="card">
             <h3>Overview</h3>
             <div class="stats-grid">
-                <div class="stat-card"><div class="stat-value" id="pendingAssignments">0</div><div class="stat-label">Pending Assignments</div></div>
-                <div class="stat-card"><div class="stat-value" id="averageScore">0%</div><div class="stat-label">Average Score</div></div>
-                <div class="stat-card"><div class="stat-value" id="attendanceRate">0%</div><div class="stat-label">Attendance</div></div>
-                <div class="stat-card"><div class="stat-value" id="upcomingClasses">0</div><div class="stat-label">Today's Classes</div></div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pendingAssignments">0</div>
+                    <div class="stat-label">Pending Assignments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="averageScore">0%</div>
+                    <div class="stat-label">Average Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="attendanceRate">0%</div>
+                    <div class="stat-label">Attendance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="upcomingClasses">0</div>
+                    <div class="stat-label">Today's Classes</div>
+                </div>
             </div>
         </div>
 
+        <!-- Recent Assignments -->
         <div class="card">
             <div class="card-header">
                 <h3>Recent Assignments</h3>
-                <a href="student-assignments.html" class="btn btn-outline">View all</a>
+                <a href="student-assignments.html" class="btn">View all</a>
             </div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>Subject</th><th>Title</th><th>Due Date</th><th>Status</th></tr></thead>
-                    <tbody id="recentAssignments"></tbody>
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Title</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentAssignments">
+                        <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
+        // ==================== FIREBASE INIT (NEW CONFIG) ====================
         const firebaseConfig = {
-            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
-            authDomain: "edutopscholars-be54a.firebaseapp.com",
-            projectId: "edutopscholars-be54a",
-            storageBucket: "edutopscholars-be54a.firebasestorage.app",
-            messagingSenderId: "713866508372",
-            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
-            measurementId: "G-CCCDYZQ6LE"
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085",
+            measurementId: "G-ELBMT8WHQ9"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Sidebar toggle
+        // ==================== SIDEBAR TOGGLE ====================
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -295,7 +562,7 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
-        // Theme toggle
+        // ==================== THEME TOGGLE ====================
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -315,99 +582,142 @@
             updateThemeUI(next);
         });
 
-        // Auth check
+        // ==================== AUTH STATE ====================
         let currentUser = null;
         let userData = null;
+
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'student-login.html';
                 return;
             }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'student') {
-                auth.signOut();
-                window.location.href = 'index.html';
+
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    await auth.signOut();
+                    window.location.href = 'student-login.html';
+                    return;
+                }
+
+                userData = userDoc.data();
+                if (userData.role !== 'student') {
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+                if (!userData.approved) {
+                    await auth.signOut();
+                    alert('Your account is pending approval. You cannot log in yet.');
+                    window.location.href = 'student-login.html';
+                    return;
+                }
+
+                currentUser = user;
+                document.getElementById('studentName').textContent = userData.firstName || 'Student';
+                document.getElementById('profileName').textContent = userData.firstName || 'Student';
+                const initials = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
+                document.getElementById('profilePic').textContent = initials;
+
+                loadDashboard();
+            } catch (error) {
+                console.error('Auth error:', error);
+                await auth.signOut();
+                window.location.href = 'student-login.html';
+            }
+        });
+
+        // ==================== LOGOUT ====================
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await auth.signOut();
+            window.location.href = 'index.html';
+        });
+
+        document.getElementById('profileLink').addEventListener('click', () => {
+            window.location.href = 'student-profile.html';
+        });
+
+        // ==================== LOAD DASHBOARD DATA ====================
+        async function loadDashboard() {
+            if (!userData || !userData.class) {
+                console.warn('Student class not set');
                 return;
             }
-            currentUser = user;
-            userData = userDoc.data();
-            document.getElementById('studentName').textContent = userData.firstName || 'Student';
-            document.getElementById('profileInitials').textContent = 
-                (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
 
-            loadDashboard();
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut().then(() => window.location.href = 'index.html');
-        });
-
-        async function loadDashboard() {
-            if (!userData.class) return;
-
-            // Pending assignments
-            const assignmentsSnap = await db.collection('assignments')
-                .where('classId', '==', userData.class)
-                .get();
-            let pendingCount = 0;
-            const recentRows = [];
-            for (const doc of assignmentsSnap.docs) {
-                const a = doc.data();
-                const subSnap = await db.collection('submissions')
-                    .where('assignmentId', '==', doc.id)
-                    .where('studentId', '==', currentUser.uid)
+            try {
+                // Pending assignments & recent list
+                const assignmentsSnap = await db.collection('assignments')
+                    .where('class', '==', userData.class)  // use 'class' field, not 'classId'
                     .get();
-                if (subSnap.empty) {
-                    pendingCount++;
-                    if (recentRows.length < 5) {
-                        recentRows.push(`
-                            <tr>
-                                <td>${a.subject || '—'}</td>
-                                <td>${a.title}</td>
-                                <td>${a.dueDate || '—'}</td>
-                                <td><span class="badge warning">Pending</span></td>
-                            </tr>
-                        `);
+
+                let pendingCount = 0;
+                const recentRows = [];
+                const now = new Date();
+
+                for (const doc of assignmentsSnap.docs) {
+                    const a = doc.data();
+                    // Check if student has submitted
+                    const subSnap = await db.collection('submissions')
+                        .where('assignmentId', '==', doc.id)
+                        .where('studentId', '==', currentUser.uid)
+                        .get();
+
+                    const isPending = subSnap.empty;
+                    if (isPending) {
+                        pendingCount++;
+                        if (recentRows.length < 5) {
+                            const dueDate = a.dueDate ? new Date(a.dueDate.seconds * 1000).toLocaleDateString() : 'N/A';
+                            recentRows.push(`
+                                <tr>
+                                    <td>${a.subject || '—'}</td>
+                                    <td>${a.title || 'Untitled'}</td>
+                                    <td>${dueDate}</td>
+                                    <td><span class="badge warning">Pending</span></td>
+                                </tr>
+                            `);
+                        }
                     }
                 }
+                document.getElementById('pendingAssignments').textContent = pendingCount;
+                document.getElementById('recentAssignments').innerHTML = recentRows.length ? recentRows.join('') : '<tr><td colspan="4" style="text-align:center;">No pending assignments</td></tr>';
+
+                // Average score
+                const scoresSnap = await db.collection('scores')
+                    .where('studentId', '==', currentUser.uid)
+                    .get();
+                let total = 0;
+                let count = 0;
+                scoresSnap.forEach(doc => {
+                    total += doc.data().score || 0;
+                    count++;
+                });
+                const avg = count ? (total / count).toFixed(1) : 0;
+                document.getElementById('averageScore').textContent = avg + '%';
+
+                // Attendance rate
+                const attendanceSnap = await db.collection('attendance')
+                    .where('studentId', '==', currentUser.uid)
+                    .get();
+                let present = 0;
+                attendanceSnap.forEach(doc => {
+                    const a = doc.data();
+                    if (a.status === 'present') present++;
+                });
+                const totalDays = attendanceSnap.size || 1;
+                const rate = ((present / totalDays) * 100).toFixed(1);
+                document.getElementById('attendanceRate').textContent = rate + '%';
+
+                // Today's classes
+                const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+                const timetableSnap = await db.collection('timetable')
+                    .where('class', '==', userData.class)
+                    .where('day', '==', today)
+                    .get();
+                document.getElementById('upcomingClasses').textContent = timetableSnap.size;
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
             }
-            document.getElementById('pendingAssignments').textContent = pendingCount;
-
-            // Average score
-            const scoresSnap = await db.collection('scores')
-                .where('studentId', '==', currentUser.uid)
-                .get();
-            let total = 0, count = 0;
-            scoresSnap.forEach(doc => {
-                total += doc.data().score || 0;
-                count++;
-            });
-            const avg = count ? (total / count).toFixed(1) : 0;
-            document.getElementById('averageScore').textContent = avg + '%';
-
-            // Attendance rate
-            const attendanceSnap = await db.collection('attendance')
-                .where('studentId', '==', currentUser.uid)
-                .get();
-            let present = 0;
-            attendanceSnap.forEach(doc => {
-                const a = doc.data();
-                if (a.morning || a.afternoon) present++;
-            });
-            const totalDays = attendanceSnap.size || 1;
-            const rate = ((present / totalDays) * 100).toFixed(1);
-            document.getElementById('attendanceRate').textContent = rate + '%';
-
-            // Today's classes
-            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-            const timetableSnap = await db.collection('timetable')
-                .where('classId', '==', userData.class)
-                .where('day', '==', today)
-                .get();
-            document.getElementById('upcomingClasses').textContent = timetableSnap.size;
-
-            // Recent assignments table
-            document.getElementById('recentAssignments').innerHTML = recentRows.length ? recentRows.join('') : '<tr><td colspan="4">No pending assignments</td></tr>';
         }
     </script>
 </body>
