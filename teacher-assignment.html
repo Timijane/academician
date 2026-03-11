@@ -2,55 +2,70 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Assignments</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Assignments</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <!-- Firebase SDK -->
+    <!-- Google Font: Inter + Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Google Generative AI SDK -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+            }
+        }
+    </script>
     <style>
+        /* ========== ROOT VARIABLES ========== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-sidebar: #ffffff;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --border: #e2e8f0;
-            --card-bg: #ffffff;
-            --hover-bg: #f1f5f9;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --success-bg: #22c55e20;
-            --success-text: #22c55e;
-            --warning-bg: #f59e0b20;
-            --warning-text: #f59e0b;
-            --danger-bg: #ef444420;
-            --danger-text: #ef4444;
+            --bg-primary: #f0f5fa;
+            --bg-sidebar: rgba(255,255,255,0.75);
+            --glass-border: rgba(255,255,255,0.3);
+            --text-primary: #0b1e33;
+            --text-secondary: #2c3e50;
+            --accent: #1e3c72;
+            --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7);
+            --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #b91c1c;
+            --input-bg: rgba(255,255,255,0.9);
+            --toolbar-bg: #f8fafc;
         }
 
         :root[data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-sidebar: #1e293b;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --accent: #38bdf8;
-            --accent-hover: #7dd3fc;
-            --border: #334155;
-            --card-bg: #1e293b;
-            --hover-bg: #2d3a4f;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            --success-bg: #22c55e20;
+            --bg-primary: #0a0f1e;
+            --bg-sidebar: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255,255,255,0.08);
+            --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9;
+            --accent: #3b82f6;
+            --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --hover-bg: rgba(30, 41, 59, 0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2);
             --success-text: #4ade80;
-            --warning-bg: #f59e0b20;
+            --warning-bg: rgba(245,158,11,0.2);
             --warning-text: #fbbf24;
-            --danger-bg: #ef444420;
+            --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #f87171;
+            --input-bg: rgba(30,41,59,0.8);
+            --toolbar-bg: #1e293b;
         }
 
         body {
@@ -59,208 +74,186 @@
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
+            transition: background 0.3s;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .orb {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            animation: float 25s infinite alternate ease-in-out;
+        }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.2); }
         }
 
         .sidebar {
-            width: 260px;
+            width: 280px;
             background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
             border-right: 1px solid var(--border);
             padding: 2rem 1rem;
             display: flex;
             flex-direction: column;
-            transition: width 0.3s;
+            transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
             position: fixed;
             top: 0;
             left: 0;
             height: 100vh;
             overflow-y: auto;
             z-index: 100;
+            box-shadow: var(--shadow);
         }
-        .sidebar.collapsed { width: 80px; }
-        .sidebar .logo-area {
-            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
-        }
-        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
-        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.4rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .sidebar.collapsed .logo-area h2 { display: none; }
-        .sidebar .nav-item {
-            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
-            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
-            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
-        }
-        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
-        .sidebar .nav-item.active { background: var(--accent); color: white; }
-        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; border-radius: 1.2rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.4rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); transform: translateX(5px); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 8px 20px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
         .sidebar.collapsed .nav-item span { display: none; }
-        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
 
         .main-content {
             flex: 1;
-            margin-left: 260px;
+            margin-left: 280px;
             padding: 2rem;
-            transition: margin-left 0.3s;
+            transition: margin-left 0.3s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+            z-index: 5;
         }
-        .main-content.expanded { margin-left: 80px; }
+        .main-content.expanded { margin-left: 90px; }
 
         .top-bar {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;
         }
-        .page-title h1 { font-size: 2rem; font-weight: 600; }
-        .page-title p { color: var(--text-secondary); }
+        .page-title h1 { font-size: 2.4rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.2rem; }
+        .page-title p { color: var(--text-secondary); font-weight: 400; }
         .profile-area { display: flex; align-items: center; gap: 1.5rem; }
-        .theme-toggle {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
-            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
-            color: var(--text-secondary);
-        }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: 0.2s; }
         .profile-dropdown { position: relative; cursor: pointer; }
-        .profile-icon {
-            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.4rem 0.4rem 0.4rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); }
+        .profile-pic { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.1rem; box-shadow: 0 5px 15px var(--accent); background-size: cover; background-position: center; }
+        .dropdown-menu { position: absolute; right: 0; top: 60px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
+
+        /* Tabs */
+        .subject-tabs, .week-tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap;
         }
-        .dropdown-menu {
-            position: absolute; right: 0; top: 50px; background: var(--card-bg);
-            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
-            min-width: 150px; display: none; z-index: 1000;
+        .tab {
+            padding: 0.7rem 2rem; border-radius: 3rem; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap;
         }
-        .profile-dropdown:hover .dropdown-menu { display: block; }
-        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
-        .dropdown-item:hover { background: var(--hover-bg); }
+        .tab.active { background: var(--accent); color: white; }
 
         .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
+            background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 1.8rem; box-shadow: var(--shadow); margin-bottom: 2rem;
         }
         .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 1rem;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
         }
-        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
+        .card-header h3 { font-size: 1.3rem; font-weight: 600; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500; }
+        .form-control {
+            width: 100%; padding: 0.8rem 1.2rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1.5rem; color: var(--text-primary); font-size: 1rem; transition: 0.2s;
+        }
+        .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+
+        .assignment-type {
+            display: flex; gap: 2rem; margin-bottom: 1.5rem;
+        }
+        .assignment-type label {
+            display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+        }
+        .assignment-type input[type="radio"] {
+            accent-color: var(--accent); width: 1.2rem; height: 1.2rem;
+        }
 
         .btn {
-            padding: 0.5rem 1.2rem;
-            border: none;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
+            padding: 0.6rem 1.5rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s;
         }
         .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-outline:hover { background: var(--hover-bg); }
         .btn-success { background: var(--success-text); color: white; }
-        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.3rem 1rem; font-size: 0.9rem; }
 
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.3rem;
-            color: var(--text-secondary);
-        }
-        .form-control {
-            width: 100%;
-            padding: 0.6rem 1rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            color: var(--text-primary);
-        }
-        textarea.form-control {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            text-align: left;
-            padding: 0.8rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-            border-bottom: 1px solid var(--border);
-        }
-        td {
-            padding: 0.8rem;
-            border-bottom: 1px solid var(--border);
-        }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th { text-align: left; padding: 1rem 0.8rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); }
+        td { padding: 1rem 0.8rem; border-bottom: 1px solid var(--border); }
 
         .badge {
-            padding: 0.25rem 0.6rem;
-            border-radius: 1rem;
-            font-size: 0.8rem;
+            padding: 0.2rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 500; display: inline-block;
         }
-        .badge.active { background: var(--success-bg); color: var(--success-text); }
-        .badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge.cbt { background: var(--accent); color: white; }
+        .badge.upload { background: var(--warning-bg); color: var(--warning-text); }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
         }
-        .modal.active { display: flex; }
+        .modal-overlay.active { display: flex; }
         .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 2rem;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            background: var(--card-bg); border:1px solid var(--border); border-radius:2rem; padding:2rem; max-width:800px; width:90%; max-height:80vh; overflow-y:auto;
         }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:1.5rem; }
+
+        .ai-chat {
+            height: 300px; overflow-y: auto; padding:1rem; background: var(--hover-bg); border-radius:1rem; margin-bottom:1rem;
         }
-        .modal-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 1rem;
+        .message { margin-bottom:1rem; padding:0.8rem; border-radius:1rem; max-width:80%; }
+        .message.user { background: var(--accent); color:white; margin-left:auto; }
+        .message.assistant { background: var(--card-bg); color:var(--text-primary); border:1px solid var(--border); }
+
+        .loading-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 3000;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding:2rem; border-radius:2rem; text-align:center; }
+        .loading-content i { font-size:3rem; color:var(--accent); margin-bottom:1rem; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 90px; }
+            .sidebar .logo-area h2 { display: none; }
+            .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 90px; }
+            .subject-tabs { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
     <div class="sidebar" id="sidebar">
-        <div class="logo-area">
-            <i class="fas fa-chalkboard-teacher"></i>
-            <h2>Teacher Panel</h2>
-        </div>
+        <div class="logo-area"><i class="fas fa-tasks"></i><h2>Teacher Panel</h2></div>
         <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
         <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
         <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
         <a href="teacher-assignments.html" class="nav-item active"><i class="fas fa-tasks"></i><span>Assignments</span></a>
-        <a href="teacher-exam.html" class="nav-item"><i class="fas fa-pencil-alt"></i><span>Exam</span></a>
-        <a href="teacher-test.html" class="nav-item"><i class="fas fa-vial"></i><span>Test</span></a>
+        <a href="teacher-cbt.html" class="nav-item"><i class="fas fa-laptop"></i><span>Test & Exam</span></a>
         <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
         <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
-        <a href="teacher-approve-students.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approve Students</span></a>
         <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
         <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
         <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
@@ -272,14 +265,15 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Assignments</h1>
-                <p>Create and manage assignments for your class</p>
+                <p>Create and manage week‑specific assignments</p>
             </div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
-                </div>
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
                 <div class="profile-dropdown">
-                    <div class="profile-icon" id="profileInitials">T</div>
+                    <div class="profile-trigger">
+                        <span class="profile-name" id="profileName">Teacher</span>
+                        <div class="profile-pic" id="profilePic">T</div>
+                    </div>
                     <div class="dropdown-menu">
                         <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
                         <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
@@ -288,22 +282,56 @@
             </div>
         </div>
 
+        <!-- Subject and Week Selection -->
+        <div class="subject-tabs" id="subjectTabs"></div>
+        <div class="week-tabs" id="weekTabs"></div>
+
+        <!-- Assignment Creation Card -->
         <div class="card">
             <div class="card-header">
                 <h3>Create New Assignment</h3>
+                <div>
+                    <button class="btn btn-outline" id="useAIBtn"><i class="fas fa-robot"></i> AI Assistant</button>
+                </div>
             </div>
             <form id="assignmentForm">
+                <input type="hidden" id="docId" value="">
                 <div class="form-group">
                     <label>Subject</label>
-                    <input type="text" id="subject" class="form-control" required>
+                    <input type="text" id="subject" class="form-control" readonly>
                 </div>
                 <div class="form-group">
-                    <label>Title</label>
+                    <label>Week</label>
+                    <input type="number" id="week" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Topic (from syllabus)</label>
+                    <input type="text" id="topic" class="form-control" placeholder="Auto‑filled from syllabus" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Assignment Title</label>
                     <input type="text" id="title" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
+                    <label>Description / Instructions</label>
                     <textarea id="description" class="form-control" required></textarea>
+                </div>
+                <div class="assignment-type">
+                    <label><input type="radio" name="assignmentType" value="cbt" checked> CBT (Computer‑Based Test, auto‑graded)</label>
+                    <label><input type="radio" name="assignmentType" value="upload"> Document Upload (writing, manual grading)</label>
+                </div>
+                <div class="form-group" id="cbtConfig" style="display: block;">
+                    <label>Number of Questions (for CBT)</label>
+                    <input type="number" id="questionCount" class="form-control" value="10" min="1" max="50">
+                </div>
+                <div class="form-group" id="uploadConfig" style="display: none;">
+                    <label>Allowed File Types</label>
+                    <select id="fileTypes" class="form-control" multiple>
+                        <option value="pdf">PDF</option>
+                        <option value="doc">Word Document</option>
+                        <option value="jpg">Image (JPG/PNG)</option>
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple.</small>
                 </div>
                 <div class="form-group">
                     <label>Due Date</label>
@@ -313,10 +341,14 @@
                     <label>Total Points</label>
                     <input type="number" id="points" class="form-control" value="100" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Create Assignment</button>
+                <div class="actions" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary" id="saveBtn">Create Assignment</button>
+                    <button type="button" class="btn btn-danger" id="deleteBtn" style="display: none;">Delete</button>
+                </div>
             </form>
         </div>
 
+        <!-- Existing Assignments List -->
         <div class="card">
             <div class="card-header">
                 <h3>Existing Assignments</h3>
@@ -324,25 +356,46 @@
             <div class="table-responsive">
                 <table>
                     <thead>
-                        <tr>
-                            <th>Subject</th>
-                            <th>Title</th>
-                            <th>Due Date</th>
-                            <th>Points</th>
-                            <th>Submissions</th>
-                            <th>Actions</th>
-                        </tr>
+                        <tr><th>Subject</th><th>Week</th><th>Topic</th><th>Title</th><th>Type</th><th>Due Date</th><th>Points</th><th>Submissions</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="assignmentsList">
-                        <tr><td colspan="6">Loading...</td></tr>
+                        <tr><td colspan="9">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Submissions Modal -->
-    <div class="modal" id="submissionsModal">
+    <!-- AI Assistant Modal -->
+    <div class="modal-overlay" id="aiModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-robot"></i> AI Assignment Generator</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeAIModal()"></i>
+            </div>
+            <div class="ai-chat" id="aiChat">
+                <div class="message assistant">Hello! Tell me what kind of assignment you need (subject, week, topic, type).</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-bottom:1rem;">
+                <input type="text" id="aiPrompt" class="form-control" placeholder="e.g., Generate a 10‑question CBT on verbs for JSS 2 week 3">
+                <button class="btn btn-primary" onclick="sendToAI()">Send</button>
+            </div>
+            <div style="text-align:right;">
+                <button class="btn btn-outline" onclick="insertAIGenerated()">Insert into Form</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <i class="fas fa-robot fa-spin"></i>
+            <h3>Processing...</h3>
+        </div>
+    </div>
+
+    <!-- Submissions Modal (placeholder) -->
+    <div class="modal-overlay" id="submissionsModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Submissions</h3>
@@ -352,21 +405,26 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+        const API_KEY = "AIzaSyAdXopRHqx5L2ZkQ-6yYi66NlJmGgOUB8s"; // Replace with your key
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
         const firebaseConfig = {
-            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
-            authDomain: "edutopscholars-be54a.firebaseapp.com",
-            projectId: "edutopscholars-be54a",
-            storageBucket: "edutopscholars-be54a.firebasestorage.app",
-            messagingSenderId: "713866508372",
-            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
-            measurementId: "G-CCCDYZQ6LE"
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085",
+            measurementId: "G-ELBMT8WHQ9"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Sidebar toggle
+        // Sidebar & theme (same as before)
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -378,7 +436,6 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
-        // Theme toggle
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -398,158 +455,379 @@
             updateThemeUI(next);
         });
 
-        // Auth check
+        // ========== GLOBALS ==========
         let currentUser = null;
         let userData = null;
+        let subjects = [];
+        let currentSubject = null;
+        let weeks = []; // week numbers from approved syllabus
+        let currentWeek = null;
+        let syllabusMap = {}; // subject -> weeks array with topics
+        let assignments = [];
+        let currentDocId = null;
+
+        // ========== AUTH ==========
         auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'teacher-login.html';
-                return;
-            }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                auth.signOut();
-                window.location.href = 'index.html';
-                return;
-            }
-            currentUser = user;
-            userData = userDoc.data();
-            document.getElementById('profileInitials').textContent = 
-                (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                    auth.signOut(); window.location.href = 'index.html'; return;
+                }
+                currentUser = user;
+                userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
 
-            loadAssignments();
+                subjects = userData.subjects || [];
+                await loadSyllabiForSubjects();
+                renderSubjectTabs();
+                loadAssignments();
+            } catch (error) { console.error(error); }
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut().then(() => window.location.href = 'index.html');
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+
+        // Load syllabi for all subjects to get weeks and topics
+        async function loadSyllabiForSubjects() {
+            if (!subjects.length) return;
+            const snapshot = await db.collection('syllabus')
+                .where('teacherId', '==', currentUser.uid)
+                .where('status', '==', 'approved')
+                .get();
+            syllabusMap = {};
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                syllabusMap[data.subject] = data.weeks || [];
+            });
+        }
+
+        function renderSubjectTabs() {
+            const container = document.getElementById('subjectTabs');
+            container.innerHTML = '';
+            subjects.forEach(sub => {
+                const tab = document.createElement('span');
+                tab.className = 'tab';
+                tab.textContent = sub;
+                tab.onclick = () => switchSubject(sub);
+                container.appendChild(tab);
+            });
+            if (subjects.length > 0) {
+                subjects[0] && switchSubject(subjects[0]);
+            }
+        }
+
+        function switchSubject(subject) {
+            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            currentSubject = subject;
+            document.getElementById('subject').value = subject;
+
+            // Get weeks from syllabus
+            const weeksData = syllabusMap[subject] || [];
+            weeks = weeksData.map(w => w.week).sort((a,b) => a - b);
+            renderWeekTabs(weeksData);
+            if (weeks.length > 0) {
+                selectWeek(weeks[0], weeksData.find(w => w.week === weeks[0])?.topic || '');
+            } else {
+                document.getElementById('week').value = '';
+                document.getElementById('topic').value = '';
+                document.getElementById('weekTabs').innerHTML = '';
+            }
+        }
+
+        function renderWeekTabs(weeksData) {
+            const container = document.getElementById('weekTabs');
+            container.innerHTML = '';
+            weeksData.forEach(w => {
+                const tab = document.createElement('span');
+                tab.className = 'tab';
+                tab.textContent = `Week ${w.week}: ${w.topic}`;
+                tab.onclick = () => selectWeek(w.week, w.topic);
+                container.appendChild(tab);
+            });
+            if (weeksData.length > 0) container.children[0]?.classList.add('active');
+        }
+
+        function selectWeek(week, topic) {
+            document.querySelectorAll('#weekTabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            currentWeek = week;
+            document.getElementById('week').value = week;
+            document.getElementById('topic').value = topic || '';
+        }
+
+        // Toggle between CBT and Upload config
+        const cbtRadio = document.querySelector('input[value="cbt"]');
+        const uploadRadio = document.querySelector('input[value="upload"]');
+        const cbtConfig = document.getElementById('cbtConfig');
+        const uploadConfig = document.getElementById('uploadConfig');
+
+        cbtRadio.addEventListener('change', () => {
+            if (cbtRadio.checked) {
+                cbtConfig.style.display = 'block';
+                uploadConfig.style.display = 'none';
+            }
+        });
+        uploadRadio.addEventListener('change', () => {
+            if (uploadRadio.checked) {
+                cbtConfig.style.display = 'none';
+                uploadConfig.style.display = 'block';
+            }
         });
 
-        // Create assignment
+        // ========== AUDIT LOG ==========
+        async function logAudit(action, details) {
+            if (!currentUser || !userData) return;
+            try {
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
+                    userEmail: userData.email || currentUser.email,
+                    role: 'teacher',
+                    action,
+                    details: JSON.stringify(details),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch (e) { console.warn('Audit log failed', e); }
+        }
+
+        // ========== CREATE / UPDATE ASSIGNMENT ==========
         document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!userData.classTeaching) {
-                alert('You are not assigned to any class.');
-                return;
-            }
-            const subject = document.getElementById('subject').value;
+            const type = document.querySelector('input[name="assignmentType"]:checked').value;
             const title = document.getElementById('title').value;
             const description = document.getElementById('description').value;
             const dueDate = document.getElementById('dueDate').value;
             const points = parseInt(document.getElementById('points').value);
+            const subject = currentSubject;
+            const week = currentWeek;
+            const topic = document.getElementById('topic').value;
 
+            if (!subject || !week) {
+                alert('Please select a subject and week first.');
+                return;
+            }
+
+            const data = {
+                teacherId: currentUser.uid,
+                classId: userData.classTeaching,
+                subject,
+                week,
+                topic,
+                title,
+                description,
+                type,
+                dueDate,
+                points,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (type === 'cbt') {
+                data.questionCount = parseInt(document.getElementById('questionCount').value);
+                // Optionally store CBT questions separately; we'll keep it simple
+            } else {
+                // Store allowed file types as array
+                const select = document.getElementById('fileTypes');
+                data.allowedFileTypes = Array.from(select.selectedOptions).map(opt => opt.value);
+            }
+
+            showLoading();
             try {
-                await db.collection('assignments').add({
-                    teacherId: currentUser.uid,
-                    classId: userData.classTeaching,
-                    subject,
-                    title,
-                    description,
-                    dueDate,
-                    points,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                alert('Assignment created.');
-                document.getElementById('assignmentForm').reset();
+                if (currentDocId) {
+                    await db.collection('assignments').doc(currentDocId).update(data);
+                    await logAudit('update_assignment', { id: currentDocId, subject, week, title });
+                } else {
+                    const ref = await db.collection('assignments').add(data);
+                    await logAudit('create_assignment', { id: ref.id, subject, week, title });
+                }
+                alert('Assignment saved.');
+                resetForm();
                 loadAssignments();
-            } catch (error) {
-                console.error('Error creating assignment:', error);
-                alert('Error: ' + error.message);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                hideLoading();
             }
         });
 
-        // Load assignments
-        async function loadAssignments() {
-            if (!userData.classTeaching) return;
-            const snapshot = await db.collection('assignments')
-                .where('classId', '==', userData.classTeaching)
-                .orderBy('dueDate', 'asc')
-                .get();
-            const tbody = document.getElementById('assignmentsList');
-            if (snapshot.empty) {
-                tbody.innerHTML = '<tr><td colspan="6">No assignments yet.</td></tr>';
-                return;
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+            if (!currentDocId || !confirm('Delete this assignment?')) return;
+            showLoading();
+            try {
+                await db.collection('assignments').doc(currentDocId).delete();
+                await logAudit('delete_assignment', { id: currentDocId });
+                alert('Deleted.');
+                resetForm();
+                loadAssignments();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                hideLoading();
             }
-            let html = '';
-            for (const doc of snapshot.docs) {
-                const a = doc.data();
-                const id = doc.id;
-                // Count submissions
-                const subsSnap = await db.collection('submissions')
-                    .where('assignmentId', '==', id)
-                    .get();
-                const subCount = subsSnap.size;
-                html += `
-                <tr>
-                    <td>${a.subject}</td>
-                    <td>${a.title}</td>
-                    <td>${a.dueDate}</td>
-                    <td>${a.points}</td>
-                    <td><button class="btn btn-outline btn-sm" onclick="viewSubmissions('${id}')">${subCount} submissions</button></td>
-                    <td>
-                        <button class="btn btn-outline btn-sm" onclick="editAssignment('${id}')">Edit</button>
-                        <button class="btn btn-outline btn-sm" onclick="deleteAssignment('${id}')">Delete</button>
-                    </td>
-                </tr>
-                `;
-            }
-            tbody.innerHTML = html;
+        });
+
+        function resetForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('dueDate').value = '';
+            document.getElementById('points').value = '100';
+            document.getElementById('docId').value = '';
+            currentDocId = null;
+            document.getElementById('deleteBtn').style.display = 'none';
         }
 
-        // View submissions
-        const submissionsModal = document.getElementById('submissionsModal');
-        const submissionsList = document.getElementById('submissionsList');
-        let currentAssignmentId = null;
-
-        window.viewSubmissions = async (assignmentId) => {
-            currentAssignmentId = assignmentId;
-            const subsSnap = await db.collection('submissions')
-                .where('assignmentId', '==', assignmentId)
-                .get();
-            if (subsSnap.empty) {
-                submissionsList.innerHTML = '<p>No submissions yet.</p>';
-            } else {
-                let html = '<table><thead><tr><th>Student</th><th>Submitted</th><th>Grade</th><th>Action</th></tr></thead><tbody>';
-                for (const doc of subsSnap.docs) {
-                    const sub = doc.data();
-                    const studentSnap = await db.collection('users').doc(sub.studentId).get();
-                    const studentName = studentSnap.exists ? (studentSnap.data().firstName + ' ' + studentSnap.data().surname) : 'Unknown';
-                    const date = sub.submittedAt ? new Date(sub.submittedAt.seconds*1000).toLocaleString() : '—';
+        // ========== LOAD ASSIGNMENTS ==========
+        async function loadAssignments() {
+            const tbody = document.getElementById('assignmentsList');
+            tbody.innerHTML = '<tr><td colspan="9">Loading...</td></tr>';
+            try {
+                const snapshot = await db.collection('assignments')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="9">No assignments yet.</td></tr>';
+                    return;
+                }
+                let html = '';
+                for (const doc of snapshot.docs) {
+                    const a = doc.data();
+                    const subsSnap = await db.collection('submissions')
+                        .where('assignmentId', '==', doc.id)
+                        .get();
+                    const subCount = subsSnap.size;
+                    const typeBadge = a.type === 'cbt' ? '<span class="badge cbt">CBT</span>' : '<span class="badge upload">Upload</span>';
                     html += `
-                    <tr>
-                        <td>${studentName}</td>
-                        <td>${date}</td>
-                        <td><input type="number" id="grade-${doc.id}" value="${sub.grade || ''}" style="width:60px;">%</td>
-                        <td><button class="btn btn-primary btn-sm" onclick="saveGrade('${doc.id}')">Save</button></td>
-                    </tr>
+                        <tr>
+                            <td>${a.subject}</td>
+                            <td>Week ${a.week}</td>
+                            <td>${a.topic || '—'}</td>
+                            <td>${a.title}</td>
+                            <td>${typeBadge}</td>
+                            <td>${a.dueDate}</td>
+                            <td>${a.points}</td>
+                            <td><button class="btn btn-sm btn-outline" onclick="viewSubmissions('${doc.id}')">${subCount}</button></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline" onclick="editAssignment('${doc.id}')">Edit</button>
+                            </td>
+                        </tr>
                     `;
                 }
-                html += '</tbody></table>';
-                submissionsList.innerHTML = html;
+                tbody.innerHTML = html;
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="9">Error loading.</td></tr>';
+                console.error(e);
             }
-            submissionsModal.classList.add('active');
+        }
+
+        window.editAssignment = async (id) => {
+            showLoading();
+            try {
+                const doc = await db.collection('assignments').doc(id).get();
+                const a = doc.data();
+                currentDocId = id;
+                document.getElementById('docId').value = id;
+
+                // Set subject and week if not already
+                if (a.subject !== currentSubject) {
+                    // find and click subject tab
+                    const tabs = document.querySelectorAll('#subjectTabs .tab');
+                    for (let tab of tabs) {
+                        if (tab.textContent === a.subject) {
+                            tab.click();
+                            break;
+                        }
+                    }
+                }
+                // Wait a moment for weeks to load
+                setTimeout(() => {
+                    // Find week tab with correct week
+                    const weekTabs = document.querySelectorAll('#weekTabs .tab');
+                    for (let wt of weekTabs) {
+                        if (wt.textContent.includes(`Week ${a.week}`)) {
+                            wt.click();
+                            break;
+                        }
+                    }
+                }, 500);
+
+                document.getElementById('title').value = a.title || '';
+                document.getElementById('description').value = a.description || '';
+                document.getElementById('dueDate').value = a.dueDate || '';
+                document.getElementById('points').value = a.points || 100;
+                if (a.type === 'cbt') {
+                    document.querySelector('input[value="cbt"]').checked = true;
+                    cbtConfig.style.display = 'block';
+                    uploadConfig.style.display = 'none';
+                    document.getElementById('questionCount').value = a.questionCount || 10;
+                } else {
+                    document.querySelector('input[value="upload"]').checked = true;
+                    cbtConfig.style.display = 'none';
+                    uploadConfig.style.display = 'block';
+                    // pre-select file types
+                    const select = document.getElementById('fileTypes');
+                    Array.from(select.options).forEach(opt => {
+                        opt.selected = a.allowedFileTypes?.includes(opt.value);
+                    });
+                }
+                document.getElementById('deleteBtn').style.display = 'inline-block';
+            } catch (e) {
+                alert('Error loading assignment: ' + e.message);
+            } finally {
+                hideLoading();
+            }
         };
 
-        window.saveGrade = async (subId) => {
-            const grade = document.getElementById(`grade-${subId}`).value;
-            if (grade === '') return;
-            await db.collection('submissions').doc(subId).update({ grade: parseInt(grade) });
-            alert('Grade saved.');
+        // Submissions modal (placeholder)
+        window.viewSubmissions = (id) => {
+            alert('Submissions view coming soon.');
         };
 
-        window.closeSubmissionsModal = () => {
-            submissionsModal.classList.remove('active');
+        // ========== AI ASSISTANT ==========
+        const aiModal = document.getElementById('aiModal');
+        const aiChat = document.getElementById('aiChat');
+        let lastGenerated = '';
+
+        window.openAIModal = () => aiModal.classList.add('active');
+        window.closeAIModal = () => aiModal.classList.remove('active');
+        document.getElementById('useAIBtn').addEventListener('click', openAIModal);
+
+        window.sendToAI = async () => {
+            const prompt = document.getElementById('aiPrompt').value;
+            if (!prompt) return;
+            aiChat.innerHTML += `<div class="message user">${prompt}</div>`;
+            const thinking = document.createElement('div');
+            thinking.className = 'message assistant';
+            thinking.innerHTML = '<i class="fas fa-robot fa-spin"></i> Thinking...';
+            aiChat.appendChild(thinking);
+            showLoading();
+            try {
+                const result = await model.generateContent(`Generate an assignment description and instructions based on: ${prompt}`);
+                const text = result.response.text();
+                lastGenerated = text;
+                aiChat.removeChild(thinking);
+                aiChat.innerHTML += `<div class="message assistant">${text.replace(/\n/g, '<br>')}</div>`;
+            } catch (e) {
+                aiChat.removeChild(thinking);
+                aiChat.innerHTML += `<div class="message assistant">Error: ${e.message}</div>`;
+            } finally {
+                hideLoading();
+                document.getElementById('aiPrompt').value = '';
+            }
         };
 
-        window.deleteAssignment = async (id) => {
-            if (!confirm('Delete this assignment?')) return;
-            await db.collection('assignments').doc(id).delete();
-            loadAssignments();
+        window.insertAIGenerated = () => {
+            if (lastGenerated) {
+                document.getElementById('description').value = lastGenerated;
+                closeAIModal();
+            }
         };
 
-        window.editAssignment = (id) => {
-            // For simplicity, just alert – you can implement a modal pre-filled with data
-            alert('Edit functionality not implemented yet.');
-        };
+        // ========== LOADING ==========
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
     </script>
 </body>
 </html>
