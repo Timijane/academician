@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (keep all your existing styles – they are unchanged) */
+        /* Keep your existing styles – unchanged */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] { --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --glass-border: rgba(255,255,255,0.3); --text-primary: #0b1e33; --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --success-bg: rgba(34,197,94,0.2); --success-text: #16a34a; --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309; --danger-bg: rgba(239,68,68,0.2); --danger-text: #b91c1c; --input-bg: rgba(255,255,255,0.9); }
         :root[data-theme="dark"] { --bg-primary: #0a0f1e; --bg-sidebar: rgba(15, 23, 42, 0.8); --glass-border: rgba(255,255,255,0.08); --text-primary: #f0f4fa; --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05); --card-bg: rgba(15, 23, 42, 0.6); --hover-bg: rgba(30, 41, 59, 0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171; --input-bg: rgba(30,41,59,0.8); }
@@ -239,7 +239,7 @@
                 `;
                 errorDiv.style.display = 'block';
             } else if (error.code === 'permission-denied') {
-                errorDiv.textContent = `Permission denied: ${error.message}`;
+                errorDiv.textContent = `Permission denied: ${error.message}. Check console for details.`;
                 errorDiv.style.display = 'block';
             } else {
                 errorDiv.textContent = `Error: ${error.message}`;
@@ -442,28 +442,38 @@
                 } else { pendingId = null; pendingData = []; }
             } catch(e) { handleFirestoreError(e, 'loadPending'); }
 
-            // Approved – fetch all timetables that belong to this class
+            // Approved – try filtered query first, fallback to full collection if permission denied
             approvedList = [];
             try {
-                const snapshot = await db.collection('timetables').get();
-                console.log('All timetables snapshot size:', snapshot.size);
+                // Attempt to query with filter
+                const snapshot = await db.collection('timetables')
+                    .where('classId', '==', currentClass)
+                    .get();
+                console.log('Approved timetables filtered query returned:', snapshot.size, 'documents');
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // Check if this timetable belongs to the teacher's class
-                    // by either doc ID prefix or classId field
-                    const belongs = 
-                        doc.id.startsWith(currentClass + '_') || 
-                        doc.id === currentClass ||
-                        data.classId === currentClass;
-                    if (belongs) {
-                        console.log('Found approved timetable for class:', doc.id, data);
-                        const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
-                        approvedList.push({ type, data, id: doc.id });
-                    }
+                    const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                    approvedList.push({ type, data, id: doc.id });
                 });
-                console.log('Filtered approvedList:', approvedList);
-                approvedList.sort((a,b) => a.type.localeCompare(b.type));
-            } catch (e) { handleFirestoreError(e, 'loadApproved'); }
+            } catch (filterError) {
+                console.warn('Filtered query failed, trying full collection (if permitted) ...', filterError);
+                // Fallback: try to read all and filter client-side
+                try {
+                    const allSnapshot = await db.collection('timetables').get();
+                    console.log('Full timetables collection returned:', allSnapshot.size, 'documents');
+                    allSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        // Only include if classId matches
+                        if (data.classId === currentClass) {
+                            const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                            approvedList.push({ type, data, id: doc.id });
+                        }
+                    });
+                } catch (fullError) {
+                    handleFirestoreError(fullError, 'loadApproved (fallback)');
+                }
+            }
+            approvedList.sort((a,b) => a.type.localeCompare(b.type));
 
             // Rejected
             try {
