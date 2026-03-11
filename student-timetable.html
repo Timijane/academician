@@ -26,6 +26,8 @@
             --card-bg: rgba(255,255,255,0.7);
             --hover-bg: rgba(255,255,255,0.9);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --danger-bg: #ef444420;
+            --danger-text: #b91c1c;
         }
 
         :root[data-theme="dark"] {
@@ -39,6 +41,8 @@
             --card-bg: rgba(15, 23, 42, 0.6);
             --hover-bg: rgba(30, 41, 59, 0.8);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
         }
 
         body {
@@ -252,7 +256,18 @@
             text-align: center;
             padding: 3rem;
             color: var(--text-secondary);
-            grid-column: 1 / -1;
+        }
+        .error-message {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger-text);
+        }
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
         }
 
         @media (max-width: 768px) {
@@ -335,18 +350,52 @@
 
         // Auth check
         auth.onAuthStateChanged(async (user) => {
-            if (!user) { window.location.href = 'student-login.html'; return; }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'student') {
-                auth.signOut(); window.location.href = 'index.html'; return;
+            console.log('Auth state changed, user:', user ? user.uid : 'none');
+            if (!user) {
+                window.location.href = 'student-login.html';
+                return;
             }
-            const userData = userDoc.data();
-            document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
-            document.getElementById('profileName').textContent = userData.firstName || 'Student';
-            const studentClass = userData.class;
-            document.getElementById('className').textContent = studentClass || 'Not assigned';
-            if (studentClass) loadAllTimetables(studentClass);
-            else document.getElementById('timetablesContainer').innerHTML = '<p class="empty-state">You are not assigned to any class.</p>';
+            try {
+                console.log('Fetching user document for:', user.uid);
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    console.error('User document not found');
+                    await auth.signOut();
+                    window.location.href = 'student-login.html';
+                    return;
+                }
+                const userData = userDoc.data();
+                console.log('User data:', userData);
+
+                if (userData.role !== 'student') {
+                    console.error('Role is not student:', userData.role);
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                const isApproved = userData.approved === true || userData.status === 'approved';
+                if (!isApproved) {
+                    console.error('Student not approved');
+                    alert('Your account is pending approval.');
+                    await auth.signOut();
+                    window.location.href = 'student-login.html';
+                    return;
+                }
+
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
+                document.getElementById('profileName').textContent = userData.firstName || 'Student';
+                const studentClass = userData.class;
+                document.getElementById('className').textContent = studentClass || 'Not assigned';
+                if (studentClass) {
+                    await loadPublishedTimetables(studentClass);
+                } else {
+                    document.getElementById('timetablesContainer').innerHTML = '<p class="empty-state">You are not assigned to any class.</p>';
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                document.getElementById('timetablesContainer').innerHTML = `<p class="error-message">Error loading: ${error.message}</p>`;
+            }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
@@ -372,25 +421,36 @@
             }
         }
 
-        async function loadAllTimetables(classId) {
+        async function loadPublishedTimetables(classId) {
             const container = document.getElementById('timetablesContainer');
             try {
-                const snapshot = await db.collection('timetables').get();
-                const timetables = [];
-                snapshot.forEach(doc => {
-                    if (doc.id === classId || doc.id.startsWith(classId + '_')) {
-                        const data = doc.data();
-                        if (data.published) timetables.push({ id: doc.id, ...data });
-                    }
-                });
-                if (timetables.length === 0) {
+                // Query only published timetables for this class
+                const snapshot = await db.collection('timetables')
+                    .where('classId', '==', classId)
+                    .where('published', '==', true)
+                    .get();
+                console.log('Published timetables query returned:', snapshot.size, 'documents');
+                
+                if (snapshot.empty) {
                     container.innerHTML = '<p class="empty-state">No published timetables for your class yet.</p>';
                     return;
                 }
+
+                const timetables = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Determine type (from field or document ID)
+                    const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
+                    timetables.push({ type, data, id: doc.id });
+                });
+
+                // Sort by type (e.g., academic, hairstyle, test, exam)
+                timetables.sort((a,b) => a.type.localeCompare(b.type));
+
                 let html = '';
                 timetables.forEach(tt => {
-                    const type = tt.type || 'academic';
-                    const periods = tt.periods || [];
+                    const type = tt.type;
+                    const periods = tt.data.periods || [];
                     periods.sort((a,b) => (a.startTime || '').localeCompare(b.startTime || ''));
                     const headers = getHeaders(type);
                     let rows = '';
@@ -416,8 +476,8 @@
                 });
                 container.innerHTML = html;
             } catch (error) {
-                console.error(error);
-                container.innerHTML = '<p class="empty-state">Error loading timetables.</p>';
+                console.error('Error loading timetables:', error);
+                container.innerHTML = `<p class="error-message">Error loading timetables: ${error.message}</p>`;
             }
         }
     </script>
