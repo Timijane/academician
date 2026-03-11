@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop · Timetable Studio</title>
+    <title>EduTop · My Timetables</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter + Space Grotesk -->
@@ -13,13 +13,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* === SAME GLASS STYLES AS DASHBOARD (keep from previous) === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa;
             --bg-sidebar: rgba(255,255,255,0.75);
-            --glass-border: rgba(255,255,255,0.3);
             --text-primary: #0b1e33;
             --text-secondary: #2c3e50;
             --accent: #1e3c72;
@@ -28,19 +26,11 @@
             --card-bg: rgba(255,255,255,0.7);
             --hover-bg: rgba(255,255,255,0.9);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
-            --success-bg: rgba(34,197,94,0.2);
-            --success-text: #16a34a;
-            --warning-bg: rgba(245,158,11,0.2);
-            --warning-text: #b45309;
-            --danger-bg: rgba(239,68,68,0.2);
-            --danger-text: #b91c1c;
-            --input-bg: rgba(255,255,255,0.9);
         }
 
         :root[data-theme="dark"] {
             --bg-primary: #0a0f1e;
             --bg-sidebar: rgba(15, 23, 42, 0.8);
-            --glass-border: rgba(255,255,255,0.08);
             --text-primary: #f0f4fa;
             --text-secondary: #a0b3d9;
             --accent: #3b82f6;
@@ -49,13 +39,6 @@
             --card-bg: rgba(15, 23, 42, 0.6);
             --hover-bg: rgba(30, 41, 59, 0.8);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
-            --success-bg: rgba(34,197,94,0.2);
-            --success-text: #4ade80;
-            --warning-bg: rgba(245,158,11,0.2);
-            --warning-text: #fbbf24;
-            --danger-bg: rgba(239,68,68,0.2);
-            --danger-text: #f87171;
-            --input-bg: rgba(30,41,59,0.8);
         }
 
         body {
@@ -64,6 +47,7 @@
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             transition: background 0.3s;
             position: relative;
             overflow-x: hidden;
@@ -87,118 +71,193 @@
             100% { transform: translate(60px, 40px) scale(1.2); }
         }
 
-        .sidebar {
-            width: 280px;
-            background: var(--bg-sidebar);
-            backdrop-filter: blur(16px);
-            border-right: 1px solid var(--border);
-            padding: 2rem 1rem;
-            display: flex;
-            flex-direction: column;
-            transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 100;
-            box-shadow: var(--shadow);
-        }
-        .sidebar.collapsed { width: 90px; }
-        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
-        .sidebar .logo-area i { font-size: 2.4rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .sidebar.collapsed .logo-area h2 { display: none; }
-        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; border-radius: 1.2rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.4rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
-        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); transform: translateX(5px); }
-        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 8px 20px -5px var(--accent); }
-        .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
-        .sidebar.collapsed .nav-item span { display: none; }
-        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
-
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
             padding: 2rem;
-            transition: margin-left 0.3s cubic-bezier(0.4,0,0.2,1);
+            width: 100%;
             position: relative;
-            z-index: 5;
+            z-index: 10;
         }
-        .main-content.expanded { margin-left: 90px; }
 
         .top-bar {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        .page-title h1 { font-size: 2.4rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.2rem; }
-        .page-title p { color: var(--text-secondary); font-weight: 400; }
-        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
-        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: 0.2s; }
-        .profile-dropdown { position: relative; cursor: pointer; }
-        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.4rem 0.4rem 0.4rem 1rem; }
-        .profile-name { font-weight: 600; color: var(--text-primary); }
-        .profile-pic { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.1rem; box-shadow: 0 5px 15px var(--accent); background-size: cover; background-position: center; }
-        .dropdown-menu { position: absolute; right: 0; top: 60px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
-        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
-        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
-
-        /* Type selector */
-        .type-selector {
-            display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;
-            background: var(--card-bg); backdrop-filter: blur(8px); padding: 1rem 1.5rem; border-radius: 3rem; border: 1px solid var(--border);
+        .page-title h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.2rem;
         }
-        .type-selector select {
-            background: var(--input-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1.5rem; color: var(--text-primary); font-weight: 500;
+        .page-title p {
+            color: var(--text-secondary);
+            font-weight: 400;
         }
-        .type-selector .btn {
-            background: var(--accent); color: white; border: none; border-radius: 2rem; padding: 0.6rem 1.5rem; font-weight: 500; cursor: pointer;
+        .profile-area {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.6rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+        }
+        .profile-dropdown {
+            position: relative;
+            cursor: pointer;
+        }
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.4rem 0.4rem 0.4rem 1rem;
+        }
+        .profile-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .profile-pic {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            box-shadow: 0 5px 15px var(--accent);
+            background-size: cover;
+            background-position: center;
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 60px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1.2rem;
+            padding: 0.5rem;
+            min-width: 180px;
+            display: none;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+        .profile-dropdown:hover .dropdown-menu {
+            display: block;
+            animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-item {
+            padding: 0.8rem 1.2rem;
+            color: var(--text-primary);
+            border-radius: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: 0.2s;
+        }
+        .dropdown-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
         }
 
-        /* Tabs */
-        .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; }
-        .tab { padding: 0.7rem 2rem; border-radius: 3rem; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-secondary); }
-        .tab.active { background: var(--accent); color: white; }
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 1.8rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px var(--accent);
+            border-color: var(--accent);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .card-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .type-badge {
+            background: var(--accent);
+            color: white;
+            padding: 0.4rem 1.2rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
 
-        /* Cards */
-        .card { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 1.8rem; box-shadow: var(--shadow); margin-bottom: 2rem; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-        .card-header h3 { font-size: 1.3rem; font-weight: 600; }
-        .type-badge { background: var(--accent); color: white; padding: 0.3rem 1.2rem; border-radius: 2rem; font-size: 0.9rem; }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        th {
+            background: var(--hover-bg);
+            padding: 1rem 0.8rem;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 1rem 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
 
-        .table-responsive { overflow-x: auto; margin-bottom: 1rem; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        th, td { border: 1px solid var(--border); padding: 0.8rem; text-align: left; }
-        th { background: var(--hover-bg); font-weight: 500; }
-        input { width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.8rem; background: var(--input-bg); color: var(--text-primary); }
-
-        .actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
-        .btn { padding: 0.6rem 1.5rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-success { background: var(--success-text); color: white; }
-        .btn-danger { background: var(--danger-text); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-
-        .error-message { background: var(--danger-bg); color: var(--danger-text); padding: 1rem; border-radius: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--danger-text); }
-        .error-message a { color: var(--accent); text-decoration: underline; }
-
-        .delete-row { color: var(--danger-text); cursor: pointer; text-align: center; font-size: 1.2rem; }
-        .delete-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index:2000; }
-        .delete-modal.active { display: flex; }
-        .delete-modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:2rem; padding:2rem; max-width:400px; width:90%; }
-        .delete-modal-actions { display: flex; gap:1rem; justify-content: flex-end; margin-top:2rem; }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            grid-column: 1 / -1;
+        }
 
         @media (max-width: 768px) {
-            .sidebar { width: 90px; }
-            .sidebar .logo-area h2 { display: none; }
-            .sidebar .nav-item span { display: none; }
-            .main-content { margin-left: 90px; }
-            .sidebar.collapsed { width: 90px; }
-            .main-content.expanded { margin-left: 90px; }
+            .container { padding: 1rem; }
             .top-bar { flex-direction: column; align-items: flex-start; }
-        }
-        @media (max-width: 480px) {
-            .profile-name { display: none; }
         }
     </style>
 </head>
@@ -206,31 +265,20 @@
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
-    <div class="sidebar" id="sidebar">
-        <div class="logo-area"><i class="fas fa-calendar-alt"></i><h2>Teacher Panel</h2></div>
-        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
-        <a href="teacher-timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
-        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
-        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
-        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
-        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
-        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
-        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-        <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
-        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
-        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
-        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
-    </div>
-
-    <div class="main-content" id="mainContent">
+    <div class="container">
         <div class="top-bar">
-            <div class="page-title"><h1>Timetable Studio</h1><p>Create and manage all your class timetables</p></div>
+            <div class="page-title">
+                <h1>My Timetables</h1>
+                <p>Your class schedules</p>
+            </div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
                 <div class="profile-dropdown">
                     <div class="profile-trigger">
-                        <span class="profile-name" id="profileName">Teacher</span>
-                        <div class="profile-pic" id="profilePic">T</div>
+                        <span class="profile-name" id="profileName">Student</span>
+                        <div class="profile-pic" id="profilePic">S</div>
                     </div>
                     <div class="dropdown-menu">
                         <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
@@ -240,95 +288,13 @@
             </div>
         </div>
 
-        <!-- Type selector and create new -->
-        <div class="type-selector">
-            <label for="timetableType">Timetable Type:</label>
-            <select id="timetableType">
-                <option value="academic">📚 Academic (Daily)</option>
-                <option value="hairstyle">💇 Hairstyle Weekly</option>
-                <option value="test">📝 Test Schedule</option>
-                <option value="exam">🎓 Exam Timetable</option>
-            </select>
-            <button class="btn" id="createNewBtn">+ Create New Draft</button>
-        </div>
-
-        <!-- Index error placeholder -->
-        <div id="indexError" class="error-message" style="display: none;"></div>
-
-        <!-- Tabs -->
-        <div class="tabs" id="tabs">
-            <div class="tab active" data-tab="draft">Draft</div>
-            <div class="tab" data-tab="pending">Pending</div>
-            <div class="tab" data-tab="approved">Approved</div>
-            <div class="tab" data-tab="rejected">Rejected</div>
-        </div>
-
-        <!-- Draft Section -->
-        <div id="draftSection" class="card" style="display: block;">
+        <div class="card">
             <div class="card-header">
-                <div>
-                    <span class="type-badge" id="draftTypeLabel">Academic</span>
-                    <span id="classDisplay">Class: <strong>—</strong></span>
-                </div>
-                <button class="btn btn-outline" id="deleteDraftBtn" style="display: none;"><i class="fas fa-trash"></i> Delete Draft</button>
+                <h2>Class: <span id="className">Loading...</span></h2>
             </div>
-            <div class="table-responsive">
-                <table id="draftTable">
-                    <thead id="draftTableHeader"></thead>
-                    <tbody id="draftBody"></tbody>
-                </table>
-            </div>
-            <div class="actions">
-                <button class="btn btn-outline" id="addRowBtn"><i class="fas fa-plus"></i> Add Row</button>
-                <button class="btn btn-primary" id="saveDraftBtn">Save Draft</button>
-                <button class="btn btn-success" id="submitBtn">Submit for Approval</button>
-            </div>
-        </div>
-
-        <!-- Pending Section -->
-        <div id="pendingSection" class="card" style="display: none;">
-            <div class="card-header"><h3>Pending Approval</h3></div>
-            <div class="table-responsive">
-                <table><thead id="pendingTableHeader"></thead><tbody id="pendingBody"></tbody></table>
-            </div>
-            <div class="actions"><button class="btn btn-warning" id="editPendingBtn">Edit (move to draft)</button></div>
-        </div>
-
-        <!-- Approved Section -->
-        <div id="approvedSection" class="card" style="display: none;">
-            <div class="card-header"><h3>Approved Timetables</h3></div>
-            <div class="type-selector" style="margin-bottom: 1rem;">
-                <label>Select type:</label>
-                <select id="approvedTypeSelect"><option value="">Select type</option></select>
-            </div>
-            <div class="table-responsive">
-                <table><thead id="approvedTableHeader"></thead><tbody id="approvedBody"></tbody></table>
-            </div>
-            <div class="actions">
-                <button class="btn btn-success" id="publishBtn">Publish to Students</button>
-                <button class="btn btn-outline" id="editApprovedBtn">Create New Draft from Approved</button>
-            </div>
-        </div>
-
-        <!-- Rejected Section -->
-        <div id="rejectedSection" class="card" style="display: none;">
-            <div class="card-header"><h3>Rejected Proposal</h3></div>
-            <div id="rejectedFeedback" class="error-message" style="display: none;"></div>
-            <div class="table-responsive">
-                <table><thead id="rejectedTableHeader"></thead><tbody id="rejectedBody"></tbody></table>
-            </div>
-            <div class="actions"><button class="btn btn-warning" id="editRejectedBtn">Edit (move to draft)</button></div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="delete-modal" id="deleteModal">
-        <div class="delete-modal-content">
-            <h3>Confirm Deletion</h3>
-            <p id="deleteMessage">Delete this entire draft?</p>
-            <div class="delete-modal-actions">
-                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
-                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            <div id="timetablesContainer">
+                <!-- Dynamically populated -->
+                <p class="empty-state">Loading timetables...</p>
             </div>
         </div>
     </div>
@@ -347,425 +313,113 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // ========== UI HELPERS ==========
-        function handleFirestoreError(error, context) {
-            console.error(`Firestore error in ${context}:`, error);
-            const errorDiv = document.getElementById('indexError');
-            if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-                const url = match ? match[0] : '#';
-                errorDiv.innerHTML = `
-                    <strong>Missing Firestore index.</strong><br>
-                    Please create it by clicking 
-                    <a href="${url}" target="_blank">this link</a>.
-                `;
-                errorDiv.style.display = 'block';
-            } else if (error.code === 'permission-denied') {
-                errorDiv.textContent = `Permission denied: ${error.message}`;
-                errorDiv.style.display = 'block';
-            } else {
-                errorDiv.textContent = `Error: ${error.message}`;
-                errorDiv.style.display = 'block';
-            }
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
         }
-
-        function getEmptyPeriod(type) {
-            switch(type) {
-                case 'academic':
-                    return { startTime: '08:00', endTime: '08:40', monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' };
-                case 'hairstyle':
-                    return { startTime: 'Week 1', monday: '', tuesday: '' };
-                case 'test':
-                case 'exam':
-                    return { startTime: '', endTime: '', monday: '', tuesday: '', wednesday: '' };
-                default: return {};
-            }
-        }
-
-        function getHeaders(type) {
-            switch(type) {
-                case 'academic':
-                    return ['Start', 'End', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', ''];
-                case 'hairstyle':
-                    return ['Week', 'Hairstyle', 'Description', ''];
-                case 'test':
-                case 'exam':
-                    return ['Date', 'Time', 'Subject', 'Venue', 'Duration', ''];
-                default: return [];
-            }
-        }
-
-        // ========== GLOBAL VARIABLES ==========
-        let currentUser = null, userData = null, currentClass = null;
-        let draftId = null, draftData = [], draftType = 'academic';
-        let pendingId = null, pendingData = [], pendingType = 'academic';
-        let approvedList = []; // {type, data}
-        let currentApprovedType = null;
-        let rejectedId = null, rejectedData = [], rejectedType = 'academic', rejectedFeedback = '';
-
-        // ========== AUDIT LOG FUNCTION ==========
-        async function logAudit(action, details = {}) {
-            if (!currentUser || !userData) return;
-            try {
-                await db.collection('auditLogs').add({
-                    userId: currentUser.uid,
-                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
-                    userEmail: userData.email || currentUser.email,
-                    action,
-                    details: {
-                        ...details,
-                        class: currentClass,
-                        timestamp: new Date().toISOString()
-                    },
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    userAgent: navigator.userAgent
-                });
-            } catch (error) {
-                console.error('Audit log failed:', error);
-            }
-        }
-
-        // ========== DRAFT RENDERING ==========
-        function renderDraft() {
-            const header = document.getElementById('draftTableHeader');
-            const headers = getHeaders(draftType);
-            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-            const tbody = document.getElementById('draftBody');
-            let html = '';
-            draftData.forEach((p, i) => {
-                html += '<tr>';
-                if (draftType === 'academic') {
-                    html += `
-                        <td><input type="time" value="${p.startTime}" data-index="${i}" data-field="startTime"></td>
-                        <td><input type="time" value="${p.endTime}" data-index="${i}" data-field="endTime"></td>
-                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday"></td>
-                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday"></td>
-                        <td><input type="text" value="${p.wednesday || ''}" data-index="${i}" data-field="wednesday"></td>
-                        <td><input type="text" value="${p.thursday || ''}" data-index="${i}" data-field="thursday"></td>
-                        <td><input type="text" value="${p.friday || ''}" data-index="${i}" data-field="friday"></td>
-                    `;
-                } else if (draftType === 'hairstyle') {
-                    html += `
-                        <td><input type="text" value="${p.startTime}" data-index="${i}" data-field="startTime" placeholder="Week #"></td>
-                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday" placeholder="Hairstyle"></td>
-                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday" placeholder="Description"></td>
-                    `;
-                } else {
-                    html += `
-                        <td><input type="text" value="${p.startTime}" data-index="${i}" data-field="startTime" placeholder="Date (e.g., 2025-04-10)"></td>
-                        <td><input type="text" value="${p.endTime}" data-index="${i}" data-field="endTime" placeholder="Time"></td>
-                        <td><input type="text" value="${p.monday || ''}" data-index="${i}" data-field="monday" placeholder="Subject"></td>
-                        <td><input type="text" value="${p.tuesday || ''}" data-index="${i}" data-field="tuesday" placeholder="Venue"></td>
-                        <td><input type="text" value="${p.wednesday || ''}" data-index="${i}" data-field="wednesday" placeholder="Duration"></td>
-                    `;
-                }
-                html += `<td class="delete-row" onclick="deleteDraftRow(${i})"><i class="fas fa-trash"></i></td>`;
-                html += '</tr>';
-            });
-            tbody.innerHTML = html;
-            document.querySelectorAll('#draftBody input').forEach(inp => {
-                inp.addEventListener('input', function(e) {
-                    const i = this.dataset.index, f = this.dataset.field;
-                    draftData[i][f] = this.value;
-                });
-            });
-            document.getElementById('draftTypeLabel').textContent = draftType.charAt(0).toUpperCase() + draftType.slice(1);
-        }
-
-        window.deleteDraftRow = (index) => { draftData.splice(index,1); renderDraft(); };
-        document.getElementById('addRowBtn').addEventListener('click', () => { draftData.push(getEmptyPeriod(draftType)); renderDraft(); });
-
-        document.getElementById('createNewBtn').addEventListener('click', async () => {
-            const type = document.getElementById('timetableType').value;
-            draftType = type;
-            const newDraft = [getEmptyPeriod(type)];
-            const data = { classId: currentClass, teacherId: currentUser.uid, periods: newDraft, type: draftType, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try {
-                const ref = await db.collection('timetableProposals').add(data);
-                draftId = ref.id; draftData = newDraft;
-                await logAudit('Created new draft', { type: draftType, proposalId: draftId });
-                renderDraft();
-                document.getElementById('deleteDraftBtn').style.display = 'inline-block';
-                alert('New draft created.');
-            } catch(e) { handleFirestoreError(e, 'createNewDraft'); }
-            document.querySelector('.tab[data-tab="draft"]').click();
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
         });
 
-        document.getElementById('saveDraftBtn').addEventListener('click', async () => {
-            if (!currentClass) return alert('No class assigned.');
-            const data = { classId: currentClass, teacherId: currentUser.uid, periods: draftData, type: draftType, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try {
-                if (draftId) await db.collection('timetableProposals').doc(draftId).update(data);
-                else { const ref = await db.collection('timetableProposals').add(data); draftId = ref.id; }
-                await logAudit('Saved draft', { type: draftType, proposalId: draftId });
-                alert('Draft saved.'); document.getElementById('deleteDraftBtn').style.display = 'inline-block';
-            } catch(e) { handleFirestoreError(e, 'saveDraft'); }
-        });
-
-        document.getElementById('submitBtn').addEventListener('click', async () => {
-            if (!currentClass) return alert('No class assigned.');
-            if (draftData.length === 0) return alert('Add at least one entry.');
-            const data = { classId: currentClass, teacherId: currentUser.uid, periods: draftData, type: draftType, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try {
-                if (draftId) await db.collection('timetableProposals').doc(draftId).update(data);
-                else { const ref = await db.collection('timetableProposals').add(data); draftId = ref.id; }
-                await logAudit('Submitted for approval', { type: draftType, proposalId: draftId });
-                alert('Submitted for approval.'); await loadAllData(); document.querySelector('.tab[data-tab="pending"]').click();
-            } catch(e) { handleFirestoreError(e, 'submit'); }
-        });
-
-        document.getElementById('deleteDraftBtn').addEventListener('click', () => {
-            openDeleteModal('Delete this entire draft?', async () => {
-                if (!draftId) return;
-                try { 
-                    await db.collection('timetableProposals').doc(draftId).delete();
-                    await logAudit('Deleted draft', { type: draftType, proposalId: draftId });
-                } catch(e) { handleFirestoreError(e, 'deleteDraft'); }
-                draftId = null; draftData = [getEmptyPeriod('academic')]; draftType = 'academic';
-                renderDraft(); document.getElementById('deleteDraftBtn').style.display = 'none'; closeDeleteModal();
-            });
-        });
-
-        // ========== LOAD ALL DATA ==========
-        async function loadAllData() {
-            // Draft
-            try {
-                const snap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClass)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'draft')
-                    .orderBy('updatedAt', 'desc')
-                    .limit(1).get();
-                if (!snap.empty) {
-                    const doc = snap.docs[0];
-                    draftId = doc.id;
-                    draftData = doc.data().periods || [];
-                    draftType = doc.data().type || 'academic';
-                } else { draftId = null; draftData = [getEmptyPeriod('academic')]; draftType = 'academic'; }
-            } catch(e) { handleFirestoreError(e, 'loadDraft'); }
-
-            // Pending
-            try {
-                const snap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClass)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'pending')
-                    .orderBy('submittedAt', 'desc')
-                    .limit(1).get();
-                if (!snap.empty) {
-                    const doc = snap.docs[0];
-                    pendingId = doc.id;
-                    pendingData = doc.data().periods || [];
-                    pendingType = doc.data().type || 'academic';
-                } else { pendingId = null; pendingData = []; }
-            } catch(e) { handleFirestoreError(e, 'loadPending'); }
-
-            // Approved – fetch all timetables for this class
-            approvedList = [];
-            try {
-                const snapshot = await db.collection('timetables').get();
-                snapshot.forEach(doc => {
-                    if (doc.id.startsWith(currentClass + '_') || doc.id === currentClass) {
-                        const data = doc.data();
-                        const type = data.type || (doc.id.includes('_') ? doc.id.split('_')[1] : 'academic');
-                        approvedList.push({ type, data, id: doc.id });
-                    }
-                });
-                approvedList.sort((a,b) => a.type.localeCompare(b.type));
-            } catch (e) { handleFirestoreError(e, 'loadApproved'); }
-
-            // Rejected
-            try {
-                const snap = await db.collection('timetableProposals')
-                    .where('classId', '==', currentClass)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'rejected')
-                    .orderBy('submittedAt', 'desc')
-                    .limit(1).get();
-                if (!snap.empty) {
-                    const doc = snap.docs[0];
-                    rejectedId = doc.id;
-                    rejectedData = doc.data().periods || [];
-                    rejectedType = doc.data().type || 'academic';
-                    rejectedFeedback = doc.data().feedback || '';
-                } else { rejectedId = null; rejectedData = []; }
-            } catch(e) { handleFirestoreError(e, 'loadRejected'); }
-        }
-
-        // ========== PENDING RENDERING ==========
-        function renderPending() {
-            const header = document.getElementById('pendingTableHeader');
-            const headers = getHeaders(pendingType);
-            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-            const tbody = document.getElementById('pendingBody');
-            if (pendingData.length === 0) { tbody.innerHTML = '<tr><td colspan="8">No pending proposal.</td></tr>'; return; }
-            let html = '';
-            pendingData.forEach(p => {
-                html += '<tr>';
-                if (pendingType === 'academic') {
-                    html += `<td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td><td>${p.wednesday||''}</td><td>${p.thursday||''}</td><td>${p.friday||''}</td>`;
-                } else if (pendingType === 'hairstyle') {
-                    html += `<td>${p.startTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td>`;
-                } else {
-                    html += `<td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td><td>${p.wednesday||''}</td>`;
-                }
-                html += '<td></td></tr>';
-            });
-            tbody.innerHTML = html;
-        }
-
-        document.getElementById('editPendingBtn').addEventListener('click', async () => {
-            if (!pendingId) return;
-            try { 
-                await db.collection('timetableProposals').doc(pendingId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                await logAudit('Converted pending to draft', { type: pendingType, proposalId: pendingId });
-                await loadAllData(); document.querySelector('.tab[data-tab="draft"]').click();
-            } catch(e) { handleFirestoreError(e, 'editPending'); }
-        });
-
-        // ========== APPROVED RENDERING ==========
-        function renderApproved() {
-            const select = document.getElementById('approvedTypeSelect');
-            select.innerHTML = '<option value="">Select type</option>';
-            approvedList.forEach(at => {
-                const option = document.createElement('option');
-                option.value = at.type;
-                option.textContent = at.type.charAt(0).toUpperCase() + at.type.slice(1);
-                select.appendChild(option);
-            });
-            let selectedType = currentApprovedType;
-            if (selectedType && approvedList.some(at => at.type === selectedType)) {
-                select.value = selectedType;
-            } else if (approvedList.length > 0) {
-                selectedType = approvedList[0].type;
-                select.value = selectedType;
-                currentApprovedType = selectedType;
-            } else {
-                selectedType = null; currentApprovedType = null;
-            }
-            if (!selectedType || approvedList.length === 0) {
-                document.getElementById('approvedBody').innerHTML = '<tr><td colspan="8">No approved timetable.</td></tr>';
-                document.getElementById('publishBtn').style.display = 'none';
-                return;
-            }
-            const at = approvedList.find(at => at.type === selectedType);
-            const { type, data, id } = at;
-            const headers = getHeaders(type).slice(0,-1); // remove action column
-            document.getElementById('approvedTableHeader').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-            const periods = data.periods || [];
-            periods.sort((a,b) => (a.startTime || '').localeCompare(b.startTime || ''));
-            let html = '';
-            periods.forEach(p => {
-                html += '<tr>';
-                if (type === 'academic') {
-                    html += `<td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td><td>${p.wednesday||''}</td><td>${p.thursday||''}</td><td>${p.friday||''}</td>`;
-                } else if (type === 'hairstyle') {
-                    html += `<td>${p.startTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td>`;
-                } else {
-                    html += `<td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td><td>${p.wednesday||''}</td>`;
-                }
-                html += '</tr>';
-            });
-            document.getElementById('approvedBody').innerHTML = html;
-            document.getElementById('publishBtn').style.display = data.published ? 'none' : 'inline-block';
-            window.approvedData = data;
-            window.approvedType = type;
-            window.approvedId = id;
-        }
-
-        document.getElementById('approvedTypeSelect').addEventListener('change', (e) => { currentApprovedType = e.target.value; renderApproved(); });
-
-        document.getElementById('publishBtn').addEventListener('click', async () => {
-            if (!currentClass || !window.approvedData) return;
-            const docId = window.approvedId; // already the correct composite ID
-            try { 
-                await db.collection('timetables').doc(docId).update({ published: true, publishedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                await logAudit('Published timetable', { type: window.approvedType, class: currentClass, docId });
-                alert('Published to students.'); 
-                await loadAllData(); renderApproved();
-            } catch(e) { handleFirestoreError(e, 'publish'); }
-        });
-
-        document.getElementById('editApprovedBtn').addEventListener('click', async () => {
-            if (!window.approvedData) return;
-            const data = { classId: currentClass, teacherId: currentUser.uid, periods: window.approvedData.periods, type: window.approvedType, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try { 
-                const ref = await db.collection('timetableProposals').add(data);
-                await logAudit('Created new draft from approved', { type: window.approvedType, class: currentClass, newProposalId: ref.id });
-                await loadAllData(); document.querySelector('.tab[data-tab="draft"]').click();
-            } catch(e) { handleFirestoreError(e, 'editApproved'); }
-        });
-
-        // ========== REJECTED RENDERING ==========
-        function renderRejected() {
-            const header = document.getElementById('rejectedTableHeader');
-            const headers = getHeaders(rejectedType).slice(0,-1);
-            header.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-            const tbody = document.getElementById('rejectedBody');
-            if (rejectedData.length === 0) { tbody.innerHTML = '<tr><td colspan="8">No rejected proposal.</td></tr>'; return; }
-            let html = '';
-            rejectedData.forEach(p => {
-                html += '<tr>';
-                if (rejectedType === 'academic') {
-                    html += `<td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td><td>${p.wednesday||''}</td><td>${p.thursday||''}</td><td>${p.friday||''}</td>`;
-                } else if (rejectedType === 'hairstyle') {
-                    html += `<td>${p.startTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td>`;
-                } else {
-                    html += `<td>${p.startTime}</td><td>${p.endTime}</td><td>${p.monday||''}</td><td>${p.tuesday||''}</td><td>${p.wednesday||''}</td>`;
-                }
-                html += '</tr>';
-            });
-            tbody.innerHTML = html;
-            const feedbackEl = document.getElementById('rejectedFeedback');
-            if (rejectedFeedback) { feedbackEl.textContent = `Feedback: ${rejectedFeedback}`; feedbackEl.style.display = 'block'; } else feedbackEl.style.display = 'none';
-        }
-
-        document.getElementById('editRejectedBtn').addEventListener('click', async () => {
-            if (!rejectedId) return;
-            try { 
-                await db.collection('timetableProposals').doc(rejectedId).update({ status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                await logAudit('Converted rejected to draft', { type: rejectedType, proposalId: rejectedId });
-                await loadAllData(); document.querySelector('.tab[data-tab="draft"]').click();
-            } catch(e) { handleFirestoreError(e, 'editRejected'); }
-        });
-
-        // ========== AUTH ==========
+        // Auth check
         auth.onAuthStateChanged(async (user) => {
-            if (!user) { window.location.href = 'teacher-login.html'; return; }
-            const doc = await db.collection('users').doc(user.uid).get();
-            if (!doc.exists || doc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
-            currentUser = user; userData = doc.data();
-            document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-            document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
-            currentClass = userData.classTeaching;
-            if (!currentClass) { document.getElementById('classDisplay').innerHTML = 'You are not assigned to any class.'; return; }
-            document.getElementById('classDisplay').innerHTML = `Class: <strong>${currentClass}</strong>`;
-            await loadAllData();
-            document.querySelector('.tab[data-tab="draft"]').click();
+            if (!user) { window.location.href = 'student-login.html'; return; }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'student') {
+                auth.signOut(); window.location.href = 'index.html'; return;
+            }
+            const userData = userDoc.data();
+            document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
+            document.getElementById('profileName').textContent = userData.firstName || 'Student';
+            const studentClass = userData.class;
+            document.getElementById('className').textContent = studentClass || 'Not assigned';
+            if (studentClass) loadAllTimetables(studentClass);
+            else document.getElementById('timetablesContainer').innerHTML = '<p class="empty-state">You are not assigned to any class.</p>';
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
 
-        // ========== TAB SWITCHING ==========
-        const tabs = document.querySelectorAll('.tab');
-        const sections = { draft: document.getElementById('draftSection'), pending: document.getElementById('pendingSection'), approved: document.getElementById('approvedSection'), rejected: document.getElementById('rejectedSection') };
-        tabs.forEach(tab => {
-            tab.addEventListener('click', async () => {
-                const tabName = tab.dataset.tab;
-                tabs.forEach(t => t.classList.remove('active')); tab.classList.add('active');
-                await loadAllData();
-                Object.keys(sections).forEach(k => sections[k].style.display = k === tabName ? 'block' : 'none');
-                if (tabName === 'draft') { renderDraft(); }
-                else if (tabName === 'pending') renderPending();
-                else if (tabName === 'approved') renderApproved();
-                else if (tabName === 'rejected') renderRejected();
-            });
-        });
+        function getHeaders(type) {
+            switch(type) {
+                case 'academic': return ['Time', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                case 'hairstyle': return ['Week', 'Hairstyle', 'Description'];
+                case 'test': case 'exam': return ['Date', 'Time', 'Subject', 'Venue', 'Duration'];
+                default: return [];
+            }
+        }
 
-        // ========== DELETE MODAL ==========
-        const deleteModal = document.getElementById('deleteModal');
-        function openDeleteModal(msg, callback) { document.getElementById('deleteMessage').textContent = msg; deleteModal.classList.add('active'); document.getElementById('confirmDeleteBtn').onclick = callback; }
-        window.closeDeleteModal = () => deleteModal.classList.remove('active');
+        function periodToRow(p, type) {
+            switch(type) {
+                case 'academic':
+                    return [`${p.startTime} – ${p.endTime}`, p.monday||'—', p.tuesday||'—', p.wednesday||'—', p.thursday||'—', p.friday||'—'];
+                case 'hairstyle':
+                    return [p.startTime||'—', p.monday||'—', p.tuesday||'—'];
+                case 'test': case 'exam':
+                    return [p.startTime||'—', p.endTime||'—', p.monday||'—', p.tuesday||'—', p.wednesday||'—'];
+                default: return [];
+            }
+        }
+
+        async function loadAllTimetables(classId) {
+            const container = document.getElementById('timetablesContainer');
+            try {
+                const snapshot = await db.collection('timetables').get();
+                const timetables = [];
+                snapshot.forEach(doc => {
+                    if (doc.id === classId || doc.id.startsWith(classId + '_')) {
+                        const data = doc.data();
+                        if (data.published) timetables.push({ id: doc.id, ...data });
+                    }
+                });
+                if (timetables.length === 0) {
+                    container.innerHTML = '<p class="empty-state">No published timetables for your class yet.</p>';
+                    return;
+                }
+                let html = '';
+                timetables.forEach(tt => {
+                    const type = tt.type || 'academic';
+                    const periods = tt.periods || [];
+                    periods.sort((a,b) => (a.startTime || '').localeCompare(b.startTime || ''));
+                    const headers = getHeaders(type);
+                    let rows = '';
+                    periods.forEach(p => {
+                        const cells = periodToRow(p, type);
+                        rows += '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+                    });
+                    const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+                    html += `
+                        <div class="card" style="margin-top:1.5rem;">
+                            <div class="card-header">
+                                <h3>${typeLabel} Timetable</h3>
+                                <span class="type-badge">${typeLabel}</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                                    <tbody>${rows || '<tr><td colspan="100" class="empty-state">No entries.</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = '<p class="empty-state">Error loading timetables.</p>';
+            }
+        }
     </script>
 </body>
 </html>
