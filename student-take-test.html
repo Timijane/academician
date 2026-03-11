@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · CBT Session</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Font: Inter + Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa;
+            --bg-sidebar: rgba(255,255,255,0.75);
+            --glass-border: rgba(255,255,255,0.3);
+            --text-primary: #0b1e33;
+            --text-secondary: #2c3e50;
+            --accent: #1e3c72;
+            --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7);
+            --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #b91c1c;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #1e3c72;
+            --input-bg: rgba(255,255,255,0.9);
+            --palette-bg: rgba(255,255,255,0.8);
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e;
+            --bg-sidebar: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255,255,255,0.08);
+            --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9;
+            --accent: #3b82f6;
+            --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --hover-bg: rgba(30, 41, 59, 0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
+            --input-bg: rgba(30,41,59,0.8);
+            --palette-bg: rgba(15, 23, 42, 0.8);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .orb {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            animation: float 25s infinite alternate ease-in-out;
+        }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.2); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.8rem 1.5rem;
+        }
+        .test-info h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .test-info p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .timer {
+            background: var(--accent);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        /* Main layout */
+        .cbt-layout {
+            display: flex;
+            gap: 1.5rem;
+            flex: 1;
+        }
+
+        /* Left palette */
+        .palette {
+            width: 260px;
+            background: var(--palette-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+        .palette h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .palette-item {
+            aspect-ratio: 1;
+            border-radius: 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .palette-item.active {
+            border: 2px solid var(--accent);
+            transform: scale(1.05);
+        }
+        .palette-item.answered {
+            background: var(--success-bg);
+            color: var(--success-text);
+            border-color: var(--success-text);
+        }
+        .palette-item.skipped {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+            border-color: var(--warning-text);
+        }
+        .palette-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 0.5rem;
+        }
+
+        /* Main question area */
+        .question-area {
+            flex: 1;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .question-number {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .question-type {
+            background: var(--accent);
+            color: white;
+            padding: 0.2rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+        }
+        .question-text {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .option:hover {
+            border-color: var(--accent);
+            background: var(--hover-bg);
+        }
+        .option.selected {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .option input[type="radio"],
+        .option input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+
+        .navigation {
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        .nav-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 3rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn.prev {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .nav-btn.next {
+            background: var(--accent);
+            color: white;
+        }
+        .nav-btn.skip {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+            border: 1px solid var(--warning-text);
+        }
+        .nav-btn.submit {
+            background: var(--success-text);
+            color: white;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .cbt-layout { flex-direction: column; }
+            .palette { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="container">
+        <!-- Top bar -->
+        <div class="top-bar">
+            <div class="test-info">
+                <h1 id="testTitle">Loading test...</h1>
+                <p id="testSubject"></p>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+            <div class="theme-toggle" id="themeToggle">
+                <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+            </div>
+        </div>
+
+        <!-- CBT Layout -->
+        <div class="cbt-layout">
+            <!-- Left palette -->
+            <div class="palette">
+                <h3><i class="fas fa-th"></i> Question Palette</h3>
+                <div class="palette-grid" id="paletteGrid"></div>
+                <div class="palette-legend">
+                    <div class="legend-item"><span class="legend-color" style="background: var(--success-text);"></span> Answered</div>
+                    <div class="legend-item"><span class="legend-color" style="background: var(--warning-text);"></span> Skipped</div>
+                    <div class="legend-item"><span class="legend-color" style="background: var(--card-bg); border:1px solid var(--border);"></span> Not Visited</div>
+                </div>
+            </div>
+
+            <!-- Main question area -->
+            <div class="question-area">
+                <div class="question-header">
+                    <span class="question-number" id="questionNumber">Question 1</span>
+                    <span class="question-type" id="questionType">Multiple Choice</span>
+                </div>
+                <div class="question-text" id="questionText"></div>
+                <div class="options" id="optionsContainer"></div>
+
+                <div class="navigation">
+                    <div>
+                        <button class="nav-btn prev" id="prevBtn" disabled><i class="fas fa-arrow-left"></i> Previous</button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="nav-btn skip" id="skipBtn">Skip</button>
+                        <button class="nav-btn next" id="nextBtn">Next <i class="fas fa-arrow-right"></i></button>
+                        <button class="nav-btn submit" id="submitBtn">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Confirmation Modal -->
+    <div class="modal-overlay" id="submitModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Submission</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeSubmitModal()"></i>
+            </div>
+            <p>Are you sure you want to submit? You cannot change your answers after submission.</p>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="closeSubmitModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="finalSubmit()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal (after submission) -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Test Submitted</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeResultModal()"></i>
+            </div>
+            <div id="resultContent"></div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="goToDashboard()">Go to Dashboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085",
+            measurementId: "G-ELBMT8WHQ9"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Global variables
+        let currentUser = null;
+        let assessment = null;
+        let questions = []; // shuffled
+        let answers = []; // answer for each question index (string)
+        let statuses = []; // 'answered', 'skipped', 'unvisited'
+        let currentIndex = 0;
+        let timerInterval = null;
+        let startTime = null;
+        let submissionId = null;
+
+        // Get testId from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const testId = urlParams.get('testId');
+
+        if (!testId) {
+            alert('No test selected.');
+            window.location.href = 'student-tests.html';
+        }
+
+        // Auth
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'student-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'student') {
+                    auth.signOut(); window.location.href = 'index.html'; return;
+                }
+                const userData = userDoc.data();
+                const isApproved = userData.approved === true || userData.status === 'approved';
+                if (!isApproved) {
+                    alert('Your account is pending approval.');
+                    auth.signOut(); window.location.href = 'student-login.html'; return;
+                }
+                currentUser = user;
+                await loadAssessment();
+            } catch (error) {
+                console.error(error);
+                alert('Error loading test.');
+            }
+        });
+
+        async function loadAssessment() {
+            try {
+                const doc = await db.collection('assessments').doc(testId).get();
+                if (!doc.exists) { alert('Test not found.'); window.location.href = 'student-tests.html'; return; }
+                assessment = { id: doc.id, ...doc.data() };
+
+                // Verify student's class matches
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                const studentClass = userDoc.data().class;
+                if (assessment.classId !== studentClass) {
+                    alert('This test is not for your class.');
+                    window.location.href = 'student-tests.html';
+                    return;
+                }
+
+                document.getElementById('testTitle').textContent = assessment.title;
+                document.getElementById('testSubject').textContent = assessment.subject + ' | ' + (assessment.type === 'test' ? 'Test' : 'Exam');
+
+                // Shuffle questions (Fisher-Yates)
+                questions = [...assessment.questions];
+                for (let i = questions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [questions[i], questions[j]] = [questions[j], questions[i]];
+                }
+
+                // Initialize answers and statuses
+                answers = new Array(questions.length).fill(null);
+                statuses = new Array(questions.length).fill('unvisited');
+                if (questions.length > 0) statuses[0] = 'current'; // but we'll handle separately
+
+                renderPalette();
+                renderQuestion(0);
+
+                // Start timer
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 1000);
+            } catch (error) {
+                console.error(error);
+                alert('Error loading test: ' + error.message);
+            }
+        }
+
+        function renderPalette() {
+            const grid = document.getElementById('paletteGrid');
+            let html = '';
+            for (let i = 0; i < questions.length; i++) {
+                let statusClass = '';
+                if (statuses[i] === 'answered') statusClass = 'answered';
+                else if (statuses[i] === 'skipped') statusClass = 'skipped';
+                html += `<div class="palette-item ${statusClass} ${i === currentIndex ? 'active' : ''}" onclick="goToQuestion(${i})">${i+1}</div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function renderQuestion(index) {
+            if (index < 0 || index >= questions.length) return;
+            currentIndex = index;
+            const q = questions[index];
+            document.getElementById('questionNumber').textContent = `Question ${index + 1}`;
+            document.getElementById('questionType').textContent = 
+                q.type === 'multiple' ? 'Multiple Choice' : (q.type === 'truefalse' ? 'True/False' : 'Short Answer');
+            document.getElementById('questionText').textContent = q.question;
+
+            // Options
+            let optionsHtml = '';
+            if (q.type === 'multiple') {
+                const letters = ['A', 'B', 'C', 'D'];
+                q.options.forEach((opt, i) => {
+                    const isSelected = answers[index] === i.toString();
+                    optionsHtml += `
+                        <div class="option ${isSelected ? 'selected' : ''}" onclick="selectOption(${index}, ${i})">
+                            <span style="font-weight:600; min-width:30px;">${letters[i]}</span>
+                            <span>${opt}</span>
+                        </div>
+                    `;
+                });
+            } else if (q.type === 'truefalse') {
+                optionsHtml = `
+                    <div class="option ${answers[index] === 'true' ? 'selected' : ''}" onclick="selectOption(${index}, 'true')">
+                        <span>True</span>
+                    </div>
+                    <div class="option ${answers[index] === 'false' ? 'selected' : ''}" onclick="selectOption(${index}, 'false')">
+                        <span>False</span>
+                    </div>
+                `;
+            } else {
+                // Short answer
+                optionsHtml = `
+                    <textarea class="form-control" rows="3" placeholder="Type your answer..." 
+                        onchange="updateShortAnswer(${index}, this.value)">${answers[index] || ''}</textarea>
+                `;
+            }
+            document.getElementById('optionsContainer').innerHTML = optionsHtml;
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('nextBtn').disabled = false;
+            document.getElementById('skipBtn').style.display = 'inline-block';
+            if (index === questions.length - 1) {
+                document.getElementById('nextBtn').innerHTML = 'Review';
+            } else {
+                document.getElementById('nextBtn').innerHTML = 'Next <i class="fas fa-arrow-right"></i>';
+            }
+
+            // Update palette highlight
+            renderPalette();
+        }
+
+        window.selectOption = (index, value) => {
+            answers[index] = value.toString();
+            statuses[index] = 'answered';
+            renderQuestion(index); // re-render to reflect selected state
+            renderPalette();
+        };
+
+        window.updateShortAnswer = (index, value) => {
+            answers[index] = value;
+            if (value.trim()) statuses[index] = 'answered';
+            else statuses[index] = 'unvisited';
+            renderPalette();
+        };
+
+        window.goToQuestion = (index) => {
+            if (index >= 0 && index < questions.length) {
+                renderQuestion(index);
+            }
+        };
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentIndex > 0) renderQuestion(currentIndex - 1);
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentIndex < questions.length - 1) {
+                renderQuestion(currentIndex + 1);
+            } else {
+                // On last question, maybe review or submit
+                // For now, just open submit modal
+                openSubmitModal();
+            }
+        });
+
+        document.getElementById('skipBtn').addEventListener('click', () => {
+            if (statuses[currentIndex] !== 'answered') {
+                statuses[currentIndex] = 'skipped';
+            }
+            if (currentIndex < questions.length - 1) {
+                renderQuestion(currentIndex + 1);
+            } else {
+                renderPalette();
+            }
+        });
+
+        // Timer
+        function updateTimer() {
+            if (!startTime) return;
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const remaining = Math.max(0, (assessment.duration * 60) - elapsed);
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            document.getElementById('timer').textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+            if (remaining <= 0) {
+                clearInterval(timerInterval);
+                alert('Time is up! Submitting your test.');
+                submitTest();
+            }
+        }
+
+        // Submit modal
+        const submitModal = document.getElementById('submitModal');
+        const resultModal = document.getElementById('resultModal');
+        const resultContent = document.getElementById('resultContent');
+
+        window.openSubmitModal = () => submitModal.classList.add('active');
+        window.closeSubmitModal = () => submitModal.classList.remove('active');
+
+        window.finalSubmit = async () => {
+            closeSubmitModal();
+            await submitTest();
+        };
+
+        async function submitTest() {
+            clearInterval(timerInterval);
+
+            // Calculate score
+            let totalScore = 0;
+            const results = questions.map((q, idx) => {
+                const userAnswer = answers[idx];
+                let correct = false;
+                if (q.type === 'multiple' || q.type === 'truefalse') {
+                    correct = (userAnswer === q.correct.toString());
+                } else {
+                    // For short answer, we might store as string; we'll compare case-insensitive?
+                    correct = (userAnswer && userAnswer.trim().toLowerCase() === q.correct.toLowerCase());
+                }
+                if (correct) totalScore += q.points || 2;
+                return {
+                    question: q.question,
+                    userAnswer,
+                    correct,
+                    points: q.points || 2
+                };
+            });
+
+            // Save submission
+            const submissionData = {
+                assessmentId: testId,
+                studentId: currentUser.uid,
+                answers: results,
+                totalScore,
+                maxScore: questions.reduce((sum, q) => sum + (q.points || 2), 0),
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                timeSpent: Math.floor((Date.now() - startTime) / 1000)
+            };
+
+            try {
+                const ref = await db.collection('submissions').add(submissionData);
+                submissionId = ref.id;
+
+                // Show result modal
+                const percentage = (totalScore / submissionData.maxScore * 100).toFixed(1);
+                resultContent.innerHTML = `
+                    <p><strong>Score:</strong> ${totalScore} / ${submissionData.maxScore} (${percentage}%)</p>
+                    <p><strong>Time spent:</strong> ${Math.floor(submissionData.timeSpent / 60)}m ${submissionData.timeSpent % 60}s</p>
+                    <p>Your answers have been recorded.</p>
+                `;
+                resultModal.classList.add('active');
+            } catch (error) {
+                console.error(error);
+                alert('Error submitting test: ' + error.message);
+            }
+        }
+
+        window.closeResultModal = () => resultModal.classList.remove('active');
+        window.goToDashboard = () => window.location.href = 'student-dashboard.html';
+    </script>
+</body>
+</html>
