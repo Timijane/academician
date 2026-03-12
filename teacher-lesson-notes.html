@@ -147,6 +147,10 @@
             margin-bottom: 1rem;
             border-left: 4px solid var(--danger-text);
         }
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
 
         @media (max-width: 768px) {
             .sidebar { width: 90px; }
@@ -200,7 +204,7 @@
         </div>
 
         <!-- Error display -->
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <div id="indexError" class="error-message" style="display: none;"></div>
 
         <!-- Main tabs -->
         <div class="main-tabs" id="mainTabs">
@@ -377,12 +381,26 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
-        // Error display
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        // Error handler with clickable index link
+        function handleFirestoreError(error, context) {
+            console.error(`Firestore error in ${context}:`, error);
+            const errorDiv = document.getElementById('indexError');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                const url = match ? match[0] : '#';
+                errorDiv.innerHTML = `
+                    <strong>Missing Firestore index.</strong><br>
+                    Please create it by clicking 
+                    <a href="${url}" target="_blank">this link</a>.
+                `;
+                errorDiv.style.display = 'block';
+            } else if (error.code === 'permission-denied') {
+                errorDiv.textContent = `Permission denied: ${error.message}`;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
         }
 
         // ========== GLOBALS ==========
@@ -432,10 +450,13 @@
                 currentUser = user;
                 userData = userDoc.data();
 
-                // Check if teacher is approved (allow reading data but warn)
+                // Check if teacher is approved
                 const isApproved = userData.approved === true || userData.status === 'approved';
                 if (!isApproved) {
-                    showError('Your account is pending approval. You can view but not create content.');
+                    // Show warning but still allow viewing
+                    const errorDiv = document.getElementById('indexError');
+                    errorDiv.textContent = 'Your account is pending approval. You can view but not create content.';
+                    errorDiv.style.display = 'block';
                 }
 
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
@@ -463,7 +484,7 @@
 
                 await loadAllLessonNotes();
                 renderTeachTab();
-            } catch (error) { console.error(error); showError('Auth error: ' + error.message); }
+            } catch (error) { console.error(error); handleFirestoreError(error, 'auth'); }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
@@ -515,7 +536,7 @@
                 }
                 renderSubjectGrid();
                 alert('Subject and all associated data deleted.');
-            } catch (e) { showError('Delete failed: ' + e.message); } finally { hideLoading(); }
+            } catch (e) { handleFirestoreError(e, 'deleteSubject'); } finally { hideLoading(); }
         };
 
         async function selectSubject(subject, card) {
@@ -551,7 +572,7 @@
                     document.getElementById('editSyllabusBtn').style.display = 'none';
                 }
                 renderSubjectGrid();
-            } catch (e) { console.error(e); showError('Error loading syllabus: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'loadSyllabus'); }
         }
 
         function renderSyllabusTable(weeks) {
@@ -603,7 +624,7 @@
                 }
                 alert('Saved draft.');
                 renderSubjectGrid();
-            } catch (e) { showError('Save failed: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'saveSyllabus'); }
         });
 
         document.getElementById('submitSyllabusBtn').addEventListener('click', async () => {
@@ -623,7 +644,7 @@
                 updateSyllabusStatus('pending');
                 document.getElementById('createLessonNoteBtn').style.display = 'none';
                 renderSubjectGrid();
-            } catch (e) { showError('Submit failed: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'submitSyllabus'); }
         });
 
         document.getElementById('editSyllabusBtn').addEventListener('click', async () => {
@@ -640,7 +661,7 @@
                 updateSyllabusStatus(newStatus);
                 document.getElementById('createLessonNoteBtn').style.display = newStatus === 'approved' ? 'inline-block' : 'none';
                 renderSubjectGrid();
-            } catch (e) { showError('Edit failed: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'editSyllabus'); }
         });
 
         function updateSyllabusStatus(status) {
@@ -752,7 +773,7 @@
                     updateEditorButtons(note);
                 }
                 renderTeachTab();
-            } catch (e) { showError('Delete failed: ' + e.message); } finally { itemToDelete = null; }
+            } catch (e) { handleFirestoreError(e, 'deleteResource'); } finally { itemToDelete = null; }
         }
 
         async function publishResource(docId, type) {
@@ -765,7 +786,7 @@
                 const key = `${currentSubject}_${currentWeek}`;
                 const note = lessonNotesMap[key] || {};
                 updateEditorButtons(note);
-            } catch (e) { showError('Publish failed: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'publishResource'); }
         }
 
         // ========== EDITOR ACTIONS ==========
@@ -806,7 +827,7 @@
                 await loadAllLessonNotes();
                 updateEditorButtons(lessonNotesMap[key] || {});
                 renderTeachTab();
-            } catch (e) { showError('Save failed: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'saveEditor'); }
         });
 
         document.getElementById('submitEditorBtn').addEventListener('click', async () => {
@@ -844,7 +865,7 @@
                 alert('Submitted for approval.');
                 await loadAllLessonNotes();
                 renderTeachTab();
-            } catch (e) { showError('Submit failed: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'submitEditor'); }
         });
 
         // ========== TEACH TAB ==========
@@ -965,7 +986,7 @@
                 await logAudit('edit_rejected', { subject, week });
                 alert('Note moved to draft. You can now edit.');
                 continueEditing(subject, week);
-            } catch (e) { showError('Error: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'editRejected'); }
         };
 
         // ========== AI ASSISTANT ==========
@@ -1040,7 +1061,7 @@
                 alert('Saved to Teach page.');
                 closeAIAssistant();
                 viewInTeach(currentSubject, currentWeek);
-            } catch (e) { showError('Error: ' + e.message); }
+            } catch (e) { handleFirestoreError(e, 'saveToTeach'); }
         };
 
         // ========== CREATE LESSON NOTE BUTTON ==========
@@ -1071,7 +1092,7 @@
             });
         });
 
-        // ========== ADD SUBJECT (FIXED) ==========
+        // ========== ADD SUBJECT ==========
         document.getElementById('addSubjectBtn').addEventListener('click', async () => {
             const newSub = prompt('New subject name:');
             if (!newSub?.trim()) return;
@@ -1088,7 +1109,7 @@
                 alert('Subject added.');
             } catch (error) {
                 console.error('Add subject error:', error);
-                showError('Failed to add subject: ' + error.message);
+                handleFirestoreError(error, 'addSubject');
                 // revert the push
                 subjects.pop();
             } finally {
