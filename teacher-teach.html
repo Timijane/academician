@@ -381,16 +381,30 @@
                 const tab = document.createElement('span');
                 tab.className = 'tab';
                 tab.textContent = sub;
-                tab.onclick = () => switchSubject(sub);
+                tab.onclick = (e) => switchSubject(sub, e.target);
                 container.appendChild(tab);
             });
             if (subjects.length > 0) container.children[0].classList.add('active');
         }
 
         // Switch subject: fetch approved lesson notes
-        async function switchSubject(subject) {
-            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+        async function switchSubject(subject, clickedElement) {
+            // Remove active class from all subject tabs
+            const tabs = document.querySelectorAll('#subjectTabs .tab');
+            tabs.forEach(t => t.classList.remove('active'));
+
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            } else {
+                // Find the tab with matching subject text
+                for (let tab of tabs) {
+                    if (tab.textContent === subject) {
+                        tab.classList.add('active');
+                        break;
+                    }
+                }
+            }
+
             currentSubject = subject;
             document.getElementById('currentSubjectDisplay').textContent = subject;
             document.getElementById('indexError').style.display = 'none'; // hide previous errors
@@ -430,14 +444,26 @@
                 const tab = document.createElement('span');
                 tab.className = 'tab';
                 tab.textContent = `Week ${week}`;
-                tab.onclick = () => selectWeek(week);
+                tab.onclick = (e) => selectWeek(week, e.target);
                 container.appendChild(tab);
             });
         }
 
-        function selectWeek(week) {
-            document.querySelectorAll('#weekTabs .tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+        function selectWeek(week, clickedElement) {
+            const tabs = document.querySelectorAll('#weekTabs .tab');
+            tabs.forEach(t => t.classList.remove('active'));
+
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            } else {
+                for (let tab of tabs) {
+                    if (tab.textContent.includes(`Week ${week}`)) {
+                        tab.classList.add('active');
+                        break;
+                    }
+                }
+            }
+
             currentWeek = week;
             document.getElementById('currentWeekDisplay').textContent = week;
             renderResources(lessonNotesMap[week]);
