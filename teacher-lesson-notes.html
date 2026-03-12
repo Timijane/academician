@@ -15,7 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- Add Firebase Remote Config -->
+    <!-- Firebase Remote Config -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <!-- Google Generative AI SDK -->
     <script type="importmap">
@@ -26,7 +26,7 @@
         }
     </script>
     <style>
-        /* (your existing styles – unchanged) */
+        /* (keep your existing styles – unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] { --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --glass-border: rgba(255,255,255,0.3); --text-primary: #0b1e33; --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --success-bg: rgba(34,197,94,0.2); --success-text: #16a34a; --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309; --danger-bg: rgba(239,68,68,0.2); --danger-text: #b91c1c; --input-bg: rgba(255,255,255,0.9); --toolbar-bg: #f8fafc; }
         :root[data-theme="dark"] { --bg-primary: #0a0f1e; --bg-sidebar: rgba(15, 23, 42, 0.8); --glass-border: rgba(255,255,255,0.08); --text-primary: #f0f4fa; --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05); --card-bg: rgba(15, 23, 42, 0.6); --hover-bg: rgba(30, 41, 59, 0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171; --input-bg: rgba(30,41,59,0.8); --toolbar-bg: #1e293b; }
@@ -343,7 +343,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const remoteConfig = firebase.remoteConfig();
-        remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
+        remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour (use 0 for development)
 
         // Theme & sidebar
         const html = document.documentElement;
@@ -460,16 +460,24 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
 
-                // Fetch Gemini API key from Remote Config
+                // ---- Fetch Gemini API key from Remote Config ----
                 try {
+                    console.log('Fetching Remote Config...');
                     await remoteConfig.fetchAndActivate();
                     const apiKey = remoteConfig.getString('gemini_api_key'); // parameter name in RC
-                    if (!apiKey) throw new Error('API key not found in Remote Config');
+                    console.log('API key retrieved, length:', apiKey ? apiKey.length : 0);
+
+                    if (!apiKey) {
+                        throw new Error('API key is empty in Remote Config');
+                    }
+
                     const genAI = new GoogleGenerativeAI(apiKey);
-                    model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                    // Use a valid model from the list (gemini-2.0-flash is stable)
+                    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                    console.log('Gemini model initialized successfully');
                 } catch (e) {
                     console.error('Failed to initialize AI model:', e);
-                    showError('AI features unavailable. Please contact admin.');
+                    showError('AI features unavailable: ' + e.message + ' Please check Remote Config and API key.');
                 }
 
                 subjects = userData.subjects || [];
@@ -577,10 +585,7 @@
                     if (currentWeek) {
                         const key = `${currentSubject}_${currentWeek}`;
                         const note = lessonNotesMap[key] || {};
-                        // Update editor content if needed? But we might just refresh the buttons
-                        // For simplicity, we'll just re-render the current week's view
                         if (document.getElementById('tab-notebook').classList.contains('active')) {
-                            // We are in notebook tab, update the postApprovalActions
                             const postApprovalDiv = document.getElementById('postApprovalActions');
                             if (note.status === 'approved') {
                                 postApprovalDiv.style.display = 'block';
@@ -590,13 +595,13 @@
                             updateEditorButtons(note);
                         }
                     }
-                    renderTeachTab(); // also update Teach tab
+                    renderTeachTab();
                 }, error => {
                     console.error('Real-time listener error:', error);
                     showError('Error listening to lesson note changes.');
                 });
 
-            await loadLessonNotes(subject); // initial load (though listener will also load)
+            await loadLessonNotes(subject);
             renderWeekTabs();
         }
 
@@ -788,7 +793,6 @@
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
 
-            // Show/hide additional resource buttons based on approval status
             const postApprovalDiv = document.getElementById('postApprovalActions');
             if (note.status === 'approved') {
                 postApprovalDiv.style.display = 'block';
@@ -881,7 +885,6 @@
                 handwritten: 'handwrittenNotes'
             };
 
-            // Prepare base data
             const updateData = {
                 teacherId: currentUser.uid,
                 subject: currentSubject,
@@ -893,7 +896,6 @@
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            // If this is a new document, require syllabusId from approved syllabus
             if (!existing.id) {
                 const syllabus = syllabusMap[currentSubject];
                 if (!syllabus || syllabus.status !== 'approved') {
@@ -902,9 +904,8 @@
                 }
                 updateData.syllabusId = syllabus.id;
             } else {
-                // When updating, preserve other fields (including syllabusId)
                 Object.assign(updateData, existing);
-                updateData[fieldMap[currentResourceType]] = content; // ensure the current field is updated
+                updateData[fieldMap[currentResourceType]] = content;
             }
 
             try {
@@ -917,9 +918,7 @@
                     await logAudit('create_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
                 }
 
-                // Store manual content to AI memory
                 await storeToAIMemory(content, currentResourceType, currentSubject, currentWeek);
-
                 alert('Saved.');
                 await loadAllLessonNotes();
                 updateEditorButtons(lessonNotesMap[key] || {});
@@ -960,7 +959,6 @@
                 }
                 updateData.syllabusId = syllabus.id;
             } else {
-                // Preserve other fields when updating
                 Object.assign(updateData, existing);
                 updateData[fieldMap[currentResourceType]] = content;
                 updateData.status = 'pending';
@@ -975,10 +973,7 @@
                     lessonNotesMap[key] = { id: ref.id, ...updateData };
                 }
                 await logAudit('submit_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
-
-                // Store manual content to AI memory
                 await storeToAIMemory(content, currentResourceType, currentSubject, currentWeek);
-
                 alert('Submitted for approval.');
                 await loadAllLessonNotes();
                 renderTeachTab();
@@ -1281,7 +1276,6 @@
             } catch (error) {
                 console.error('Add subject error:', error);
                 showError('Failed to add subject: ' + error.message);
-                // revert the push
                 subjects.pop();
             } finally {
                 hideLoading();
@@ -1311,7 +1305,7 @@
             quill.setText(content);
             document.getElementById('editorTitle').textContent = `Week ${week} ${type.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}`;
             document.querySelectorAll('#saveEditorBtn, #submitEditorBtn, #useAIAssistantBtn').forEach(b => b.style.display = 'inline-block');
-            document.getElementById('submitEditorBtn').style.display = 'none'; // resources don't need approval
+            document.getElementById('submitEditorBtn').style.display = 'none';
             document.getElementById('deleteResourceBtn').style.display = note.id ? 'inline-block' : 'none';
             document.getElementById('deleteResourceBtn').onclick = () => promptDelete(type, note.id, subject, week);
             const publishBtn = document.getElementById('publishResourceBtn');
