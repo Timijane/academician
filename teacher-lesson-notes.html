@@ -17,11 +17,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <!-- Firebase Remote Config -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
-    <!-- Google Generative AI SDK -->
+    <!-- Groq SDK (import map) -->
     <script type="importmap">
         {
             "imports": {
-                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+                "groq-sdk": "https://esm.run/groq-sdk"
             }
         }
     </script>
@@ -328,7 +328,7 @@
     </div>
 
     <script type="module">
-        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+        import Groq from "groq-sdk";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
@@ -343,7 +343,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         const remoteConfig = firebase.remoteConfig();
-        remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour (use 0 for development)
+        remoteConfig.settings.minimumFetchIntervalMillis = 0; // always fetch for development
 
         // Theme & sidebar
         const html = document.documentElement;
@@ -395,7 +395,7 @@
         let lessonNotesMap = {}; // key: `${subject}_${week}` -> { id, ... }
         let quill = null;
         let lastGenerated = '';
-        let model = null; // will be set after fetching API key
+        let groq = null; // Groq client
 
         // Unsubscribe function for real-time listener
         let unsubscribeLessonNotes = null;
@@ -460,23 +460,24 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
 
-                // ---- Fetch Gemini API key from Remote Config ----
+                // ---- Fetch Groq API key from Remote Config ----
                 try {
                     console.log('Fetching Remote Config...');
                     await remoteConfig.fetchAndActivate();
-                    const apiKey = remoteConfig.getString('gemini_api_key'); // parameter name in RC
-                    console.log('API key retrieved, length:', apiKey ? apiKey.length : 0);
+                    const groqApiKey = remoteConfig.getString('groq_api_key');
+                    console.log('Groq API key retrieved, length:', groqApiKey ? groqApiKey.length : 0);
 
-                    if (!apiKey) {
-                        throw new Error('API key is empty in Remote Config');
+                    if (!groqApiKey) {
+                        throw new Error('Groq API key is empty in Remote Config');
                     }
 
-                    const genAI = new GoogleGenerativeAI(apiKey);
-                    // Use a valid model from the list (gemini-2.0-flash is stable)
-                    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-                    console.log('Gemini model initialized successfully');
+                    groq = new Groq({ 
+                        apiKey: groqApiKey,
+                        dangerouslyAllowBrowser: true // required for browser usage
+                    });
+                    console.log('Groq client initialized successfully');
                 } catch (e) {
-                    console.error('Failed to initialize AI model:', e);
+                    console.error('Failed to initialize Groq client:', e);
                     showError('AI features unavailable: ' + e.message + ' Please check Remote Config and API key.');
                 }
 
@@ -1148,7 +1149,7 @@
         document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
 
         window.sendToAI = async () => {
-            if (!model) {
+            if (!groq) {
                 showError('AI model not initialized. Please refresh and try again.');
                 return;
             }
@@ -1161,8 +1162,16 @@
             aiChat.appendChild(thinking);
             showLoading();
             try {
-                const result = await model.generateContent(`You are a Nigerian curriculum expert. Create lesson content based on: ${prompt}`);
-                const text = result.response.text();
+                const completion = await groq.chat.completions.create({
+                    messages: [
+                        { role: "system", content: "You are a Nigerian curriculum expert. Create lesson content for teachers." },
+                        { role: "user", content: prompt }
+                    ],
+                    model: "llama3-70b-8192", // or "mixtral-8x7b-32768", "gemma2-9b-it"
+                    temperature: 0.7,
+                    max_tokens: 2048,
+                });
+                const text = completion.choices[0].message.content;
                 lastGenerated = text;
                 aiChat.removeChild(thinking);
                 aiChat.innerHTML += `<div class="message assistant">${text.replace(/\n/g, '<br>')}</div>`;
