@@ -139,23 +139,14 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
 
-        /* Subject tabs */
-        .subject-tabs {
+        /* Subject & Week tabs */
+        .subject-tabs, .week-tabs {
             display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap;
         }
-        .subject-tab {
+        .subject-tab, .week-tab {
             padding: 0.7rem 2rem; border-radius: 3rem; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap;
         }
-        .subject-tab.active { background: var(--accent); color: white; }
-
-        /* Week tabs */
-        .week-tabs {
-            display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap;
-        }
-        .week-tab {
-            padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border); white-space: nowrap;
-        }
-        .week-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .subject-tab.active, .week-tab.active { background: var(--accent); color: white; }
 
         .card {
             background: var(--card-bg);
@@ -227,6 +218,7 @@
             color: var(--text-primary);
         }
         .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .btn-sm { padding: 0.3rem 1rem; font-size: 0.9rem; }
 
         .error-message {
             background: var(--danger-bg);
@@ -247,7 +239,6 @@
             .sidebar .logo-area h2 { display: none; }
             .sidebar .nav-item span { display: none; }
             .main-content { margin-left: 90px; }
-            .subject-tabs, .week-tabs { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -265,6 +256,9 @@
         <a href="student-tests.html" class="nav-item"><i class="fas fa-laptop"></i><span>Tests & Exams</span></a>
         <a href="student-classroom.html" class="nav-item active"><i class="fas fa-chalkboard"></i><span>Classroom</span></a>
         <a href="student-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="student-evaluation.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Evaluation</span></a>
+        <a href="student-summary.html" class="nav-item"><i class="fas fa-clipboard-list"></i><span>Summary</span></a>
+        <a href="student-submit.html" class="nav-item"><i class="fas fa-upload"></i><span>Submit</span></a>
         <a href="student-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
@@ -273,7 +267,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>My Classroom</h1>
-                <p>Access your lesson materials and virtual classes</p>
+                <p>Access your published learning materials</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -285,14 +279,13 @@
                         <div class="profile-pic" id="profilePic">ST</div>
                     </div>
                     <div class="dropdown-menu">
-                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <a href="student-profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
                         <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Error display -->
         <div id="errorMessage" class="error-message" style="display: none;"></div>
 
         <!-- Subject Tabs -->
@@ -301,7 +294,7 @@
         <!-- Week Tabs -->
         <div class="week-tabs" id="weekTabs"></div>
 
-        <!-- Resources Card -->
+        <!-- Resources Card (only student resources, handwriting, YouTube links) -->
         <div class="card">
             <div class="card-header">
                 <h3>Learning Materials for <span id="currentSubject"></span> – Week <span id="currentWeek"></span></h3>
@@ -339,7 +332,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Sidebar toggle
+        // Sidebar & theme (same as before)
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -351,7 +344,6 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
-        // Theme toggle
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -375,11 +367,11 @@
         let currentUser = null;
         let userData = null;
         let studentClass = null;
-        let subjects = []; // subjects derived from lesson notes
+        let subjects = [];
         let currentSubject = null;
-        let weeks = []; // weeks for current subject
+        let weeks = [];
         let currentWeek = null;
-        let lessonNotesMap = {}; // key: subject_week -> lessonNote data
+        let lessonNotesMap = {};
 
         // Auth
         auth.onAuthStateChanged(async (user) => {
@@ -411,7 +403,7 @@
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
 
-        // Load all approved lesson notes for the student's class, grouped by subject
+        // Load all approved lesson notes for the student's class
         async function loadAllMaterials() {
             if (!studentClass) return;
             try {
@@ -461,7 +453,6 @@
             currentSubject = subject;
             document.getElementById('currentSubject').textContent = subject;
 
-            // Get weeks for this subject from lessonNotesMap
             weeks = [];
             for (let key in lessonNotesMap) {
                 if (key.startsWith(subject + '_')) {
@@ -498,6 +489,19 @@
             renderResources();
         }
 
+        // Helper to download content as a text file
+        function downloadAsFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         function renderResources() {
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
@@ -508,43 +512,65 @@
                 return;
             }
 
-            let youtubeHtml = '';
-            if (note.youtubeLinks && note.youtubeLinks.length) {
-                youtubeHtml = note.youtubeLinks.map(link => `<li><a href="${link}" target="_blank" class="youtube-link">${link}</a></li>`).join('');
-            } else {
-                youtubeHtml = '<li>No links</li>';
-            }
+            // Only show Student Resource, Handwritten Notes, and YouTube Links
+            let html = '<div class="resource-grid">';
 
-            container.innerHTML = `
-                <div class="resource-grid">
-                    <div class="resource-card">
-                        <h4><i class="fas fa-book"></i> Lesson Note</h4>
-                        <p>${note.lessonNote ? note.lessonNote : 'Not available.'}</p>
-                    </div>
-                    <div class="resource-card">
-                        <h4><i class="fas fa-chalkboard-teacher"></i> Teaching Process</h4>
-                        <p>${note.teachingProcess ? note.teachingProcess : 'Not available.'}</p>
-                    </div>
+            // Student Resource (if published)
+            if (note.studentResource && note.studentResourcePublished) {
+                html += `
                     <div class="resource-card">
                         <h4><i class="fas fa-users"></i> Student Resource</h4>
-                        <p>${note.studentResource ? note.studentResource : 'Not available.'}</p>
-                        ${note.studentResourcePublished ? '<span class="badge published">Published</span>' : ''}
+                        <p>${note.studentResource}</p>
+                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${note.studentResource.replace(/`/g, '\\`')}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
+                            <i class="fas fa-download"></i> Download
+                        </button>
                     </div>
+                `;
+            }
+
+            // Handwritten Notes (if published)
+            if (note.handwrittenNotes && note.handwrittenPublished) {
+                html += `
                     <div class="resource-card">
                         <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
-                        <p>${note.handwrittenNotes ? note.handwrittenNotes : 'Not available.'}</p>
-                        ${note.handwrittenPublished ? '<span class="badge published">Published</span>' : ''}
+                        <p>${note.handwrittenNotes}</p>
+                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${note.handwrittenNotes.replace(/`/g, '\\`')}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
+                            <i class="fas fa-download"></i> Download
+                        </button>
                     </div>
+                `;
+            }
+
+            // YouTube Links
+            if (note.youtubeLinks && note.youtubeLinks.length) {
+                let linksHtml = '<ul>';
+                note.youtubeLinks.forEach(link => {
+                    linksHtml += `<li><a href="${link}" target="_blank" class="youtube-link">${link}</a></li>`;
+                });
+                linksHtml += '</ul>';
+                html += `
                     <div class="resource-card">
                         <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
-                        <ul>${youtubeHtml}</ul>
+                        ${linksHtml}
                     </div>
-                </div>
-            `;
+                `;
+            }
 
-            // Check if there's a virtual class for this subject/week happening now or soon
-            // We'll handle that in loadVirtualClasses separately
+            html += '</div>';
+
+            // If none of the above, show message
+            if (!note.studentResourcePublished && !note.handwrittenPublished && !note.youtubeLinks?.length) {
+                html = '<p class="empty-state">No published materials for this week.</p>';
+            }
+
+            container.innerHTML = html;
+
+            // Check for virtual class button (optional)
+            // We'll handle separately
         }
+
+        // Expose download function globally
+        window.downloadAsFile = downloadAsFile;
 
         async function loadVirtualClasses() {
             if (!studentClass) return;
@@ -565,8 +591,6 @@
                 let html = '<div class="resource-grid">';
                 snapshot.forEach(doc => {
                     const vc = doc.data();
-                    // You could filter to show only future classes, but for simplicity we show all
-                    const dateTime = `${vc.date} ${vc.time}`;
                     html += `
                         <div class="resource-card">
                             <h4><i class="fas fa-video"></i> ${vc.subject} – Week ${vc.week}</h4>
@@ -581,8 +605,7 @@
                 container.innerHTML = html;
             } catch (error) {
                 console.error(error);
-                document.getElementById('errorMessage').textContent = 'Error loading virtual classes.';
-                document.getElementById('errorMessage').style.display = 'block';
+                // Silently fail – not critical
             }
         }
     </script>
