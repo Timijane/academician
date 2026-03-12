@@ -138,7 +138,40 @@
         .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
-        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Quick links grid */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .quick-link-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .quick-link-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+        .quick-link-card i {
+            font-size: 2rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        .quick-link-card span {
+            display: block;
+            font-weight: 500;
+        }
 
         .card {
             background: var(--card-bg);
@@ -148,9 +181,14 @@
             padding: 1.8rem;
             box-shadow: var(--shadow);
             margin-bottom: 2rem;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -10px var(--accent); border-color: var(--accent); }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .card-header h3 { font-size: 1.3rem; font-weight: 600; }
 
         .stats-grid {
             display: grid;
@@ -194,6 +232,7 @@
         }
         .badge.warning { background: var(--warning-bg); color: var(--warning-text); }
         .badge.success { background: var(--success-bg); color: var(--success-text); }
+        .badge.danger { background: var(--danger-bg); color: var(--danger-text); }
 
         .btn {
             padding: 0.5rem 1.2rem;
@@ -209,14 +248,20 @@
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
 
+        .error-message {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger-text);
+        }
+
         @media (max-width: 768px) {
             .sidebar { width: 90px; }
             .sidebar .logo-area h2 { display: none; }
             .sidebar .nav-item span { display: none; }
             .main-content { margin-left: 90px; }
-            .sidebar.collapsed { width: 90px; }
-            .main-content.expanded { margin-left: 90px; }
-            .top-bar { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
@@ -224,6 +269,7 @@
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
+    <!-- SIDEBAR (with all student pages) -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
             <i class="fas fa-user-graduate"></i>
@@ -234,11 +280,15 @@
         <a href="student-tests.html" class="nav-item"><i class="fas fa-laptop"></i><span>Tests & Exams</span></a>
         <a href="student-classroom.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Classroom</span></a>
         <a href="student-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="student-evaluation.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Evaluation</span></a>
+        <a href="student-summary.html" class="nav-item"><i class="fas fa-clipboard-list"></i><span>Summary</span></a>
+        <a href="student-submit.html" class="nav-item"><i class="fas fa-upload"></i><span>Submit</span></a>
         <a href="student-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
     <div class="main-content" id="mainContent">
+        <!-- TOP BAR -->
         <div class="top-bar">
             <div class="page-title">
                 <h1>Dashboard</h1>
@@ -254,14 +304,53 @@
                         <div class="profile-pic" id="profilePic">ST</div>
                     </div>
                     <div class="dropdown-menu">
-                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <a href="student-profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
                         <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Stats Cards -->
+        <!-- Error display -->
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+        <!-- QUICK LINKS to all sections -->
+        <div class="quick-links">
+            <a href="student-assignments.html" class="quick-link-card">
+                <i class="fas fa-tasks"></i>
+                <span>Assignments</span>
+            </a>
+            <a href="student-tests.html" class="quick-link-card">
+                <i class="fas fa-laptop"></i>
+                <span>Tests & Exams</span>
+            </a>
+            <a href="student-classroom.html" class="quick-link-card">
+                <i class="fas fa-chalkboard"></i>
+                <span>Classroom</span>
+            </a>
+            <a href="student-timetable.html" class="quick-link-card">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Timetable</span>
+            </a>
+            <a href="student-evaluation.html" class="quick-link-card">
+                <i class="fas fa-chart-bar"></i>
+                <span>Evaluation</span>
+            </a>
+            <a href="student-summary.html" class="quick-link-card">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Summary</span>
+            </a>
+            <a href="student-submit.html" class="quick-link-card">
+                <i class="fas fa-upload"></i>
+                <span>Submit</span>
+            </a>
+            <a href="student-profile.html" class="quick-link-card">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+
+        <!-- STATS CARDS -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value" id="pendingAssignments">0</div>
@@ -281,9 +370,9 @@
             </div>
         </div>
 
-        <!-- Recent Assignments -->
+        <!-- RECENT ASSIGNMENTS -->
         <div class="card">
-            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div class="card-header">
                 <h3>Recent Assignments</h3>
                 <a href="student-assignments.html" class="btn btn-outline">View All</a>
             </div>
@@ -305,9 +394,9 @@
             </div>
         </div>
 
-        <!-- Upcoming Tests/Exams -->
+        <!-- UPCOMING TESTS / EXAMS -->
         <div class="card">
-            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div class="card-header">
                 <h3>Upcoming Tests & Exams</h3>
                 <a href="student-tests.html" class="btn btn-outline">View All</a>
             </div>
@@ -324,6 +413,29 @@
                     </thead>
                     <tbody id="upcomingTestsBody">
                         <tr><td colspan="5">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- RECENT EVALUATIONS (optional) -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Recent Evaluations</h3>
+                <a href="student-evaluation.html" class="btn btn-outline">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Assessment</th>
+                            <th>Score</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentEvaluationsBody">
+                        <tr><td colspan="4">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -376,6 +488,14 @@
             updateThemeUI(next);
         });
 
+        // Error display
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+
         // Auth
         let currentUser = null;
         let userData = null;
@@ -404,7 +524,7 @@
                 loadDashboardData();
             } catch (error) {
                 console.error(error);
-                alert('Error loading dashboard. Please refresh.');
+                showError('Error loading dashboard. Please refresh.');
             }
         });
 
@@ -422,7 +542,7 @@
             let recentRows = '';
             const now = new Date();
 
-            // We'll also fetch submissions to know which are submitted
+            // Fetch submissions
             const submissionsSnap = await db.collection('submissions')
                 .where('studentId', '==', currentUser.uid)
                 .get();
@@ -431,7 +551,7 @@
 
             assignmentsSnap.forEach(doc => {
                 const a = doc.data();
-                const due = new Date(a.dueDate + 'T23:59:59'); // treat as local date end
+                const due = new Date(a.dueDate + 'T23:59:59');
                 const isPending = !submittedIds.has(doc.id) && due >= now;
                 if (isPending) pendingCount++;
                 if (recentRows.split('<tr>').length <= 5) {
@@ -491,7 +611,7 @@
             const avg = count ? (total / count).toFixed(1) : 0;
             document.getElementById('averageScore').textContent = avg + '%';
 
-            // Attendance rate (placeholder – could be from attendance collection)
+            // Attendance rate
             const attendanceSnap = await db.collection('attendance')
                 .where('studentId', '==', currentUser.uid)
                 .get();
@@ -503,6 +623,24 @@
             const totalDays = attendanceSnap.size || 1;
             const rate = ((present / totalDays) * 100).toFixed(1);
             document.getElementById('attendanceRate').textContent = rate + '%';
+
+            // Recent evaluations (from submissions)
+            let evalRows = '';
+            scoresSnap.forEach(doc => {
+                const s = doc.data();
+                if (evalRows.split('<tr>').length <= 5) {
+                    // Fetch assessment title if needed
+                    evalRows += `
+                        <tr>
+                            <td>${s.subject || 'N/A'}</td>
+                            <td>${s.assessmentTitle || 'Assignment'}</td>
+                            <td>${s.grade ? s.grade + '%' : '—'}</td>
+                            <td>${s.submittedAt ? new Date(s.submittedAt.seconds*1000).toLocaleDateString() : '—'}</td>
+                        </tr>
+                    `;
+                }
+            });
+            document.getElementById('recentEvaluationsBody').innerHTML = evalRows || '<tr><td colspan="4">No evaluations yet.</td></tr>';
         }
     </script>
 </body>
