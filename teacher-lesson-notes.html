@@ -15,6 +15,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase Storage -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <!-- Firebase Remote Config -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <!-- Groq SDK (import map) -->
@@ -26,7 +28,6 @@
         }
     </script>
     <style>
-        /* (keep your existing styles – unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] { --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --glass-border: rgba(255,255,255,0.3); --text-primary: #0b1e33; --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --success-bg: rgba(34,197,94,0.2); --success-text: #16a34a; --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309; --danger-bg: rgba(239,68,68,0.2); --danger-text: #b91c1c; --input-bg: rgba(255,255,255,0.9); --toolbar-bg: #f8fafc; }
         :root[data-theme="dark"] { --bg-primary: #0a0f1e; --bg-sidebar: rgba(15, 23, 42, 0.8); --glass-border: rgba(255,255,255,0.08); --text-primary: #f0f4fa; --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05); --card-bg: rgba(15, 23, 42, 0.6); --hover-bg: rgba(30, 41, 59, 0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171; --input-bg: rgba(30,41,59,0.8); --toolbar-bg: #1e293b; }
@@ -145,6 +146,133 @@
 
         .error-message { background: var(--danger-bg); color: var(--danger-text); padding:1rem; border-radius:1rem; margin-bottom:1rem; border-left:4px solid var(--danger-text); }
         .error-message a { color: var(--accent); text-decoration: underline; }
+
+        /* New AI Assistant styles (wide, like Gemini) */
+        .assistant-modal {
+            max-width: 1000px !important;
+            width: 95% !important;
+            padding: 0 !important;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            overflow: hidden;
+        }
+        .assistant-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .assistant-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .assistant-close {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: 0.2s;
+        }
+        .assistant-close:hover {
+            color: var(--danger-text);
+        }
+        .assistant-context {
+            background: var(--hover-bg);
+            padding: 0.8rem 2rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        .assistant-context strong {
+            color: var(--accent);
+        }
+        .assistant-chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        .assistant-message {
+            max-width: 85%;
+            padding: 1rem 1.5rem;
+            border-radius: 1.5rem;
+            line-height: 1.6;
+        }
+        .assistant-message.user {
+            background: var(--accent);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.2rem;
+        }
+        .assistant-message.assistant {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 0.2rem;
+        }
+        .assistant-thinking {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.5rem 0;
+        }
+        .assistant-thinking i {
+            font-size: 1.2rem;
+        }
+        .assistant-input-area {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+        }
+        .assistant-input {
+            flex: 1;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.8rem 1.5rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+        }
+        .assistant-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        .assistant-send-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .assistant-send-btn:hover {
+            transform: scale(1.05);
+            background: var(--accent-glow);
+        }
+        .assistant-send-btn i {
+            font-size: 1.2rem;
+        }
+        .assistant-actions {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 2rem 2rem;
+            justify-content: flex-end;
+        }
 
         @media (max-width: 768px) {
             .sidebar { width: 90px; }
@@ -286,23 +414,30 @@
         </div>
     </div>
 
-    <!-- AI Assistant Modal -->
+    <!-- AI Assistant Modal (redesigned) -->
     <div class="modal-overlay" id="aiAssistantModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-robot"></i> Teacher Assistant</h3>
-                <i class="fas fa-times" style="cursor:pointer;" onclick="closeAIAssistant()"></i>
+        <div class="modal-content assistant-modal">
+            <div class="assistant-header">
+                <h2><i class="fas fa-robot"></i> Teacher Assistant</h2>
+                <i class="fas fa-times assistant-close" onclick="closeAIAssistant()"></i>
             </div>
-            <div class="ai-chat" id="aiChat">
-                <div class="message assistant">👋 Hello! Tell me what lesson material you need (topic, week, subject).</div>
+            <div class="assistant-context" id="assistantContext">
+                <!-- Filled dynamically with week info -->
             </div>
-            <div style="display: flex; gap: 0.5rem; margin-bottom:1rem;">
-                <input type="text" id="aiPrompt" class="form-control" placeholder="e.g., Generate lesson note on verbs for JSS 2 week 3">
-                <button class="btn btn-primary" onclick="sendToAI()">Send</button>
+            <div class="assistant-chat" id="assistantChat">
+                <div class="assistant-message assistant">
+                    👋 Hello! I'm your Teacher Assistant. Tell me what you need (lesson note, teaching process, student resource, or handwriting image).
+                </div>
             </div>
-            <div style="text-align:right;">
-                <button class="btn btn-outline" onclick="copyToEditor()"><i class="fas fa-copy"></i> Copy to Editor</button>
-                <button class="btn btn-success" id="saveToTeachBtn" style="display:none;" onclick="saveToTeach()"><i class="fas fa-save"></i> Save to Teach</button>
+            <div class="assistant-input-area">
+                <input type="text" class="assistant-input" id="assistantInput" placeholder="Type your prompt...">
+                <button class="assistant-send-btn" onclick="sendAssistantMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="assistant-actions">
+                <button class="btn btn-outline" onclick="copyAssistantToEditor()">Copy to Editor</button>
+                <button class="btn btn-success" id="assistantSaveBtn" onclick="saveAssistantToTeach()" style="display:none;">Save to Teach</button>
             </div>
         </div>
     </div>
@@ -342,6 +477,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.settings.minimumFetchIntervalMillis = 0; // always fetch for development
 
@@ -394,8 +530,12 @@
         let syllabusMap = {}; // key: subject -> { id, weeks, status }
         let lessonNotesMap = {}; // key: `${subject}_${week}` -> { id, ... }
         let quill = null;
-        let lastGenerated = '';
         let groq = null; // Groq client
+
+        // Assistant state
+        let assistantMessages = []; // for conversation history
+        let lastGeneratedText = ''; // last AI response (text)
+        let lastGeneratedImageUrl = ''; // last generated image URL (for handwriting)
 
         // Unsubscribe function for real-time listener
         let unsubscribeLessonNotes = null;
@@ -1141,59 +1281,137 @@
             } catch (e) { showError('Error: ' + e.message); }
         };
 
-        // ========== AI ASSISTANT ==========
+        // ========== AI ASSISTANT (redesigned) ==========
         const aiModal = document.getElementById('aiAssistantModal');
-        const aiChat = document.getElementById('aiChat');
-        window.openAIAssistant = () => aiModal.classList.add('active');
-        window.closeAIAssistant = () => aiModal.classList.remove('active');
-        document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
+        const assistantChat = document.getElementById('assistantChat');
+        const assistantInput = document.getElementById('assistantInput');
+        const assistantContext = document.getElementById('assistantContext');
+        const assistantSaveBtn = document.getElementById('assistantSaveBtn');
 
-        window.sendToAI = async () => {
-            if (!groq) {
-                showError('AI model not initialized. Please refresh and try again.');
-                return;
+        window.openAIAssistant = () => {
+            // Reset conversation
+            assistantMessages = [];
+            lastGeneratedText = '';
+            lastGeneratedImageUrl = '';
+            assistantChat.innerHTML = `
+                <div class="assistant-message assistant">
+                    👋 Hello! I'm your Teacher Assistant. Tell me what you need (lesson note, teaching process, student resource, or handwriting image).
+                </div>
+            `;
+            // Show context if a week is selected
+            if (currentSubject && currentWeek) {
+                const weekData = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek);
+                const topic = weekData?.topic || '';
+                assistantContext.innerHTML = `Currently working on <strong>${currentSubject}</strong> – Week <strong>${currentWeek}</strong>${topic ? ` (${topic})` : ''}. Your request will be tailored to this context.`;
+            } else {
+                assistantContext.innerHTML = 'No week selected. Please select a week to get context‑aware suggestions.';
             }
-            const prompt = document.getElementById('aiPrompt').value;
+            assistantSaveBtn.style.display = 'none';
+            aiModal.classList.add('active');
+        };
+
+        window.closeAIAssistant = () => {
+            aiModal.classList.remove('active');
+        };
+
+        window.sendAssistantMessage = async () => {
+            const prompt = assistantInput.value.trim();
             if (!prompt) return;
-            aiChat.innerHTML += `<div class="message user">${prompt}</div>`;
-            const thinking = document.createElement('div');
-            thinking.className = 'message assistant';
-            thinking.innerHTML = '<i class="fas fa-robot fa-spin"></i> Thinking...';
-            aiChat.appendChild(thinking);
-            showLoading();
+
+            // Add user message to chat
+            const userDiv = document.createElement('div');
+            userDiv.className = 'assistant-message user';
+            userDiv.textContent = prompt;
+            assistantChat.appendChild(userDiv);
+            assistantInput.value = '';
+
+            // Show thinking indicator
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'assistant-thinking';
+            thinkingDiv.innerHTML = '<i class="fas fa-robot fa-spin"></i> Thinking...';
+            assistantChat.appendChild(thinkingDiv);
+            assistantChat.scrollTop = assistantChat.scrollHeight;
+
             try {
-                const completion = await groq.chat.completions.create({
-                    messages: [
-                        { role: "system", content: "You are a Nigerian curriculum expert. Create lesson content for teachers." },
-                        { role: "user", content: prompt }
-                    ],
-                    // Updated model – check Groq console for latest supported models
-                    model: "llama-3.3-70b-versatile",
-                    temperature: 0.7,
-                    max_tokens: 2048,
-                });
-                const text = completion.choices[0].message.content;
-                lastGenerated = text;
-                aiChat.removeChild(thinking);
-                aiChat.innerHTML += `<div class="message assistant">${text.replace(/\n/g, '<br>')}</div>`;
-                document.getElementById('saveToTeachBtn').style.display = 'inline-block';
-            } catch (e) {
-                aiChat.removeChild(thinking);
-                aiChat.innerHTML += `<div class="message assistant">Error: ${e.message}</div>`;
-            } finally {
-                hideLoading();
-                document.getElementById('aiPrompt').value = '';
+                let result;
+                if (currentResourceType === 'handwritten') {
+                    // Generate image via Pollinations
+                    const imagePrompt = `Create handwritten study notes on ${prompt}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around dates. Add doodles to explain concepts. A4 size.`;
+                    const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}`;
+                    // Fetch image, upload to Storage, get permanent URL
+                    const response = await fetch(imageUrl);
+                    const blob = await response.blob();
+                    const storageRef = storage.ref().child(`handwriting/${currentUser.uid}/${Date.now()}.jpg`);
+                    await storageRef.put(blob);
+                    const downloadUrl = await storageRef.getDownloadURL();
+                    lastGeneratedImageUrl = downloadUrl;
+
+                    // Create assistant message with image
+                    const img = document.createElement('img');
+                    img.src = downloadUrl;
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '0.5rem';
+                    const assistantDiv = document.createElement('div');
+                    assistantDiv.className = 'assistant-message assistant';
+                    assistantDiv.appendChild(img);
+                    assistantChat.removeChild(thinkingDiv);
+                    assistantChat.appendChild(assistantDiv);
+                    lastGeneratedText = ''; // clear text
+                } else {
+                    // Use Groq for text generation
+                    const weekData = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek);
+                    const topic = weekData?.topic || '';
+                    const systemPrompt = `You are a Nigerian curriculum expert. The teacher is working on ${currentSubject}, week ${currentWeek} (topic: ${topic}). Generate content based on the user's request.`;
+                    const completion = await groq.chat.completions.create({
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            ...assistantMessages.map(m => ({ role: m.role, content: m.content })),
+                            { role: "user", content: prompt }
+                        ],
+                        model: "llama-3.3-70b-versatile",
+                        temperature: 0.7,
+                        max_tokens: 2048,
+                    });
+                    const text = completion.choices[0].message.content;
+                    lastGeneratedText = text;
+
+                    // Add assistant message
+                    const assistantDiv = document.createElement('div');
+                    assistantDiv.className = 'assistant-message assistant';
+                    assistantDiv.textContent = text;
+                    assistantChat.removeChild(thinkingDiv);
+                    assistantChat.appendChild(assistantDiv);
+                }
+
+                assistantMessages.push({ role: "user", content: prompt });
+                assistantMessages.push({ role: "assistant", content: lastGeneratedText || '[Image generated]' });
+                assistantSaveBtn.style.display = 'inline-block';
+                assistantChat.scrollTop = assistantChat.scrollHeight;
+            } catch (error) {
+                console.error('AI generation error:', error);
+                assistantChat.removeChild(thinkingDiv);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'assistant-message assistant';
+                errorDiv.textContent = 'Error: ' + error.message;
+                assistantChat.appendChild(errorDiv);
             }
         };
 
-        window.copyToEditor = () => {
-            if (lastGenerated && quill) {
-                quill.setText(lastGenerated);
+        window.copyAssistantToEditor = () => {
+            if (lastGeneratedText && quill) {
+                quill.setText(lastGeneratedText);
                 closeAIAssistant();
+            } else if (lastGeneratedImageUrl) {
+                // Insert image HTML into editor
+                const imageHtml = `<img src="${lastGeneratedImageUrl}" style="max-width:100%;">`;
+                quill.clipboard.dangerouslyPasteHTML(imageHtml);
+                closeAIAssistant();
+            } else {
+                alert('No content to copy.');
             }
         };
 
-        window.saveToTeach = async () => {
+        window.saveAssistantToTeach = async () => {
             if (!currentSubject || !currentWeek) { alert('Select a week first.'); return; }
             const key = `${currentSubject}_${currentWeek}`;
             const existing = lessonNotesMap[key] || {};
@@ -1204,27 +1422,40 @@
                 studentResource: 'studentResource',
                 handwritten: 'handwrittenNotes'
             };
+
+            let content;
+            if (currentResourceType === 'handwritten') {
+                if (!lastGeneratedImageUrl) { alert('No image generated.'); return; }
+                content = lastGeneratedImageUrl; // store URL
+            } else {
+                if (!lastGeneratedText) { alert('No text generated.'); return; }
+                content = lastGeneratedText;
+            }
+
             const updateData = {
                 teacherId: currentUser.uid,
                 subject: currentSubject,
                 week: currentWeek,
                 topic: weekData?.topic || '',
-                [fieldMap[currentResourceType]]: lastGenerated,
+                [fieldMap[currentResourceType]]: content,
                 classId: userData.classTeaching,
                 status: existing.status || 'draft',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+
             if (!existing.id) {
                 const syllabus = syllabusMap[currentSubject];
                 if (!syllabus || syllabus.status !== 'approved') {
-                    alert('Cannot save to Teach: syllabus not approved.');
+                    alert('Cannot save: syllabus not approved.');
                     return;
                 }
                 updateData.syllabusId = syllabus.id;
             } else {
                 Object.assign(updateData, existing);
-                updateData[fieldMap[currentResourceType]] = lastGenerated;
+                updateData[fieldMap[currentResourceType]] = content;
             }
+
+            showLoading();
             try {
                 if (existing.id) {
                     await db.collection('lessonNotes').doc(existing.id).update(updateData);
@@ -1233,12 +1464,30 @@
                     lessonNotesMap[key] = { id: ref.id, ...updateData };
                 }
                 await logAudit('ai_save_to_teach', { type: currentResourceType, subject: currentSubject, week: currentWeek });
-                await storeToAIMemory(lastGenerated, currentResourceType, currentSubject, currentWeek);
+                await storeToAIMemory(content, currentResourceType, currentSubject, currentWeek);
                 alert('Saved to Teach page.');
                 closeAIAssistant();
                 viewInTeach(currentSubject, currentWeek);
-            } catch (e) { showError('Error: ' + e.message); }
+            } catch (e) {
+                showError('Error: ' + e.message);
+            } finally {
+                hideLoading();
+            }
         };
+
+        // Override the old useAIAssistantBtn to use the new modal
+        document.getElementById('useAIAssistantBtn').addEventListener('click', () => {
+            // Ensure we are in the correct resource type
+            // The currentResourceType is set by selectWeek (lessonNote) or openResourceEditor
+            window.openAIAssistant();
+        });
+
+        // Add event listener for Enter key in input
+        assistantInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendAssistantMessage();
+            }
+        });
 
         // ========== CREATE LESSON NOTE BUTTON ==========
         document.getElementById('createLessonNoteBtn').addEventListener('click', () => {
