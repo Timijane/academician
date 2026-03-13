@@ -82,6 +82,7 @@
         .subject-badge.pending { background: var(--warning-bg); color: var(--warning-text); }
         .subject-badge.rejected { background: var(--danger-bg); color: var(--danger-text); }
         .subject-badge.draft { background: var(--hover-bg); color: var(--text-secondary); }
+        .subject-badge.teachable { background: var(--accent); color: white; }
         .delete-subject { position: absolute; top: 1rem; right: 1rem; color: var(--danger-text); background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: 0.2s; }
         .delete-subject:hover { opacity: 1; transform: scale(1.1); }
 
@@ -121,6 +122,7 @@
         .status-pending { background: var(--warning-bg); color: var(--warning-text); }
         .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
         .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
+        .status-teachable { background: var(--accent); color: white; }
 
         /* Modal */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; }
@@ -501,12 +503,14 @@
 
         <!-- Teach tab content -->
         <div id="tab-teach" class="tab-content">
+            <h2>Ready to Teach</h2>
+            <div id="teachableList" style="margin-bottom: 2rem;"></div>
+            <h2>Approved (Not yet moved to Teach)</h2>
+            <div id="approvedList" style="margin-bottom: 2rem;"></div>
             <h2>Drafts</h2>
             <div id="draftsList" style="margin-bottom: 2rem;"></div>
             <h2>Pending Lesson Notes</h2>
             <div id="pendingNotesList"></div>
-            <h2>Approved Lesson Notes</h2>
-            <div id="approvedNotesList" style="margin-bottom: 2rem;"></div>
             <h2>Rejected Lesson Notes</h2>
             <div id="rejectedNotesList"></div>
         </div>
@@ -648,6 +652,7 @@
         let lessonNotesMap = {}; // key: `${subject}_${week}` -> { id, ... }
         let quill = null;
         let groq = null; // Groq client
+        let editorEnabled = true; // for enabling/disabling Quill
 
         // Assistant state
         let assistantConversations = []; // array of { id, title, date, messages }
@@ -852,6 +857,14 @@
                                 postApprovalDiv.style.display = 'none';
                             }
                             updateEditorButtons(note);
+                            // Disable editor if note is teachable or approved (already handled)
+                            if (note.teachable || note.status === 'approved') {
+                                quill.enable(false);
+                                editorEnabled = false;
+                            } else {
+                                quill.enable(true);
+                                editorEnabled = true;
+                            }
                         }
                     }
                     renderTeachTab();
@@ -892,24 +905,20 @@
             } catch (e) { console.error(e); showError('Error loading syllabus: ' + e.message); }
         }
 
-        // Enhanced deleteSyllabus: also delete all lesson notes for this subject
         async function deleteSyllabus(syllabusId) {
             if (!confirm('Delete this syllabus? This will also delete all associated lesson notes, resources, etc. This action cannot be undone.')) return;
             showLoading();
             try {
-                // Delete all lesson notes for this subject
                 const lessonSnap = await db.collection('lessonNotes')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', currentSubject)
                     .get();
                 const batch = db.batch();
                 lessonSnap.forEach(doc => batch.delete(doc.ref));
-                // Delete the syllabus itself
                 batch.delete(db.collection('syllabus').doc(syllabusId));
                 await batch.commit();
                 await logAudit('delete_syllabus', { subject: currentSubject });
                 alert('Syllabus and all associated content deleted.');
-                // Refresh
                 await loadSyllabus(currentSubject);
             } catch (e) {
                 showError('Delete failed: ' + e.message);
@@ -1063,6 +1072,15 @@
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
 
+            // Disable editor if note is approved or teachable
+            if (note.teachable || note.status === 'approved') {
+                quill.enable(false);
+                editorEnabled = false;
+            } else {
+                quill.enable(true);
+                editorEnabled = true;
+            }
+
             const postApprovalDiv = document.getElementById('postApprovalActions');
             if (note.status === 'approved') {
                 postApprovalDiv.style.display = 'block';
@@ -1143,6 +1161,7 @@
         // ========== EDITOR ACTIONS ==========
         document.getElementById('saveEditorBtn').addEventListener('click', async () => {
             if (!currentSubject || !currentWeek) return;
+            if (!editorEnabled) { alert('This note is read‑only.'); return; }
             const content = quill.getText();
             if (!content.trim()) return alert('Empty content.');
             const key = `${currentSubject}_${currentWeek}`;
@@ -1198,6 +1217,7 @@
 
         document.getElementById('submitEditorBtn').addEventListener('click', async () => {
             if (!currentSubject || !currentWeek) return;
+            if (!editorEnabled) { alert('This note is read‑only.'); return; }
             const content = quill.getText();
             if (!content.trim()) return alert('Empty content.');
             const key = `${currentSubject}_${currentWeek}`;
@@ -1252,20 +1272,70 @@
 
         // ========== TEACH TAB ==========
         function renderTeachTab() {
+            const teachableDiv = document.getElementById('teachableList');
+            const approvedDiv = document.getElementById('approvedList');
             const draftsDiv = document.getElementById('draftsList');
             const pendingDiv = document.getElementById('pendingNotesList');
-            const approvedDiv = document.getElementById('approvedNotesList');
             const rejectedDiv = document.getElementById('rejectedNotesList');
+            teachableDiv.innerHTML = '';
+            approvedDiv.innerHTML = '';
             draftsDiv.innerHTML = '';
             pendingDiv.innerHTML = '';
-            approvedDiv.innerHTML = '';
             rejectedDiv.innerHTML = '';
 
             const allNotes = Object.values(lessonNotesMap);
+            const teachable = allNotes.filter(n => n.teachable === true);
+            const approved = allNotes.filter(n => n.status === 'approved' && !n.teachable);
             const drafts = allNotes.filter(n => n.status === 'draft');
             const pending = allNotes.filter(n => n.status === 'pending');
-            const approved = allNotes.filter(n => n.status === 'approved');
             const rejected = allNotes.filter(n => n.status === 'rejected');
+
+            teachable.forEach(note => {
+                const card = document.createElement('div');
+                card.className = 'syllabus-container';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
+                            <span class="status-badge status-teachable">Ready to Teach</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline btn-sm" onclick="viewInTeach('${note.subject}', ${note.week})">
+                                <i class="fas fa-eye"></i> View in Teach
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+                teachableDiv.appendChild(card);
+            });
+
+            approved.forEach(note => {
+                const card = document.createElement('div');
+                card.className = 'syllabus-container';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
+                            <span class="status-badge status-approved">Approved</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-success btn-sm" onclick="moveToTeach('${note.id}')">
+                                <i class="fas fa-check"></i> Move to Teach
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="continueEditing('${note.subject}', ${note.week})">
+                                <i class="fas fa-edit"></i> Edit (will become draft)
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+                approvedDiv.appendChild(card);
+            });
 
             drafts.forEach(note => {
                 const card = document.createElement('div');
@@ -1301,31 +1371,6 @@
                 pendingDiv.appendChild(card);
             });
 
-            approved.forEach(note => {
-                const card = document.createElement('div');
-                card.className = 'syllabus-container';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div>
-                            <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
-                            <span class="status-badge status-approved">Approved</span>
-                        </div>
-                        <div>
-                            <button class="btn btn-outline btn-sm" onclick="viewInTeach('${note.subject}', ${note.week})">
-                                <i class="fas fa-eye"></i> View in Teach
-                            </button>
-                            <button class="btn btn-warning btn-sm" onclick="moveToDraft('${note.id}')">
-                                <i class="fas fa-undo"></i> Move to Draft
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-                approvedDiv.appendChild(card);
-            });
-
             rejected.forEach(note => {
                 const card = document.createElement('div');
                 card.className = 'syllabus-container';
@@ -1348,11 +1393,25 @@
                 rejectedDiv.appendChild(card);
             });
 
+            if (teachable.length === 0) teachableDiv.innerHTML = '<p class="text-secondary">No notes ready to teach.</p>';
+            if (approved.length === 0) approvedDiv.innerHTML = '<p class="text-secondary">No approved notes.</p>';
             if (drafts.length === 0) draftsDiv.innerHTML = '<p class="text-secondary">No drafts.</p>';
             if (pending.length === 0) pendingDiv.innerHTML = '<p class="text-secondary">No pending notes.</p>';
-            if (approved.length === 0) approvedDiv.innerHTML = '<p class="text-secondary">No approved notes.</p>';
             if (rejected.length === 0) rejectedDiv.innerHTML = '<p class="text-secondary">No rejected notes.</p>';
         }
+
+        window.moveToTeach = async (noteId) => {
+            if (!confirm('Move this lesson note to Teach? It will become read‑only and will be scheduled based on your timetable.')) return;
+            try {
+                await db.collection('lessonNotes').doc(noteId).update({ teachable: true });
+                await logAudit('move_to_teach', { noteId });
+                alert('Moved to Teach.');
+                await loadAllLessonNotes();
+                renderTeachTab();
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
+        };
 
         window.continueEditing = (subject, week) => {
             if (currentSubject !== subject) {
@@ -1389,16 +1448,6 @@
             } catch (e) { showError('Error: ' + e.message); }
         };
 
-        window.moveToDraft = async (noteId) => {
-            try {
-                await db.collection('lessonNotes').doc(noteId).update({ status: 'draft' });
-                await logAudit('move_to_draft', { noteId });
-                alert('Moved to draft.');
-                await loadAllLessonNotes();
-                renderTeachTab();
-            } catch (e) { showError('Error: ' + e.message); }
-        };
-
         window.deleteLessonNote = async (noteId) => {
             if (!confirm('Delete this lesson note? This cannot be undone.')) return;
             try {
@@ -1419,14 +1468,12 @@
         const historyList = document.getElementById('historyList');
         const newChatBtn = document.getElementById('newChatBtn');
 
-        // Helper to generate a title from first user message
         function generateTitle(messages) {
             if (messages.length === 0) return 'New Chat';
             const firstUser = messages.find(m => m.role === 'user');
             return firstUser ? firstUser.content.substring(0, 30) + (firstUser.content.length > 30 ? '...' : '') : 'New Chat';
         }
 
-        // Render history sidebar
         function renderHistory() {
             historyList.innerHTML = '';
             assistantConversations.forEach(conv => {
@@ -1442,7 +1489,6 @@
             });
         }
 
-        // Create a new conversation
         function newConversation() {
             const id = Date.now().toString();
             const conv = {
@@ -1458,7 +1504,6 @@
             assistantSaveBtn.style.display = 'none';
         }
 
-        // Load a conversation into view
         function loadConversation(id) {
             const conv = assistantConversations.find(c => c.id === id);
             if (conv) {
@@ -1467,7 +1512,6 @@
             }
         }
 
-        // Display messages of a conversation
         function displayConversation(conv) {
             assistantChat.innerHTML = '';
             conv.messages.forEach(msg => {
@@ -1476,7 +1520,6 @@
             assistantChat.scrollTop = assistantChat.scrollHeight;
         }
 
-        // Add a single message to chat (without saving to conversation)
         function addMessageToChat(role, content, imageUrl) {
             const wrapper = document.createElement('div');
             wrapper.className = `message-wrapper ${role}`;
@@ -1506,11 +1549,9 @@
         }
 
         window.openAIAssistant = () => {
-            // If no current conversation, create one
             if (!currentConversationId) {
                 newConversation();
             }
-            // Update context
             if (currentSubject && currentWeek) {
                 const weekData = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek);
                 const topic = weekData?.topic || '';
@@ -1529,7 +1570,6 @@
             const prompt = assistantInput.value.trim();
             if (!prompt) return;
 
-            // Add user message to UI and conversation
             addMessageToChat('user', prompt);
             const conv = assistantConversations.find(c => c.id === currentConversationId);
             if (conv) {
@@ -1542,7 +1582,6 @@
 
             assistantInput.value = '';
 
-            // Show thinking indicator
             const thinkingDiv = document.createElement('div');
             thinkingDiv.className = 'assistant-thinking';
             thinkingDiv.innerHTML = '<i class="fas fa-robot fa-spin"></i> Thinking...';
@@ -1550,7 +1589,6 @@
             assistantChat.scrollTop = assistantChat.scrollHeight;
 
             try {
-                let result;
                 if (currentResourceType === 'handwritten') {
                     // Generate image via Pollinations
                     const imagePrompt = `Create handwritten study notes on ${prompt}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around dates. Add doodles to explain concepts. A4 size.`;
@@ -1558,6 +1596,7 @@
                     
                     // Fetch image from Pollinations
                     const response = await fetch(imageUrl);
+                    if (!response.ok) throw new Error('Image generation failed');
                     const blob = await response.blob();
                     
                     // Upload to Cloudinary
@@ -1576,16 +1615,12 @@
                     lastGeneratedImageUrl = downloadUrl;
                     lastGeneratedText = '';
 
-                    // Remove thinking indicator
                     assistantChat.removeChild(thinkingDiv);
-
-                    // Add assistant message with image
                     addMessageToChat('assistant', '', downloadUrl);
                     if (conv) conv.messages.push({ role: 'assistant', content: '', imageUrl: downloadUrl, timestamp: new Date() });
 
                     assistantSaveBtn.style.display = 'inline-block';
                 } else {
-                    // Use Groq for text generation
                     const weekData = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek);
                     const topic = weekData?.topic || '';
                     const systemPrompt = `You are a Nigerian curriculum expert. The teacher is working on ${currentSubject}, week ${currentWeek} (topic: ${topic}). Generate content based on the user's request. Use the standard Nigerian lesson note format where appropriate.`;
@@ -1700,13 +1735,8 @@
             }
         };
 
-        // New chat button
         newChatBtn.addEventListener('click', newConversation);
-
-        // Override old button
         document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
-
-        // Enter key
         assistantInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendAssistantMessage();
         });
