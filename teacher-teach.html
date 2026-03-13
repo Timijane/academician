@@ -13,7 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (keep your existing styles – unchanged) */
+        /* ========== ROOT VARIABLES ========== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] { --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --glass-border: rgba(255,255,255,0.3); --text-primary: #0b1e33; --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --success-bg: rgba(34,197,94,0.2); --success-text: #16a34a; --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309; --danger-bg: rgba(239,68,68,0.2); --danger-text: #b91c1c; --input-bg: rgba(255,255,255,0.9); --toolbar-bg: #f8fafc; }
         :root[data-theme="dark"] { --bg-primary: #0a0f1e; --bg-sidebar: rgba(15, 23, 42, 0.8); --glass-border: rgba(255,255,255,0.08); --text-primary: #f0f4fa; --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05); --card-bg: rgba(15, 23, 42, 0.6); --hover-bg: rgba(30, 41, 59, 0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171; --input-bg: rgba(30,41,59,0.8); --toolbar-bg: #1e293b; }
@@ -75,7 +75,7 @@
         .resource-card {
             background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow);
         }
-        .resource-card h4 { margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+        .resource-card h4 { margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; color: var(--accent); }
         .resource-card p { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
         .resource-card .badge {
             display: inline-block; padding: 0.2rem 1rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 500; margin-top: 0.5rem;
@@ -111,6 +111,16 @@
         .error-message a { color: var(--accent); text-decoration: underline; }
         .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); }
 
+        /* Access info banner */
+        .access-info {
+            background: var(--hover-bg);
+            border-left: 4px solid var(--accent);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+        .access-info i { margin-right: 0.5rem; }
+
         @media (max-width: 768px) {
             .sidebar { width: 90px; }
             .sidebar .logo-area h2 { display: none; }
@@ -145,7 +155,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Teach</h1>
-                <p>Access your lesson materials and launch virtual classes</p>
+                <p>Access your lesson materials during scheduled class time</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
@@ -155,7 +165,7 @@
                         <div class="profile-pic" id="profilePic">T</div>
                     </div>
                     <div class="dropdown-menu">
-                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <a href="teacher-profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
                         <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
                     </div>
                 </div>
@@ -171,6 +181,9 @@
         <!-- Week Tabs -->
         <div class="week-tabs" id="weekTabs"></div>
 
+        <!-- Access info / timer -->
+        <div id="accessInfo" class="access-info" style="display: none;"></div>
+
         <!-- Main Content Card -->
         <div class="card">
             <div class="card-header">
@@ -183,6 +196,16 @@
             <div id="resourcesContainer">
                 <!-- Resources will be loaded here -->
                 <p class="empty-state">Select a subject and week to view resources.</p>
+            </div>
+        </div>
+
+        <!-- Upcoming Virtual Classes -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Upcoming Virtual Classes</h3>
+            </div>
+            <div id="virtualClassesContainer">
+                <p class="empty-state">No upcoming virtual classes.</p>
             </div>
         </div>
     </div>
@@ -298,9 +321,12 @@
         let userData = null;
         let subjects = [];
         let currentSubject = null;
-        let weeks = []; // array of week numbers from approved lesson notes
+        let weeks = [];
         let currentWeek = null;
         let lessonNotesMap = {}; // key: week -> lessonNote document
+        let todaysPeriods = [];   // periods for today for this teacher's class
+        let accessInterval = null;
+        let hasLoggedAccess = false; // to avoid duplicate logs
 
         // Auth
         auth.onAuthStateChanged(async (user) => {
@@ -318,6 +344,9 @@
                 subjects = userData.subjects || [];
                 renderSubjectTabs();
 
+                // Fetch today's timetable for the teacher's class
+                await fetchTodaysTimetable();
+
                 // If subject specified in URL, pre-select it
                 const urlParams = new URLSearchParams(window.location.search);
                 const subj = urlParams.get('subject');
@@ -333,6 +362,80 @@
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
 
+        // Fetch today's timetable for the teacher's class
+        async function fetchTodaysTimetable() {
+            if (!userData.classTeaching) return;
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }); // e.g., "Monday"
+            try {
+                const snapshot = await db.collection('timetables')
+                    .where('classId', '==', userData.classTeaching)
+                    .where('day', '==', today)
+                    .get();
+                todaysPeriods = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Assuming each document is one period with fields: subject, startTime, endTime
+                    todaysPeriods.push({
+                        subject: data.subject,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                    });
+                });
+                console.log('Todays periods:', todaysPeriods);
+            } catch (error) {
+                handleFirestoreError(error, 'fetchTimetable');
+            }
+        }
+
+        // Check current access status for a subject
+        function getAccessStatus(subject) {
+            if (!subject) return { canAccess: false, message: 'No subject selected.' };
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+            // Find all periods for this subject today
+            const periods = todaysPeriods.filter(p => p.subject === subject);
+            if (periods.length === 0) {
+                return { canAccess: false, message: 'No class scheduled for this subject today.' };
+            }
+
+            // Check if any period is currently active
+            let activePeriod = null;
+            let nextPeriod = null;
+            for (let p of periods) {
+                if (currentTime >= p.startTime && currentTime <= p.endTime) {
+                    activePeriod = p;
+                    break;
+                }
+                if (p.startTime > currentTime) {
+                    if (!nextPeriod || p.startTime < nextPeriod.startTime) {
+                        nextPeriod = p;
+                    }
+                }
+            }
+
+            if (activePeriod) {
+                const isLate = currentTime > activePeriod.startTime;
+                return {
+                    canAccess: true,
+                    activePeriod,
+                    isLate,
+                    message: isLate ? `You are late (started at ${activePeriod.startTime})` : 'Class is in session.'
+                };
+            } else if (nextPeriod) {
+                return {
+                    canAccess: false,
+                    nextPeriod,
+                    message: `Next class for ${subject} is at ${nextPeriod.startTime}.`
+                };
+            } else {
+                return {
+                    canAccess: false,
+                    message: 'All classes for today have ended.'
+                };
+            }
+        }
+
         // Render subject tabs
         function renderSubjectTabs() {
             const container = document.getElementById('subjectTabs');
@@ -347,7 +450,7 @@
             if (subjects.length > 0) container.children[0].classList.add('active');
         }
 
-        // Switch subject: fetch approved lesson notes
+        // Switch subject: fetch approved lesson notes that are teachable
         async function switchSubject(subject, clickedElement) {
             // Remove active class from all subject tabs
             const tabs = document.querySelectorAll('#subjectTabs .tab');
@@ -368,11 +471,16 @@
             document.getElementById('currentSubjectDisplay').textContent = subject;
             document.getElementById('indexError').style.display = 'none'; // hide previous errors
 
+            // Clear previous interval
+            if (accessInterval) clearInterval(accessInterval);
+
             try {
+                // Fetch only notes that are approved AND teachable
                 const snapshot = await db.collection('lessonNotes')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', subject)
                     .where('status', '==', 'approved')
+                    .where('teachable', '==', true)
                     .orderBy('week', 'asc')
                     .get();
 
@@ -388,8 +496,17 @@
                     selectWeek(weeks[0]);
                 } else {
                     document.getElementById('weekTabs').innerHTML = '';
-                    document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">No approved lesson notes for this subject.</div>';
+                    document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">No ready‑to‑teach notes for this subject.</div>';
                 }
+
+                // Start periodic access check (every minute)
+                accessInterval = setInterval(() => {
+                    if (currentSubject && currentWeek) {
+                        const status = getAccessStatus(currentSubject);
+                        updateAccessUI(status);
+                    }
+                }, 60000); // check every minute
+
             } catch (error) {
                 handleFirestoreError(error, 'loadApprovedLessonNotes');
                 document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">Error loading lesson notes.</div>';
@@ -425,7 +542,59 @@
 
             currentWeek = week;
             document.getElementById('currentWeekDisplay').textContent = week;
-            renderResources(lessonNotesMap[week]);
+            const status = getAccessStatus(currentSubject);
+            updateAccessUI(status);
+        }
+
+        function updateAccessUI(status) {
+            const accessDiv = document.getElementById('accessInfo');
+            if (!status.canAccess) {
+                accessDiv.innerHTML = `<i class="fas fa-lock"></i> ${status.message}`;
+                accessDiv.style.display = 'block';
+                // Hide resources (show locked message)
+                document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">Lesson materials are locked until class time.</p>';
+                hasLoggedAccess = false; // reset log flag
+            } else {
+                // Access granted
+                accessDiv.innerHTML = `<i class="fas fa-unlock"></i> ${status.message}`;
+                accessDiv.style.display = 'block';
+                // Log access if not already logged for this period
+                if (!hasLoggedAccess) {
+                    logAccess(status.activePeriod, status.isLate);
+                    hasLoggedAccess = true;
+                }
+                // Render the actual resources (only lesson note and teaching process, plus other resources)
+                const note = lessonNotesMap[currentWeek];
+                if (note) {
+                    renderResources(note);
+                } else {
+                    document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">No resources for this week.</p>';
+                }
+            }
+        }
+
+        async function logAccess(period, isLate) {
+            if (!currentUser || !userData || !currentSubject || !currentWeek) return;
+            try {
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
+                    userEmail: userData.email || currentUser.email,
+                    action: isLate ? 'opened_lesson_late' : 'opened_lesson_on_time',
+                    details: JSON.stringify({
+                        subject: currentSubject,
+                        week: currentWeek,
+                        scheduledStart: period.startTime,
+                        scheduledEnd: period.endTime,
+                        actualOpenTime: new Date().toLocaleTimeString()
+                    }),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+                console.log('Access logged');
+            } catch (e) {
+                console.warn('Audit log failed', e);
+            }
         }
 
         async function publishResource(docId, type) {
@@ -449,6 +618,7 @@
                 return;
             }
 
+            // Only show lesson note and teaching process when accessible; student resources and handwriting always shown (with publish buttons)
             let youtubeHtml = '';
             if (note.youtubeLinks && note.youtubeLinks.length) {
                 youtubeHtml = note.youtubeLinks.map(link => `<li><a href="${link}" target="_blank" class="youtube-link">${link}</a></li>`).join('');
@@ -482,9 +652,6 @@
                     </div>
                 </div>
             `;
-
-            // Log that teacher viewed materials (optional)
-            logAudit('view_teaching_materials', { subject: currentSubject, week: currentWeek });
         }
 
         // Virtual class modal (unchanged)
