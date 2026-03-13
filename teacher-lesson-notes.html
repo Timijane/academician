@@ -142,6 +142,42 @@
         .error-message { background: var(--danger-bg); color: var(--danger-text); padding:1rem; border-radius:1rem; margin-bottom:1rem; border-left:4px solid var(--danger-text); }
         .error-message a { color: var(--accent); text-decoration: underline; }
 
+        /* Period selection modal */
+        .period-modal {
+            max-width: 800px;
+            width: 90%;
+            background: var(--card-bg);
+            border-radius: 2rem;
+            padding: 2rem;
+        }
+        .period-modal h3 {
+            margin-bottom: 1.5rem;
+        }
+        .period-day {
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem;
+        }
+        .period-day h4 {
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+        .period-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem;
+            border-bottom: 1px dashed var(--border);
+        }
+        .period-checkbox:last-child {
+            border-bottom: none;
+        }
+        .period-checkbox input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+
         /* ========== ARTISTIC AI ASSISTANT ========== */
         .assistant-modal {
             display: flex;
@@ -516,6 +552,19 @@
         </div>
     </div>
 
+    <!-- Period Selection Modal (for Submit for Approval) -->
+    <div class="modal-overlay" id="periodModal">
+        <div class="period-modal">
+            <h3>Select Periods for this Lesson Note</h3>
+            <p id="periodContext" style="margin-bottom: 1rem;"></p>
+            <div id="periodList"></div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                <button class="btn btn-outline" onclick="closePeriodModal()">Cancel</button>
+                <button class="btn btn-success" onclick="confirmPeriodSelection()">Submit</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ARTISTIC AI ASSISTANT MODAL -->
     <div class="modal-overlay" id="aiAssistantModal">
         <div class="assistant-modal">
@@ -653,6 +702,7 @@
         let quill = null;
         let groq = null; // Groq client
         let editorEnabled = true; // for enabling/disabling Quill
+        let pendingSubmissionData = null; // holds data when waiting for period selection
 
         // Assistant state
         let assistantConversations = []; // array of { id, title, date, messages }
@@ -857,7 +907,6 @@
                                 postApprovalDiv.style.display = 'none';
                             }
                             updateEditorButtons(note);
-                            // Disable editor if note is teachable or approved (already handled)
                             if (note.teachable || note.status === 'approved') {
                                 quill.enable(false);
                                 editorEnabled = false;
@@ -1072,7 +1121,6 @@
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
 
-            // Disable editor if note is approved or teachable
             if (note.teachable || note.status === 'approved') {
                 quill.enable(false);
                 editorEnabled = false;
@@ -1158,7 +1206,85 @@
             } catch (e) { showError('Publish failed: ' + e.message); }
         }
 
-        // ========== EDITOR ACTIONS ==========
+        // ========== PERIOD SELECTION MODAL ==========
+        const periodModal = document.getElementById('periodModal');
+        const periodList = document.getElementById('periodList');
+        const periodContext = document.getElementById('periodContext');
+        let selectedPeriods = [];
+
+        // Fetch academic timetable and render checkboxes
+        async function openPeriodModal() {
+            if (!userData.classTeaching || !currentSubject || !currentWeek) {
+                alert('Please select a subject and week first.');
+                return;
+            }
+            const timetableId = `${userData.classTeaching}_academic`;
+            try {
+                const doc = await db.collection('timetables').doc(timetableId).get();
+                if (!doc.exists) {
+                    alert('No approved academic timetable found for your class. Please contact admin.');
+                    return;
+                }
+                const data = doc.data();
+                const periods = data.periods || [];
+                // Group by day
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+                let html = '';
+                selectedPeriods = []; // reset
+                days.forEach(day => {
+                    const dayPeriods = periods.filter(p => p[day] && p[day].trim() !== '');
+                    if (dayPeriods.length === 0) return;
+                    const dayLabel = day.charAt(0).toUpperCase() + day.slice(1);
+                    html += `<div class="period-day"><h4>${dayLabel}</h4>`;
+                    dayPeriods.forEach((p, idx) => {
+                        const periodKey = `${day}_${p.startTime}_${p.endTime}`;
+                        html += `
+                            <div class="period-checkbox">
+                                <input type="checkbox" data-day="${day}" data-start="${p.startTime}" data-end="${p.endTime}" data-subject="${p[day]}" id="period_${day}_${idx}">
+                                <label for="period_${day}_${idx}">${p.startTime} – ${p.endTime} (${p[day]})</label>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                });
+                if (html === '') {
+                    alert('No periods defined in your academic timetable.');
+                    return;
+                }
+                periodList.innerHTML = html;
+                periodContext.innerHTML = `Select the periods when you will teach <strong>${currentSubject}</strong> (Week ${currentWeek}).`;
+                periodModal.classList.add('active');
+            } catch (e) {
+                showError('Error loading timetable: ' + e.message);
+            }
+        }
+
+        window.closePeriodModal = () => {
+            periodModal.classList.remove('active');
+            pendingSubmissionData = null;
+        };
+
+        window.confirmPeriodSelection = () => {
+            const checkboxes = document.querySelectorAll('#periodList input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                alert('Please select at least one period.');
+                return;
+            }
+            selectedPeriods = Array.from(checkboxes).map(cb => ({
+                day: cb.dataset.day,
+                startTime: cb.dataset.start,
+                endTime: cb.dataset.end,
+                subject: cb.dataset.subject // may be useful for verification
+            }));
+            periodModal.classList.remove('active');
+            // Now proceed with submission using pendingSubmissionData
+            if (pendingSubmissionData) {
+                performFinalSubmission(pendingSubmissionData, selectedPeriods);
+                pendingSubmissionData = null;
+            }
+        };
+
+        // ========== EDITOR ACTIONS (modified) ==========
         document.getElementById('saveEditorBtn').addEventListener('click', async () => {
             if (!currentSubject || !currentWeek) return;
             if (!editorEnabled) { alert('This note is read‑only.'); return; }
@@ -1230,7 +1356,7 @@
                 handwritten: 'handwrittenNotes'
             };
 
-            const updateData = {
+            const baseData = {
                 teacherId: currentUser.uid,
                 subject: currentSubject,
                 week: currentWeek,
@@ -1247,28 +1373,39 @@
                     alert('Cannot submit lesson note: syllabus is not approved.');
                     return;
                 }
-                updateData.syllabusId = syllabus.id;
+                baseData.syllabusId = syllabus.id;
             } else {
-                Object.assign(updateData, existing);
-                updateData[fieldMap[currentResourceType]] = content;
-                updateData.status = 'pending';
-                updateData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
+                Object.assign(baseData, existing);
+                baseData[fieldMap[currentResourceType]] = content;
+                baseData.status = 'pending';
+                baseData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
 
+            // Instead of submitting directly, open period selection modal
+            pendingSubmissionData = { baseData, existingId: existing.id, key };
+            await openPeriodModal();
+        });
+
+        async function performFinalSubmission(baseData, selectedPeriods) {
+            const { baseData: data, existingId, key } = pendingSubmissionData;
+            data.scheduledPeriods = selectedPeriods; // add the selected periods
+
             try {
-                if (existing.id) {
-                    await db.collection('lessonNotes').doc(existing.id).update(updateData);
+                if (existingId) {
+                    await db.collection('lessonNotes').doc(existingId).update(data);
                 } else {
-                    const ref = await db.collection('lessonNotes').add(updateData);
-                    lessonNotesMap[key] = { id: ref.id, ...updateData };
+                    const ref = await db.collection('lessonNotes').add(data);
+                    lessonNotesMap[key] = { id: ref.id, ...data };
                 }
                 await logAudit('submit_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
-                await storeToAIMemory(content, currentResourceType, currentSubject, currentWeek);
+                await storeToAIMemory(data[fieldMap[currentResourceType]], currentResourceType, currentSubject, currentWeek);
                 alert('Submitted for approval.');
                 await loadAllLessonNotes();
                 renderTeachTab();
-            } catch (e) { showError('Submit failed: ' + e.message); }
-        });
+            } catch (e) {
+                showError('Submit failed: ' + e.message);
+            }
+        }
 
         // ========== TEACH TAB ==========
         function renderTeachTab() {
@@ -1594,12 +1731,10 @@
                     const imagePrompt = `Create handwritten study notes on ${prompt}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around dates. Add doodles to explain concepts. A4 size.`;
                     const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
                     
-                    // Fetch image from Pollinations
                     const response = await fetch(imageUrl);
                     if (!response.ok) throw new Error('Image generation failed');
                     const blob = await response.blob();
                     
-                    // Upload to Cloudinary
                     const formData = new FormData();
                     formData.append('file', blob);
                     formData.append('upload_preset', UPLOAD_PRESET);
