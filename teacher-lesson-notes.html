@@ -15,8 +15,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- Firebase Storage -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <!-- Firebase Remote Config -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <!-- Groq SDK (import map) -->
@@ -593,9 +591,12 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const storage = firebase.storage();
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.settings.minimumFetchIntervalMillis = 0; // always fetch for development
+
+        // Cloudinary configuration (hardcoded for now; can move to Remote Config later)
+        const CLOUD_NAME = 'dcwof2ngn';
+        const UPLOAD_PRESET = 'Meet_video'; // must be unsigned
 
         // Theme & sidebar
         const html = document.documentElement;
@@ -1490,7 +1491,6 @@
                 img.style.borderRadius = '0.5rem';
                 bubble.appendChild(img);
             } else {
-                // Convert newlines to <br>
                 const textDiv = document.createElement('div');
                 textDiv.innerHTML = content.replace(/\n/g, '<br>');
                 bubble.appendChild(textDiv);
@@ -1534,7 +1534,6 @@
             const conv = assistantConversations.find(c => c.id === currentConversationId);
             if (conv) {
                 conv.messages.push({ role: 'user', content: prompt, timestamp: new Date() });
-                // Update title if this is the first user message
                 if (conv.messages.filter(m => m.role === 'user').length === 1) {
                     conv.title = generateTitle(conv.messages);
                     renderHistory();
@@ -1553,15 +1552,27 @@
             try {
                 let result;
                 if (currentResourceType === 'handwritten') {
-                    // Generate image via Pollinations with enhanced parameters
+                    // Generate image via Pollinations
                     const imagePrompt = `Create handwritten study notes on ${prompt}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around dates. Add doodles to explain concepts. A4 size.`;
                     const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
-                    // Fetch image, upload to Storage, get permanent URL
+                    
+                    // Fetch image from Pollinations
                     const response = await fetch(imageUrl);
                     const blob = await response.blob();
-                    const storageRef = storage.ref().child(`handwriting/${currentUser.uid}/${Date.now()}.jpg`);
-                    await storageRef.put(blob);
-                    const downloadUrl = await storageRef.getDownloadURL();
+                    
+                    // Upload to Cloudinary
+                    const formData = new FormData();
+                    formData.append('file', blob);
+                    formData.append('upload_preset', UPLOAD_PRESET);
+                    formData.append('public_id', `handwriting_${currentSubject}_week${currentWeek}_${Date.now()}`);
+                    
+                    const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const uploadData = await uploadResponse.json();
+                    const downloadUrl = uploadData.secure_url;
                     lastGeneratedImageUrl = downloadUrl;
                     lastGeneratedText = '';
 
@@ -1579,7 +1590,6 @@
                     const topic = weekData?.topic || '';
                     const systemPrompt = `You are a Nigerian curriculum expert. The teacher is working on ${currentSubject}, week ${currentWeek} (topic: ${topic}). Generate content based on the user's request. Use the standard Nigerian lesson note format where appropriate.`;
 
-                    // Build messages including conversation history
                     const historyMessages = conv ? conv.messages.map(m => ({
                         role: m.role,
                         content: m.imageUrl ? '[Image generated]' : m.content
@@ -1599,10 +1609,7 @@
                     lastGeneratedText = text;
                     lastGeneratedImageUrl = '';
 
-                    // Remove thinking indicator
                     assistantChat.removeChild(thinkingDiv);
-
-                    // Add assistant message
                     addMessageToChat('assistant', text);
                     if (conv) conv.messages.push({ role: 'assistant', content: text, timestamp: new Date() });
 
@@ -1644,7 +1651,7 @@
             let content;
             if (currentResourceType === 'handwritten') {
                 if (!lastGeneratedImageUrl) { alert('No image generated.'); return; }
-                content = lastGeneratedImageUrl; // store URL
+                content = lastGeneratedImageUrl;
             } else {
                 if (!lastGeneratedText) { alert('No text generated.'); return; }
                 content = lastGeneratedText;
