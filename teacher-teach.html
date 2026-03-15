@@ -256,6 +256,10 @@
             padding:1rem; border-radius:1rem; margin-bottom:1rem;
             border-left:4px solid var(--danger-text);
         }
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
         .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); }
     </style>
 </head>
@@ -462,7 +466,7 @@
                     .onSnapshot(snapshot => {
                         renderVirtualClasses(snapshot);
                     }, error => {
-                        console.error('Virtual classes listener error:', error);
+                        handleFirestoreError(error, 'virtualClasses');
                     });
 
             } catch (error) { console.error(error); }
@@ -696,17 +700,21 @@
                 return;
             }
 
+            const now = new Date();
             let html = '<div class="resource-grid">';
             snapshot.forEach(doc => {
                 const vc = doc.data();
-                // Optionally filter by future date/time
+                // Filter future classes only
+                const classDateTime = new Date(`${vc.date}T${vc.time}`);
+                if (classDateTime < now) return; // skip past classes
+
                 html += `
                     <div class="resource-card">
-                        <h4><i class="fas fa-video"></i> ${vc.subject} – Week ${vc.week}</h4>
-                        <p><strong>Platform:</strong> ${vc.platform}</p>
-                        <p><strong>Date:</strong> ${vc.date} at ${vc.time}</p>
-                        <p><strong>Duration:</strong> ${vc.duration} min</p>
-                        <a href="${vc.link}" target="_blank" class="btn btn-outline">Join</a>
+                        <h4><i class="fas fa-video"></i> ${vc.subject || 'Unknown'} – Week ${vc.week || '?'}</h4>
+                        <p><strong>Platform:</strong> ${vc.platform || 'N/A'}</p>
+                        <p><strong>Date:</strong> ${vc.date || 'N/A'} at ${vc.time || 'N/A'}</p>
+                        <p><strong>Duration:</strong> ${vc.duration || '?'} min</p>
+                        <a href="${vc.link || '#'}" target="_blank" class="btn btn-outline">Join</a>
                     </div>
                 `;
             });
