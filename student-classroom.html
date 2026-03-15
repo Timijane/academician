@@ -299,6 +299,16 @@
             padding: 2rem;
             color: var(--text-secondary);
         }
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+        .loading-spinner i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
 
         @media (max-width: 768px) {
             .main-container { padding: 0 1rem; }
@@ -334,6 +344,7 @@
     </div>
 
     <div class="main-container">
+        <!-- Error display -->
         <div id="errorMessage" class="error-message" style="display: none;"></div>
 
         <!-- Subject Tabs -->
@@ -348,7 +359,12 @@
                 <h3>Learning Materials for <span id="currentSubject"></span> – Week <span id="currentWeek"></span></h3>
             </div>
             <div id="resourcesContainer">
-                <p class="empty-state">Select a subject and week to view materials.</p>
+                <div class="loading-spinner" id="resourcesLoading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading materials...</p>
+                </div>
+                <p class="empty-state" id="resourcesEmpty" style="display: block;">Select a subject and week to view materials.</p>
+                <div id="resourcesContent" style="display: none;"></div>
             </div>
         </div>
 
@@ -358,12 +374,18 @@
                 <h3>Upcoming Virtual Classes</h3>
             </div>
             <div id="virtualClassesContainer">
-                <p class="empty-state">No upcoming virtual classes.</p>
+                <div class="loading-spinner" id="classesLoading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading classes...</p>
+                </div>
+                <p class="empty-state" id="classesEmpty" style="display: block;">No upcoming virtual classes.</p>
+                <div id="classesContent" style="display: none;"></div>
             </div>
         </div>
     </div>
 
     <script>
+        // Firebase configuration (replace with your actual config)
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -373,6 +395,8 @@
             appId: "1:673937760480:web:f03c06e1207232213ef085",
             measurementId: "G-ELBMT8WHQ9"
         };
+
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -411,27 +435,92 @@
         let unsubscribeLessonNotes = null;
         let unsubscribeVirtualClasses = null;
 
+        // UI helpers
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+
+        function setResourcesLoading(isLoading) {
+            document.getElementById('resourcesLoading').style.display = isLoading ? 'block' : 'none';
+            document.getElementById('resourcesEmpty').style.display = 'none';
+            document.getElementById('resourcesContent').style.display = 'none';
+        }
+
+        function setResourcesEmpty() {
+            document.getElementById('resourcesLoading').style.display = 'none';
+            document.getElementById('resourcesEmpty').style.display = 'block';
+            document.getElementById('resourcesContent').style.display = 'none';
+        }
+
+        function setResourcesContent(html) {
+            document.getElementById('resourcesLoading').style.display = 'none';
+            document.getElementById('resourcesEmpty').style.display = 'none';
+            document.getElementById('resourcesContent').style.display = 'block';
+            document.getElementById('resourcesContent').innerHTML = html;
+        }
+
+        function setClassesLoading(isLoading) {
+            document.getElementById('classesLoading').style.display = isLoading ? 'block' : 'none';
+            document.getElementById('classesEmpty').style.display = 'none';
+            document.getElementById('classesContent').style.display = 'none';
+        }
+
+        function setClassesEmpty() {
+            document.getElementById('classesLoading').style.display = 'none';
+            document.getElementById('classesEmpty').style.display = 'block';
+            document.getElementById('classesContent').style.display = 'none';
+        }
+
+        function setClassesContent(html) {
+            document.getElementById('classesLoading').style.display = 'none';
+            document.getElementById('classesEmpty').style.display = 'none';
+            document.getElementById('classesContent').style.display = 'block';
+            document.getElementById('classesContent').innerHTML = html;
+        }
+
         // Auth
         auth.onAuthStateChanged(async (user) => {
-            if (!user) { window.location.href = 'student-login.html'; return; }
+            if (!user) { 
+                window.location.href = 'student-login.html'; 
+                return; 
+            }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'student') {
-                    auth.signOut(); window.location.href = 'index.html'; return;
+                if (!userDoc.exists) {
+                    showError('User document not found.');
+                    auth.signOut();
+                    window.location.href = 'student-login.html';
+                    return;
                 }
                 userData = userDoc.data();
+                if (userData.role !== 'student') {
+                    showError('Invalid user role.');
+                    auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
                 const isApproved = userData.approved === true || userData.status === 'approved';
                 if (!isApproved) {
                     alert('Your account is pending approval.');
-                    auth.signOut(); window.location.href = 'student-login.html'; return;
+                    auth.signOut();
+                    window.location.href = 'student-login.html';
+                    return;
                 }
                 currentUser = user;
                 studentClass = userData.class;
+                if (!studentClass) {
+                    showError('You are not assigned to any class. Please contact your teacher.');
+                    return;
+                }
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
                 document.getElementById('profileName').textContent = userData.firstName || 'Student';
 
                 // Set up real‑time listener for lesson notes
                 if (unsubscribeLessonNotes) unsubscribeLessonNotes();
+                setResourcesLoading(true);
                 unsubscribeLessonNotes = db.collection('lessonNotes')
                     .where('classId', '==', studentClass)
                     .where('status', '==', 'approved')
@@ -443,33 +532,33 @@
                             // Only include if at least one resource is published
                             if (data.studentResourcePublished || data.handwrittenPublished || (data.youtubeLinks && data.youtubeLinks.length && data.youtubePublished)) {
                                 const subj = data.subject;
-                                if (!subjects.includes(subj)) subjects.push(subj);
+                                if (subj && !subjects.includes(subj)) subjects.push(subj);
                                 const key = `${subj}_${data.week}`;
                                 lessonNotesMap[key] = { id: doc.id, ...data };
                             }
                         });
                         renderSubjectTabs();
                         if (subjects.length > 0) {
-                            // Preserve current subject if still present
-                            if (currentSubject && subjects.includes(currentSubject)) {
-                                // keep it
-                            } else {
+                            if (!currentSubject || !subjects.includes(currentSubject)) {
                                 currentSubject = subjects[0];
                             }
                             switchSubject(currentSubject);
                         } else {
-                            document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">No learning materials available yet.</p>';
+                            setResourcesEmpty();
                             document.getElementById('subjectTabs').innerHTML = '';
                             document.getElementById('weekTabs').innerHTML = '';
+                            document.getElementById('currentSubject').textContent = '';
+                            document.getElementById('currentWeek').textContent = '';
                         }
                     }, error => {
                         console.error('Lesson notes listener error:', error);
-                        document.getElementById('errorMessage').textContent = 'Error loading materials.';
-                        document.getElementById('errorMessage').style.display = 'block';
+                        showError('Error loading materials: ' + error.message);
+                        setResourcesEmpty();
                     });
 
                 // Set up real‑time listener for virtual classes
                 if (unsubscribeVirtualClasses) unsubscribeVirtualClasses();
+                setClassesLoading(true);
                 unsubscribeVirtualClasses = db.collection('virtualClasses')
                     .where('classId', '==', studentClass)
                     .orderBy('date', 'asc')
@@ -478,12 +567,13 @@
                         renderVirtualClasses(snapshot);
                     }, error => {
                         console.error('Virtual classes listener error:', error);
+                        showError('Error loading virtual classes: ' + error.message);
+                        setClassesEmpty();
                     });
 
             } catch (error) {
-                console.error(error);
-                document.getElementById('errorMessage').textContent = 'Error loading data.';
-                document.getElementById('errorMessage').style.display = 'block';
+                console.error('Auth error:', error);
+                showError('Authentication error: ' + error.message);
             }
         });
 
@@ -523,15 +613,15 @@
             weeks.sort((a,b) => a - b);
             renderWeekTabs();
             if (weeks.length > 0) {
-                // Preserve current week if still present
                 if (currentWeek && weeks.includes(currentWeek)) {
                     selectWeek(currentWeek);
                 } else {
                     selectWeek(weeks[0]);
                 }
             } else {
-                document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">No weeks available for this subject.</p>';
+                setResourcesEmpty();
                 document.getElementById('weekTabs').innerHTML = '';
+                document.getElementById('currentWeek').textContent = '';
             }
         }
 
@@ -586,12 +676,15 @@
         };
 
         function renderResources() {
+            if (!currentSubject || !currentWeek) {
+                setResourcesEmpty();
+                return;
+            }
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
-            const container = document.getElementById('resourcesContainer');
 
             if (!note) {
-                container.innerHTML = '<p class="empty-state">No materials for this week.</p>';
+                setResourcesEmpty();
                 return;
             }
 
@@ -600,12 +693,13 @@
             // Student Resource (if published)
             if (note.studentResource && note.studentResourcePublished) {
                 const contentId = `student_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
+                const safeContent = note.studentResource.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
                 html += `
                     <div class="resource-card">
                         <h4><i class="fas fa-users"></i> Student Resource</h4>
                         <p id="${contentId}">${note.studentResource}</p>
                         <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
-                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${note.studentResource.replace(/`/g, '\\`')}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
+                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
                             <i class="fas fa-download"></i> Download
                         </button>
                     </div>
@@ -615,12 +709,13 @@
             // Handwritten Notes (if published)
             if (note.handwrittenNotes && note.handwrittenPublished) {
                 const contentId = `handwritten_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
+                const safeContent = note.handwrittenNotes.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
                 html += `
                     <div class="resource-card">
                         <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
                         <p id="${contentId}">${note.handwrittenNotes}</p>
                         <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
-                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${note.handwrittenNotes.replace(/`/g, '\\`')}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
+                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
                             <i class="fas fa-download"></i> Download
                         </button>
                     </div>
@@ -645,18 +740,18 @@
 
             html += '</div>';
 
-            // If none of the above, show message
+            // If none of the above, show empty
             if (!note.studentResourcePublished && !note.handwrittenPublished && !(note.youtubeLinks && note.youtubeLinks.length && note.youtubePublished)) {
-                html = '<p class="empty-state">No published materials for this week.</p>';
+                setResourcesEmpty();
+                return;
             }
 
-            container.innerHTML = html;
+            setResourcesContent(html);
         }
 
         function renderVirtualClasses(snapshot) {
-            const container = document.getElementById('virtualClassesContainer');
             if (snapshot.empty) {
-                container.innerHTML = '<p class="empty-state">No upcoming virtual classes.</p>';
+                setClassesEmpty();
                 return;
             }
 
@@ -664,22 +759,22 @@
             let html = '<div class="resource-grid">';
             snapshot.forEach(doc => {
                 const vc = doc.data();
-                // Optional: filter future classes only
+                // Filter future classes only
                 const classDateTime = new Date(`${vc.date}T${vc.time}`);
                 if (classDateTime < now) return; // skip past classes
 
                 html += `
                     <div class="resource-card">
-                        <h4><i class="fas fa-video"></i> ${vc.subject} – Week ${vc.week}</h4>
-                        <p><strong>Platform:</strong> ${vc.platform}</p>
-                        <p><strong>Date:</strong> ${vc.date} at ${vc.time}</p>
-                        <p><strong>Duration:</strong> ${vc.duration} min</p>
-                        <a href="${vc.link}" target="_blank" class="btn btn-outline">Join</a>
+                        <h4><i class="fas fa-video"></i> ${vc.subject || 'Unknown'} – Week ${vc.week || '?'}</h4>
+                        <p><strong>Platform:</strong> ${vc.platform || 'N/A'}</p>
+                        <p><strong>Date:</strong> ${vc.date || 'N/A'} at ${vc.time || 'N/A'}</p>
+                        <p><strong>Duration:</strong> ${vc.duration || '?'} min</p>
+                        <a href="${vc.link || '#'}" target="_blank" class="btn btn-outline">Join</a>
                     </div>
                 `;
             });
             html += '</div>';
-            container.innerHTML = html;
+            setClassesContent(html);
         }
 
         // Expose download function globally
