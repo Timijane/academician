@@ -207,7 +207,7 @@
 
         .resource-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 1.5rem;
             margin-top: 1rem;
         }
@@ -217,6 +217,8 @@
             border-radius: 1.5rem;
             padding: 1.5rem;
             box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
         }
         .resource-card h4 {
             margin-bottom: 0.8rem;
@@ -228,20 +230,44 @@
         .resource-card p {
             color: var(--text-secondary);
             font-size: 0.95rem;
+            line-height: 1.6;
             margin-bottom: 0.5rem;
             white-space: pre-wrap;
-            max-height: 200px;
-            overflow-y: auto;
+            max-height: 150px;
+            overflow-y: hidden;
+            transition: max-height 0.3s ease;
+            position: relative;
         }
-        .resource-card .badge {
-            display: inline-block;
-            padding: 0.2rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.8rem;
+        .resource-card p.expanded {
+            max-height: 1000px;
+        }
+        .read-more-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            text-align: left;
+            padding: 0;
             font-weight: 500;
         }
-        .badge.published { background: var(--success-bg); color: var(--success-text); }
-
+        .resource-card ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 1rem;
+        }
+        .resource-card li {
+            margin-bottom: 0.5rem;
+        }
+        .resource-card li a {
+            color: var(--accent);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .resource-card li a:hover {
+            text-decoration: underline;
+        }
         .btn {
             padding: 0.6rem 1.5rem;
             border: none;
@@ -249,6 +275,8 @@
             font-weight: 500;
             cursor: pointer;
             transition: 0.2s;
+            text-decoration: none;
+            display: inline-block;
         }
         .btn-outline {
             background: transparent;
@@ -257,6 +285,7 @@
         }
         .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
         .btn-sm { padding: 0.3rem 1rem; font-size: 0.9rem; }
+        .btn-success { background: var(--success-text); color: white; }
 
         .error-message {
             background: var(--danger-bg);
@@ -379,6 +408,10 @@
         let currentWeek = null;
         let lessonNotesMap = {};
 
+        // Real‑time listeners
+        let unsubscribeLessonNotes = null;
+        let unsubscribeVirtualClasses = null;
+
         // Auth
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'student-login.html'; return; }
@@ -398,8 +431,56 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
                 document.getElementById('profileName').textContent = userData.firstName || 'Student';
 
-                await loadAllMaterials();
-                await loadVirtualClasses();
+                // Set up real‑time listener for lesson notes
+                if (unsubscribeLessonNotes) unsubscribeLessonNotes();
+                unsubscribeLessonNotes = db.collection('lessonNotes')
+                    .where('classId', '==', studentClass)
+                    .where('status', '==', 'approved')
+                    .onSnapshot(snapshot => {
+                        lessonNotesMap = {};
+                        subjects = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            // Only include if at least one resource is published
+                            if (data.studentResourcePublished || data.handwrittenPublished || (data.youtubeLinks && data.youtubeLinks.length && data.youtubePublished)) {
+                                const subj = data.subject;
+                                if (!subjects.includes(subj)) subjects.push(subj);
+                                const key = `${subj}_${data.week}`;
+                                lessonNotesMap[key] = { id: doc.id, ...data };
+                            }
+                        });
+                        renderSubjectTabs();
+                        if (subjects.length > 0) {
+                            // Preserve current subject if still present
+                            if (currentSubject && subjects.includes(currentSubject)) {
+                                // keep it
+                            } else {
+                                currentSubject = subjects[0];
+                            }
+                            switchSubject(currentSubject);
+                        } else {
+                            document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">No learning materials available yet.</p>';
+                            document.getElementById('subjectTabs').innerHTML = '';
+                            document.getElementById('weekTabs').innerHTML = '';
+                        }
+                    }, error => {
+                        console.error('Lesson notes listener error:', error);
+                        document.getElementById('errorMessage').textContent = 'Error loading materials.';
+                        document.getElementById('errorMessage').style.display = 'block';
+                    });
+
+                // Set up real‑time listener for virtual classes
+                if (unsubscribeVirtualClasses) unsubscribeVirtualClasses();
+                unsubscribeVirtualClasses = db.collection('virtualClasses')
+                    .where('classId', '==', studentClass)
+                    .orderBy('date', 'asc')
+                    .orderBy('time', 'asc')
+                    .onSnapshot(snapshot => {
+                        renderVirtualClasses(snapshot);
+                    }, error => {
+                        console.error('Virtual classes listener error:', error);
+                    });
+
             } catch (error) {
                 console.error(error);
                 document.getElementById('errorMessage').textContent = 'Error loading data.';
@@ -408,41 +489,6 @@
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
-
-        // Load all approved lesson notes for the student's class that have published resources
-        async function loadAllMaterials() {
-            if (!studentClass) return;
-            try {
-                const snapshot = await db.collection('lessonNotes')
-                    .where('classId', '==', studentClass)
-                    .where('status', '==', 'approved')
-                    .get();
-
-                subjects = [];
-                lessonNotesMap = {};
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    // Only include if at least one resource is published
-                    if (data.studentResourcePublished || data.handwrittenPublished || (data.youtubeLinks && data.youtubeLinks.length && data.youtubePublished)) {
-                        const subj = data.subject;
-                        if (!subjects.includes(subj)) subjects.push(subj);
-                        const key = `${subj}_${data.week}`;
-                        lessonNotesMap[key] = { id: doc.id, ...data };
-                    }
-                });
-
-                renderSubjectTabs();
-                if (subjects.length > 0) {
-                    switchSubject(subjects[0]);
-                } else {
-                    document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">No learning materials available yet.</p>';
-                }
-            } catch (error) {
-                console.error(error);
-                document.getElementById('errorMessage').textContent = 'Error loading materials.';
-                document.getElementById('errorMessage').style.display = 'block';
-            }
-        }
 
         function renderSubjectTabs() {
             const container = document.getElementById('subjectTabs');
@@ -454,10 +500,16 @@
                 tab.onclick = (e) => switchSubject(sub, e.target);
                 container.appendChild(tab);
             });
+            // Highlight active subject
+            if (currentSubject) {
+                document.querySelectorAll('#subjectTabs .tab').forEach(t => {
+                    if (t.textContent === currentSubject) t.classList.add('active');
+                });
+            }
         }
 
         function switchSubject(subject, clickedElement) {
-            document.querySelectorAll('.subject-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
             if (clickedElement) clickedElement.classList.add('active');
             currentSubject = subject;
             document.getElementById('currentSubject').textContent = subject;
@@ -472,9 +524,15 @@
             weeks.sort((a,b) => a - b);
             renderWeekTabs();
             if (weeks.length > 0) {
-                selectWeek(weeks[0]);
+                // Preserve current week if still present
+                if (currentWeek && weeks.includes(currentWeek)) {
+                    selectWeek(currentWeek);
+                } else {
+                    selectWeek(weeks[0]);
+                }
             } else {
                 document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">No weeks available for this subject.</p>';
+                document.getElementById('weekTabs').innerHTML = '';
             }
         }
 
@@ -488,10 +546,15 @@
                 tab.onclick = (e) => selectWeek(week, e.target);
                 container.appendChild(tab);
             });
+            if (currentWeek) {
+                document.querySelectorAll('#weekTabs .tab').forEach(t => {
+                    if (t.textContent === `Week ${currentWeek}`) t.classList.add('active');
+                });
+            }
         }
 
         function selectWeek(week, clickedElement) {
-            document.querySelectorAll('.week-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#weekTabs .tab').forEach(t => t.classList.remove('active'));
             if (clickedElement) clickedElement.classList.add('active');
             currentWeek = week;
             document.getElementById('currentWeek').textContent = week;
@@ -511,6 +574,18 @@
             URL.revokeObjectURL(url);
         }
 
+        // Toggle expand/collapse
+        window.toggleReadMore = (btn, contentId) => {
+            const content = document.getElementById(contentId);
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                btn.textContent = 'Read more';
+            } else {
+                content.classList.add('expanded');
+                btn.textContent = 'Read less';
+            }
+        };
+
         function renderResources() {
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
@@ -525,10 +600,12 @@
 
             // Student Resource (if published)
             if (note.studentResource && note.studentResourcePublished) {
+                const contentId = `student_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
                 html += `
                     <div class="resource-card">
                         <h4><i class="fas fa-users"></i> Student Resource</h4>
-                        <p>${note.studentResource}</p>
+                        <p id="${contentId}">${note.studentResource}</p>
+                        <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
                         <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${note.studentResource.replace(/`/g, '\\`')}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
                             <i class="fas fa-download"></i> Download
                         </button>
@@ -538,10 +615,12 @@
 
             // Handwritten Notes (if published)
             if (note.handwrittenNotes && note.handwrittenPublished) {
+                const contentId = `handwritten_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
                 html += `
                     <div class="resource-card">
                         <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
-                        <p>${note.handwrittenNotes}</p>
+                        <p id="${contentId}">${note.handwrittenNotes}</p>
+                        <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
                         <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${note.handwrittenNotes.replace(/`/g, '\\`')}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
                             <i class="fas fa-download"></i> Download
                         </button>
@@ -560,6 +639,7 @@
                     <div class="resource-card">
                         <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
                         ${linksHtml}
+                        <a href="${note.youtubeLinks[0]}" target="_blank" class="btn btn-outline btn-sm" style="align-self: flex-start;">Watch Now</a>
                     </div>
                 `;
             }
@@ -574,45 +654,37 @@
             container.innerHTML = html;
         }
 
+        function renderVirtualClasses(snapshot) {
+            const container = document.getElementById('virtualClassesContainer');
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="empty-state">No upcoming virtual classes.</p>';
+                return;
+            }
+
+            const now = new Date();
+            let html = '<div class="resource-grid">';
+            snapshot.forEach(doc => {
+                const vc = doc.data();
+                // Optional: filter future classes only
+                const classDateTime = new Date(`${vc.date}T${vc.time}`);
+                if (classDateTime < now) return; // skip past classes
+
+                html += `
+                    <div class="resource-card">
+                        <h4><i class="fas fa-video"></i> ${vc.subject} – Week ${vc.week}</h4>
+                        <p><strong>Platform:</strong> ${vc.platform}</p>
+                        <p><strong>Date:</strong> ${vc.date} at ${vc.time}</p>
+                        <p><strong>Duration:</strong> ${vc.duration} min</p>
+                        <a href="${vc.link}" target="_blank" class="btn btn-outline">Join</a>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
         // Expose download function globally
         window.downloadAsFile = downloadAsFile;
-
-        async function loadVirtualClasses() {
-            if (!studentClass) return;
-            try {
-                const now = new Date();
-                const snapshot = await db.collection('virtualClasses')
-                    .where('classId', '==', studentClass)
-                    .orderBy('date', 'asc')
-                    .orderBy('time', 'asc')
-                    .get();
-
-                const container = document.getElementById('virtualClassesContainer');
-                if (snapshot.empty) {
-                    container.innerHTML = '<p class="empty-state">No upcoming virtual classes.</p>';
-                    return;
-                }
-
-                let html = '<div class="resource-grid">';
-                snapshot.forEach(doc => {
-                    const vc = doc.data();
-                    html += `
-                        <div class="resource-card">
-                            <h4><i class="fas fa-video"></i> ${vc.subject} – Week ${vc.week}</h4>
-                            <p><strong>Platform:</strong> ${vc.platform}</p>
-                            <p><strong>Date:</strong> ${vc.date} at ${vc.time}</p>
-                            <p><strong>Duration:</strong> ${vc.duration} min</p>
-                            <a href="${vc.link}" target="_blank" class="btn btn-outline">Join</a>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
-            } catch (error) {
-                console.error(error);
-                // Silently fail – not critical
-            }
-        }
     </script>
 </body>
 </html>
