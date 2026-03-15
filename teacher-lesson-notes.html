@@ -488,16 +488,23 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             color: white;
             border: none;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            transition: 0.2s;
+        }
+        .preview-close:hover {
+            background: var(--danger-text);
+            transform: scale(1.1);
         }
 
         /* Buttons */
@@ -1115,7 +1122,7 @@
         let editorEnabled = true;
         let pendingSubmissionData = null;
         let youtubeLinks = [];
-        let youtubePublished = false; // for the whole note
+        let youtubePublished = false;
 
         // Assistant state
         let assistantConversations = [];
@@ -1581,7 +1588,6 @@
         }
 
         window.publishYoutubeLink = async () => {
-            // Publish all links by setting youtubePublished = true in the lesson note
             if (!currentSubject || !currentWeek) return;
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
@@ -1621,7 +1627,6 @@
                 <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
                 <button class="preview-close" onclick="closeYoutubePreview()"><i class="fas fa-times"></i></button>
             `;
-            // Optionally add to list
             if (!youtubeLinks.includes(url)) {
                 youtubeLinks.push(url);
                 renderYoutubeList();
@@ -2082,7 +2087,6 @@
         const historyList = document.getElementById('historyList');
         const newChatBtn = document.getElementById('newChatBtn');
 
-        // Load conversations from Firestore
         async function loadConversations() {
             if (!currentUser) return;
             const snapshot = await db.collection('aiConversations')
@@ -2127,10 +2131,10 @@
                 messages: []
             };
             assistantConversations.unshift(conv);
-            currentConversationId = conv.id;
             renderHistory();
             displayConversation(conv);
             await saveConversation(conv);
+            currentConversationId = conv.id; // now set after save
         }
 
         function renderHistory() {
@@ -2242,6 +2246,9 @@
             const prompt = assistantInput.value.trim();
             if (!prompt) return;
 
+            // Clear input immediately
+            assistantInput.value = '';
+
             addMessageToChat('user', prompt);
             const conv = assistantConversations.find(c => c.id === currentConversationId);
             if (conv) {
@@ -2253,8 +2260,6 @@
                 await saveConversation(conv);
             }
 
-            assistantInput.value = '';
-
             const thinkingDiv = document.createElement('div');
             thinkingDiv.className = 'assistant-thinking';
             thinkingDiv.innerHTML = '<i class="fas fa-robot fa-spin"></i> Thinking...';
@@ -2262,6 +2267,10 @@
             assistantChat.scrollTop = assistantChat.scrollHeight;
 
             try {
+                if (!groq) {
+                    throw new Error('AI service not available. Please check your API key.');
+                }
+
                 if (currentResourceType === 'handwritten') {
                     const imagePrompt = `Create handwritten study notes on ${prompt}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around dates. Add doodles to explain concepts. A4 size.`;
                     const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
@@ -2349,7 +2358,6 @@
             if (e.key === 'Enter') sendAssistantMessage();
         });
 
-        // Load conversations after auth
         auth.onAuthStateChanged(user => {
             if (user) loadConversations();
         });
