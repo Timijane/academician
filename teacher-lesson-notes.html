@@ -197,8 +197,6 @@
             background: var(--hover-bg);
             color: var(--accent);
         }
-
-        /* Theme toggle */
         .theme-toggle {
             display: flex;
             align-items: center;
@@ -634,7 +632,7 @@
             height: 1.2rem;
         }
 
-        /* AI Assistant Modal (exactly as originally) */
+        /* AI Assistant Modal (exactly as original) */
         .assistant-modal {
             display: flex;
             flex-direction: row;
@@ -686,38 +684,17 @@
             border: 1px solid var(--border);
             cursor: pointer;
             transition: 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         .history-item:hover { border-color: var(--accent); transform: translateX(5px); }
         .history-item-title {
             font-weight: 600;
             font-size: 0.9rem;
             margin-bottom: 0.3rem;
-            flex: 1;
-            cursor: text;
-        }
-        .history-item-title[contenteditable="true"] {
-            background: var(--input-bg);
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.5rem;
-            outline: 1px solid var(--accent);
         }
         .history-item-date {
             font-size: 0.7rem;
             color: var(--text-secondary);
-            margin-right: 0.5rem;
         }
-        .delete-history {
-            color: var(--danger-text);
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-        .delete-history:hover { opacity: 1; }
         .assistant-main {
             flex: 1;
             display: flex;
@@ -753,6 +730,7 @@
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border);
         }
+        .assistant-context strong { color: var(--accent); }
         .assistant-chat {
             flex: 1;
             overflow-y: auto;
@@ -1011,7 +989,7 @@
         </div>
     </div>
 
-    <!-- AI Assistant Modal (unchanged) -->
+    <!-- AI Assistant Modal (original) -->
     <div class="modal-overlay" id="aiAssistantModal">
         <div class="assistant-modal">
             <div class="assistant-history">
@@ -1041,7 +1019,7 @@
                 </div>
                 <div class="assistant-actions">
                     <button class="btn btn-outline" onclick="copyAssistantToEditor()">Copy to Editor</button>
-                    <button class="btn btn-success" id="assistantSaveBtn" style="display: none;" onclick="saveAssistantToTeach()">Save to Teach</button>
+                    <button class="btn btn-success" id="assistantSaveBtn" onclick="saveAssistantToTeach()">Save to Teach</button>
                 </div>
             </div>
         </div>
@@ -2101,62 +2079,19 @@
             } catch (e) { showError('Error: ' + e.message); }
         };
 
-        // ========== AI ASSISTANT (EXACTLY AS ORIGINAL) ==========
+        // ========== AI ASSISTANT (ORIGINAL) ==========
         const aiModal = document.getElementById('aiAssistantModal');
         const assistantChat = document.getElementById('assistantChat');
         const assistantInput = document.getElementById('assistantInput');
         const assistantContext = document.getElementById('assistantContext');
+        const assistantSaveBtn = document.getElementById('assistantSaveBtn');
         const historyList = document.getElementById('historyList');
         const newChatBtn = document.getElementById('newChatBtn');
-        const assistantSaveBtn = document.getElementById('assistantSaveBtn');
 
-        async function loadConversations() {
-            if (!currentUser) return;
-            const snapshot = await db.collection('aiConversations')
-                .where('userId', '==', currentUser.uid)
-                .orderBy('updatedAt', 'desc')
-                .get();
-            assistantConversations = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                messages: doc.data().messages || []
-            }));
-            renderHistory();
-            if (assistantConversations.length > 0) {
-                currentConversationId = assistantConversations[0].id;
-                displayConversation(assistantConversations[0]);
-            } else {
-                newConversation();
-            }
-        }
-
-        async function saveConversation(conv) {
-            if (!currentUser) return;
-            const data = {
-                userId: currentUser.uid,
-                title: conv.title,
-                messages: conv.messages,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (conv.id) {
-                await db.collection('aiConversations').doc(conv.id).update(data);
-            } else {
-                const ref = await db.collection('aiConversations').add(data);
-                conv.id = ref.id;
-            }
-        }
-
-        async function newConversation() {
-            const conv = {
-                id: null,
-                title: 'New Chat',
-                messages: []
-            };
-            assistantConversations.unshift(conv);
-            renderHistory();
-            displayConversation(conv);
-            await saveConversation(conv);
-            assistantSaveBtn.style.display = 'none';
+        function generateTitle(messages) {
+            if (messages.length === 0) return 'New Chat';
+            const firstUser = messages.find(m => m.role === 'user');
+            return firstUser ? firstUser.content.substring(0, 30) + (firstUser.content.length > 30 ? '...' : '') : 'New Chat';
         }
 
         function renderHistory() {
@@ -2165,44 +2100,31 @@
                 const item = document.createElement('div');
                 item.className = 'history-item';
                 item.dataset.id = conv.id;
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'history-item-title';
-                titleSpan.textContent = conv.title;
-                titleSpan.addEventListener('dblclick', () => {
-                    titleSpan.contentEditable = 'true';
-                    titleSpan.focus();
-                });
-                titleSpan.addEventListener('blur', async () => {
-                    titleSpan.contentEditable = 'false';
-                    conv.title = titleSpan.textContent;
-                    await saveConversation(conv);
-                });
-                item.appendChild(titleSpan);
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-history';
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                deleteBtn.onclick = async (e) => {
-                    e.stopPropagation();
-                    if (!confirm('Delete this conversation?')) return;
-                    if (conv.id) await db.collection('aiConversations').doc(conv.id).delete();
-                    assistantConversations = assistantConversations.filter(c => c.id !== conv.id);
-                    renderHistory();
-                    if (currentConversationId === conv.id) {
-                        if (assistantConversations.length > 0) {
-                            currentConversationId = assistantConversations[0].id;
-                            displayConversation(assistantConversations[0]);
-                        } else {
-                            newConversation();
-                        }
-                    }
-                };
-                item.appendChild(deleteBtn);
+                item.innerHTML = `
+                    <div class="history-item-title">${conv.title}</div>
+                    <div class="history-item-date">${conv.date.toLocaleTimeString()}</div>
+                `;
                 item.addEventListener('click', () => loadConversation(conv.id));
                 historyList.appendChild(item);
             });
         }
 
-        async function loadConversation(id) {
+        function newConversation() {
+            const id = Date.now().toString();
+            const conv = {
+                id,
+                title: 'New Chat',
+                date: new Date(),
+                messages: []
+            };
+            assistantConversations.push(conv);
+            currentConversationId = id;
+            renderHistory();
+            displayConversation(conv);
+            assistantSaveBtn.style.display = 'none';
+        }
+
+        function loadConversation(id) {
             const conv = assistantConversations.find(c => c.id === id);
             if (conv) {
                 currentConversationId = id;
@@ -2268,19 +2190,17 @@
             const prompt = assistantInput.value.trim();
             if (!prompt) return;
 
-            // Clear input immediately
-            assistantInput.value = '';
-
             addMessageToChat('user', prompt);
             const conv = assistantConversations.find(c => c.id === currentConversationId);
             if (conv) {
                 conv.messages.push({ role: 'user', content: prompt, timestamp: new Date() });
-                if (conv.messages.filter(m => m.role === 'user').length === 1 && conv.title === 'New Chat') {
-                    conv.title = prompt.substring(0, 30) + (prompt.length > 30 ? '...' : '');
+                if (conv.messages.filter(m => m.role === 'user').length === 1) {
+                    conv.title = generateTitle(conv.messages);
                     renderHistory();
                 }
-                await saveConversation(conv);
             }
+
+            assistantInput.value = '';
 
             const thinkingDiv = document.createElement('div');
             thinkingDiv.className = 'assistant-thinking';
@@ -2289,16 +2209,6 @@
             assistantChat.scrollTop = assistantChat.scrollHeight;
 
             try {
-                // Retrieve recent AI memory for context
-                const memorySnap = await db.collection('aiMemory')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', currentSubject)
-                    .where('week', '==', currentWeek)
-                    .orderBy('createdAt', 'desc')
-                    .limit(5)
-                    .get();
-                const memories = memorySnap.docs.map(d => d.data().content).join('\n');
-
                 if (currentResourceType === 'handwritten') {
                     const imagePrompt = `Create handwritten study notes on ${prompt}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around dates. Add doodles to explain concepts. A4 size.`;
                     const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
@@ -2324,15 +2234,13 @@
 
                     assistantChat.removeChild(thinkingDiv);
                     addMessageToChat('assistant', '', downloadUrl);
-                    if (conv) {
-                        conv.messages.push({ role: 'assistant', content: '', imageUrl: downloadUrl, timestamp: new Date() });
-                        await saveConversation(conv);
-                    }
+                    if (conv) conv.messages.push({ role: 'assistant', content: '', imageUrl: downloadUrl, timestamp: new Date() });
+
                     assistantSaveBtn.style.display = 'inline-block';
                 } else {
                     const weekData = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek);
                     const topic = weekData?.topic || '';
-                    const systemPrompt = `You are a Nigerian curriculum expert. The teacher is working on ${currentSubject}, week ${currentWeek} (topic: ${topic}). Generate content based on the user's request. Use the standard Nigerian lesson note format where appropriate.\n\nPrevious work on this topic:\n${memories}`;
+                    const systemPrompt = `You are a Nigerian curriculum expert. The teacher is working on ${currentSubject}, week ${currentWeek} (topic: ${topic}). Generate content based on the user's request. Use the standard Nigerian lesson note format where appropriate.`;
 
                     const historyMessages = conv ? conv.messages.map(m => ({
                         role: m.role,
@@ -2355,10 +2263,8 @@
 
                     assistantChat.removeChild(thinkingDiv);
                     addMessageToChat('assistant', text);
-                    if (conv) {
-                        conv.messages.push({ role: 'assistant', content: text, timestamp: new Date() });
-                        await saveConversation(conv);
-                    }
+                    if (conv) conv.messages.push({ role: 'assistant', content: text, timestamp: new Date() });
+
                     assistantSaveBtn.style.display = 'inline-block';
                 }
                 assistantChat.scrollTop = assistantChat.scrollHeight;
@@ -2450,11 +2356,6 @@
         document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
         assistantInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendAssistantMessage();
-        });
-
-        // Load conversations after auth
-        auth.onAuthStateChanged(user => {
-            if (user) loadConversations();
         });
 
         // ========== CREATE LESSON NOTE BUTTON ==========
