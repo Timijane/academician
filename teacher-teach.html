@@ -256,18 +256,13 @@
             border-left:4px solid var(--danger-text);
         }
         .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); }
-
-        .access-info {
-            background: var(--hover-bg); border-left: 4px solid var(--accent);
-            padding: 1rem; border-radius: 1rem; margin-bottom: 1rem;
-        }
     </style>
 </head>
 <body>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
-    <!-- Top Navigation (no sidebar) -->
+    <!-- Top Navigation -->
     <div class="top-nav">
         <div class="nav-left">
             <a href="index.html" class="nav-btn"><i class="fas fa-home"></i> Home</a>
@@ -299,9 +294,6 @@
 
         <!-- Week Tabs -->
         <div class="week-tabs" id="weekTabs"></div>
-
-        <!-- Access info / timer -->
-        <div id="accessInfo" class="access-info" style="display: none;"></div>
 
         <!-- Main Content Card -->
         <div class="card">
@@ -370,7 +362,6 @@
     </div>
 
     <script>
-        // Firebase config (same as yours)
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -404,7 +395,6 @@
             updateThemeUI(next);
         });
 
-        // Error handler for Firestore index
         function handleFirestoreError(error, context) {
             console.error(`Firestore error in ${context}:`, error);
             const errorDiv = document.getElementById('indexError');
@@ -430,10 +420,7 @@
         let currentSubject = null;
         let weeks = [];
         let currentWeek = null;
-        let lessonNotesMap = {};
-        let todaysPeriods = [];
-        let accessInterval = null;
-        let hasLoggedAccess = false;
+        let lessonNotesMap = {}; // key: week -> lessonNote document
         let currentLessonNote = null;
 
         // Auth
@@ -479,6 +466,7 @@
             if (subjects.length > 0) container.children[0].classList.add('active');
         }
 
+        // Switch subject: fetch all lesson notes that have any teachable/pushed content
         async function switchSubject(subject, clickedElement) {
             const tabs = document.querySelectorAll('#subjectTabs .tab');
             tabs.forEach(t => t.classList.remove('active'));
@@ -493,42 +481,34 @@
             document.getElementById('currentSubjectDisplay').textContent = subject;
             document.getElementById('indexError').style.display = 'none';
 
-            if (accessInterval) clearInterval(accessInterval);
-
             try {
+                // Get all notes for this subject that are either teachable or have any pushed resource
                 const snapshot = await db.collection('lessonNotes')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', subject)
-                    .where('status', '==', 'approved')
-                    .where('teachable', '==', true)
-                    .orderBy('week', 'asc')
                     .get();
 
                 weeks = [];
                 lessonNotesMap = {};
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    weeks.push(data.week);
-                    lessonNotesMap[data.week] = { id: doc.id, ...data };
+                    // Only include if at least one resource is ready:
+                    if (data.teachable || data.teachingProcessReady || data.studentResourceReady || data.handwrittenReady || (data.youtubeLinks && data.youtubeLinks.length)) {
+                        weeks.push(data.week);
+                        lessonNotesMap[data.week] = { id: doc.id, ...data };
+                    }
                 });
+                weeks.sort((a,b) => a - b);
                 renderWeekTabs();
                 if (weeks.length > 0) {
                     selectWeek(weeks[0]);
                 } else {
                     document.getElementById('weekTabs').innerHTML = '';
-                    document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">No ready‑to‑teach notes for this subject.</div>';
+                    document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">No ready‑to‑teach content for this subject.</div>';
                 }
-
-                accessInterval = setInterval(() => {
-                    if (currentLessonNote) {
-                        const status = getAccessStatus(currentLessonNote);
-                        updateAccessUI(status);
-                    }
-                }, 60000);
-
             } catch (error) {
-                handleFirestoreError(error, 'loadApprovedLessonNotes');
-                document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">Error loading lesson notes.</div>';
+                handleFirestoreError(error, 'loadTeachables');
+                document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">Error loading content.</div>';
             }
         }
 
@@ -560,120 +540,27 @@
             document.getElementById('currentWeekDisplay').textContent = week;
             currentLessonNote = lessonNotesMap[week];
             if (currentLessonNote) {
-                if (currentLessonNote.scheduledPeriods && currentLessonNote.scheduledPeriods.length > 0) {
-                    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-                    todaysPeriods = currentLessonNote.scheduledPeriods.filter(p => p.day === today);
-                } else {
-                    fetchTodaysTimetableFallback();
-                }
-                const status = getAccessStatus(currentLessonNote);
-                updateAccessUI(status);
+                renderResources(currentLessonNote);
             } else {
-                document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">No note for this week.</div>';
+                document.getElementById('resourcesContainer').innerHTML = '<div class="empty-state">No content for this week.</div>';
             }
         }
 
-        async function fetchTodaysTimetableFallback() {
-            if (!userData.classTeaching) return;
-            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            try {
-                const docId = `${userData.classTeaching}_academic`;
-                const doc = await db.collection('timetables').doc(docId).get();
-                if (!doc.exists) { todaysPeriods = []; return; }
-                const data = doc.data();
-                const periods = data.periods || [];
-                todaysPeriods = periods
-                    .filter(p => p[today] && p[today].trim() !== '' && p[today] === currentSubject)
-                    .map(p => ({ day: today, startTime: p.startTime, endTime: p.endTime }));
-            } catch (error) {
-                handleFirestoreError(error, 'fetchTimetableFallback');
-            }
-        }
-
-        function getAccessStatus(note) {
-            if (!note) return { canAccess: false, message: 'No lesson note selected.' };
-            const now = new Date();
-            const currentTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-            const today = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-
-            let periods = [];
-            if (note.scheduledPeriods && note.scheduledPeriods.length > 0) {
-                periods = note.scheduledPeriods.filter(p => p.day === today);
-            } else {
-                periods = todaysPeriods;
-            }
-
-            if (periods.length === 0) {
-                return { canAccess: false, message: 'No class scheduled for this subject today.' };
-            }
-
-            let activePeriod = null, nextPeriod = null;
-            for (let p of periods) {
-                if (currentTime >= p.startTime && currentTime <= p.endTime) {
-                    activePeriod = p;
-                    break;
-                }
-                if (p.startTime > currentTime) {
-                    if (!nextPeriod || p.startTime < nextPeriod.startTime) nextPeriod = p;
-                }
-            }
-
-            if (activePeriod) {
-                const isLate = currentTime > activePeriod.startTime;
-                return {
-                    canAccess: true,
-                    activePeriod,
-                    isLate,
-                    message: isLate ? `You are late (started at ${activePeriod.startTime})` : 'Class is in session.'
-                };
-            } else if (nextPeriod) {
-                return {
-                    canAccess: false,
-                    nextPeriod,
-                    message: `Next class is at ${nextPeriod.startTime}.`
-                };
-            } else {
-                return {
-                    canAccess: false,
-                    message: 'All classes for today have ended.'
-                };
-            }
-        }
-
-        function updateAccessUI(status) {
-            const accessDiv = document.getElementById('accessInfo');
-            if (!status.canAccess) {
-                accessDiv.innerHTML = `<i class="fas fa-lock"></i> ${status.message}`;
-                accessDiv.style.display = 'block';
-                document.getElementById('resourcesContainer').innerHTML = '<p class="empty-state">Lesson materials are locked until class time.</p>';
-                hasLoggedAccess = false;
-            } else {
-                accessDiv.innerHTML = `<i class="fas fa-unlock"></i> ${status.message}`;
-                accessDiv.style.display = 'block';
-                if (!hasLoggedAccess) {
-                    logAccess(status.activePeriod, status.isLate);
-                    hasLoggedAccess = true;
-                }
-                if (currentLessonNote) {
-                    renderResources(currentLessonNote);
-                }
-            }
-        }
-
-        async function logAccess(period, isLate) {
+        // Log the start of teaching
+        async function logTeachingStart(resourceType) {
             if (!currentUser || !userData || !currentSubject || !currentWeek) return;
             try {
                 await db.collection('auditLogs').add({
                     userId: currentUser.uid,
                     userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
                     userEmail: userData.email || currentUser.email,
-                    action: isLate ? 'opened_lesson_late' : 'opened_lesson_on_time',
+                    role: 'teacher',
+                    action: 'started_teaching',
                     details: JSON.stringify({
                         subject: currentSubject,
                         week: currentWeek,
-                        scheduledStart: period.startTime,
-                        scheduledEnd: period.endTime,
-                        actualOpenTime: new Date().toLocaleTimeString()
+                        resourceType,
+                        startTime: new Date().toLocaleTimeString()
                     }),
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     userAgent: navigator.userAgent
@@ -681,6 +568,7 @@
             } catch (e) { console.warn('Audit log failed', e); }
         }
 
+        // Publish functions
         async function publishResource(docId, type) {
             const update = type === 'studentResource' ? { studentResourcePublished: true } : { handwrittenPublished: true };
             try {
@@ -704,6 +592,41 @@
             } catch (e) { alert('Error: ' + e.message); }
         }
 
+        // Helper to generate HTML for a resource card with Start button
+        function resourceCard(icon, title, content, resourceType, docId, startable = true, publishable = false, published = false) {
+            let publishButton = '';
+            if (publishable) {
+                if (published) {
+                    publishButton = '<span class="badge published">Published</span>';
+                } else {
+                    publishButton = `<button class="btn btn-sm btn-outline" onclick="publishResource('${docId}', '${resourceType}')">Publish to Students</button>`;
+                }
+            }
+            let startButton = '';
+            if (startable && content && content.trim()) {
+                startButton = `<button class="btn btn-sm btn-success" onclick="startTeaching('${resourceType}')">Start Teaching</button>`;
+            }
+            return `
+                <div class="resource-card">
+                    <h4><i class="${icon}"></i> ${title}</h4>
+                    <p>${content || 'Not available.'}</p>
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        ${startButton}
+                        ${publishButton}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Called when teacher clicks Start Teaching
+        window.startTeaching = (resourceType) => {
+            if (confirm(`Do you want to start teaching this ${resourceType} now? This will be logged.`)) {
+                logTeachingStart(resourceType);
+                // Optionally, you could open a new view or just give feedback
+                alert(`Started teaching ${resourceType}. Logged.`);
+            }
+        };
+
         function renderResources(note) {
             const container = document.getElementById('resourcesContainer');
             if (!note) {
@@ -711,43 +634,54 @@
                 return;
             }
 
-            let youtubeHtml = '';
-            if (note.youtubeLinks && note.youtubeLinks.length) {
-                youtubeHtml = note.youtubeLinks.map(link => `<li><a href="${link}" target="_blank" class="youtube-link">${link}</a></li>`).join('');
-            } else {
-                youtubeHtml = '<li>No links</li>';
+            let html = '<div class="resource-grid">';
+
+            // Lesson Note (if teachable)
+            if (note.teachable && note.lessonNote) {
+                html += resourceCard('fas fa-book', 'Lesson Note', note.lessonNote, 'lessonNote', note.id, true, false);
             }
 
-            container.innerHTML = `
-                <div class="resource-grid">
-                    <div class="resource-card">
-                        <h4><i class="fas fa-book"></i> Lesson Note</h4>
-                        <p>${note.lessonNote ? note.lessonNote : 'Not available.'}</p>
-                    </div>
-                    <div class="resource-card">
-                        <h4><i class="fas fa-chalkboard-teacher"></i> Teaching Process</h4>
-                        <p>${note.teachingProcess ? note.teachingProcess : 'Not available.'}</p>
-                    </div>
-                    <div class="resource-card">
-                        <h4><i class="fas fa-users"></i> Student Resource</h4>
-                        <p>${note.studentResource ? note.studentResource : 'Not available.'}</p>
-                        ${note.studentResourcePublished ? '<span class="badge published">Published</span>' : '<button class="btn btn-sm btn-outline" onclick="publishResource(\'' + note.id + '\', \'studentResource\')">Publish</button>'}
-                    </div>
-                    <div class="resource-card">
-                        <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
-                        <p>${note.handwrittenNotes ? note.handwrittenNotes : 'Not available.'}</p>
-                        ${note.handwrittenPublished ? '<span class="badge published">Published</span>' : '<button class="btn btn-sm btn-outline" onclick="publishResource(\'' + note.id + '\', \'handwritten\')">Publish</button>'}
-                    </div>
+            // Teaching Process (if ready)
+            if (note.teachingProcessReady && note.teachingProcess) {
+                html += resourceCard('fas fa-chalkboard-teacher', 'Teaching Process', note.teachingProcess, 'teachingProcess', note.id, true, false);
+            }
+
+            // Student Resource (always show if exists; publish button if not published)
+            if (note.studentResource) {
+                html += resourceCard('fas fa-users', 'Student Resource', note.studentResource, 'studentResource', note.id, true, true, note.studentResourcePublished);
+            }
+
+            // Handwritten Notes
+            if (note.handwrittenNotes) {
+                html += resourceCard('fas fa-pen-fancy', 'Handwritten Notes', note.handwrittenNotes, 'handwritten', note.id, true, true, note.handwrittenPublished);
+            }
+
+            // YouTube Links
+            if (note.youtubeLinks && note.youtubeLinks.length) {
+                let linksHtml = '<ul>';
+                note.youtubeLinks.forEach(link => {
+                    linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`;
+                });
+                linksHtml += '</ul>';
+                let youtubePublish = note.youtubePublished ? 
+                    '<span class="badge published">Published</span>' : 
+                    `<button class="btn btn-sm btn-outline" onclick="publishAllYoutube('${note.id}')">Publish All</button>`;
+                html += `
                     <div class="resource-card">
                         <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
-                        <ul>${youtubeHtml}</ul>
-                        ${note.youtubePublished ? '<span class="badge published">Published</span>' : '<button class="btn btn-sm btn-outline" onclick="publishAllYoutube(\'' + note.id + '\')">Publish All</button>'}
+                        ${linksHtml}
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            ${youtubePublish}
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
         }
 
-        // Virtual class modal
+        // Virtual class modal (unchanged)
         const virtualModal = document.getElementById('virtualClassModal');
         const platformSelect = document.getElementById('platformSelect');
         const customLinkGroup = document.getElementById('customLinkGroup');
