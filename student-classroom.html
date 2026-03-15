@@ -389,7 +389,7 @@
     </div>
 
     <script>
-        // Firebase configuration
+        // Firebase configuration (replace with your actual config if different)
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -401,7 +401,13 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch (e) {
+            console.error('Firebase initialization error:', e);
+            document.getElementById('errorMessage').innerHTML = 'Firebase initialization failed. Check your config.';
+            document.getElementById('errorMessage').style.display = 'block';
+        }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -505,6 +511,7 @@
 
         // Auth
         auth.onAuthStateChanged(async (user) => {
+            console.log('Auth state changed, user:', user ? user.uid : 'none');
             if (!user) { 
                 window.location.href = 'student-login.html'; 
                 return; 
@@ -540,6 +547,8 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
                 document.getElementById('profileName').textContent = userData.firstName || 'Student';
 
+                console.log('Student class:', studentClass);
+
                 // Set up real‑time listener for lesson notes
                 if (unsubscribeLessonNotes) unsubscribeLessonNotes();
                 setResourcesLoading(true);
@@ -547,18 +556,24 @@
                     .where('classId', '==', studentClass)
                     .where('status', '==', 'approved')
                     .onSnapshot(snapshot => {
+                        console.log('Lesson notes snapshot received, size:', snapshot.size);
                         lessonNotesMap = {};
                         subjects = [];
                         snapshot.forEach(doc => {
                             const data = doc.data();
+                            console.log('Document data:', data);
                             // Only include if at least one resource is published
                             if (data.studentResourcePublished || data.handwrittenPublished || (data.youtubeLinks && data.youtubeLinks.length && data.youtubePublished)) {
                                 const subj = data.subject;
                                 if (subj && !subjects.includes(subj)) subjects.push(subj);
                                 const key = `${subj}_${data.week}`;
                                 lessonNotesMap[key] = { id: doc.id, ...data };
+                                console.log('Included note for subject:', subj, 'week:', data.week);
+                            } else {
+                                console.log('Note excluded (no published resources):', data.subject, data.week);
                             }
                         });
+                        console.log('Subjects after filtering:', subjects);
                         renderSubjectTabs();
                         if (subjects.length > 0) {
                             if (!currentSubject || !subjects.includes(currentSubject)) {
@@ -573,6 +588,7 @@
                             document.getElementById('currentWeek').textContent = '';
                         }
                     }, error => {
+                        console.error('Lesson notes listener error:', error);
                         handleFirestoreError(error, 'lessonNotes');
                         setResourcesEmpty();
                     });
@@ -585,8 +601,10 @@
                     .orderBy('date', 'asc')
                     .orderBy('time', 'asc')
                     .onSnapshot(snapshot => {
+                        console.log('Virtual classes snapshot received, size:', snapshot.size);
                         renderVirtualClasses(snapshot);
                     }, error => {
+                        console.error('Virtual classes listener error:', error);
                         handleFirestoreError(error, 'virtualClasses');
                         setClassesEmpty();
                     });
@@ -622,6 +640,7 @@
             if (clickedElement) clickedElement.classList.add('active');
             currentSubject = subject;
             document.getElementById('currentSubject').textContent = subject;
+            console.log('Switched to subject:', subject);
 
             weeks = [];
             for (let key in lessonNotesMap) {
@@ -631,6 +650,7 @@
                 }
             }
             weeks.sort((a,b) => a - b);
+            console.log('Weeks for subject:', weeks);
             renderWeekTabs();
             if (weeks.length > 0) {
                 if (currentWeek && weeks.includes(currentWeek)) {
@@ -667,6 +687,7 @@
             if (clickedElement) clickedElement.classList.add('active');
             currentWeek = week;
             document.getElementById('currentWeek').textContent = week;
+            console.log('Selected week:', week);
             renderResources();
         }
 
@@ -702,6 +723,7 @@
             }
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
+            console.log('Rendering resources for key:', key, 'note:', note);
 
             if (!note) {
                 setResourcesEmpty();
@@ -712,7 +734,9 @@
 
             // Student Resource (if published)
             if (note.studentResource && note.studentResourcePublished) {
+                console.log('Adding student resource card');
                 const contentId = `student_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
+                // Escape backticks and dollars for safe template string
                 const safeContent = note.studentResource.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
                 html += `
                     <div class="resource-card">
@@ -724,10 +748,15 @@
                         </button>
                     </div>
                 `;
+            } else {
+                console.log('Student resource not included because:', 
+                    'exists:', !!note.studentResource, 
+                    'published:', note.studentResourcePublished);
             }
 
             // Handwritten Notes (if published)
             if (note.handwrittenNotes && note.handwrittenPublished) {
+                console.log('Adding handwritten notes card');
                 const contentId = `handwritten_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
                 const safeContent = note.handwrittenNotes.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
                 html += `
@@ -740,10 +769,15 @@
                         </button>
                     </div>
                 `;
+            } else {
+                console.log('Handwritten notes not included because:',
+                    'exists:', !!note.handwrittenNotes,
+                    'published:', note.handwrittenPublished);
             }
 
             // YouTube Links (if published)
             if (note.youtubeLinks && note.youtubeLinks.length && note.youtubePublished) {
+                console.log('Adding YouTube links card');
                 let linksHtml = '<ul>';
                 note.youtubeLinks.forEach(link => {
                     linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`;
@@ -756,12 +790,17 @@
                         <a href="${note.youtubeLinks[0]}" target="_blank" class="btn btn-outline btn-sm" style="align-self: flex-start;">Watch Now</a>
                     </div>
                 `;
+            } else {
+                console.log('YouTube links not included because:',
+                    'exists:', note.youtubeLinks && note.youtubeLinks.length,
+                    'published:', note.youtubePublished);
             }
 
             html += '</div>';
 
             // If none of the above, show empty
             if (!note.studentResourcePublished && !note.handwrittenPublished && !(note.youtubeLinks && note.youtubeLinks.length && note.youtubePublished)) {
+                console.log('No published resources, showing empty');
                 setResourcesEmpty();
                 return;
             }
