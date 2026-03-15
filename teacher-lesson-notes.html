@@ -26,7 +26,7 @@
         }
     </script>
     <style>
-        /* (styles remain identical to previous version – unchanged) */
+        /* (styles identical to previous version – unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa;
@@ -1066,7 +1066,7 @@
         let lessonNotesMap = {};
         let quill = null;
         let groq = null;
-        let editorEnabled = true;
+        let editorEnabled = true; // for the current resource
         let youtubeLinks = [];
         let youtubePublished = false;
         let youtubeReady = false;
@@ -1252,7 +1252,8 @@
                                 postApprovalDiv.style.display = 'none';
                             }
                             updateEditorButtons(note);
-                            if (note.teachable || note.status === 'approved') {
+                            // Enable/disable Quill based on current resource type
+                            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
                                 quill.enable(false);
                                 editorEnabled = false;
                             } else {
@@ -1464,13 +1465,14 @@
             document.querySelectorAll('.week-tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById('editorSection').style.display = 'block';
-            currentResourceType = 'lessonNote';
+            currentResourceType = 'lessonNote'; // default
             document.getElementById('editorTitle').textContent = `Week ${week} Lesson Note`;
             const key = `${currentSubject}_${week}`;
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
 
-            if (note.teachable || note.status === 'approved') {
+            // Enable/disable based on resource type and note status
+            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
                 quill.enable(false);
                 editorEnabled = false;
             } else {
@@ -1503,7 +1505,7 @@
                 deleteBtn.style.display = 'inline-block';
                 deleteBtn.onclick = () => promptDelete(currentResourceType, note.id, currentSubject, currentWeek);
 
-                // Submit for Approval only for lesson notes
+                // Submit for Approval only for lesson notes that are not approved/teachable
                 if (currentResourceType === 'lessonNote' && note.status !== 'approved' && !note.teachable) {
                     submitBtn.style.display = 'inline-block';
                 } else {
@@ -2430,6 +2432,15 @@
                 }
             } else {
                 pushBtn.style.display = 'none';
+            }
+
+            // Enable/disable Quill for this resource
+            if (type === 'lessonNote' && (note.teachable || note.status === 'approved')) {
+                quill.enable(false);
+                editorEnabled = false;
+            } else {
+                quill.enable(true);
+                editorEnabled = true;
             }
         }
 
