@@ -603,7 +603,7 @@
         }
         .error-message a { color: var(--accent); text-decoration: underline; }
 
-        /* Period selection modal */
+        /* Period selection modal (kept but not used) */
         .period-modal {
             max-width: 800px;
             width: 90%;
@@ -632,7 +632,7 @@
             height: 1.2rem;
         }
 
-        /* AI Assistant Modal (exactly as original) */
+        /* AI Assistant Modal (original) */
         .assistant-modal {
             display: flex;
             flex-direction: row;
@@ -843,7 +843,7 @@
     <!-- Top Navigation -->
     <div class="top-nav">
         <div class="nav-left">
-            <a href="index.html" class="nav-btn"><i class="fas fa-home"></i> Home</a>
+            <a href="teacher-dashboard.html" class="nav-btn"><i class="fas fa-chart-pie"></i> Dashboard</a>
             <a href="teacher-teach.html" class="nav-btn"><i class="fas fa-chalkboard"></i> Go to Teach</a>
         </div>
         <div class="nav-right">
@@ -977,7 +977,7 @@
         </div>
     </div>
 
-    <!-- Period Selection Modal -->
+    <!-- Period Selection Modal (kept but not used) -->
     <div class="modal-overlay" id="periodModal">
         <div class="period-modal">
             <h3>Select Periods for this Lesson Note</h3>
@@ -990,7 +990,7 @@
         </div>
     </div>
 
-    <!-- AI Assistant Modal (original) -->
+    <!-- AI Assistant Modal -->
     <div class="modal-overlay" id="aiAssistantModal">
         <div class="assistant-modal">
             <div class="assistant-history">
@@ -1290,8 +1290,7 @@
                                 postApprovalDiv.style.display = 'none';
                             }
                             updateEditorButtons(note);
-                            // Only lesson notes become read-only after approval/teachable; other resources always editable
-                            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
+                            if (note.teachable || note.status === 'approved') {
                                 quill.enable(false);
                                 editorEnabled = false;
                             } else {
@@ -1508,8 +1507,7 @@
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
 
-            // Only lesson notes become read-only when approved or teachable
-            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
+            if (note.teachable || note.status === 'approved') {
                 quill.enable(false);
                 editorEnabled = false;
             } else {
@@ -1715,80 +1713,6 @@
             }
         }
 
-        // ========== PERIOD SELECTION MODAL ==========
-        const periodModal = document.getElementById('periodModal');
-        const periodList = document.getElementById('periodList');
-        const periodContext = document.getElementById('periodContext');
-        let selectedPeriods = [];
-
-        async function openPeriodModal() {
-            if (!userData.classTeaching || !currentSubject || !currentWeek) {
-                alert('Please select a subject and week first.');
-                return;
-            }
-            const timetableId = `${userData.classTeaching}_academic`;
-            try {
-                const doc = await db.collection('timetables').doc(timetableId).get();
-                if (!doc.exists) {
-                    alert('No approved academic timetable found for your class. Please contact admin.');
-                    return;
-                }
-                const data = doc.data();
-                const periods = data.periods || [];
-                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-                let html = '';
-                selectedPeriods = [];
-                days.forEach(day => {
-                    const dayPeriods = periods.filter(p => p[day] && p[day].trim() !== '' && p[day] === currentSubject);
-                    if (dayPeriods.length === 0) return;
-                    const dayLabel = day.charAt(0).toUpperCase() + day.slice(1);
-                    html += `<div class="period-day"><h4>${dayLabel}</h4>`;
-                    dayPeriods.forEach((p, idx) => {
-                        html += `
-                            <div class="period-checkbox">
-                                <input type="checkbox" data-day="${day}" data-start="${p.startTime}" data-end="${p.endTime}" data-subject="${p[day]}" id="period_${day}_${idx}">
-                                <label for="period_${day}_${idx}">${p.startTime} – ${p.endTime}</label>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                });
-                if (html === '') {
-                    alert('No periods for this subject in your academic timetable.');
-                    return;
-                }
-                periodList.innerHTML = html;
-                periodContext.innerHTML = `Select the periods when you will teach <strong>${currentSubject}</strong> (Week ${currentWeek}).`;
-                periodModal.classList.add('active');
-            } catch (e) {
-                showError('Error loading timetable: ' + e.message);
-            }
-        }
-
-        window.closePeriodModal = () => {
-            periodModal.classList.remove('active');
-            pendingSubmissionData = null;
-        };
-
-        window.confirmPeriodSelection = () => {
-            const checkboxes = document.querySelectorAll('#periodList input[type="checkbox"]:checked');
-            if (checkboxes.length === 0) {
-                alert('Please select at least one period.');
-                return;
-            }
-            selectedPeriods = Array.from(checkboxes).map(cb => ({
-                day: cb.dataset.day,
-                startTime: cb.dataset.start,
-                endTime: cb.dataset.end,
-                subject: cb.dataset.subject
-            }));
-            periodModal.classList.remove('active');
-            if (pendingSubmissionData) {
-                performFinalSubmission(pendingSubmissionData, selectedPeriods);
-                pendingSubmissionData = null;
-            }
-        };
-
         // ========== EDITOR ACTIONS ==========
         document.getElementById('saveEditorBtn').addEventListener('click', async () => {
             if (!currentSubject || !currentWeek) return;
@@ -1818,7 +1742,6 @@
             };
 
             if (!existing.id) {
-                // Creating for the first time
                 if (currentResourceType === 'lessonNote') {
                     const syllabus = syllabusMap[currentSubject];
                     if (!syllabus || syllabus.status !== 'approved') {
@@ -1826,8 +1749,6 @@
                         return;
                     }
                     updateData.syllabusId = syllabus.id;
-                } else {
-                    // For other resources, no syllabus check needed
                 }
             } else {
                 Object.assign(updateData, existing);
@@ -1896,8 +1817,10 @@
                 baseData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
 
+            // Direct submission without period selection
             pendingSubmissionData = { baseData, existingId: existing.id, key };
-            await openPeriodModal();
+            // Remove period selection and just submit
+            await performFinalSubmission(pendingSubmissionData, []);
         });
 
         async function performFinalSubmission(data, selectedPeriods) {
@@ -1968,7 +1891,7 @@
                             <span class="status-badge status-teachable">Ready to Teach</span>
                         </div>
                         <div>
-                            <button class="btn btn-outline btn-sm" onclick="viewInTeach('${note.subject}', ${note.week}, 'lessonNote')">
+                            <button class="btn btn-outline btn-sm" onclick="viewInTeach('${note.subject}', ${note.week})">
                                 <i class="fas fa-eye"></i> View in Teach
                             </button>
                             <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
@@ -1979,9 +1902,6 @@
                 `;
                 teachableDiv.appendChild(card);
             });
-
-            // Also show resources that have been pushed to teach (teachingProcessReady, etc.)
-            // We'll handle this in the Teach page itself; for now we just list lesson notes.
 
             approved.forEach(note => {
                 const card = document.createElement('div');
@@ -2103,9 +2023,8 @@
             }, 500);
         };
 
-        window.viewInTeach = (subject, week, type = 'lessonNote') => {
-            // For now, we just navigate to Teach page with parameters; the Teach page will handle the warning and audit.
-            window.location.href = `teacher-teach.html?subject=${encodeURIComponent(subject)}&week=${week}&type=${type}`;
+        window.viewInTeach = (subject, week) => {
+            window.location.href = `teacher-teach.html?subject=${encodeURIComponent(subject)}&week=${week}`;
         };
 
         window.editRejected = async (subject, week) => {
@@ -2431,7 +2350,6 @@
                     document.getElementById('tab-syllabus').classList.add('active');
                 } else if (name === 'notebook') {
                     document.getElementById('tab-notebook').classList.add('active');
-                    // If a subject is selected, load the first week
                     if (currentSubject && syllabusMap[currentSubject]?.weeks?.length) {
                         selectWeek(syllabusMap[currentSubject].weeks[0].week);
                     }
@@ -2489,7 +2407,6 @@
             quill.setText(content);
             document.getElementById('editorTitle').textContent = `Week ${week} ${type.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}`;
             document.querySelectorAll('#saveEditorBtn, #submitEditorBtn, #useAIAssistantBtn').forEach(b => b.style.display = 'inline-block');
-            // Hide submit for approval for non-lesson notes
             if (type !== 'lessonNote') {
                 document.getElementById('submitEditorBtn').style.display = 'none';
             } else {
@@ -2505,7 +2422,6 @@
             } else {
                 publishBtn.style.display = 'none';
             }
-            // Push to Teach button for non-lesson resources
             const pushBtn = document.getElementById('pushToTeachBtn');
             if (type !== 'lessonNote') {
                 const readyFlag = type === 'teachingProcess' ? 'teachingProcessReady' :
