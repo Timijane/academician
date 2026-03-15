@@ -256,11 +256,6 @@
             border-left:4px solid var(--danger-text);
         }
         .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); }
-
-        .access-info {
-            background: var(--hover-bg); border-left: 4px solid var(--accent);
-            padding: 1rem; border-radius: 1rem; margin-bottom: 1rem;
-        }
     </style>
 </head>
 <body>
@@ -428,6 +423,9 @@
         let lessonNotesMap = {}; // key: week -> lessonNote document
         let currentLessonNote = null;
 
+        // Real‑time listener for virtual classes
+        let unsubscribeVirtualClasses = null;
+
         // Auth
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
@@ -453,6 +451,19 @@
                 } else if (subjects.length > 0) {
                     switchSubject(subjects[0]);
                 }
+
+                // Set up real‑time listener for virtual classes
+                if (unsubscribeVirtualClasses) unsubscribeVirtualClasses();
+                unsubscribeVirtualClasses = db.collection('virtualClasses')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('date', 'asc')
+                    .orderBy('time', 'asc')
+                    .onSnapshot(snapshot => {
+                        renderVirtualClasses(snapshot);
+                    }, error => {
+                        console.error('Virtual classes listener error:', error);
+                    });
+
             } catch (error) { console.error(error); }
         });
 
@@ -498,7 +509,7 @@
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     // Only include if at least one resource is ready:
-                    if (data.teachable || data.teachingProcessReady || data.studentResourceReady || data.handwrittenReady || (data.youtubeLinks && data.youtubeLinks.length)) {
+                    if (data.teachable || data.teachingProcessReady || data.studentResourceReady || data.handwrittenReady || data.youtubeReady) {
                         weeks.push(data.week);
                         lessonNotesMap[data.week] = { id: doc.id, ...data };
                     }
@@ -575,21 +586,12 @@
 
         // Publish functions
         async function publishResource(docId, type) {
-            const update = type === 'studentResource' ? { studentResourcePublished: true } : { handwrittenPublished: true };
+            const update = type === 'studentResource' ? { studentResourcePublished: true } : 
+                          (type === 'handwritten' ? { handwrittenPublished: true } : 
+                          (type === 'youtube' ? { youtubePublished: true } : {}));
             try {
                 await db.collection('lessonNotes').doc(docId).update(update);
                 alert('Published to students.');
-                const refreshed = await db.collection('lessonNotes').doc(docId).get();
-                lessonNotesMap[currentWeek] = { id: docId, ...refreshed.data() };
-                currentLessonNote = lessonNotesMap[currentWeek];
-                renderResources(currentLessonNote);
-            } catch (e) { alert('Error: ' + e.message); }
-        }
-
-        async function publishAllYoutube(docId) {
-            try {
-                await db.collection('lessonNotes').doc(docId).update({ youtubePublished: true });
-                alert('All YouTube links published to students.');
                 const refreshed = await db.collection('lessonNotes').doc(docId).get();
                 lessonNotesMap[currentWeek] = { id: docId, ...refreshed.data() };
                 currentLessonNote = lessonNotesMap[currentWeek];
@@ -615,7 +617,7 @@
                 <div class="resource-card">
                     <h4><i class="${icon}"></i> ${title}</h4>
                     <p>${content || 'Not available.'}</p>
-                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                         ${startButton}
                         ${publishButton}
                     </div>
@@ -650,37 +652,63 @@
                 html += resourceCard('fas fa-chalkboard-teacher', 'Teaching Process', note.teachingProcess, 'teachingProcess', note.id, true, false);
             }
 
-            // Student Resource (always show if exists; publish button if not published)
-            if (note.studentResource) {
-                html += resourceCard('fas fa-users', 'Student Resource', note.studentResource, 'studentResource', note.id, true, true, note.studentResourcePublished);
+            // Student Resource (if ready and exists)
+            if (note.studentResourceReady && note.studentResource) {
+                html += resourceCard('fas fa-users', 'Student Resource', note.studentResource, 'studentResource', note.id, false, true, note.studentResourcePublished);
             }
 
-            // Handwritten Notes
-            if (note.handwrittenNotes) {
-                html += resourceCard('fas fa-pen-fancy', 'Handwritten Notes', note.handwrittenNotes, 'handwritten', note.id, true, true, note.handwrittenPublished);
+            // Handwritten Notes (if ready)
+            if (note.handwrittenReady && note.handwrittenNotes) {
+                html += resourceCard('fas fa-pen-fancy', 'Handwritten Notes', note.handwrittenNotes, 'handwritten', note.id, false, true, note.handwrittenPublished);
             }
 
-            // YouTube Links
-            if (note.youtubeLinks && note.youtubeLinks.length) {
+            // YouTube Links (if ready)
+            if (note.youtubeReady && note.youtubeLinks && note.youtubeLinks.length) {
                 let linksHtml = '<ul>';
                 note.youtubeLinks.forEach(link => {
                     linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`;
                 });
                 linksHtml += '</ul>';
-                let youtubePublish = note.youtubePublished ? 
+                let publishButton = note.youtubePublished ? 
                     '<span class="badge published">Published</span>' : 
-                    `<button class="btn btn-sm btn-outline" onclick="publishAllYoutube('${note.id}')">Publish All</button>`;
+                    `<button class="btn btn-sm btn-outline" onclick="publishResource('${note.id}', 'youtube')">Publish to Students</button>`;
                 html += `
                     <div class="resource-card">
                         <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
                         ${linksHtml}
                         <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                            ${youtubePublish}
+                            ${publishButton}
                         </div>
                     </div>
                 `;
             }
 
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Render virtual classes from snapshot
+        function renderVirtualClasses(snapshot) {
+            const container = document.getElementById('virtualClassesContainer');
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="empty-state">No upcoming virtual classes.</p>';
+                return;
+            }
+
+            let html = '<div class="resource-grid">';
+            snapshot.forEach(doc => {
+                const vc = doc.data();
+                // Optionally filter by future date/time
+                html += `
+                    <div class="resource-card">
+                        <h4><i class="fas fa-video"></i> ${vc.subject} – Week ${vc.week}</h4>
+                        <p><strong>Platform:</strong> ${vc.platform}</p>
+                        <p><strong>Date:</strong> ${vc.date} at ${vc.time}</p>
+                        <p><strong>Duration:</strong> ${vc.duration} min</p>
+                        <a href="${vc.link}" target="_blank" class="btn btn-outline">Join</a>
+                    </div>
+                `;
+            });
             html += '</div>';
             container.innerHTML = html;
         }
@@ -744,7 +772,7 @@
 
         // Expose functions globally
         window.publishResource = publishResource;
-        window.publishAllYoutube = publishAllYoutube;
+        window.startTeaching = startTeaching;
     </script>
 </body>
 </html>
