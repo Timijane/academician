@@ -923,6 +923,7 @@
                         <button class="btn btn-success" id="submitEditorBtn">Submit for Approval</button>
                         <button class="btn btn-danger" id="deleteResourceBtn" style="display: none;">Delete</button>
                         <button class="btn btn-success" id="publishResourceBtn" style="display: none;">Publish to Students</button>
+                        <button class="btn btn-outline" id="pushToTeachBtn" style="display: none;">Push to Teach</button>
                         <button class="btn btn-outline" id="downloadPdfBtn"><i class="fas fa-download"></i> PDF</button>
                     </div>
                 </div>
@@ -1289,7 +1290,8 @@
                                 postApprovalDiv.style.display = 'none';
                             }
                             updateEditorButtons(note);
-                            if (note.teachable || note.status === 'approved') {
+                            // Only lesson notes become read-only after approval/teachable; other resources always editable
+                            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
                                 quill.enable(false);
                                 editorEnabled = false;
                             } else {
@@ -1506,7 +1508,8 @@
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
 
-            if (note.teachable || note.status === 'approved') {
+            // Only lesson notes become read-only when approved or teachable
+            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
                 quill.enable(false);
                 editorEnabled = false;
             } else {
@@ -1531,9 +1534,13 @@
         function updateEditorButtons(note) {
             const deleteBtn = document.getElementById('deleteResourceBtn');
             const publishBtn = document.getElementById('publishResourceBtn');
+            const pushToTeachBtn = document.getElementById('pushToTeachBtn');
+
             if (note.id) {
                 deleteBtn.style.display = 'inline-block';
-                deleteBtn.onclick = () => promptDelete('lessonNote', note.id, currentSubject, currentWeek);
+                deleteBtn.onclick = () => promptDelete(currentResourceType, note.id, currentSubject, currentWeek);
+
+                // Publish to Students button only for studentResource and handwritten
                 if (currentResourceType === 'studentResource' || currentResourceType === 'handwritten') {
                     const published = (currentResourceType === 'studentResource') ? note.studentResourcePublished : note.handwrittenPublished;
                     publishBtn.style.display = published ? 'none' : 'inline-block';
@@ -1541,9 +1548,28 @@
                 } else {
                     publishBtn.style.display = 'none';
                 }
+
+                // Push to Teach button for teachingProcess, studentResource, handwritten
+                if (currentResourceType !== 'lessonNote') {
+                    // Determine if already pushed
+                    const readyFlag = currentResourceType === 'teachingProcess' ? 'teachingProcessReady' :
+                                     (currentResourceType === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
+                    const isReady = note[readyFlag] || false;
+                    if (!isReady && note[currentResourceType === 'teachingProcess' ? 'teachingProcess' : 
+                                         (currentResourceType === 'studentResource' ? 'studentResource' : 'handwrittenNotes')]) {
+                        // Only show if content exists and not already pushed
+                        pushToTeachBtn.style.display = 'inline-block';
+                        pushToTeachBtn.onclick = () => pushResourceToTeach(note.id, currentResourceType);
+                    } else {
+                        pushToTeachBtn.style.display = 'none';
+                    }
+                } else {
+                    pushToTeachBtn.style.display = 'none';
+                }
             } else {
                 deleteBtn.style.display = 'none';
                 publishBtn.style.display = 'none';
+                pushToTeachBtn.style.display = 'none';
             }
         }
 
@@ -1673,6 +1699,22 @@
             } catch (e) { showError('Publish failed: ' + e.message); }
         }
 
+        async function pushResourceToTeach(docId, type) {
+            const readyField = type === 'teachingProcess' ? 'teachingProcessReady' :
+                               (type === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
+            try {
+                await db.collection('lessonNotes').doc(docId).update({ [readyField]: true });
+                await logAudit('push_to_teach', { type, subject: currentSubject, week: currentWeek });
+                alert('Resource pushed to Teach. It will now appear in the Teach page.');
+                await loadAllLessonNotes();
+                const key = `${currentSubject}_${currentWeek}`;
+                const note = lessonNotesMap[key] || {};
+                updateEditorButtons(note);
+            } catch (e) {
+                showError('Error pushing to Teach: ' + e.message);
+            }
+        }
+
         // ========== PERIOD SELECTION MODAL ==========
         const periodModal = document.getElementById('periodModal');
         const periodList = document.getElementById('periodList');
@@ -1750,7 +1792,7 @@
         // ========== EDITOR ACTIONS ==========
         document.getElementById('saveEditorBtn').addEventListener('click', async () => {
             if (!currentSubject || !currentWeek) return;
-            if (!editorEnabled) { alert('This note is read‑only.'); return; }
+            if (!editorEnabled && currentResourceType === 'lessonNote') { alert('This note is read‑only.'); return; }
             const content = quill.getText();
             if (!content.trim()) return alert('Empty content.');
             const key = `${currentSubject}_${currentWeek}`;
@@ -1776,12 +1818,17 @@
             };
 
             if (!existing.id) {
-                const syllabus = syllabusMap[currentSubject];
-                if (!syllabus || syllabus.status !== 'approved') {
-                    alert('Cannot create lesson note: syllabus is not approved.');
-                    return;
+                // Creating for the first time
+                if (currentResourceType === 'lessonNote') {
+                    const syllabus = syllabusMap[currentSubject];
+                    if (!syllabus || syllabus.status !== 'approved') {
+                        alert('Cannot create lesson note: syllabus is not approved.');
+                        return;
+                    }
+                    updateData.syllabusId = syllabus.id;
+                } else {
+                    // For other resources, no syllabus check needed
                 }
-                updateData.syllabusId = syllabus.id;
             } else {
                 Object.assign(updateData, existing);
                 updateData[fieldMap[currentResourceType]] = content;
@@ -1809,16 +1856,17 @@
         document.getElementById('submitEditorBtn').addEventListener('click', async () => {
             if (!currentSubject || !currentWeek) return;
             if (!editorEnabled) { alert('This note is read‑only.'); return; }
+            if (currentResourceType !== 'lessonNote') {
+                alert('Only lesson notes require approval. Use Save Draft or Push to Teach instead.');
+                return;
+            }
             const content = quill.getText();
             if (!content.trim()) return alert('Empty content.');
             const key = `${currentSubject}_${currentWeek}`;
             const existing = lessonNotesMap[key] || {};
             const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
             const fieldMap = {
-                lessonNote: 'lessonNote',
-                teachingProcess: 'teachingProcess',
-                studentResource: 'studentResource',
-                handwritten: 'handwrittenNotes'
+                lessonNote: 'lessonNote'
             };
 
             const baseData = {
@@ -1920,7 +1968,7 @@
                             <span class="status-badge status-teachable">Ready to Teach</span>
                         </div>
                         <div>
-                            <button class="btn btn-outline btn-sm" onclick="viewInTeach('${note.subject}', ${note.week})">
+                            <button class="btn btn-outline btn-sm" onclick="viewInTeach('${note.subject}', ${note.week}, 'lessonNote')">
                                 <i class="fas fa-eye"></i> View in Teach
                             </button>
                             <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
@@ -1931,6 +1979,9 @@
                 `;
                 teachableDiv.appendChild(card);
             });
+
+            // Also show resources that have been pushed to teach (teachingProcessReady, etc.)
+            // We'll handle this in the Teach page itself; for now we just list lesson notes.
 
             approved.forEach(note => {
                 const card = document.createElement('div');
@@ -2021,7 +2072,7 @@
         }
 
         window.moveToTeach = async (noteId) => {
-            if (!confirm('Move this lesson note to Teach? It will become read‑only and will be scheduled based on your timetable.')) return;
+            if (!confirm('Move this lesson note to Teach? It will become read‑only and will appear in the Teach page.')) return;
             try {
                 await db.collection('lessonNotes').doc(noteId).update({ teachable: true });
                 await logAudit('move_to_teach', { noteId });
@@ -2052,8 +2103,9 @@
             }, 500);
         };
 
-        window.viewInTeach = (subject, week) => {
-            window.location.href = `teacher-teach.html?subject=${encodeURIComponent(subject)}&week=${week}`;
+        window.viewInTeach = (subject, week, type = 'lessonNote') => {
+            // For now, we just navigate to Teach page with parameters; the Teach page will handle the warning and audit.
+            window.location.href = `teacher-teach.html?subject=${encodeURIComponent(subject)}&week=${week}&type=${type}`;
         };
 
         window.editRejected = async (subject, week) => {
@@ -2437,7 +2489,12 @@
             quill.setText(content);
             document.getElementById('editorTitle').textContent = `Week ${week} ${type.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}`;
             document.querySelectorAll('#saveEditorBtn, #submitEditorBtn, #useAIAssistantBtn').forEach(b => b.style.display = 'inline-block');
-            document.getElementById('submitEditorBtn').style.display = 'none';
+            // Hide submit for approval for non-lesson notes
+            if (type !== 'lessonNote') {
+                document.getElementById('submitEditorBtn').style.display = 'none';
+            } else {
+                document.getElementById('submitEditorBtn').style.display = 'inline-block';
+            }
             document.getElementById('deleteResourceBtn').style.display = note.id ? 'inline-block' : 'none';
             document.getElementById('deleteResourceBtn').onclick = () => promptDelete(type, note.id, subject, week);
             const publishBtn = document.getElementById('publishResourceBtn');
@@ -2447,6 +2504,21 @@
                 publishBtn.onclick = () => publishResource(note.id, type);
             } else {
                 publishBtn.style.display = 'none';
+            }
+            // Push to Teach button for non-lesson resources
+            const pushBtn = document.getElementById('pushToTeachBtn');
+            if (type !== 'lessonNote') {
+                const readyFlag = type === 'teachingProcess' ? 'teachingProcessReady' :
+                                 (type === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
+                const isReady = note[readyFlag] || false;
+                if (!isReady && content.trim()) {
+                    pushBtn.style.display = 'inline-block';
+                    pushBtn.onclick = () => pushResourceToTeach(note.id, type);
+                } else {
+                    pushBtn.style.display = 'none';
+                }
+            } else {
+                pushBtn.style.display = 'none';
             }
         }
 
