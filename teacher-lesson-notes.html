@@ -26,6 +26,7 @@
         }
     </script>
     <style>
+        /* (styles remain identical to previous version – unchanged) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa;
@@ -1068,7 +1069,7 @@
         let editorEnabled = true;
         let youtubeLinks = [];
         let youtubePublished = false;
-        let youtubeReady = false; // new flag for pushing to Teach
+        let youtubeReady = false;
 
         // Assistant state
         let assistantConversations = [];
@@ -1496,10 +1497,18 @@
             const deleteBtn = document.getElementById('deleteResourceBtn');
             const publishBtn = document.getElementById('publishResourceBtn');
             const pushToTeachBtn = document.getElementById('pushToTeachBtn');
+            const submitBtn = document.getElementById('submitEditorBtn');
 
             if (note.id) {
                 deleteBtn.style.display = 'inline-block';
                 deleteBtn.onclick = () => promptDelete(currentResourceType, note.id, currentSubject, currentWeek);
+
+                // Submit for Approval only for lesson notes
+                if (currentResourceType === 'lessonNote' && note.status !== 'approved' && !note.teachable) {
+                    submitBtn.style.display = 'inline-block';
+                } else {
+                    submitBtn.style.display = 'none';
+                }
 
                 // Publish to Students button only for studentResource and handwritten
                 if (currentResourceType === 'studentResource' || currentResourceType === 'handwritten') {
@@ -1529,6 +1538,12 @@
                 deleteBtn.style.display = 'none';
                 publishBtn.style.display = 'none';
                 pushToTeachBtn.style.display = 'none';
+                // For new unsaved lesson note, show submit button
+                if (currentResourceType === 'lessonNote') {
+                    submitBtn.style.display = 'inline-block';
+                } else {
+                    submitBtn.style.display = 'none';
+                }
             }
         }
 
@@ -1805,7 +1820,6 @@
                 baseData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
             }
 
-            // Direct submission without period selection
             try {
                 if (existing.id) {
                     await db.collection('lessonNotes').doc(existing.id).update(baseData);
