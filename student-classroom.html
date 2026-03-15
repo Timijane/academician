@@ -294,6 +294,10 @@
             margin-bottom: 1rem;
             border-left: 4px solid var(--danger-text);
         }
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
         .empty-state {
             text-align: center;
             padding: 2rem;
@@ -385,7 +389,7 @@
     </div>
 
     <script>
-        // Firebase configuration (replace with your actual config)
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -435,7 +439,25 @@
         let unsubscribeLessonNotes = null;
         let unsubscribeVirtualClasses = null;
 
-        // UI helpers
+        // Error handler for Firestore index
+        function handleFirestoreError(error, context) {
+            console.error(`Firestore error in ${context}:`, error);
+            const errorDiv = document.getElementById('errorMessage');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                const url = match ? match[0] : '#';
+                errorDiv.innerHTML = `
+                    <strong>Missing Firestore index.</strong><br>
+                    Please create it by clicking 
+                    <a href="${url}" target="_blank">this link</a>.
+                `;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
@@ -551,8 +573,7 @@
                             document.getElementById('currentWeek').textContent = '';
                         }
                     }, error => {
-                        console.error('Lesson notes listener error:', error);
-                        showError('Error loading materials: ' + error.message);
+                        handleFirestoreError(error, 'lessonNotes');
                         setResourcesEmpty();
                     });
 
@@ -566,8 +587,7 @@
                     .onSnapshot(snapshot => {
                         renderVirtualClasses(snapshot);
                     }, error => {
-                        console.error('Virtual classes listener error:', error);
-                        showError('Error loading virtual classes: ' + error.message);
+                        handleFirestoreError(error, 'virtualClasses');
                         setClassesEmpty();
                     });
 
