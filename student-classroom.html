@@ -314,6 +314,24 @@
             color: var(--accent);
         }
 
+        /* Debug panel */
+        .debug-panel {
+            background: var(--card-bg);
+            border: 2px solid var(--warning-text);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+            overflow: auto;
+            display: none;
+        }
+        .debug-panel.visible {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .main-container { padding: 0 1rem; }
             .top-nav { padding: 1rem; }
@@ -372,6 +390,12 @@
             </div>
         </div>
 
+        <!-- Debug Panel -->
+        <div class="debug-panel" id="debugPanel">
+            <h4>Debug Information</h4>
+            <div id="debugContent"></div>
+        </div>
+
         <!-- Upcoming Virtual Classes -->
         <div class="card">
             <div class="card-header">
@@ -389,7 +413,7 @@
     </div>
 
     <script>
-        // Firebase configuration (replace with your actual config if different)
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -507,6 +531,17 @@
             document.getElementById('classesEmpty').style.display = 'none';
             document.getElementById('classesContent').style.display = 'block';
             document.getElementById('classesContent').innerHTML = html;
+        }
+
+        // Debug panel
+        function showDebug(message) {
+            const panel = document.getElementById('debugPanel');
+            const content = document.getElementById('debugContent');
+            content.innerHTML += '<br>' + message;
+            panel.classList.add('visible');
+        }
+        function clearDebug() {
+            document.getElementById('debugContent').innerHTML = '';
         }
 
         // Auth
@@ -693,15 +728,19 @@
 
         // Helper to download content as a text file
         function downloadAsFile(content, filename) {
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            try {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                showError('Download failed: ' + e.message);
+            }
         }
 
         // Toggle expand/collapse
@@ -717,6 +756,7 @@
         };
 
         function renderResources() {
+            clearDebug();
             if (!currentSubject || !currentWeek) {
                 setResourcesEmpty();
                 return;
@@ -724,6 +764,7 @@
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
             console.log('Rendering resources for key:', key, 'note:', note);
+            showDebug('Note for ' + key + ': ' + JSON.stringify(note, null, 2));
 
             if (!note) {
                 setResourcesEmpty();
@@ -805,6 +846,8 @@
                 return;
             }
 
+            // Show the generated HTML in debug panel
+            showDebug('Generated HTML: ' + html);
             setResourcesContent(html);
         }
 
