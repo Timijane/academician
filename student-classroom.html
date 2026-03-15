@@ -315,7 +315,7 @@
             color: var(--accent);
         }
 
-        /* Debug panel */
+        /* Debug panel (hidden by default) */
         .debug-panel {
             background: var(--card-bg);
             border: 2px solid var(--warning-text);
@@ -387,11 +387,11 @@
                     <p>Loading materials...</p>
                 </div>
                 <p class="empty-state" id="resourcesEmpty" style="display: block;">Select a subject and week to view materials.</p>
-                <div id="resourcesContent" style="display: none;"></div>
+                <div id="resourcesContent" style="display: block;"></div> <!-- changed to block to ensure visibility -->
             </div>
         </div>
 
-        <!-- Debug Panel -->
+        <!-- Debug Panel (hidden by default) -->
         <div class="debug-panel" id="debugPanel">
             <h4>Debug Information</h4>
             <div id="debugContent"></div>
@@ -510,68 +510,15 @@
 
         function setResourcesContent(html) {
             const contentDiv = document.getElementById('resourcesContent');
-            // Force display with !important
-            contentDiv.style.setProperty('display', 'block', 'important');
-            contentDiv.style.setProperty('border', '5px solid red', 'important');
-            contentDiv.style.setProperty('padding', '20px', 'important');
-            contentDiv.style.setProperty('background-color', 'rgba(255,0,0,0.3)', 'important');
-            contentDiv.style.setProperty('color', 'black', 'important');
-            contentDiv.style.setProperty('visibility', 'visible', 'important');
-            contentDiv.style.setProperty('opacity', '1', 'important');
+            // Remove any diagnostic styles; keep it clean
+            contentDiv.style.removeProperty('border');
+            contentDiv.style.removeProperty('background-color');
+            contentDiv.style.removeProperty('padding');
+            contentDiv.style.display = 'block';
             contentDiv.innerHTML = html;
-
-            // Also force styles on resource cards
-            const cards = contentDiv.querySelectorAll('.resource-card');
-            cards.forEach(card => {
-                card.style.setProperty('background', 'yellow', 'important');
-                card.style.setProperty('border', '3px solid blue', 'important');
-                card.style.setProperty('color', 'black', 'important');
-                card.style.setProperty('display', 'block', 'important');
-                card.style.setProperty('visibility', 'visible', 'important');
-                card.style.setProperty('opacity', '1', 'important');
-            });
-
-            // Force ancestors to be visible
-            let parent = contentDiv.parentElement;
-            while (parent) {
-                parent.style.setProperty('display', 'block', 'important');
-                parent.style.setProperty('visibility', 'visible', 'important');
-                parent.style.setProperty('opacity', '1', 'important');
-                parent = parent.parentElement;
-            }
 
             document.getElementById('resourcesLoading').style.display = 'none';
             document.getElementById('resourcesEmpty').style.display = 'none';
-
-            // After insertion, log computed styles for debugging
-            setTimeout(() => {
-                const firstCard = document.querySelector('.resource-card');
-                if (firstCard) {
-                    const styles = window.getComputedStyle(firstCard);
-                    console.log('First card computed styles:', {
-                        display: styles.display,
-                        visibility: styles.visibility,
-                        opacity: styles.opacity,
-                        color: styles.color,
-                        backgroundColor: styles.backgroundColor,
-                        width: styles.width,
-                        height: styles.height
-                    });
-                    // Also log ancestor chain
-                    let el = firstCard;
-                    while (el && el !== document.body) {
-                        const s = window.getComputedStyle(el);
-                        console.log('Ancestor', el.tagName, {
-                            display: s.display,
-                            visibility: s.visibility,
-                            opacity: s.opacity
-                        });
-                        el = el.parentElement;
-                    }
-                } else {
-                    console.log('No .resource-card found in DOM');
-                }
-            }, 100);
         }
 
         function setClassesLoading(isLoading) {
