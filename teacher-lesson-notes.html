@@ -1632,46 +1632,57 @@
             document.getElementById('youtubePreview').style.display = 'none';
         };
 
-        // Push YouTube links to Teach
+        // Push YouTube links to Teach – also save the links
         async function pushYoutubeToTeach() {
             if (!currentSubject || !currentWeek) return;
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
             if (!note) return alert('Save the lesson note first.');
             
-            if (!note.youtubeLinks || note.youtubeLinks.length === 0) {
+            if (youtubeLinks.length === 0) {
                 alert('Cannot push to Teach: No YouTube links added.');
                 return;
             }
 
             try {
-                await db.collection('lessonNotes').doc(note.id).update({ youtubeReady: true });
+                await db.collection('lessonNotes').doc(note.id).update({ 
+                    youtubeLinks: youtubeLinks,
+                    youtubeReady: true 
+                });
                 await logAudit('push_youtube_to_teach', { subject: currentSubject, week: currentWeek });
                 alert('YouTube links pushed to Teach.');
                 youtubeReady = true;
-                // Button remains visible, no need to hide
+                // Update local note
+                note.youtubeReady = true;
+                note.youtubeLinks = youtubeLinks;
             } catch (e) {
                 showError('Error pushing to Teach: ' + e.message);
             }
         }
 
+        // Publish all YouTube links – also save the links
         async function publishAllYoutube() {
             if (!currentSubject || !currentWeek) return;
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
             if (!note) return alert('Save the lesson note first.');
             
-            // Check if there are links to publish
-            if (!note.youtubeLinks || note.youtubeLinks.length === 0) {
+            if (youtubeLinks.length === 0) {
                 alert('Cannot publish: No YouTube links to publish. Add links first.');
                 return;
             }
 
             try {
-                await db.collection('lessonNotes').doc(note.id).update({ youtubePublished: true });
+                await db.collection('lessonNotes').doc(note.id).update({ 
+                    youtubeLinks: youtubeLinks,
+                    youtubePublished: true 
+                });
                 await logAudit('publish_youtube', { subject: currentSubject, week: currentWeek });
                 alert('YouTube links published to students.');
                 youtubePublished = true;
+                // Update local note
+                note.youtubePublished = true;
+                note.youtubeLinks = youtubeLinks;
             } catch (e) {
                 showError('Error publishing: ' + e.message);
             }
