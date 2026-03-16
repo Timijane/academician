@@ -1066,7 +1066,7 @@
         let lessonNotesMap = {};
         let quill = null;
         let groq = null;
-        let editorEnabled = true; // for the current resource
+        let editorEnabled = true;
         let youtubeLinks = [];
         let youtubePublished = false;
         let youtubeReady = false;
@@ -1252,7 +1252,6 @@
                                 postApprovalDiv.style.display = 'none';
                             }
                             updateEditorButtons(note);
-                            // Enable/disable Quill based on current resource type
                             if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
                                 quill.enable(false);
                                 editorEnabled = false;
@@ -1465,13 +1464,12 @@
             document.querySelectorAll('.week-tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById('editorSection').style.display = 'block';
-            currentResourceType = 'lessonNote'; // default
+            currentResourceType = 'lessonNote';
             document.getElementById('editorTitle').textContent = `Week ${week} Lesson Note`;
             const key = `${currentSubject}_${week}`;
             const note = lessonNotesMap[key] || {};
             quill.setText(note.lessonNote || '');
 
-            // Enable/disable based on resource type and note status
             if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
                 quill.enable(false);
                 editorEnabled = false;
@@ -1495,7 +1493,6 @@
             updateEditorButtons(note);
         }
 
-        // Updated updateEditorButtons: buttons always show if content exists, regardless of published/ready state.
         function updateEditorButtons(note) {
             const deleteBtn = document.getElementById('deleteResourceBtn');
             const publishBtn = document.getElementById('publishResourceBtn');
@@ -1506,14 +1503,12 @@
                 deleteBtn.style.display = 'inline-block';
                 deleteBtn.onclick = () => promptDelete(currentResourceType, note.id, currentSubject, currentWeek);
 
-                // Submit for Approval only for lesson notes that are not approved/teachable
                 if (currentResourceType === 'lessonNote' && note.status !== 'approved' && !note.teachable) {
                     submitBtn.style.display = 'inline-block';
                 } else {
                     submitBtn.style.display = 'none';
                 }
 
-                // Publish to Students button for studentResource and handwritten – always show if content exists
                 if (currentResourceType === 'studentResource' || currentResourceType === 'handwritten') {
                     let contentExists = false;
                     if (currentResourceType === 'studentResource') {
@@ -1531,7 +1526,6 @@
                     publishBtn.style.display = 'none';
                 }
 
-                // Push to Teach button for teachingProcess, studentResource, handwritten – always show if content exists
                 if (currentResourceType !== 'lessonNote') {
                     let contentExists = false;
                     if (currentResourceType === 'teachingProcess') {
@@ -1554,7 +1548,6 @@
                 deleteBtn.style.display = 'none';
                 publishBtn.style.display = 'none';
                 pushToTeachBtn.style.display = 'none';
-                // For new unsaved lesson note, show submit button
                 if (currentResourceType === 'lessonNote') {
                     submitBtn.style.display = 'inline-block';
                 } else {
@@ -1585,7 +1578,6 @@
             });
             list.innerHTML = html;
 
-            // Always show push and publish buttons if links exist
             const pushYoutubeBtn = document.getElementById('pushYoutubeToTeachBtn');
             pushYoutubeBtn.style.display = 'inline-block';
             pushYoutubeBtn.onclick = pushYoutubeToTeach;
@@ -1619,7 +1611,6 @@
                 <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
                 <button class="preview-close" onclick="closeYoutubePreview()"><i class="fas fa-times"></i></button>
             `;
-            // Add to list after preview
             if (!youtubeLinks.includes(url)) {
                 youtubeLinks.push(url);
                 renderYoutubeList();
@@ -1632,7 +1623,6 @@
             document.getElementById('youtubePreview').style.display = 'none';
         };
 
-        // Push YouTube links to Teach – also save the links
         async function pushYoutubeToTeach() {
             if (!currentSubject || !currentWeek) return;
             const key = `${currentSubject}_${currentWeek}`;
@@ -1652,7 +1642,6 @@
                 await logAudit('push_youtube_to_teach', { subject: currentSubject, week: currentWeek });
                 alert('YouTube links pushed to Teach.');
                 youtubeReady = true;
-                // Update local note
                 note.youtubeReady = true;
                 note.youtubeLinks = youtubeLinks;
             } catch (e) {
@@ -1660,7 +1649,6 @@
             }
         }
 
-        // Publish all YouTube links – also save the links
         async function publishAllYoutube() {
             if (!currentSubject || !currentWeek) return;
             const key = `${currentSubject}_${currentWeek}`;
@@ -1680,7 +1668,6 @@
                 await logAudit('publish_youtube', { subject: currentSubject, week: currentWeek });
                 alert('YouTube links published to students.');
                 youtubePublished = true;
-                // Update local note
                 note.youtubePublished = true;
                 note.youtubeLinks = youtubeLinks;
             } catch (e) {
@@ -1729,11 +1716,9 @@
             } catch (e) { showError('Delete failed: ' + e.message); } finally { itemToDelete = null; }
         }
 
-        // Updated publishResource – always updates the flag (no need to check content again, it's already done in button visibility)
         async function publishResource(docId, type) {
             const update = type === 'studentResource' ? { studentResourcePublished: true } : 
-                          (type === 'handwritten' ? { handwrittenPublished: true } : 
-                          (type === 'youtube' ? { youtubePublished: true } : {}));
+                          (type === 'handwritten' ? { handwrittenPublished: true } : {});
             try {
                 await db.collection('lessonNotes').doc(docId).update(update);
                 alert('Published to students.');
@@ -1744,7 +1729,6 @@
             } catch (e) { showError('Publish failed: ' + e.message); }
         }
 
-        // Updated pushResourceToTeach – always sets the ready flag
         async function pushResourceToTeach(docId, type) {
             const readyField = type === 'teachingProcess' ? 'teachingProcessReady' :
                                (type === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
@@ -2491,7 +2475,6 @@
                 pushBtn.style.display = 'none';
             }
 
-            // Enable/disable Quill for this resource
             if (type === 'lessonNote' && (note.teachable || note.status === 'approved')) {
                 quill.enable(false);
                 editorEnabled = false;
