@@ -26,7 +26,7 @@
         }
     </script>
     <style>
-        /* (styles identical to previous version – unchanged) */
+        /* (styles unchanged – as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa;
@@ -1512,11 +1512,22 @@
                     submitBtn.style.display = 'none';
                 }
 
-                // Publish to Students button only for studentResource and handwritten
+                // Publish to Students button only for studentResource and handwritten (check content later in function)
                 if (currentResourceType === 'studentResource' || currentResourceType === 'handwritten') {
                     const published = (currentResourceType === 'studentResource') ? note.studentResourcePublished : note.handwrittenPublished;
-                    publishBtn.style.display = published ? 'none' : 'inline-block';
-                    publishBtn.onclick = () => publishResource(note.id, currentResourceType);
+                    // Only show publish button if content exists
+                    let contentExists = false;
+                    if (currentResourceType === 'studentResource') {
+                        contentExists = !!note.studentResource && note.studentResource.trim() !== '';
+                    } else if (currentResourceType === 'handwritten') {
+                        contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
+                    }
+                    if (!published && contentExists) {
+                        publishBtn.style.display = 'inline-block';
+                        publishBtn.onclick = () => publishResource(note.id, currentResourceType);
+                    } else {
+                        publishBtn.style.display = 'none';
+                    }
                 } else {
                     publishBtn.style.display = 'none';
                 }
@@ -1526,8 +1537,15 @@
                     const readyFlag = currentResourceType === 'teachingProcess' ? 'teachingProcessReady' :
                                      (currentResourceType === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
                     const isReady = note[readyFlag] || false;
-                    if (!isReady && note[currentResourceType === 'teachingProcess' ? 'teachingProcess' : 
-                                         (currentResourceType === 'studentResource' ? 'studentResource' : 'handwrittenNotes')]) {
+                    let contentExists = false;
+                    if (currentResourceType === 'teachingProcess') {
+                        contentExists = !!note.teachingProcess && note.teachingProcess.trim() !== '';
+                    } else if (currentResourceType === 'studentResource') {
+                        contentExists = !!note.studentResource && note.studentResource.trim() !== '';
+                    } else if (currentResourceType === 'handwritten') {
+                        contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
+                    }
+                    if (!isReady && contentExists) {
                         pushToTeachBtn.style.display = 'inline-block';
                         pushToTeachBtn.onclick = () => pushResourceToTeach(note.id, currentResourceType);
                     } else {
@@ -1570,7 +1588,7 @@
             });
             list.innerHTML = html;
 
-            // Show "Push to Teach" button if not already pushed
+            // Show "Push to Teach" button if not already pushed and links exist
             const pushYoutubeBtn = document.getElementById('pushYoutubeToTeachBtn');
             if (!youtubeReady && youtubeLinks.length > 0) {
                 pushYoutubeBtn.style.display = 'inline-block';
@@ -1623,6 +1641,12 @@
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
             if (!note) return alert('Save the lesson note first.');
+            
+            if (!note.youtubeLinks || note.youtubeLinks.length === 0) {
+                alert('Cannot push to Teach: No YouTube links added.');
+                return;
+            }
+
             try {
                 await db.collection('lessonNotes').doc(note.id).update({ youtubeReady: true });
                 await logAudit('push_youtube_to_teach', { subject: currentSubject, week: currentWeek });
@@ -1639,6 +1663,13 @@
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
             if (!note) return alert('Save the lesson note first.');
+            
+            // Check if there are links to publish
+            if (!note.youtubeLinks || note.youtubeLinks.length === 0) {
+                alert('Cannot publish: No YouTube links to publish. Add links first.');
+                return;
+            }
+
             try {
                 await db.collection('lessonNotes').doc(note.id).update({ youtubePublished: true });
                 await logAudit('publish_youtube', { subject: currentSubject, week: currentWeek });
@@ -1690,8 +1721,31 @@
             } catch (e) { showError('Delete failed: ' + e.message); } finally { itemToDelete = null; }
         }
 
+        // Updated publishResource with content check
         async function publishResource(docId, type) {
-            const update = type === 'studentResource' ? { studentResourcePublished: true } : { handwrittenPublished: true };
+            // First, get the current note to check content
+            const key = `${currentSubject}_${currentWeek}`;
+            const note = lessonNotesMap[key];
+            if (!note) return;
+
+            // Check if content exists for the given type
+            let contentExists = false;
+            if (type === 'studentResource') {
+                contentExists = !!note.studentResource && note.studentResource.trim() !== '';
+            } else if (type === 'handwritten') {
+                contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
+            } else if (type === 'youtube') {
+                contentExists = note.youtubeLinks && note.youtubeLinks.length > 0;
+            }
+
+            if (!contentExists) {
+                alert('Cannot publish: No content to publish. Please add content first.');
+                return;
+            }
+
+            const update = type === 'studentResource' ? { studentResourcePublished: true } : 
+                          (type === 'handwritten' ? { handwrittenPublished: true } : 
+                          (type === 'youtube' ? { youtubePublished: true } : {}));
             try {
                 await db.collection('lessonNotes').doc(docId).update(update);
                 alert('Published to students.');
@@ -1702,7 +1756,27 @@
             } catch (e) { showError('Publish failed: ' + e.message); }
         }
 
+        // Updated pushResourceToTeach with content check
         async function pushResourceToTeach(docId, type) {
+            // Check content existence
+            const key = `${currentSubject}_${currentWeek}`;
+            const note = lessonNotesMap[key];
+            if (!note) return;
+
+            let contentExists = false;
+            if (type === 'teachingProcess') {
+                contentExists = !!note.teachingProcess && note.teachingProcess.trim() !== '';
+            } else if (type === 'studentResource') {
+                contentExists = !!note.studentResource && note.studentResource.trim() !== '';
+            } else if (type === 'handwritten') {
+                contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
+            }
+
+            if (!contentExists) {
+                alert('Cannot push to Teach: No content to push. Please add content first.');
+                return;
+            }
+
             const readyField = type === 'teachingProcess' ? 'teachingProcessReady' :
                                (type === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
             try {
@@ -2414,8 +2488,19 @@
             const publishBtn = document.getElementById('publishResourceBtn');
             if (type === 'studentResource' || type === 'handwritten') {
                 const published = (type === 'studentResource') ? note.studentResourcePublished : note.handwrittenPublished;
-                publishBtn.style.display = published ? 'none' : 'inline-block';
-                publishBtn.onclick = () => publishResource(note.id, type);
+                // Only show publish button if content exists
+                let contentExists = false;
+                if (type === 'studentResource') {
+                    contentExists = !!note.studentResource && note.studentResource.trim() !== '';
+                } else if (type === 'handwritten') {
+                    contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
+                }
+                if (!published && contentExists) {
+                    publishBtn.style.display = 'inline-block';
+                    publishBtn.onclick = () => publishResource(note.id, type);
+                } else {
+                    publishBtn.style.display = 'none';
+                }
             } else {
                 publishBtn.style.display = 'none';
             }
@@ -2424,7 +2509,15 @@
                 const readyFlag = type === 'teachingProcess' ? 'teachingProcessReady' :
                                  (type === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
                 const isReady = note[readyFlag] || false;
-                if (!isReady && content.trim()) {
+                let contentExists = false;
+                if (type === 'teachingProcess') {
+                    contentExists = !!note.teachingProcess && note.teachingProcess.trim() !== '';
+                } else if (type === 'studentResource') {
+                    contentExists = !!note.studentResource && note.studentResource.trim() !== '';
+                } else if (type === 'handwritten') {
+                    contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
+                }
+                if (!isReady && contentExists) {
                     pushBtn.style.display = 'inline-block';
                     pushBtn.onclick = () => pushResourceToTeach(note.id, type);
                 } else {
