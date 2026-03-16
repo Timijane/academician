@@ -3,30 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop · Lesson Notes Studio</title>
+    <title>EduTop · My Classroom</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter + Space Grotesk -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Quill Rich Text Editor -->
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- Firebase Remote Config -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
-    <!-- Groq SDK (import map) -->
-    <script type="importmap">
-        {
-            "imports": {
-                "groq-sdk": "https://esm.run/groq-sdk"
-            }
-        }
-    </script>
     <style>
-        /* (styles unchanged – as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa;
@@ -45,9 +31,6 @@
             --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #b91c1c;
             --input-bg: rgba(255,255,255,0.9);
-            --toolbar-bg: #f8fafc;
-            --assistant-user-bg: #1e3c72;
-            --assistant-bot-bg: #ffffff;
         }
         :root[data-theme="dark"] {
             --bg-primary: #0a0f1e;
@@ -66,9 +49,6 @@
             --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #f87171;
             --input-bg: rgba(30,41,59,0.8);
-            --toolbar-bg: #1e293b;
-            --assistant-user-bg: #3b82f6;
-            --assistant-bot-bg: #1e293b;
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -96,7 +76,7 @@
             100% { transform: translate(60px, 40px) scale(1.2); }
         }
 
-        /* Top navigation bar */
+        /* Top navigation */
         .top-nav {
             position: sticky;
             top: 0;
@@ -146,58 +126,32 @@
             border-radius: 3rem;
             padding: 0.4rem 0.4rem 0.4rem 1rem;
         }
-        .profile-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
+        .profile-name { font-weight: 600; color: var(--text-primary); }
         .profile-pic {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
+            width: 42px; height: 42px; border-radius: 50%;
             background: linear-gradient(135deg, var(--accent), var(--accent-glow));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 600; font-size: 1.1rem;
             box-shadow: 0 5px 15px var(--accent);
         }
         .dropdown-menu {
-            position: absolute;
-            right: 0;
-            top: 60px;
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
-            border-radius: 1.2rem;
-            padding: 0.5rem;
-            min-width: 180px;
-            display: none;
-            z-index: 1000;
-            box-shadow: var(--shadow);
+            position: absolute; right: 0; top: 60px;
+            background: var(--card-bg); backdrop-filter: blur(16px);
+            border: 1px solid var(--border); border-radius: 1.2rem;
+            padding: 0.5rem; min-width: 180px; display: none;
+            z-index: 1000; box-shadow: var(--shadow);
         }
-        .profile-dropdown:hover .dropdown-menu {
-            display: block;
-            animation: fadeIn 0.2s;
-        }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .dropdown-item {
-            padding: 0.8rem 1.2rem;
-            color: var(--text-primary);
-            border-radius: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            transition: 0.2s;
+            padding: 0.8rem 1.2rem; color: var(--text-primary);
+            border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem;
+            transition: 0.2s; text-decoration: none;
         }
-        .dropdown-item:hover {
-            background: var(--hover-bg);
-            color: var(--accent);
-        }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
         .theme-toggle {
             display: flex;
             align-items: center;
@@ -209,7 +163,7 @@
             cursor: pointer;
         }
 
-        /* Main container – full width */
+        /* Main container – wide */
         .main-container {
             max-width: 1600px;
             margin: 2rem auto;
@@ -218,298 +172,103 @@
             z-index: 5;
         }
 
-        /* Main tabs */
-        .main-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
+        /* Subject & Week tabs */
+        .subject-tabs, .week-tabs {
+            display: flex; gap: 0.5rem; margin-bottom: 2rem;
+            background: var(--card-bg); backdrop-filter: blur(8px);
             border: 1px solid var(--border);
             border-radius: 3rem;
-            padding: 0.3rem;
-            width: fit-content;
+            padding: 0.3rem; width: fit-content; flex-wrap: wrap;
         }
-        .main-tab {
-            padding: 0.7rem 2rem;
-            border-radius: 3rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            color: var(--text-secondary);
-        }
-        .main-tab.active {
-            background: var(--accent);
-            color: white;
-        }
-
-        /* Subjects grid */
-        .subject-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .subject-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            cursor: pointer;
-            transition: 0.2s;
-            position: relative;
-        }
-        .subject-card:hover {
-            border-color: var(--accent);
-            box-shadow: var(--shadow);
-        }
-        .subject-card.active {
-            border: 2px solid var(--accent);
-        }
-        .subject-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            padding-right: 2rem;
-        }
-        .subject-card p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-        .subject-badge {
-            display: inline-block;
-            padding: 0.2rem 0.8rem;
-            border-radius: 2rem;
-            font-size: 0.8rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
-        }
-        .subject-badge.approved { background: var(--success-bg); color: var(--success-text); }
-        .subject-badge.pending { background: var(--warning-bg); color: var(--warning-text); }
-        .subject-badge.rejected { background: var(--danger-bg); color: var(--danger-text); }
-        .subject-badge.draft { background: var(--hover-bg); color: var(--text-secondary); }
-        .subject-badge.teachable { background: var(--accent); color: white; }
-        .delete-subject {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            color: var(--danger-text);
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            opacity: 0.7;
-            transition: 0.2s;
-        }
-        .delete-subject:hover { opacity: 1; transform: scale(1.1); }
-
-        /* Syllabus table */
-        .syllabus-container {
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .syllabus-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .syllabus-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .syllabus-table th {
-            text-align: left;
-            padding: 0.75rem;
-            background: var(--hover-bg);
-            font-weight: 500;
-        }
-        .syllabus-table td {
-            padding: 0.75rem;
-            border-bottom: 1px solid var(--border);
-        }
-        .syllabus-table input {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            background: var(--input-bg);
-            color: var(--text-primary);
-        }
-
-        /* Week tabs */
-        .week-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-        }
-        .week-tab {
-            padding: 0.6rem 1.5rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            background: var(--card-bg);
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
+        .tab {
+            padding: 0.7rem 2rem; border-radius: 3rem; font-weight: 500;
+            cursor: pointer; transition: 0.2s; color: var(--text-secondary);
             white-space: nowrap;
         }
-        .week-tab.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
+        .tab.active { background: var(--accent); color: white; }
 
-        /* Editor area – full width */
-        .editor-section {
-            margin-top: 2rem;
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 1.8rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
         }
-        .editor-header {
+        .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             flex-wrap: wrap;
             gap: 1rem;
         }
-        .editor-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        .editor-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .editor-container {
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            overflow: hidden;
-            margin-bottom: 2rem;
-            width: 100%;
-        }
-        .ql-container {
-            min-height: 600px;
-            font-size: 16px;
-            font-family: 'Inter', sans-serif;
-            background: var(--card-bg);
-        }
-        .ql-editor {
-            min-height: 600px;
-            font-size: 16px;
-            line-height: 1.6;
-            color: var(--text-primary);
-        }
-        .ql-toolbar {
-            border: none !important;
-            border-bottom: 1px solid var(--border) !important;
-            background: var(--toolbar-bg);
-        }
+        .card-header h3 { font-size: 1.3rem; font-weight: 600; }
 
-        /* YouTube section */
-        .youtube-section {
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .resource-card {
             background: var(--card-bg);
-            backdrop-filter: blur(8px);
             border: 1px solid var(--border);
             border-radius: 1.5rem;
             padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .youtube-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .youtube-input {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        .youtube-input input {
-            flex: 1;
-            padding: 0.8rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            background: var(--input-bg);
-            color: var(--text-primary);
-        }
-        .youtube-list {
+            box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
         }
-        .youtube-item {
+        .resource-card h4 {
+            margin-bottom: 0.8rem;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 0.5rem;
-            border-bottom: 1px dashed var(--border);
-        }
-        .youtube-item a {
+            gap: 0.5rem;
             color: var(--accent);
-            text-decoration: none;
-            flex: 1;
         }
-        .youtube-item button {
-            background: none;
-            border: none;
-            color: var(--danger-text);
-            cursor: pointer;
-            margin-left: 0.5rem;
-        }
-        .youtube-preview {
-            margin-top: 1rem;
-            width: 100%;
-            aspect-ratio: 16/9;
-            border-radius: 1rem;
-            overflow: hidden;
+        .resource-card p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: hidden;
+            transition: max-height 0.3s ease;
             position: relative;
         }
-        .youtube-preview iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+        .resource-card p.expanded {
+            max-height: 1000px;
         }
-        .preview-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
+        .read-more-btn {
+            background: none;
             border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            color: var(--accent);
             cursor: pointer;
-            font-size: 1.2rem;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            transition: 0.2s;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            text-align: left;
+            padding: 0;
+            font-weight: 500;
         }
-        .preview-close:hover {
-            background: var(--danger-text);
-            transform: scale(1.1);
+        .resource-card ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 1rem;
         }
-        .youtube-actions {
-            margin-top: 1rem;
-            display: flex;
-            gap: 0.5rem;
-            justify-content: flex-end;
+        .resource-card li {
+            margin-bottom: 0.5rem;
         }
-
-        /* Buttons */
+        .resource-card li a {
+            color: var(--accent);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .resource-card li a:hover {
+            text-decoration: underline;
+        }
         .btn {
             padding: 0.6rem 1.5rem;
             border: none;
@@ -517,84 +276,16 @@
             font-weight: 500;
             cursor: pointer;
             transition: 0.2s;
-        }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-success { background: var(--success-text); color: white; }
-        .btn-danger { background: var(--danger-text); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-sm { padding: 0.3rem 1rem; font-size: 0.9rem; }
-
-        /* Status badge */
-        .status-badge {
+            text-decoration: none;
             display: inline-block;
-            padding: 0.3rem 1rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            font-size: 0.9rem;
         }
-        .status-approved { background: var(--success-bg); color: var(--success-text); }
-        .status-pending { background: var(--warning-bg); color: var(--warning-text); }
-        .status-rejected { background: var(--danger-bg); color: var(--danger-text); }
-        .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
-        .status-teachable { background: var(--accent); color: white; }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(5px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
         }
-        .modal-overlay.active { display: flex; }
-
-        /* Delete modal */
-        .delete-modal {
-            position: fixed;
-            top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(5px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2100;
-        }
-        .delete-modal.active { display: flex; }
-        .delete-modal-content {
-            background: var(--card-bg);
-            border-radius: 2rem;
-            padding: 2rem;
-            max-width: 400px;
-            width: 90%;
-        }
-        .delete-modal-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 2rem;
-        }
-
-        /* Loading overlay */
-        .loading-overlay {
-            position: fixed;
-            top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 3000;
-        }
-        .loading-overlay.active { display: flex; }
-        .loading-content {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 2rem;
-            text-align: center;
-        }
-        .loading-content i { font-size: 3rem; color: var(--accent); margin-bottom: 1rem; }
+        .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .btn-sm { padding: 0.3rem 1rem; font-size: 0.9rem; }
 
         .error-message {
             background: var(--danger-bg);
@@ -604,204 +295,24 @@
             margin-bottom: 1rem;
             border-left: 4px solid var(--danger-text);
         }
-        .error-message a { color: var(--accent); text-decoration: underline; }
-
-        /* AI Assistant Modal */
-        .assistant-modal {
-            display: flex;
-            flex-direction: row;
-            width: 95%;
-            max-width: 1400px;
-            height: 90vh;
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            overflow: hidden;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        .error-message a {
+            color: var(--accent);
+            text-decoration: underline;
         }
-        .assistant-history {
-            width: 280px;
-            background: var(--bg-sidebar);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-        .history-header {
-            padding: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }
-        .history-header h3 { font-size: 1.2rem; font-weight: 600; }
-        .new-chat-btn {
-            background: var(--accent);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .new-chat-btn:hover { transform: scale(1.1); background: var(--accent-glow); }
-        .history-list { flex:1; padding:1rem; overflow-y: auto; }
-        .history-item {
-            padding: 0.8rem 1rem;
-            border-radius: 1rem;
-            margin-bottom: 0.5rem;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .history-item:hover { border-color: var(--accent); transform: translateX(5px); }
-        .history-item-title {
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 0.3rem;
-        }
-        .history-item-date {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-        }
-        .assistant-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .assistant-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-        }
-        .assistant-header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .assistant-header-left i { font-size: 1.8rem; color: var(--accent); }
-        .assistant-header-left h2 { font-size: 1.5rem; font-weight: 600; }
-        .assistant-close {
-            font-size: 1.8rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-            transition: 0.2s;
-        }
-        .assistant-close:hover { color: var(--danger-text); }
-        .assistant-context {
-            background: var(--hover-bg);
-            padding: 1rem 2rem;
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border);
-        }
-        .assistant-context strong { color: var(--accent); }
-        .assistant-chat {
-            flex: 1;
-            overflow-y: auto;
+        .empty-state {
+            text-align: center;
             padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            background: var(--bg-primary);
-        }
-        .message-wrapper {
-            display: flex;
-            flex-direction: column;
-            max-width: 80%;
-        }
-        .message-wrapper.user { align-self: flex-end; }
-        .message-wrapper.assistant { align-self: flex-start; }
-        .message-bubble {
-            padding: 1rem 1.5rem;
-            border-radius: 1.5rem;
-            word-wrap: break-word;
-            line-height: 1.6;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-        }
-        .message-wrapper.user .message-bubble {
-            background: var(--assistant-user-bg);
-            color: white;
-            border-bottom-right-radius: 0.2rem;
-        }
-        .message-wrapper.assistant .message-bubble {
-            background: var(--assistant-bot-bg);
-            border: 1px solid var(--border);
-            border-bottom-left-radius: 0.2rem;
-        }
-        .message-time {
-            font-size: 0.7rem;
             color: var(--text-secondary);
-            margin-top: 0.3rem;
-            text-align: right;
         }
-        .assistant-thinking {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
             color: var(--text-secondary);
-            padding: 1rem;
-            background: var(--card-bg);
-            border-radius: 1rem;
-            align-self: flex-start;
         }
-        .assistant-input-area {
-            padding: 1.5rem 2rem;
-            border-top: 1px solid var(--border);
-            background: var(--card-bg);
-            display: flex;
-            gap: 1rem;
-        }
-        .assistant-input {
-            flex: 1;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 1rem 1.5rem;
-            color: var(--text-primary);
-            font-size: 1rem;
-            outline: none;
-            transition: 0.2s;
-        }
-        .assistant-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
-        }
-        .assistant-send-btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 3rem;
-            width: 55px;
-            height: 55px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .assistant-send-btn:hover {
-            transform: scale(1.05);
-            background: var(--accent-glow);
-        }
-        .assistant-send-btn i { font-size: 1.2rem; }
-        .assistant-actions {
-            display: flex;
-            gap: 1rem;
-            padding: 1rem 2rem 2rem;
-            justify-content: flex-end;
-            background: var(--card-bg);
-            border-top: 1px solid var(--border);
+        .loading-spinner i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
         }
 
         @media (max-width: 768px) {
@@ -817,8 +328,8 @@
     <!-- Top Navigation -->
     <div class="top-nav">
         <div class="nav-left">
-            <a href="teacher-dashboard.html" class="nav-btn"><i class="fas fa-chart-pie"></i> Dashboard</a>
-            <a href="teacher-teach.html" class="nav-btn"><i class="fas fa-chalkboard"></i> Go to Teach</a>
+            <a href="student-dashboard.html" class="nav-btn"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="index.html" class="nav-btn"><i class="fas fa-home"></i> Home</a>
         </div>
         <div class="nav-right">
             <div class="theme-toggle" id="themeToggle">
@@ -826,11 +337,11 @@
             </div>
             <div class="profile-dropdown">
                 <div class="profile-trigger">
-                    <span class="profile-name" id="profileName">Teacher</span>
-                    <div class="profile-pic" id="profilePic">T</div>
+                    <span class="profile-name" id="profileName">Student</span>
+                    <div class="profile-pic" id="profilePic">ST</div>
                 </div>
                 <div class="dropdown-menu">
-                    <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                    <a href="student-profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
                     <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
                 </div>
             </div>
@@ -841,176 +352,45 @@
         <!-- Error display -->
         <div id="errorMessage" class="error-message" style="display: none;"></div>
 
-        <!-- Main tabs -->
-        <div class="main-tabs" id="mainTabs">
-            <div class="main-tab active" data-tab="syllabus">Syllabus</div>
-            <div class="main-tab" data-tab="notebook">Notebook</div>
-            <div class="main-tab" data-tab="teach">Teach</div>
-        </div>
+        <!-- Subject Tabs -->
+        <div class="subject-tabs" id="subjectTabs"></div>
 
-        <!-- Subjects grid -->
-        <div id="subjectsSection">
-            <h2>Your Subjects</h2>
-            <div class="subject-grid" id="subjectGrid"></div>
-            <button class="btn btn-outline" id="addSubjectBtn" style="margin-bottom: 2rem;">
-                <i class="fas fa-plus"></i> Add New Subject
-            </button>
-        </div>
+        <!-- Week Tabs -->
+        <div class="week-tabs" id="weekTabs"></div>
 
-        <!-- Syllabus tab content -->
-        <div id="tab-syllabus" class="tab-content active">
-            <div id="syllabusSection" style="display: none;">
-                <div class="syllabus-container">
-                    <div class="syllabus-header">
-                        <div>
-                            <h2 id="currentSubjectTitle"></h2>
-                            <span id="syllabusStatus" class="status-badge status-draft">Draft</span>
-                            <button class="btn btn-danger btn-sm" id="deleteSyllabusBtn" style="display: none; margin-left: 1rem;"><i class="fas fa-trash"></i> Delete Syllabus</button>
-                        </div>
-                        <div class="editor-actions">
-                            <button class="btn btn-outline" id="addWeekBtn"><i class="fas fa-plus"></i> Add Week</button>
-                            <button class="btn btn-primary" id="saveSyllabusBtn"><i class="fas fa-save"></i> Save Draft</button>
-                            <button class="btn btn-success" id="submitSyllabusBtn"><i class="fas fa-paper-plane"></i> Submit for Approval</button>
-                            <button class="btn btn-warning" id="editSyllabusBtn" style="display: none;"><i class="fas fa-edit"></i> Edit Syllabus</button>
-                        </div>
-                    </div>
-                    <table class="syllabus-table">
-                        <thead><tr><th>Week</th><th>Topic</th><th>Objectives</th><th></th></tr></thead>
-                        <tbody id="syllabusBody"></tbody>
-                    </table>
+        <!-- Resources Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Learning Materials for <span id="currentSubject"></span> – Week <span id="currentWeek"></span></h3>
+            </div>
+            <div id="resourcesContainer">
+                <div class="loading-spinner" id="resourcesLoading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading materials...</p>
                 </div>
-                <button class="btn btn-primary" id="createLessonNoteBtn" style="display: none; margin-bottom: 2rem;">
-                    <i class="fas fa-plus-circle"></i> Create Lesson Note
-                </button>
+                <p class="empty-state" id="resourcesEmpty" style="display: block;">Select a subject and week to view materials.</p>
+                <div id="resourcesContent" style="display: block;"></div>
             </div>
         </div>
 
-        <!-- Notebook tab content -->
-        <div id="tab-notebook" class="tab-content">
-            <div class="week-tabs" id="weekTabs"></div>
-            <div id="editorSection" style="display: none;">
-                <div class="editor-header">
-                    <span class="editor-title" id="editorTitle">Lesson Note</span>
-                    <div class="editor-actions">
-                        <button class="btn btn-outline" id="useAIAssistantBtn"><i class="fas fa-robot"></i> Teacher Assistant</button>
-                        <button class="btn btn-primary" id="saveEditorBtn">Save Draft</button>
-                        <button class="btn btn-success" id="submitEditorBtn">Submit for Approval</button>
-                        <button class="btn btn-danger" id="deleteResourceBtn" style="display: none;">Delete</button>
-                        <button class="btn btn-success" id="publishResourceBtn" style="display: none;">Publish to Students</button>
-                        <button class="btn btn-outline" id="pushToTeachBtn" style="display: none;">Push to Teach</button>
-                        <button class="btn btn-outline" id="downloadPdfBtn"><i class="fas fa-download"></i> PDF</button>
-                    </div>
-                </div>
-                <div class="editor-container">
-                    <div id="editor"></div>
-                </div>
-
-                <!-- YouTube Links Section -->
-                <div class="youtube-section">
-                    <div class="youtube-header">
-                        <h3>YouTube Links</h3>
-                        <button class="btn btn-sm btn-outline" id="addYoutubeLinkBtn"><i class="fas fa-plus"></i> Add Link</button>
-                    </div>
-                    <div class="youtube-input" id="youtubeInputArea" style="display: none;">
-                        <input type="url" id="youtubeLinkInput" placeholder="Paste YouTube URL...">
-                        <button class="btn btn-sm btn-primary" id="previewYoutubeBtn">Preview</button>
-                    </div>
-                    <div id="youtubeList" class="youtube-list"></div>
-                    <div id="youtubePreview" class="youtube-preview" style="display: none;">
-                        <button class="preview-close" onclick="closeYoutubePreview()"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="youtube-actions">
-                        <button class="btn btn-sm btn-outline" id="pushYoutubeToTeachBtn" style="display: none;">Push to Teach</button>
-                        <button class="btn btn-sm btn-success" id="publishAllYoutubeBtn">Publish All to Students</button>
-                    </div>
-                </div>
-
-                <!-- Additional Resources -->
-                <div id="postApprovalActions" style="display: none; margin-top: 1rem; margin-bottom: 2rem;">
-                    <h3>Additional Resources</h3>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="btn btn-outline" id="createTeachingProcessBtn"><i class="fas fa-chalkboard-teacher"></i> Teaching Process</button>
-                        <button class="btn btn-outline" id="createStudentResourcesBtn"><i class="fas fa-users"></i> Student Resources</button>
-                        <button class="btn btn-outline" id="createHandwritingBtn"><i class="fas fa-pen-fancy"></i> Handwriting Notes</button>
-                    </div>
-                </div>
+        <!-- Upcoming Virtual Classes -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Upcoming Virtual Classes</h3>
             </div>
-        </div>
-
-        <!-- Teach tab content -->
-        <div id="tab-teach" class="tab-content">
-            <h2>Ready to Teach</h2>
-            <div id="teachableList" style="margin-bottom: 2rem;"></div>
-            <h2>Approved (Not yet moved to Teach)</h2>
-            <div id="approvedList" style="margin-bottom: 2rem;"></div>
-            <h2>Drafts</h2>
-            <div id="draftsList" style="margin-bottom: 2rem;"></div>
-            <h2>Pending Lesson Notes</h2>
-            <div id="pendingNotesList"></div>
-            <h2>Rejected Lesson Notes</h2>
-            <div id="rejectedNotesList"></div>
-        </div>
-    </div>
-
-    <!-- AI Assistant Modal -->
-    <div class="modal-overlay" id="aiAssistantModal">
-        <div class="assistant-modal">
-            <div class="assistant-history">
-                <div class="history-header">
-                    <h3>Conversations</h3>
-                    <div class="new-chat-btn" id="newChatBtn" title="New chat">
-                        <i class="fas fa-plus"></i>
-                    </div>
+            <div id="virtualClassesContainer">
+                <div class="loading-spinner" id="classesLoading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading classes...</p>
                 </div>
-                <div class="history-list" id="historyList"></div>
-            </div>
-            <div class="assistant-main">
-                <div class="assistant-header">
-                    <div class="assistant-header-left">
-                        <i class="fas fa-robot"></i>
-                        <h2>Teacher Assistant</h2>
-                    </div>
-                    <i class="fas fa-times assistant-close" onclick="closeAIAssistant()"></i>
-                </div>
-                <div class="assistant-context" id="assistantContext"></div>
-                <div class="assistant-chat" id="assistantChat"></div>
-                <div class="assistant-input-area">
-                    <input type="text" class="assistant-input" id="assistantInput" placeholder="Type your message...">
-                    <button class="assistant-send-btn" onclick="sendAssistantMessage()">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-                <div class="assistant-actions">
-                    <button class="btn btn-outline" onclick="copyAssistantToEditor()">Copy to Editor</button>
-                    <button class="btn btn-success" id="assistantSaveBtn" onclick="saveAssistantToTeach()">Save to Teach</button>
-                </div>
+                <p class="empty-state" id="classesEmpty" style="display: block;">No upcoming virtual classes.</p>
+                <div id="classesContent" style="display: none;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="delete-modal" id="deleteModal">
-        <div class="delete-modal-content">
-            <h3>Confirm Deletion</h3>
-            <p id="deleteMessage">Are you sure you want to delete this item? This action cannot be undone.</p>
-            <div class="delete-modal-actions">
-                <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
-                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content">
-            <i class="fas fa-robot fa-spin"></i>
-            <h3>Processing...</h3>
-        </div>
-    </div>
-
-    <script type="module">
-        import Groq from "groq-sdk";
-
+    <script>
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -1020,16 +400,20 @@
             appId: "1:673937760480:web:f03c06e1207232213ef085",
             measurementId: "G-ELBMT8WHQ9"
         };
-        firebase.initializeApp(firebaseConfig);
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch (e) {
+            console.error('Firebase initialization error:', e);
+            document.getElementById('errorMessage').innerHTML = 'Firebase initialization failed. Check your config.';
+            document.getElementById('errorMessage').style.display = 'block';
+        }
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const remoteConfig = firebase.remoteConfig();
-        remoteConfig.settings.minimumFetchIntervalMillis = 0;
-
-        const CLOUD_NAME = 'dcwof2ngn';
-        const UPLOAD_PRESET = 'Meet_video';
 
         // Theme toggle
+        const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
         const themeText = themeToggle.querySelector('span');
@@ -1038,15 +422,48 @@
             themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
         }
         const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
+        html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
         themeToggle.addEventListener('click', () => {
-            const current = document.documentElement.getAttribute('data-theme');
+            const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
+            html.setAttribute('data-theme', next);
             localStorage.setItem('edutopscholars-theme', next);
             updateThemeUI(next);
         });
+
+        // Global variables
+        let currentUser = null;
+        let userData = null;
+        let studentClass = null;
+        let subjects = [];
+        let currentSubject = null;
+        let weeks = [];
+        let currentWeek = null;
+        let lessonNotesMap = {};
+
+        // Real‑time listeners
+        let unsubscribeLessonNotes = null;
+        let unsubscribeVirtualClasses = null;
+
+        // Error handler for Firestore index – provides clickable link
+        function handleFirestoreError(error, context) {
+            console.error(`Firestore error in ${context}:`, error);
+            const errorDiv = document.getElementById('errorMessage');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                const url = match ? match[0] : '#';
+                errorDiv.innerHTML = `
+                    <strong>Missing Firestore index.</strong><br>
+                    Please create it by clicking 
+                    <a href="${url}" target="_blank">this link</a>.
+                `;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -1055,1436 +472,402 @@
             setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
-        // ========== GLOBALS ==========
-        let currentUser = null;
-        let userData = null;
-        let subjects = [];
-        let currentSubject = null;
-        let currentWeek = null;
-        let currentResourceType = 'lessonNote';
-        let syllabusMap = {};
-        let lessonNotesMap = {};
-        let quill = null;
-        let groq = null;
-        let editorEnabled = true;
-        let youtubeLinks = [];
-        let youtubePublished = false;
-        let youtubeReady = false;
-
-        // Assistant state
-        let assistantConversations = [];
-        let currentConversationId = null;
-        let lastGeneratedText = '';
-        let lastGeneratedImageUrl = '';
-
-        let unsubscribeLessonNotes = null;
-        let itemToDelete = null;
-
-        // ========== UI HELPERS ==========
-        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
-        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
-
-        async function logAudit(action, details) {
-            if (!currentUser || !userData) return;
-            try {
-                await db.collection('auditLogs').add({
-                    userId: currentUser.uid,
-                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
-                    userEmail: userData.email || currentUser.email,
-                    role: 'teacher',
-                    action,
-                    details: JSON.stringify(details),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    userAgent: navigator.userAgent
-                });
-            } catch (e) { console.warn('Audit log failed', e); }
+        function setResourcesLoading(isLoading) {
+            document.getElementById('resourcesLoading').style.display = isLoading ? 'block' : 'none';
+            document.getElementById('resourcesEmpty').style.display = 'none';
+            document.getElementById('resourcesContent').style.display = 'none';
         }
 
-        async function storeToAIMemory(content, type, subject, week) {
-            try {
-                await db.collection('aiMemory').add({
-                    content,
-                    type,
-                    subject,
-                    week,
-                    teacherId: currentUser.uid,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (e) { console.warn('Failed to store to AI memory', e); }
+        function setResourcesEmpty() {
+            document.getElementById('resourcesLoading').style.display = 'none';
+            document.getElementById('resourcesEmpty').style.display = 'block';
+            document.getElementById('resourcesContent').style.display = 'none';
         }
 
-        // ========== AUTH ==========
+        function setResourcesContent(html) {
+            const contentDiv = document.getElementById('resourcesContent');
+            contentDiv.style.display = 'block';
+            contentDiv.innerHTML = html;
+            document.getElementById('resourcesLoading').style.display = 'none';
+            document.getElementById('resourcesEmpty').style.display = 'none';
+        }
+
+        function setClassesLoading(isLoading) {
+            document.getElementById('classesLoading').style.display = isLoading ? 'block' : 'none';
+            document.getElementById('classesEmpty').style.display = 'none';
+            document.getElementById('classesContent').style.display = 'none';
+        }
+
+        function setClassesEmpty() {
+            document.getElementById('classesLoading').style.display = 'none';
+            document.getElementById('classesEmpty').style.display = 'block';
+            document.getElementById('classesContent').style.display = 'none';
+        }
+
+        function setClassesContent(html) {
+            document.getElementById('classesLoading').style.display = 'none';
+            document.getElementById('classesEmpty').style.display = 'none';
+            document.getElementById('classesContent').style.display = 'block';
+            document.getElementById('classesContent').innerHTML = html;
+        }
+
+        // Auth
         auth.onAuthStateChanged(async (user) => {
-            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            console.log('Auth state changed, user:', user ? user.uid : 'none');
+            if (!user) { 
+                window.location.href = 'student-login.html'; 
+                return; 
+            }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                    auth.signOut(); window.location.href = 'index.html'; return;
+                if (!userDoc.exists) {
+                    showError('User document not found.');
+                    auth.signOut();
+                    window.location.href = 'student-login.html';
+                    return;
                 }
-                currentUser = user;
                 userData = userDoc.data();
-
+                if (userData.role !== 'student') {
+                    showError('Invalid user role.');
+                    auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
                 const isApproved = userData.approved === true || userData.status === 'approved';
                 if (!isApproved) {
-                    showError('Your account is pending approval. You can view but not create content.');
+                    alert('Your account is pending approval.');
+                    auth.signOut();
+                    window.location.href = 'student-login.html';
+                    return;
                 }
-
-                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
-
-                try {
-                    await remoteConfig.fetchAndActivate();
-                    const groqApiKey = remoteConfig.getString('groq_api_key');
-                    if (!groqApiKey) throw new Error('Groq API key is empty in Remote Config');
-                    groq = new Groq({ apiKey: groqApiKey, dangerouslyAllowBrowser: true });
-                } catch (e) {
-                    console.error('Failed to initialize Groq client:', e);
-                    showError('AI features unavailable: ' + e.message);
+                currentUser = user;
+                studentClass = userData.class;
+                if (!studentClass) {
+                    showError('You are not assigned to any class. Please contact your teacher.');
+                    return;
                 }
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
+                document.getElementById('profileName').textContent = userData.firstName || 'Student';
 
-                subjects = userData.subjects || [];
-                renderSubjectGrid();
+                console.log('Student class:', studentClass);
 
-                quill = new Quill('#editor', {
-                    theme: 'snow',
-                    modules: {
-                        toolbar: [
-                            [{ 'header': [1,2,3,4,5,6,false] }],
-                            ['bold', 'italic', 'underline', 'strike'],
-                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                            [{ 'align': [] }],
-                            ['link', 'blockquote', 'code-block'],
-                            [{ 'color': [] }, { 'background': [] }],
-                            ['clean']
-                        ]
-                    },
-                    placeholder: 'Start writing...'
-                });
+                // Set up real‑time listener for lesson notes
+                if (unsubscribeLessonNotes) unsubscribeLessonNotes();
+                setResourcesLoading(true);
+                unsubscribeLessonNotes = db.collection('lessonNotes')
+                    .where('classId', '==', studentClass)
+                    .where('status', '==', 'approved')
+                    .onSnapshot(snapshot => {
+                        console.log('Lesson notes snapshot received, size:', snapshot.size);
+                        lessonNotesMap = {};
+                        subjects = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            console.log('Document data:', data);
+                            // Only include if at least one resource is published
+                            if (data.studentResourcePublished || data.handwrittenPublished || (data.youtubeLinks && data.youtubeLinks.length && data.youtubePublished)) {
+                                const subj = data.subject;
+                                if (subj && !subjects.includes(subj)) subjects.push(subj);
+                                const key = `${subj}_${data.week}`;
+                                lessonNotesMap[key] = { id: doc.id, ...data };
+                                console.log('Included note for subject:', subj, 'week:', data.week);
+                            } else {
+                                console.log('Note excluded (no published resources):', data.subject, data.week);
+                            }
+                        });
+                        console.log('Subjects after filtering:', subjects);
+                        renderSubjectTabs();
+                        if (subjects.length > 0) {
+                            if (!currentSubject || !subjects.includes(currentSubject)) {
+                                currentSubject = subjects[0];
+                            }
+                            switchSubject(currentSubject);
+                        } else {
+                            setResourcesEmpty();
+                            document.getElementById('subjectTabs').innerHTML = '';
+                            document.getElementById('weekTabs').innerHTML = '';
+                            document.getElementById('currentSubject').textContent = '';
+                            document.getElementById('currentWeek').textContent = '';
+                        }
+                    }, error => {
+                        console.error('Lesson notes listener error:', error);
+                        handleFirestoreError(error, 'lessonNotes');
+                        setResourcesEmpty();
+                    });
 
-                await loadAllLessonNotes();
-                renderTeachTab();
-            } catch (error) { console.error(error); showError('Auth error: ' + error.message); }
+                // Set up real‑time listener for virtual classes
+                if (unsubscribeVirtualClasses) unsubscribeVirtualClasses();
+                setClassesLoading(true);
+                unsubscribeVirtualClasses = db.collection('virtualClasses')
+                    .where('classId', '==', studentClass)
+                    .orderBy('date', 'asc')
+                    .orderBy('time', 'asc')
+                    .onSnapshot(snapshot => {
+                        console.log('Virtual classes snapshot received, size:', snapshot.size);
+                        renderVirtualClasses(snapshot);
+                    }, error => {
+                        console.error('Virtual classes listener error:', error);
+                        handleFirestoreError(error, 'virtualClasses');
+                        setClassesEmpty();
+                    });
+
+            } catch (error) {
+                console.error('Auth error:', error);
+                showError('Authentication error: ' + error.message);
+            }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
-        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
 
-        // ========== SUBJECT GRID ==========
-        function renderSubjectGrid() {
-            const grid = document.getElementById('subjectGrid');
-            grid.innerHTML = '';
-            if (subjects.length === 0) { grid.innerHTML = '<p class="text-secondary">No subjects yet.</p>'; return; }
+        function renderSubjectTabs() {
+            const container = document.getElementById('subjectTabs');
+            container.innerHTML = '';
             subjects.forEach(sub => {
-                const card = document.createElement('div');
-                card.className = 'subject-card';
-                const syllabus = syllabusMap[sub] || { weeks: [], status: 'draft' };
-                card.innerHTML = `
-                    <h3>${sub}</h3>
-                    <p>${syllabus.weeks?.length || 0} weeks</p>
-                    <span class="subject-badge ${syllabus.status || 'draft'}">${syllabus.status || 'No syllabus'}</span>
-                    <button class="delete-subject" onclick="event.stopPropagation(); deleteSubject('${sub}')"><i class="fas fa-trash"></i></button>
-                `;
-                card.onclick = () => selectSubject(sub, card);
-                grid.appendChild(card);
+                const tab = document.createElement('span');
+                tab.className = 'tab';
+                tab.textContent = sub;
+                tab.onclick = (e) => switchSubject(sub, e.target);
+                container.appendChild(tab);
             });
-        }
-
-        window.deleteSubject = async function(subject) {
-            if (!confirm(`Delete subject "${subject}"? This will also delete all associated syllabi and lesson notes.`)) return;
-            showLoading();
-            try {
-                const syllabusSnap = await db.collection('syllabus')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', subject)
-                    .get();
-                const lessonSnap = await db.collection('lessonNotes')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', subject)
-                    .get();
-                const batch = db.batch();
-                syllabusSnap.forEach(doc => batch.delete(doc.ref));
-                lessonSnap.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-                subjects = subjects.filter(s => s !== subject);
-                await db.collection('users').doc(currentUser.uid).update({ subjects });
-                await logAudit('delete_subject', { subject, syllabusCount: syllabusSnap.size, lessonCount: lessonSnap.size });
-                delete syllabusMap[subject];
-                if (currentSubject === subject) {
-                    document.getElementById('syllabusSection').style.display = 'none';
-                    document.getElementById('editorSection').style.display = 'none';
-                    currentSubject = null;
-                }
-                renderSubjectGrid();
-                alert('Subject and all associated data deleted.');
-            } catch (e) { showError('Delete failed: ' + e.message); } finally { hideLoading(); }
-        };
-
-        async function selectSubject(subject, card) {
-            currentSubject = subject;
-            document.querySelectorAll('.subject-card').forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            document.getElementById('syllabusSection').style.display = 'block';
-            document.getElementById('currentSubjectTitle').textContent = `${subject} Syllabus`;
-            await loadSyllabus(subject);
-
-            if (unsubscribeLessonNotes) unsubscribeLessonNotes();
-            unsubscribeLessonNotes = db.collection('lessonNotes')
-                .where('teacherId', '==', currentUser.uid)
-                .where('subject', '==', subject)
-                .onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        const data = change.doc.data();
-                        const key = `${subject}_${data.week}`;
-                        if (change.type === 'removed') {
-                            delete lessonNotesMap[key];
-                        } else {
-                            lessonNotesMap[key] = { id: change.doc.id, ...data };
-                        }
-                    });
-                    if (currentWeek) {
-                        const key = `${currentSubject}_${currentWeek}`;
-                        const note = lessonNotesMap[key] || {};
-                        if (document.getElementById('tab-notebook').classList.contains('active')) {
-                            const postApprovalDiv = document.getElementById('postApprovalActions');
-                            if (note.status === 'approved') {
-                                postApprovalDiv.style.display = 'block';
-                            } else {
-                                postApprovalDiv.style.display = 'none';
-                            }
-                            updateEditorButtons(note);
-                            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
-                                quill.enable(false);
-                                editorEnabled = false;
-                            } else {
-                                quill.enable(true);
-                                editorEnabled = true;
-                            }
-                            youtubeLinks = note.youtubeLinks || [];
-                            youtubePublished = note.youtubePublished || false;
-                            youtubeReady = note.youtubeReady || false;
-                            renderYoutubeList();
-                        }
-                    }
-                    renderTeachTab();
-                }, error => {
-                    console.error('Real-time listener error:', error);
-                    showError('Error listening to lesson note changes.');
+            // Highlight active subject
+            if (currentSubject) {
+                document.querySelectorAll('#subjectTabs .tab').forEach(t => {
+                    if (t.textContent === currentSubject) t.classList.add('active');
                 });
-
-            await loadLessonNotes(subject);
-            renderWeekTabs();
-        }
-
-        async function loadSyllabus(subject) {
-            try {
-                const snap = await db.collection('syllabus')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', subject)
-                    .orderBy('submittedAt', 'desc')
-                    .limit(1).get();
-                if (!snap.empty) {
-                    const doc = snap.docs[0];
-                    syllabusMap[subject] = { id: doc.id, ...doc.data() };
-                    renderSyllabusTable(doc.data().weeks || []);
-                    updateSyllabusStatus(doc.data().status);
-                    document.getElementById('createLessonNoteBtn').style.display = doc.data().status === 'approved' ? 'inline-block' : 'none';
-                    document.getElementById('editSyllabusBtn').style.display = (doc.data().status === 'rejected' || doc.data().status === 'approved') ? 'inline-block' : 'none';
-                    document.getElementById('deleteSyllabusBtn').style.display = 'inline-block';
-                    document.getElementById('deleteSyllabusBtn').onclick = () => deleteSyllabus(doc.id);
-                } else {
-                    syllabusMap[subject] = { weeks: [], status: 'draft' };
-                    renderSyllabusTable([]);
-                    updateSyllabusStatus('draft');
-                    document.getElementById('createLessonNoteBtn').style.display = 'none';
-                    document.getElementById('editSyllabusBtn').style.display = 'none';
-                    document.getElementById('deleteSyllabusBtn').style.display = 'none';
-                }
-                renderSubjectGrid();
-            } catch (e) { console.error(e); showError('Error loading syllabus: ' + e.message); }
-        }
-
-        async function deleteSyllabus(syllabusId) {
-            if (!confirm('Delete this syllabus? This will also delete all associated lesson notes, resources, etc.')) return;
-            showLoading();
-            try {
-                const lessonSnap = await db.collection('lessonNotes')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', currentSubject)
-                    .get();
-                const batch = db.batch();
-                lessonSnap.forEach(doc => batch.delete(doc.ref));
-                batch.delete(db.collection('syllabus').doc(syllabusId));
-                await batch.commit();
-                await logAudit('delete_syllabus', { subject: currentSubject });
-                alert('Syllabus and all associated content deleted.');
-                await loadSyllabus(currentSubject);
-            } catch (e) {
-                showError('Delete failed: ' + e.message);
-            } finally {
-                hideLoading();
             }
         }
 
-        function renderSyllabusTable(weeks) {
-            if (!weeks.length) weeks = [{ week: 1, topic: '', objectives: '' }];
-            let html = '';
-            weeks.forEach((w, i) => {
-                html += `<tr>
-                    <td><input type="number" value="${w.week}" data-index="${i}" data-field="week"></td>
-                    <td><input type="text" value="${w.topic || ''}" data-index="${i}" data-field="topic"></td>
-                    <td><input type="text" value="${w.objectives || ''}" data-index="${i}" data-field="objectives"></td>
-                    <td><button class="btn btn-danger btn-sm" onclick="deleteWeek(${i})"><i class="fas fa-trash"></i></button></td>
-                </tr>`;
-            });
-            document.getElementById('syllabusBody').innerHTML = html;
-            document.querySelectorAll('#syllabusBody input').forEach(inp => {
-                inp.addEventListener('input', function(e) {
-                    const i = this.dataset.index, f = this.dataset.field;
-                    if (!syllabusMap[currentSubject].weeks[i]) syllabusMap[currentSubject].weeks[i] = {};
-                    syllabusMap[currentSubject].weeks[i][f] = this.value;
-                });
-            });
-        }
+        function switchSubject(subject, clickedElement) {
+            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
+            if (clickedElement) clickedElement.classList.add('active');
+            currentSubject = subject;
+            document.getElementById('currentSubject').textContent = subject;
+            console.log('Switched to subject:', subject);
 
-        window.deleteWeek = (index) => {
-            syllabusMap[currentSubject].weeks.splice(index, 1);
-            renderSyllabusTable(syllabusMap[currentSubject].weeks);
-        };
-
-        document.getElementById('addWeekBtn').addEventListener('click', () => {
-            if (!syllabusMap[currentSubject]) syllabusMap[currentSubject] = { weeks: [] };
-            const last = syllabusMap[currentSubject].weeks.length ? syllabusMap[currentSubject].weeks[syllabusMap[currentSubject].weeks.length-1].week : 0;
-            syllabusMap[currentSubject].weeks.push({ week: last+1, topic: '', objectives: '' });
-            renderSyllabusTable(syllabusMap[currentSubject].weeks);
-        });
-
-        document.getElementById('saveSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) return;
-            const weeks = syllabusMap[currentSubject]?.weeks;
-            if (!weeks?.length) return alert('Add at least one week.');
-            const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'draft', updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try {
-                if (syllabusMap[currentSubject].id) {
-                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                    await logAudit('update_syllabus_draft', { subject: currentSubject, weeks });
-                } else {
-                    const ref = await db.collection('syllabus').add(data);
-                    syllabusMap[currentSubject].id = ref.id;
-                    await logAudit('create_syllabus_draft', { subject: currentSubject, weeks });
+            weeks = [];
+            for (let key in lessonNotesMap) {
+                if (key.startsWith(subject + '_')) {
+                    const week = lessonNotesMap[key].week;
+                    if (!weeks.includes(week)) weeks.push(week);
                 }
-                alert('Saved draft.');
-                renderSubjectGrid();
-            } catch (e) { showError('Save failed: ' + e.message); }
-        });
-
-        document.getElementById('submitSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) return;
-            const weeks = syllabusMap[currentSubject]?.weeks;
-            if (!weeks?.length) return alert('Add at least one week.');
-            const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: 'pending', submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
-            try {
-                if (syllabusMap[currentSubject].id) {
-                    await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
+            }
+            weeks.sort((a,b) => a - b);
+            console.log('Weeks for subject:', weeks);
+            renderWeekTabs();
+            if (weeks.length > 0) {
+                if (currentWeek && weeks.includes(currentWeek)) {
+                    selectWeek(currentWeek);
                 } else {
-                    const ref = await db.collection('syllabus').add(data);
-                    syllabusMap[currentSubject].id = ref.id;
+                    selectWeek(weeks[0]);
                 }
-                await logAudit('submit_syllabus', { subject: currentSubject, weeks });
-                alert('Submitted for approval.');
-                updateSyllabusStatus('pending');
-                document.getElementById('createLessonNoteBtn').style.display = 'none';
-                renderSubjectGrid();
-            } catch (e) { showError('Submit failed: ' + e.message); }
-        });
-
-        document.getElementById('editSyllabusBtn').addEventListener('click', async () => {
-            if (!currentSubject) return;
-            const weeks = syllabusMap[currentSubject]?.weeks;
-            if (!weeks?.length) return alert('No weeks.');
-            const currentStatus = syllabusMap[currentSubject].status;
-            let newStatus = currentStatus === 'rejected' ? 'draft' : currentStatus;
-            try {
-                const data = { teacherId: currentUser.uid, subject: currentSubject, classId: userData.classTeaching, weeks, status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-                await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(data);
-                await logAudit('edit_syllabus', { from: currentStatus, to: newStatus, weeks });
-                alert('Updated.');
-                updateSyllabusStatus(newStatus);
-                document.getElementById('createLessonNoteBtn').style.display = newStatus === 'approved' ? 'inline-block' : 'none';
-                renderSubjectGrid();
-            } catch (e) { showError('Edit failed: ' + e.message); }
-        });
-
-        function updateSyllabusStatus(status) {
-            const el = document.getElementById('syllabusStatus');
-            el.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            el.className = `status-badge status-${status}`;
-        }
-
-        async function loadLessonNotes(subject) {
-            try {
-                const snap = await db.collection('lessonNotes')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', subject)
-                    .get();
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    lessonNotesMap[`${subject}_${d.week}`] = { id: doc.id, ...d };
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        async function loadAllLessonNotes() {
-            try {
-                const snap = await db.collection('lessonNotes')
-                    .where('teacherId', '==', currentUser.uid)
-                    .get();
-                lessonNotesMap = {};
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    lessonNotesMap[`${d.subject}_${d.week}`] = { id: doc.id, ...d };
-                });
-            } catch (e) { console.error(e); }
+            } else {
+                setResourcesEmpty();
+                document.getElementById('weekTabs').innerHTML = '';
+                document.getElementById('currentWeek').textContent = '';
+            }
         }
 
         function renderWeekTabs() {
-            const weeks = syllabusMap[currentSubject]?.weeks || [];
-            const tabs = document.getElementById('weekTabs');
-            tabs.innerHTML = '';
-            weeks.forEach(w => {
-                const tab = document.createElement('div');
-                tab.className = 'week-tab';
-                tab.textContent = `Week ${w.week}: ${w.topic || 'No topic'}`;
-                tab.onclick = () => selectWeek(w.week);
-                tabs.appendChild(tab);
+            const container = document.getElementById('weekTabs');
+            container.innerHTML = '';
+            weeks.forEach(week => {
+                const tab = document.createElement('span');
+                tab.className = 'tab';
+                tab.textContent = `Week ${week}`;
+                tab.onclick = (e) => selectWeek(week, e.target);
+                container.appendChild(tab);
             });
+            if (currentWeek) {
+                document.querySelectorAll('#weekTabs .tab').forEach(t => {
+                    if (t.textContent === `Week ${currentWeek}`) t.classList.add('active');
+                });
+            }
         }
 
-        function selectWeek(week) {
+        function selectWeek(week, clickedElement) {
+            document.querySelectorAll('#weekTabs .tab').forEach(t => t.classList.remove('active'));
+            if (clickedElement) clickedElement.classList.add('active');
             currentWeek = week;
-            document.querySelectorAll('.week-tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById('editorSection').style.display = 'block';
-            currentResourceType = 'lessonNote';
-            document.getElementById('editorTitle').textContent = `Week ${week} Lesson Note`;
-            const key = `${currentSubject}_${week}`;
-            const note = lessonNotesMap[key] || {};
-            quill.setText(note.lessonNote || '');
-
-            if (currentResourceType === 'lessonNote' && (note.teachable || note.status === 'approved')) {
-                quill.enable(false);
-                editorEnabled = false;
-            } else {
-                quill.enable(true);
-                editorEnabled = true;
-            }
-
-            const postApprovalDiv = document.getElementById('postApprovalActions');
-            if (note.status === 'approved') {
-                postApprovalDiv.style.display = 'block';
-            } else {
-                postApprovalDiv.style.display = 'none';
-            }
-
-            youtubeLinks = note.youtubeLinks || [];
-            youtubePublished = note.youtubePublished || false;
-            youtubeReady = note.youtubeReady || false;
-            renderYoutubeList();
-
-            updateEditorButtons(note);
+            document.getElementById('currentWeek').textContent = week;
+            console.log('Selected week:', week);
+            renderResources();
         }
 
-        function updateEditorButtons(note) {
-            const deleteBtn = document.getElementById('deleteResourceBtn');
-            const publishBtn = document.getElementById('publishResourceBtn');
-            const pushToTeachBtn = document.getElementById('pushToTeachBtn');
-            const submitBtn = document.getElementById('submitEditorBtn');
-
-            if (note.id) {
-                deleteBtn.style.display = 'inline-block';
-                deleteBtn.onclick = () => promptDelete(currentResourceType, note.id, currentSubject, currentWeek);
-
-                if (currentResourceType === 'lessonNote' && note.status !== 'approved' && !note.teachable) {
-                    submitBtn.style.display = 'inline-block';
-                } else {
-                    submitBtn.style.display = 'none';
-                }
-
-                if (currentResourceType === 'studentResource' || currentResourceType === 'handwritten') {
-                    let contentExists = false;
-                    if (currentResourceType === 'studentResource') {
-                        contentExists = !!note.studentResource && note.studentResource.trim() !== '';
-                    } else if (currentResourceType === 'handwritten') {
-                        contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
-                    }
-                    if (contentExists) {
-                        publishBtn.style.display = 'inline-block';
-                        publishBtn.onclick = () => publishResource(note.id, currentResourceType);
-                    } else {
-                        publishBtn.style.display = 'none';
-                    }
-                } else {
-                    publishBtn.style.display = 'none';
-                }
-
-                if (currentResourceType !== 'lessonNote') {
-                    let contentExists = false;
-                    if (currentResourceType === 'teachingProcess') {
-                        contentExists = !!note.teachingProcess && note.teachingProcess.trim() !== '';
-                    } else if (currentResourceType === 'studentResource') {
-                        contentExists = !!note.studentResource && note.studentResource.trim() !== '';
-                    } else if (currentResourceType === 'handwritten') {
-                        contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
-                    }
-                    if (contentExists) {
-                        pushToTeachBtn.style.display = 'inline-block';
-                        pushToTeachBtn.onclick = () => pushResourceToTeach(note.id, currentResourceType);
-                    } else {
-                        pushToTeachBtn.style.display = 'none';
-                    }
-                } else {
-                    pushToTeachBtn.style.display = 'none';
-                }
-            } else {
-                deleteBtn.style.display = 'none';
-                publishBtn.style.display = 'none';
-                pushToTeachBtn.style.display = 'none';
-                if (currentResourceType === 'lessonNote') {
-                    submitBtn.style.display = 'inline-block';
-                } else {
-                    submitBtn.style.display = 'none';
-                }
+        // Helper to download content as a text file
+        function downloadAsFile(content, filename) {
+            try {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                showError('Download failed: ' + e.message);
             }
         }
 
-        // ========== YOUTUBE LINK HANDLING ==========
-        function renderYoutubeList() {
-            const list = document.getElementById('youtubeList');
-            if (!youtubeLinks.length) {
-                list.innerHTML = '<p class="text-secondary">No YouTube links added.</p>';
-                document.getElementById('pushYoutubeToTeachBtn').style.display = 'none';
-                document.getElementById('publishAllYoutubeBtn').style.display = 'none';
+        // Toggle expand/collapse
+        window.toggleReadMore = (btn, contentId) => {
+            const content = document.getElementById(contentId);
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                btn.textContent = 'Read more';
+            } else {
+                content.classList.add('expanded');
+                btn.textContent = 'Read less';
+            }
+        };
+
+        // Updated renderResources with graceful missing‑content handling
+        function renderResources() {
+            if (!currentSubject || !currentWeek) {
+                setResourcesEmpty();
                 return;
             }
-            let html = '';
-            youtubeLinks.forEach((link, index) => {
+            const key = `${currentSubject}_${currentWeek}`;
+            const note = lessonNotesMap[key];
+            console.log('Rendering resources for key:', key, 'note:', note);
+
+            if (!note) {
+                setResourcesEmpty();
+                return;
+            }
+
+            let html = '<div class="resource-grid">';
+
+            // Student Resource (if published)
+            if (note.studentResourcePublished) {
+                if (note.studentResource) {
+                    console.log('Adding student resource card');
+                    const contentId = `student_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
+                    const safeContent = note.studentResource.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-users"></i> Student Resource</h4>
+                            <p id="${contentId}">${note.studentResource}</p>
+                            <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
+                            <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    console.warn('Student resource published but content missing');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-users"></i> Student Resource</h4>
+                            <p style="color: var(--warning-text);">Published but no content available. Please contact your teacher.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                console.log('Student resource not published');
+            }
+
+            // Handwritten Notes (if published)
+            if (note.handwrittenPublished) {
+                if (note.handwrittenNotes) {
+                    console.log('Adding handwritten notes card');
+                    const contentId = `handwritten_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
+                    const safeContent = note.handwrittenNotes.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
+                            <p id="${contentId}">${note.handwrittenNotes}</p>
+                            <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
+                            <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    console.warn('Handwritten notes published but content missing');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
+                            <p style="color: var(--warning-text);">Published but no content available. Please contact your teacher.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                console.log('Handwritten notes not published');
+            }
+
+            // YouTube Links (if published)
+            if (note.youtubePublished) {
+                if (note.youtubeLinks && note.youtubeLinks.length > 0) {
+                    console.log('Adding YouTube links card');
+                    let linksHtml = '<ul>';
+                    note.youtubeLinks.forEach(link => {
+                        linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`;
+                    });
+                    linksHtml += '</ul>';
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
+                            ${linksHtml}
+                            <a href="${note.youtubeLinks[0]}" target="_blank" class="btn btn-outline btn-sm" style="align-self: flex-start;">Watch Now</a>
+                        </div>
+                    `;
+                } else {
+                    console.warn('YouTube published but no links');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
+                            <p style="color: var(--warning-text);">Published but no links available. Please contact your teacher.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                console.log('YouTube not published');
+            }
+
+            html += '</div>';
+
+            // If none of the above, show empty
+            if (!note.studentResourcePublished && !note.handwrittenPublished && !note.youtubePublished) {
+                console.log('No published resources, showing empty');
+                setResourcesEmpty();
+                return;
+            }
+
+            setResourcesContent(html);
+        }
+
+        function renderVirtualClasses(snapshot) {
+            if (snapshot.empty) {
+                setClassesEmpty();
+                return;
+            }
+
+            const now = new Date();
+            let html = '<div class="resource-grid">';
+            snapshot.forEach(doc => {
+                const vc = doc.data();
+                // Filter future classes only
+                const classDateTime = new Date(`${vc.date}T${vc.time}`);
+                if (classDateTime < now) return; // skip past classes
+
                 html += `
-                    <div class="youtube-item">
-                        <a href="${link}" target="_blank">${link}</a>
-                        <div>
-                            <button class="btn btn-sm btn-danger" onclick="removeYoutubeLink(${index})"><i class="fas fa-trash"></i></button>
-                        </div>
+                    <div class="resource-card">
+                        <h4><i class="fas fa-video"></i> ${vc.subject || 'Unknown'} – Week ${vc.week || '?'}</h4>
+                        <p><strong>Platform:</strong> ${vc.platform || 'N/A'}</p>
+                        <p><strong>Date:</strong> ${vc.date || 'N/A'} at ${vc.time || 'N/A'}</p>
+                        <p><strong>Duration:</strong> ${vc.duration || '?'} min</p>
+                        <a href="${vc.link || '#'}" target="_blank" class="btn btn-outline">Join</a>
                     </div>
                 `;
             });
-            list.innerHTML = html;
-
-            const pushYoutubeBtn = document.getElementById('pushYoutubeToTeachBtn');
-            pushYoutubeBtn.style.display = 'inline-block';
-            pushYoutubeBtn.onclick = pushYoutubeToTeach;
-
-            const publishYoutubeBtn = document.getElementById('publishAllYoutubeBtn');
-            publishYoutubeBtn.style.display = 'inline-block';
-            publishYoutubeBtn.onclick = publishAllYoutube;
+            html += '</div>';
+            setClassesContent(html);
         }
 
-        window.removeYoutubeLink = (index) => {
-            youtubeLinks.splice(index, 1);
-            renderYoutubeList();
-        };
-
-        document.getElementById('addYoutubeLinkBtn').addEventListener('click', () => {
-            const inputArea = document.getElementById('youtubeInputArea');
-            inputArea.style.display = inputArea.style.display === 'none' ? 'flex' : 'none';
-        });
-
-        document.getElementById('previewYoutubeBtn').addEventListener('click', () => {
-            const url = document.getElementById('youtubeLinkInput').value.trim();
-            if (!url) return;
-            const videoId = extractYouTubeId(url);
-            if (!videoId) {
-                alert('Invalid YouTube URL');
-                return;
-            }
-            const previewDiv = document.getElementById('youtubePreview');
-            previewDiv.style.display = 'block';
-            previewDiv.innerHTML = `
-                <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
-                <button class="preview-close" onclick="closeYoutubePreview()"><i class="fas fa-times"></i></button>
-            `;
-            if (!youtubeLinks.includes(url)) {
-                youtubeLinks.push(url);
-                renderYoutubeList();
-            }
-            document.getElementById('youtubeLinkInput').value = '';
-            document.getElementById('youtubeInputArea').style.display = 'none';
-        });
-
-        window.closeYoutubePreview = () => {
-            document.getElementById('youtubePreview').style.display = 'none';
-        };
-
-        async function pushYoutubeToTeach() {
-            if (!currentSubject || !currentWeek) return;
-            const key = `${currentSubject}_${currentWeek}`;
-            const note = lessonNotesMap[key];
-            if (!note) return alert('Save the lesson note first.');
-            
-            if (youtubeLinks.length === 0) {
-                alert('Cannot push to Teach: No YouTube links added.');
-                return;
-            }
-
-            try {
-                await db.collection('lessonNotes').doc(note.id).update({ 
-                    youtubeLinks: youtubeLinks,
-                    youtubeReady: true 
-                });
-                await logAudit('push_youtube_to_teach', { subject: currentSubject, week: currentWeek });
-                alert('YouTube links pushed to Teach.');
-                youtubeReady = true;
-                note.youtubeReady = true;
-                note.youtubeLinks = youtubeLinks;
-            } catch (e) {
-                showError('Error pushing to Teach: ' + e.message);
-            }
-        }
-
-        async function publishAllYoutube() {
-            if (!currentSubject || !currentWeek) return;
-            const key = `${currentSubject}_${currentWeek}`;
-            const note = lessonNotesMap[key];
-            if (!note) return alert('Save the lesson note first.');
-            
-            if (youtubeLinks.length === 0) {
-                alert('Cannot publish: No YouTube links to publish. Add links first.');
-                return;
-            }
-
-            try {
-                await db.collection('lessonNotes').doc(note.id).update({ 
-                    youtubeLinks: youtubeLinks,
-                    youtubePublished: true 
-                });
-                await logAudit('publish_youtube', { subject: currentSubject, week: currentWeek });
-                alert('YouTube links published to students.');
-                youtubePublished = true;
-                note.youtubePublished = true;
-                note.youtubeLinks = youtubeLinks;
-            } catch (e) {
-                showError('Error publishing: ' + e.message);
-            }
-        }
-
-        function extractYouTubeId(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
-        }
-
-        // ========== DELETE HANDLING ==========
-        const deleteModal = document.getElementById('deleteModal');
-        function openDeleteModal(message, callback) {
-            document.getElementById('deleteMessage').textContent = message;
-            deleteModal.classList.add('active');
-            document.getElementById('confirmDeleteBtn').onclick = callback;
-        }
-        window.closeDeleteModal = () => deleteModal.classList.remove('active');
-
-        function promptDelete(type, docId, subject, week) {
-            itemToDelete = { type, docId, subject, week };
-            openDeleteModal(`Delete this ${type}? This cannot be undone.`, async () => {
-                await performDelete();
-            });
-        }
-
-        async function performDelete() {
-            if (!itemToDelete) return;
-            const { type, docId, subject, week } = itemToDelete;
-            try {
-                await db.collection('lessonNotes').doc(docId).delete();
-                await logAudit('delete_resource', { type, subject, week });
-                alert('Deleted.');
-                closeDeleteModal();
-                await loadAllLessonNotes();
-                if (currentSubject === subject && currentWeek === week) {
-                    const key = `${subject}_${week}`;
-                    const note = lessonNotesMap[key] || {};
-                    quill.setText('');
-                    updateEditorButtons(note);
-                }
-                renderTeachTab();
-            } catch (e) { showError('Delete failed: ' + e.message); } finally { itemToDelete = null; }
-        }
-
-        async function publishResource(docId, type) {
-            const update = type === 'studentResource' ? { studentResourcePublished: true } : 
-                          (type === 'handwritten' ? { handwrittenPublished: true } : {});
-            try {
-                await db.collection('lessonNotes').doc(docId).update(update);
-                alert('Published to students.');
-                await loadAllLessonNotes();
-                const key = `${currentSubject}_${currentWeek}`;
-                const note = lessonNotesMap[key] || {};
-                updateEditorButtons(note);
-            } catch (e) { showError('Publish failed: ' + e.message); }
-        }
-
-        async function pushResourceToTeach(docId, type) {
-            const readyField = type === 'teachingProcess' ? 'teachingProcessReady' :
-                               (type === 'studentResource' ? 'studentResourceReady' : 'handwrittenReady');
-            try {
-                await db.collection('lessonNotes').doc(docId).update({ [readyField]: true });
-                await logAudit('push_to_teach', { type, subject: currentSubject, week: currentWeek });
-                alert('Resource pushed to Teach. It will now appear in the Teach page.');
-                await loadAllLessonNotes();
-                const key = `${currentSubject}_${currentWeek}`;
-                const note = lessonNotesMap[key] || {};
-                updateEditorButtons(note);
-            } catch (e) {
-                showError('Error pushing to Teach: ' + e.message);
-            }
-        }
-
-        // ========== EDITOR ACTIONS ==========
-        document.getElementById('saveEditorBtn').addEventListener('click', async () => {
-            if (!currentSubject || !currentWeek) return;
-            if (!editorEnabled && currentResourceType === 'lessonNote') { alert('This note is read‑only.'); return; }
-            const content = quill.getText();
-            if (!content.trim()) return alert('Empty content.');
-            const key = `${currentSubject}_${currentWeek}`;
-            const existing = lessonNotesMap[key] || {};
-            const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
-            const fieldMap = {
-                lessonNote: 'lessonNote',
-                teachingProcess: 'teachingProcess',
-                studentResource: 'studentResource',
-                handwritten: 'handwrittenNotes'
-            };
-
-            const updateData = {
-                teacherId: currentUser.uid,
-                subject: currentSubject,
-                week: currentWeek,
-                topic: weekData?.topic || '',
-                [fieldMap[currentResourceType]]: content,
-                youtubeLinks: youtubeLinks,
-                classId: userData.classTeaching,
-                status: existing.status || 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            if (!existing.id) {
-                if (currentResourceType === 'lessonNote') {
-                    const syllabus = syllabusMap[currentSubject];
-                    if (!syllabus || syllabus.status !== 'approved') {
-                        alert('Cannot create lesson note: syllabus is not approved.');
-                        return;
-                    }
-                    updateData.syllabusId = syllabus.id;
-                }
-            } else {
-                Object.assign(updateData, existing);
-                updateData[fieldMap[currentResourceType]] = content;
-                updateData.youtubeLinks = youtubeLinks;
-            }
-
-            try {
-                if (existing.id) {
-                    await db.collection('lessonNotes').doc(existing.id).update(updateData);
-                    await logAudit('update_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
-                } else {
-                    const ref = await db.collection('lessonNotes').add(updateData);
-                    lessonNotesMap[key] = { id: ref.id, ...updateData };
-                    await logAudit('create_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
-                }
-
-                await storeToAIMemory(content, currentResourceType, currentSubject, currentWeek);
-                alert('Saved.');
-                await loadAllLessonNotes();
-                updateEditorButtons(lessonNotesMap[key] || {});
-                renderTeachTab();
-            } catch (e) { showError('Save failed: ' + e.message); }
-        });
-
-        document.getElementById('submitEditorBtn').addEventListener('click', async () => {
-            if (!currentSubject || !currentWeek) return;
-            if (!editorEnabled) { alert('This note is read‑only.'); return; }
-            if (currentResourceType !== 'lessonNote') {
-                alert('Only lesson notes require approval. Use Save Draft or Push to Teach instead.');
-                return;
-            }
-            const content = quill.getText();
-            if (!content.trim()) return alert('Empty content.');
-            const key = `${currentSubject}_${currentWeek}`;
-            const existing = lessonNotesMap[key] || {};
-            const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
-            const fieldMap = {
-                lessonNote: 'lessonNote'
-            };
-
-            const baseData = {
-                teacherId: currentUser.uid,
-                subject: currentSubject,
-                week: currentWeek,
-                topic: weekData?.topic || '',
-                [fieldMap[currentResourceType]]: content,
-                youtubeLinks: youtubeLinks,
-                classId: userData.classTeaching,
-                status: 'pending',
-                submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            if (!existing.id) {
-                const syllabus = syllabusMap[currentSubject];
-                if (!syllabus || syllabus.status !== 'approved') {
-                    alert('Cannot submit lesson note: syllabus is not approved.');
-                    return;
-                }
-                baseData.syllabusId = syllabus.id;
-            } else {
-                Object.assign(baseData, existing);
-                baseData[fieldMap[currentResourceType]] = content;
-                baseData.youtubeLinks = youtubeLinks;
-                baseData.status = 'pending';
-                baseData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
-            }
-
-            try {
-                if (existing.id) {
-                    await db.collection('lessonNotes').doc(existing.id).update(baseData);
-                } else {
-                    const ref = await db.collection('lessonNotes').add(baseData);
-                    lessonNotesMap[key] = { id: ref.id, ...baseData };
-                }
-                await logAudit('submit_resource', { type: currentResourceType, subject: currentSubject, week: currentWeek });
-                await storeToAIMemory(content, currentResourceType, currentSubject, currentWeek);
-                alert('Submitted for approval.');
-                await loadAllLessonNotes();
-                renderTeachTab();
-            } catch (e) {
-                showError('Submit failed: ' + e.message);
-            }
-        });
-
-        // ========== PDF DOWNLOAD ==========
-        document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-            const content = quill.root.innerHTML;
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Lesson Note</title>
-                        <style>
-                            body { font-family: 'Inter', sans-serif; padding: 2rem; }
-                            img { max-width: 100%; }
-                        </style>
-                    </head>
-                    <body>${content}</body>
-                </html>
-            `);
-            printWindow.print();
-        });
-
-        // ========== TEACH TAB ==========
-        function renderTeachTab() {
-            const teachableDiv = document.getElementById('teachableList');
-            const approvedDiv = document.getElementById('approvedList');
-            const draftsDiv = document.getElementById('draftsList');
-            const pendingDiv = document.getElementById('pendingNotesList');
-            const rejectedDiv = document.getElementById('rejectedNotesList');
-            teachableDiv.innerHTML = '';
-            approvedDiv.innerHTML = '';
-            draftsDiv.innerHTML = '';
-            pendingDiv.innerHTML = '';
-            rejectedDiv.innerHTML = '';
-
-            const allNotes = Object.values(lessonNotesMap);
-            const teachable = allNotes.filter(n => n.teachable === true);
-            const approved = allNotes.filter(n => n.status === 'approved' && !n.teachable);
-            const drafts = allNotes.filter(n => n.status === 'draft');
-            const pending = allNotes.filter(n => n.status === 'pending');
-            const rejected = allNotes.filter(n => n.status === 'rejected');
-
-            teachable.forEach(note => {
-                const card = document.createElement('div');
-                card.className = 'syllabus-container';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div>
-                            <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
-                            <span class="status-badge status-teachable">Ready to Teach</span>
-                        </div>
-                        <div>
-                            <button class="btn btn-outline btn-sm" onclick="viewInTeach('${note.subject}', ${note.week})">
-                                <i class="fas fa-eye"></i> View in Teach
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-                teachableDiv.appendChild(card);
-            });
-
-            approved.forEach(note => {
-                const card = document.createElement('div');
-                card.className = 'syllabus-container';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div>
-                            <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
-                            <span class="status-badge status-approved">Approved</span>
-                        </div>
-                        <div>
-                            <button class="btn btn-success btn-sm" onclick="moveToTeach('${note.id}')">
-                                <i class="fas fa-check"></i> Move to Teach
-                            </button>
-                            <button class="btn btn-outline btn-sm" onclick="continueEditing('${note.subject}', ${note.week})">
-                                <i class="fas fa-edit"></i> Edit (will become draft)
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-                approvedDiv.appendChild(card);
-            });
-
-            drafts.forEach(note => {
-                const card = document.createElement('div');
-                card.className = 'syllabus-container';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <div>
-                            <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
-                            <span class="status-badge status-draft">Draft</span>
-                        </div>
-                        <div>
-                            <button class="btn btn-primary btn-sm" onclick="continueEditing('${note.subject}', ${note.week})">
-                                <i class="fas fa-edit"></i> Continue Editing
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-                draftsDiv.appendChild(card);
-            });
-
-            pending.forEach(note => {
-                const card = document.createElement('div');
-                card.className = 'syllabus-container';
-                card.innerHTML = `
-                    <div>
-                        <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
-                        <span class="status-badge status-pending">Pending</span>
-                    </div>
-                `;
-                pendingDiv.appendChild(card);
-            });
-
-            rejected.forEach(note => {
-                const card = document.createElement('div');
-                card.className = 'syllabus-container';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <h3>${note.subject} - Week ${note.week}: ${note.topic}</h3>
-                            <span class="status-badge status-rejected">Rejected</span>
-                        </div>
-                        <div>
-                            <button class="btn btn-warning btn-sm" onclick="editRejected('${note.subject}', ${note.week})">
-                                <i class="fas fa-edit"></i> Edit & Resubmit
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteLessonNote('${note.id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-                rejectedDiv.appendChild(card);
-            });
-
-            if (teachable.length === 0) teachableDiv.innerHTML = '<p class="text-secondary">No notes ready to teach.</p>';
-            if (approved.length === 0) approvedDiv.innerHTML = '<p class="text-secondary">No approved notes.</p>';
-            if (drafts.length === 0) draftsDiv.innerHTML = '<p class="text-secondary">No drafts.</p>';
-            if (pending.length === 0) pendingDiv.innerHTML = '<p class="text-secondary">No pending notes.</p>';
-            if (rejected.length === 0) rejectedDiv.innerHTML = '<p class="text-secondary">No rejected notes.</p>';
-        }
-
-        window.moveToTeach = async (noteId) => {
-            if (!confirm('Move this lesson note to Teach? It will become read‑only and will appear in the Teach page.')) return;
-            try {
-                await db.collection('lessonNotes').doc(noteId).update({ teachable: true });
-                await logAudit('move_to_teach', { noteId });
-                alert('Moved to Teach.');
-                await loadAllLessonNotes();
-                renderTeachTab();
-            } catch (e) {
-                showError('Error: ' + e.message);
-            }
-        };
-
-        window.continueEditing = (subject, week) => {
-            if (currentSubject !== subject) {
-                const cards = document.querySelectorAll('.subject-card');
-                for (let card of cards) {
-                    if (card.querySelector('h3').textContent === subject) {
-                        selectSubject(subject, card);
-                        break;
-                    }
-                }
-            }
-            setTimeout(() => {
-                selectWeek(week);
-                document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-                document.querySelector('[data-tab="notebook"]').classList.add('active');
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById('tab-notebook').classList.add('active');
-            }, 500);
-        };
-
-        window.viewInTeach = (subject, week) => {
-            window.location.href = `teacher-teach.html?subject=${encodeURIComponent(subject)}&week=${week}`;
-        };
-
-        window.editRejected = async (subject, week) => {
-            const key = `${subject}_${week}`;
-            const note = lessonNotesMap[key];
-            if (!note) return;
-            try {
-                await db.collection('lessonNotes').doc(note.id).update({ status: 'draft' });
-                await logAudit('edit_rejected', { subject, week });
-                alert('Note moved to draft. You can now edit.');
-                continueEditing(subject, week);
-            } catch (e) { showError('Error: ' + e.message); }
-        };
-
-        window.deleteLessonNote = async (noteId) => {
-            if (!confirm('Delete this lesson note? This cannot be undone.')) return;
-            try {
-                await db.collection('lessonNotes').doc(noteId).delete();
-                await logAudit('delete_lesson_note', { noteId });
-                alert('Deleted.');
-                await loadAllLessonNotes();
-                renderTeachTab();
-            } catch (e) { showError('Error: ' + e.message); }
-        };
-
-        // ========== AI ASSISTANT (ORIGINAL) ==========
-        const aiModal = document.getElementById('aiAssistantModal');
-        const assistantChat = document.getElementById('assistantChat');
-        const assistantInput = document.getElementById('assistantInput');
-        const assistantContext = document.getElementById('assistantContext');
-        const assistantSaveBtn = document.getElementById('assistantSaveBtn');
-        const historyList = document.getElementById('historyList');
-        const newChatBtn = document.getElementById('newChatBtn');
-
-        function generateTitle(messages) {
-            if (messages.length === 0) return 'New Chat';
-            const firstUser = messages.find(m => m.role === 'user');
-            return firstUser ? firstUser.content.substring(0, 30) + (firstUser.content.length > 30 ? '...' : '') : 'New Chat';
-        }
-
-        function renderHistory() {
-            historyList.innerHTML = '';
-            assistantConversations.forEach(conv => {
-                const item = document.createElement('div');
-                item.className = 'history-item';
-                item.dataset.id = conv.id;
-                item.innerHTML = `
-                    <div class="history-item-title">${conv.title}</div>
-                    <div class="history-item-date">${conv.date.toLocaleTimeString()}</div>
-                `;
-                item.addEventListener('click', () => loadConversation(conv.id));
-                historyList.appendChild(item);
-            });
-        }
-
-        function newConversation() {
-            const id = Date.now().toString();
-            const conv = {
-                id,
-                title: 'New Chat',
-                date: new Date(),
-                messages: []
-            };
-            assistantConversations.push(conv);
-            currentConversationId = id;
-            renderHistory();
-            displayConversation(conv);
-            assistantSaveBtn.style.display = 'none';
-        }
-
-        function loadConversation(id) {
-            const conv = assistantConversations.find(c => c.id === id);
-            if (conv) {
-                currentConversationId = id;
-                displayConversation(conv);
-            }
-        }
-
-        function displayConversation(conv) {
-            assistantChat.innerHTML = '';
-            conv.messages.forEach(msg => {
-                addMessageToChat(msg.role, msg.content, msg.imageUrl);
-            });
-            assistantChat.scrollTop = assistantChat.scrollHeight;
-        }
-
-        function addMessageToChat(role, content, imageUrl) {
-            const wrapper = document.createElement('div');
-            wrapper.className = `message-wrapper ${role}`;
-
-            const bubble = document.createElement('div');
-            bubble.className = 'message-bubble';
-
-            if (imageUrl) {
-                const img = document.createElement('img');
-                img.src = imageUrl;
-                img.style.maxWidth = '100%';
-                img.style.borderRadius = '0.5rem';
-                bubble.appendChild(img);
-            } else {
-                const textDiv = document.createElement('div');
-                textDiv.innerHTML = content.replace(/\n/g, '<br>');
-                bubble.appendChild(textDiv);
-            }
-
-            const timeSpan = document.createElement('div');
-            timeSpan.className = 'message-time';
-            timeSpan.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            wrapper.appendChild(bubble);
-            wrapper.appendChild(timeSpan);
-            assistantChat.appendChild(wrapper);
-        }
-
-        window.openAIAssistant = () => {
-            if (!currentConversationId) {
-                newConversation();
-            }
-            if (currentSubject && currentWeek) {
-                const weekData = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek);
-                const topic = weekData?.topic || '';
-                assistantContext.innerHTML = `Currently working on <strong>${currentSubject}</strong> – Week <strong>${currentWeek}</strong>${topic ? ` (${topic})` : ''}. Your request will be tailored to this context.`;
-            } else {
-                assistantContext.innerHTML = 'No week selected. Please select a week to get context‑aware suggestions.';
-            }
-            aiModal.classList.add('active');
-        };
-
-        window.closeAIAssistant = () => {
-            aiModal.classList.remove('active');
-        };
-
-        window.sendAssistantMessage = async () => {
-            const prompt = assistantInput.value.trim();
-            if (!prompt) return;
-
-            addMessageToChat('user', prompt);
-            const conv = assistantConversations.find(c => c.id === currentConversationId);
-            if (conv) {
-                conv.messages.push({ role: 'user', content: prompt, timestamp: new Date() });
-                if (conv.messages.filter(m => m.role === 'user').length === 1) {
-                    conv.title = generateTitle(conv.messages);
-                    renderHistory();
-                }
-            }
-
-            assistantInput.value = '';
-
-            const thinkingDiv = document.createElement('div');
-            thinkingDiv.className = 'assistant-thinking';
-            thinkingDiv.innerHTML = '<i class="fas fa-robot fa-spin"></i> Thinking...';
-            assistantChat.appendChild(thinkingDiv);
-            assistantChat.scrollTop = assistantChat.scrollHeight;
-
-            try {
-                if (currentResourceType === 'handwritten') {
-                    const imagePrompt = `Create handwritten study notes on ${prompt}. Use student handwriting font on lined paper. Yellow highlighter for key terms. Red circles around dates. Add doodles to explain concepts. A4 size.`;
-                    const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
-                    
-                    const response = await fetch(imageUrl);
-                    if (!response.ok) throw new Error('Image generation failed');
-                    const blob = await response.blob();
-                    
-                    const formData = new FormData();
-                    formData.append('file', blob);
-                    formData.append('upload_preset', UPLOAD_PRESET);
-                    formData.append('public_id', `handwriting_${currentSubject}_week${currentWeek}_${Date.now()}`);
-                    
-                    const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const uploadData = await uploadResponse.json();
-                    const downloadUrl = uploadData.secure_url;
-                    lastGeneratedImageUrl = downloadUrl;
-                    lastGeneratedText = '';
-
-                    assistantChat.removeChild(thinkingDiv);
-                    addMessageToChat('assistant', '', downloadUrl);
-                    if (conv) conv.messages.push({ role: 'assistant', content: '', imageUrl: downloadUrl, timestamp: new Date() });
-
-                    assistantSaveBtn.style.display = 'inline-block';
-                } else {
-                    const weekData = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek);
-                    const topic = weekData?.topic || '';
-                    const systemPrompt = `You are a Nigerian curriculum expert. The teacher is working on ${currentSubject}, week ${currentWeek} (topic: ${topic}). Generate content based on the user's request. Use the standard Nigerian lesson note format where appropriate.`;
-
-                    const historyMessages = conv ? conv.messages.map(m => ({
-                        role: m.role,
-                        content: m.imageUrl ? '[Image generated]' : m.content
-                    })) : [];
-
-                    const completion = await groq.chat.completions.create({
-                        messages: [
-                            { role: "system", content: systemPrompt },
-                            ...historyMessages,
-                            { role: "user", content: prompt }
-                        ],
-                        model: "llama-3.3-70b-versatile",
-                        temperature: 0.7,
-                        max_tokens: 4096,
-                    });
-                    const text = completion.choices[0].message.content;
-                    lastGeneratedText = text;
-                    lastGeneratedImageUrl = '';
-
-                    assistantChat.removeChild(thinkingDiv);
-                    addMessageToChat('assistant', text);
-                    if (conv) conv.messages.push({ role: 'assistant', content: text, timestamp: new Date() });
-
-                    assistantSaveBtn.style.display = 'inline-block';
-                }
-                assistantChat.scrollTop = assistantChat.scrollHeight;
-            } catch (error) {
-                console.error('AI generation error:', error);
-                assistantChat.removeChild(thinkingDiv);
-                addMessageToChat('assistant', 'Error: ' + error.message);
-            }
-        };
-
-        window.copyAssistantToEditor = () => {
-            if (lastGeneratedText && quill) {
-                quill.setText(lastGeneratedText);
-                closeAIAssistant();
-            } else if (lastGeneratedImageUrl) {
-                const imageHtml = `<img src="${lastGeneratedImageUrl}" style="max-width:100%;">`;
-                quill.clipboard.dangerouslyPasteHTML(imageHtml);
-                closeAIAssistant();
-            } else {
-                alert('No content to copy.');
-            }
-        };
-
-        window.saveAssistantToTeach = async () => {
-            if (!currentSubject || !currentWeek) { alert('Select a week first.'); return; }
-            const key = `${currentSubject}_${currentWeek}`;
-            const existing = lessonNotesMap[key] || {};
-            const weekData = syllabusMap[currentSubject].weeks.find(w => w.week == currentWeek);
-            const fieldMap = {
-                lessonNote: 'lessonNote',
-                teachingProcess: 'teachingProcess',
-                studentResource: 'studentResource',
-                handwritten: 'handwrittenNotes'
-            };
-
-            let content;
-            if (currentResourceType === 'handwritten') {
-                if (!lastGeneratedImageUrl) { alert('No image generated.'); return; }
-                content = lastGeneratedImageUrl;
-            } else {
-                if (!lastGeneratedText) { alert('No text generated.'); return; }
-                content = lastGeneratedText;
-            }
-
-            const updateData = {
-                teacherId: currentUser.uid,
-                subject: currentSubject,
-                week: currentWeek,
-                topic: weekData?.topic || '',
-                [fieldMap[currentResourceType]]: content,
-                classId: userData.classTeaching,
-                status: existing.status || 'draft',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            if (!existing.id) {
-                const syllabus = syllabusMap[currentSubject];
-                if (!syllabus || syllabus.status !== 'approved') {
-                    alert('Cannot save: syllabus not approved.');
-                    return;
-                }
-                updateData.syllabusId = syllabus.id;
-            } else {
-                Object.assign(updateData, existing);
-                updateData[fieldMap[currentResourceType]] = content;
-            }
-
-            showLoading();
-            try {
-                if (existing.id) {
-                    await db.collection('lessonNotes').doc(existing.id).update(updateData);
-                } else {
-                    const ref = await db.collection('lessonNotes').add(updateData);
-                    lessonNotesMap[key] = { id: ref.id, ...updateData };
-                }
-                await logAudit('ai_save_to_teach', { type: currentResourceType, subject: currentSubject, week: currentWeek });
-                await storeToAIMemory(content, currentResourceType, currentSubject, currentWeek);
-                alert('Saved to Teach page.');
-                closeAIAssistant();
-                viewInTeach(currentSubject, currentWeek);
-            } catch (e) {
-                showError('Error: ' + e.message);
-            } finally {
-                hideLoading();
-            }
-        };
-
-        newChatBtn.addEventListener('click', newConversation);
-        document.getElementById('useAIAssistantBtn').addEventListener('click', openAIAssistant);
-        assistantInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendAssistantMessage();
-        });
-
-        // ========== CREATE LESSON NOTE BUTTON ==========
-        document.getElementById('createLessonNoteBtn').addEventListener('click', () => {
-            const weeks = syllabusMap[currentSubject]?.weeks;
-            if (weeks?.length) selectWeek(weeks[0].week);
-            document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('[data-tab="notebook"]').classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById('tab-notebook').classList.add('active');
-        });
-
-        // ========== TAB SWITCHING ==========
-        document.querySelectorAll('.main-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                const name = tab.dataset.tab;
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                if (name === 'syllabus') {
-                    document.getElementById('tab-syllabus').classList.add('active');
-                } else if (name === 'notebook') {
-                    document.getElementById('tab-notebook').classList.add('active');
-                    if (currentSubject && syllabusMap[currentSubject]?.weeks?.length) {
-                        selectWeek(syllabusMap[currentSubject].weeks[0].week);
-                    }
-                } else if (name === 'teach') {
-                    document.getElementById('tab-teach').classList.add('active');
-                    renderTeachTab();
-                }
-            });
-        });
-
-        // ========== ADD SUBJECT ==========
-        document.getElementById('addSubjectBtn').addEventListener('click', async () => {
-            const newSub = prompt('New subject name:');
-            if (!newSub?.trim()) return;
-            if (subjects.includes(newSub.trim())) {
-                alert('Subject already exists.');
-                return;
-            }
-            showLoading();
-            try {
-                subjects.push(newSub.trim());
-                await db.collection('users').doc(currentUser.uid).update({ subjects });
-                await logAudit('add_subject', { subject: newSub.trim() });
-                renderSubjectGrid();
-                alert('Subject added.');
-            } catch (error) {
-                console.error('Add subject error:', error);
-                showError('Failed to add subject: ' + error.message);
-                subjects.pop();
-            } finally {
-                hideLoading();
-            }
-        });
-
-        // Post-approval buttons
-        document.getElementById('createTeachingProcessBtn').addEventListener('click', () => openResourceEditor(currentSubject, currentWeek, 'teachingProcess'));
-        document.getElementById('createStudentResourcesBtn').addEventListener('click', () => openResourceEditor(currentSubject, currentWeek, 'studentResource'));
-        document.getElementById('createHandwritingBtn').addEventListener('click', () => openResourceEditor(currentSubject, currentWeek, 'handwritten'));
-
-        function openResourceEditor(subject, week, type) {
-            currentSubject = subject;
-            currentWeek = week;
-            currentResourceType = type;
-            const key = `${subject}_${week}`;
-            const note = lessonNotesMap[key] || {};
-            document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('[data-tab="notebook"]').classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById('tab-notebook').classList.add('active');
-            document.getElementById('editorSection').style.display = 'block';
-            let content = '';
-            if (type === 'teachingProcess') content = note.teachingProcess || '';
-            else if (type === 'studentResource') content = note.studentResource || '';
-            else if (type === 'handwritten') content = note.handwrittenNotes || '';
-            quill.setText(content);
-            document.getElementById('editorTitle').textContent = `Week ${week} ${type.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}`;
-            document.querySelectorAll('#saveEditorBtn, #submitEditorBtn, #useAIAssistantBtn').forEach(b => b.style.display = 'inline-block');
-            if (type !== 'lessonNote') {
-                document.getElementById('submitEditorBtn').style.display = 'none';
-            } else {
-                document.getElementById('submitEditorBtn').style.display = 'inline-block';
-            }
-            document.getElementById('deleteResourceBtn').style.display = note.id ? 'inline-block' : 'none';
-            document.getElementById('deleteResourceBtn').onclick = () => promptDelete(type, note.id, subject, week);
-            const publishBtn = document.getElementById('publishResourceBtn');
-            if (type === 'studentResource' || type === 'handwritten') {
-                let contentExists = false;
-                if (type === 'studentResource') {
-                    contentExists = !!note.studentResource && note.studentResource.trim() !== '';
-                } else if (type === 'handwritten') {
-                    contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
-                }
-                if (contentExists) {
-                    publishBtn.style.display = 'inline-block';
-                    publishBtn.onclick = () => publishResource(note.id, type);
-                } else {
-                    publishBtn.style.display = 'none';
-                }
-            } else {
-                publishBtn.style.display = 'none';
-            }
-            const pushBtn = document.getElementById('pushToTeachBtn');
-            if (type !== 'lessonNote') {
-                let contentExists = false;
-                if (type === 'teachingProcess') {
-                    contentExists = !!note.teachingProcess && note.teachingProcess.trim() !== '';
-                } else if (type === 'studentResource') {
-                    contentExists = !!note.studentResource && note.studentResource.trim() !== '';
-                } else if (type === 'handwritten') {
-                    contentExists = !!note.handwrittenNotes && note.handwrittenNotes.trim() !== '';
-                }
-                if (contentExists) {
-                    pushBtn.style.display = 'inline-block';
-                    pushBtn.onclick = () => pushResourceToTeach(note.id, type);
-                } else {
-                    pushBtn.style.display = 'none';
-                }
-            } else {
-                pushBtn.style.display = 'none';
-            }
-
-            if (type === 'lessonNote' && (note.teachable || note.status === 'approved')) {
-                quill.enable(false);
-                editorEnabled = false;
-            } else {
-                quill.enable(true);
-                editorEnabled = true;
-            }
-        }
-
-        window.openResourceEditor = openResourceEditor;
+        // Expose download function globally
+        window.downloadAsFile = downloadAsFile;
     </script>
 </body>
 </html>
