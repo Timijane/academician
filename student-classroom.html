@@ -470,7 +470,7 @@
         let unsubscribeLessonNotes = null;
         let unsubscribeVirtualClasses = null;
 
-        // Error handler for Firestore index
+        // Error handler for Firestore index – provides clickable link
         function handleFirestoreError(error, context) {
             console.error(`Firestore error in ${context}:`, error);
             const errorDiv = document.getElementById('errorMessage');
@@ -510,6 +510,9 @@
 
         function setResourcesContent(html) {
             const contentDiv = document.getElementById('resourcesContent');
+            contentDiv.style.removeProperty('border');
+            contentDiv.style.removeProperty('background-color');
+            contentDiv.style.removeProperty('padding');
             contentDiv.style.display = 'block';
             contentDiv.innerHTML = html;
             document.getElementById('resourcesLoading').style.display = 'none';
@@ -599,7 +602,7 @@
                         snapshot.forEach(doc => {
                             const data = doc.data();
                             console.log('Document data:', data);
-                            // Only include if at least one resource is published
+                            // Include if any published flag is true (content may be missing – will show placeholder)
                             if (data.studentResourcePublished || data.handwrittenPublished || (data.youtubeLinks && data.youtubeLinks.length && data.youtubePublished)) {
                                 const subj = data.subject;
                                 if (subj && !subjects.includes(subj)) subjects.push(subj);
@@ -757,6 +760,7 @@
             }
         };
 
+        // Updated renderResources with graceful missing‑content handling
         function renderResources() {
             clearDebug();
             if (!currentSubject || !currentWeek) {
@@ -776,72 +780,96 @@
             let html = '<div class="resource-grid">';
 
             // Student Resource (if published)
-            if (note.studentResource && note.studentResourcePublished) {
-                console.log('Adding student resource card');
-                const contentId = `student_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
-                const safeContent = note.studentResource.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
-                html += `
-                    <div class="resource-card">
-                        <h4><i class="fas fa-users"></i> Student Resource</h4>
-                        <p id="${contentId}">${note.studentResource}</p>
-                        <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
-                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
-                            <i class="fas fa-download"></i> Download
-                        </button>
-                    </div>
-                `;
+            if (note.studentResourcePublished) {
+                if (note.studentResource) {
+                    console.log('Adding student resource card');
+                    const contentId = `student_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
+                    const safeContent = note.studentResource.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-users"></i> Student Resource</h4>
+                            <p id="${contentId}">${note.studentResource}</p>
+                            <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
+                            <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    console.warn('Student resource published but content missing');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-users"></i> Student Resource</h4>
+                            <p style="color: var(--warning-text);">Published but no content available. Please contact your teacher.</p>
+                        </div>
+                    `;
+                }
             } else {
-                console.log('Student resource not included because:', 
-                    'exists:', !!note.studentResource, 
-                    'published:', note.studentResourcePublished);
+                console.log('Student resource not published');
             }
 
             // Handwritten Notes (if published)
-            if (note.handwrittenNotes && note.handwrittenPublished) {
-                console.log('Adding handwritten notes card');
-                const contentId = `handwritten_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
-                const safeContent = note.handwrittenNotes.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
-                html += `
-                    <div class="resource-card">
-                        <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
-                        <p id="${contentId}">${note.handwrittenNotes}</p>
-                        <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
-                        <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
-                            <i class="fas fa-download"></i> Download
-                        </button>
-                    </div>
-                `;
+            if (note.handwrittenPublished) {
+                if (note.handwrittenNotes) {
+                    console.log('Adding handwritten notes card');
+                    const contentId = `handwritten_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
+                    const safeContent = note.handwrittenNotes.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
+                            <p id="${contentId}">${note.handwrittenNotes}</p>
+                            <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
+                            <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    console.warn('Handwritten notes published but content missing');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
+                            <p style="color: var(--warning-text);">Published but no content available. Please contact your teacher.</p>
+                        </div>
+                    `;
+                }
             } else {
-                console.log('Handwritten notes not included because:',
-                    'exists:', !!note.handwrittenNotes,
-                    'published:', note.handwrittenPublished);
+                console.log('Handwritten notes not published');
             }
 
             // YouTube Links (if published)
-            if (note.youtubeLinks && note.youtubeLinks.length && note.youtubePublished) {
-                console.log('Adding YouTube links card');
-                let linksHtml = '<ul>';
-                note.youtubeLinks.forEach(link => {
-                    linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`;
-                });
-                linksHtml += '</ul>';
-                html += `
-                    <div class="resource-card">
-                        <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
-                        ${linksHtml}
-                        <a href="${note.youtubeLinks[0]}" target="_blank" class="btn btn-outline btn-sm" style="align-self: flex-start;">Watch Now</a>
-                    </div>
-                `;
+            if (note.youtubePublished) {
+                if (note.youtubeLinks && note.youtubeLinks.length > 0) {
+                    console.log('Adding YouTube links card');
+                    let linksHtml = '<ul>';
+                    note.youtubeLinks.forEach(link => {
+                        linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`;
+                    });
+                    linksHtml += '</ul>';
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
+                            ${linksHtml}
+                            <a href="${note.youtubeLinks[0]}" target="_blank" class="btn btn-outline btn-sm" style="align-self: flex-start;">Watch Now</a>
+                        </div>
+                    `;
+                } else {
+                    console.warn('YouTube published but no links');
+                    html += `
+                        <div class="resource-card">
+                            <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
+                            <p style="color: var(--warning-text);">Published but no links available. Please contact your teacher.</p>
+                        </div>
+                    `;
+                }
             } else {
-                console.log('YouTube links not included because:',
-                    'exists:', note.youtubeLinks && note.youtubeLinks.length,
-                    'published:', note.youtubePublished);
+                console.log('YouTube not published');
             }
 
             html += '</div>';
 
             // If none of the above, show empty
-            if (!note.studentResourcePublished && !note.handwrittenPublished && !(note.youtubeLinks && note.youtubeLinks.length && note.youtubePublished)) {
+            if (!note.studentResourcePublished && !note.handwrittenPublished && !note.youtubePublished) {
                 console.log('No published resources, showing empty');
                 setResourcesEmpty();
                 return;
