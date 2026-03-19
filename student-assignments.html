@@ -12,7 +12,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- For file upload (optional) we can use Firebase Storage later -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -161,6 +160,20 @@
         }
         .card-header h3 { font-size: 1.3rem; font-weight: 600; }
 
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 0.5rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            color: var(--text-primary);
+        }
+
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th { text-align: left; padding: 1rem 0.8rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); }
@@ -176,6 +189,9 @@
         .badge.pending { background: var(--warning-bg); color: var(--warning-text); }
         .badge.submitted { background: var(--success-bg); color: var(--success-text); }
         .badge.overdue { background: var(--danger-bg); color: var(--danger-text); }
+        .badge.assignment { background: var(--hover-bg); color: var(--text-secondary); }
+        .badge.test { background: var(--accent); color: white; }
+        .badge.exam { background: var(--success-text); color: white; }
 
         .btn {
             padding: 0.5rem 1.2rem;
@@ -191,45 +207,15 @@
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
 
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(5px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
+        .loading-spinner {
+            text-align: center;
             padding: 2rem;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            color: var(--text-secondary);
         }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.3rem; color: var(--text-secondary); }
-        .form-control {
-            width: 100%;
-            padding: 0.6rem 1rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            color: var(--text-primary);
+        .loading-spinner i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
         }
 
         @media (max-width: 768px) {
@@ -254,6 +240,9 @@
         <a href="student-tests.html" class="nav-item"><i class="fas fa-laptop"></i><span>Tests & Exams</span></a>
         <a href="student-classroom.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Classroom</span></a>
         <a href="student-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="student-evaluation.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Evaluation</span></a>
+        <a href="student-summary.html" class="nav-item"><i class="fas fa-clipboard-list"></i><span>Summary</span></a>
+        <a href="student-submit.html" class="nav-item"><i class="fas fa-upload"></i><span>Submit</span></a>
         <a href="student-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
@@ -262,7 +251,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>My Assignments</h1>
-                <p>View and submit your assignments</p>
+                <p>View and submit your assignments, tests, and exams</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -274,54 +263,53 @@
                         <div class="profile-pic" id="profilePic">ST</div>
                     </div>
                     <div class="dropdown-menu">
-                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <a href="student-profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
                         <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Filters or search (optional) -->
+        <!-- Filters -->
+        <div class="filter-bar">
+            <select id="typeFilter">
+                <option value="all">All Types</option>
+                <option value="assignment">Assignments</option>
+                <option value="test">Tests</option>
+                <option value="exam">Exams</option>
+            </select>
+            <select id="statusFilter">
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="submitted">Submitted</option>
+                <option value="overdue">Overdue</option>
+            </select>
+            <input type="text" id="searchFilter" placeholder="Search by title...">
+        </div>
+
+        <!-- Assignments List -->
         <div class="card">
             <div class="card-header">
-                <h3>All Assignments</h3>
-                <div>
-                    <select id="statusFilter" class="form-control" style="width: auto; display: inline-block;">
-                        <option value="all">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="submitted">Submitted</option>
-                        <option value="overdue">Overdue</option>
-                    </select>
-                </div>
+                <h3>All Items</h3>
             </div>
             <div class="table-responsive">
                 <table id="assignmentsTable">
                     <thead>
                         <tr>
+                            <th>Type</th>
                             <th>Subject</th>
                             <th>Title</th>
                             <th>Due Date</th>
                             <th>Status</th>
-                            <th>Grade</th>
+                            <th>Score</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="assignmentsBody">
-                        <tr><td colspan="6">Loading...</td></tr>
+                        <tr><td colspan="7" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-
-    <!-- Assignment Detail Modal (for viewing and submitting) -->
-    <div class="modal-overlay" id="assignmentModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Assignment Details</h3>
-                <i class="fas fa-times" style="cursor:pointer;" onclick="closeModal()"></i>
-            </div>
-            <div id="modalContent"></div>
         </div>
     </div>
 
@@ -339,7 +327,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Sidebar & theme (same as before)
+        // Sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -351,6 +339,7 @@
             icon.classList.toggle('fa-chevron-right');
         });
 
+        // Theme toggle
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
@@ -370,13 +359,14 @@
             updateThemeUI(next);
         });
 
-        // Auth
+        // Global variables
         let currentUser = null;
         let userData = null;
         let studentClass = null;
         let allAssignments = [];
         let submissionsMap = new Map(); // assignmentId -> submission doc
 
+        // Auth
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'student-login.html'; return; }
             try {
@@ -405,7 +395,7 @@
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
 
-        // Load all submissions by this student (for status)
+        // Load all submissions by this student
         async function loadSubmissions() {
             const snapshot = await db.collection('submissions')
                 .where('studentId', '==', currentUser.uid)
@@ -417,55 +407,71 @@
             });
         }
 
-        // Load assignments for this class
+        // Load assignments for this class that are published
         async function loadAssignments() {
             if (!studentClass) return;
             const snapshot = await db.collection('assignments')
                 .where('classId', '==', studentClass)
+                .where('status', '==', 'published')
                 .orderBy('dueDate', 'asc')
                 .get();
             allAssignments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             filterAndRender();
         }
 
-        // Filter based on dropdown
-        document.getElementById('statusFilter').addEventListener('change', filterAndRender);
-
+        // Filter based on dropdowns and search
         function filterAndRender() {
-            const filter = document.getElementById('statusFilter').value;
-            const now = new Date();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchTerm = document.getElementById('searchFilter').value.toLowerCase();
+
             let filtered = allAssignments;
 
-            if (filter !== 'all') {
-                filtered = allAssignments.filter(a => {
-                    const sub = submissionsMap.get(a.id);
-                    const due = new Date(a.dueDate + 'T23:59:59');
-                    if (filter === 'submitted') return !!sub;
-                    if (filter === 'pending') return !sub && due >= now;
-                    if (filter === 'overdue') return !sub && due < now;
-                });
+            if (typeFilter !== 'all') {
+                filtered = filtered.filter(a => a.type === typeFilter);
+            }
+
+            // For status, we need submission info
+            const now = new Date();
+            filtered = filtered.filter(a => {
+                const sub = submissionsMap.get(a.id);
+                const due = new Date(a.dueDate + 'T23:59:59');
+                if (statusFilter === 'all') return true;
+                if (statusFilter === 'submitted') return !!sub;
+                if (statusFilter === 'pending') return !sub && due >= now;
+                if (statusFilter === 'overdue') return !sub && due < now;
+                return true;
+            });
+
+            if (searchTerm) {
+                filtered = filtered.filter(a => a.title.toLowerCase().includes(searchTerm));
             }
 
             renderAssignments(filtered);
         }
 
+        // Render assignments into table
         function renderAssignments(assignments) {
             const tbody = document.getElementById('assignmentsBody');
-            if (!assignments.length) {
-                tbody.innerHTML = '<tr><td colspan="6">No assignments found.</td></tr>';
+            if (assignments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading-spinner">No assignments found.</td></tr>';
                 return;
             }
             let html = '';
             const now = new Date();
             assignments.forEach(a => {
                 const sub = submissionsMap.get(a.id);
-                let status, badgeClass, gradeDisplay = '—';
+                const due = new Date(a.dueDate + 'T23:59:59');
+                let status, badgeClass, scoreDisplay = '—';
                 if (sub) {
                     status = 'submitted';
                     badgeClass = 'submitted';
-                    gradeDisplay = sub.grade ? sub.grade + '%' : 'Pending';
+                    if (sub.score !== undefined) {
+                        scoreDisplay = sub.score + '/' + a.totalPoints;
+                    } else {
+                        scoreDisplay = 'Pending';
+                    }
                 } else {
-                    const due = new Date(a.dueDate + 'T23:59:59');
                     if (due < now) {
                         status = 'overdue';
                         badgeClass = 'overdue';
@@ -474,105 +480,59 @@
                         badgeClass = 'pending';
                     }
                 }
+                const typeBadge = `<span class="badge ${a.type}">${a.type}</span>`;
+                let actionButton = '';
+                if (sub) {
+                    actionButton = `<button class="btn btn-outline btn-sm" onclick="viewSubmission('${a.id}')">View</button>`;
+                } else if (a.type === 'cbt' || a.type === 'test' || a.type === 'exam') {
+                    // Check if start date is valid
+                    if (a.startDate) {
+                        const start = new Date(a.startDate + 'T00:00:00');
+                        if (start > now) {
+                            actionButton = `<span class="badge pending">Starts ${a.startDate}</span>`;
+                        } else {
+                            actionButton = `<button class="btn btn-primary btn-sm" onclick="startCBT('${a.id}')">Start Test</button>`;
+                        }
+                    } else {
+                        actionButton = `<button class="btn btn-primary btn-sm" onclick="startCBT('${a.id}')">Start Test</button>`;
+                    }
+                } else {
+                    // Assignment (upload)
+                    actionButton = `<button class="btn btn-outline btn-sm" onclick="openAssignment('${a.id}')">View</button>`;
+                }
                 html += `
                     <tr>
+                        <td>${typeBadge}</td>
                         <td>${a.subject}</td>
                         <td>${a.title}</td>
                         <td>${a.dueDate}</td>
                         <td><span class="badge ${badgeClass}">${status}</span></td>
-                        <td>${gradeDisplay}</td>
-                        <td><button class="btn btn-outline btn-sm" onclick="openAssignment('${a.id}')">View</button></td>
+                        <td>${scoreDisplay}</td>
+                        <td>${actionButton}</td>
                     </tr>
                 `;
             });
             tbody.innerHTML = html;
         }
 
-        // Open assignment details modal
-        const modal = document.getElementById('assignmentModal');
-        const modalContent = document.getElementById('modalContent');
-        let currentAssignment = null;
+        // Event listeners for filters
+        document.getElementById('typeFilter').addEventListener('change', filterAndRender);
+        document.getElementById('statusFilter').addEventListener('change', filterAndRender);
+        document.getElementById('searchFilter').addEventListener('input', filterAndRender);
 
-        window.openAssignment = async (id) => {
-            const assignment = allAssignments.find(a => a.id === id);
-            if (!assignment) return;
-            currentAssignment = assignment;
-            const sub = submissionsMap.get(id);
-            const dueDate = new Date(assignment.dueDate + 'T23:59:59');
-            const now = new Date();
-            const isLate = !sub && dueDate < now;
-            const canSubmit = !sub && !isLate; // only if not submitted and not overdue
-
-            let detailsHtml = `
-                <p><strong>Subject:</strong> ${assignment.subject}</p>
-                <p><strong>Title:</strong> ${assignment.title}</p>
-                <p><strong>Description:</strong> ${assignment.description}</p>
-                <p><strong>Due Date:</strong> ${assignment.dueDate}</p>
-                <p><strong>Points:</strong> ${assignment.points}</p>
-            `;
-
-            if (sub) {
-                detailsHtml += `
-                    <p><strong>Your Submission:</strong> ${sub.content || 'Uploaded file'}</p>
-                    <p><strong>Grade:</strong> ${sub.grade ? sub.grade + '%' : 'Not graded yet'}</p>
-                    <p><strong>Feedback:</strong> ${sub.feedback || '—'}</p>
-                `;
-            } else if (isLate) {
-                detailsHtml += `<p class="badge overdue">This assignment is overdue. You cannot submit.</p>`;
-            } else {
-                // Show submission form based on assignment type
-                if (assignment.type === 'cbt') {
-                    detailsHtml += `
-                        <p>This is a CBT assignment. You will answer questions online.</p>
-                        <button class="btn btn-primary" onclick="startCBT('${assignment.id}')">Start CBT</button>
-                    `;
-                } else {
-                    detailsHtml += `
-                        <div class="form-group">
-                            <label>Your Answer / Upload</label>
-                            <textarea id="answerText" class="form-control" rows="4" placeholder="Type your answer or upload a file..."></textarea>
-                            <small>You can also upload a file (coming soon).</small>
-                        </div>
-                        <button class="btn btn-primary" onclick="submitUpload('${assignment.id}')">Submit</button>
-                    `;
-                }
-            }
-
-            modalContent.innerHTML = detailsHtml;
-            modal.classList.add('active');
-        };
-
-        window.closeModal = () => {
-            modal.classList.remove('active');
-            currentAssignment = null;
-        };
-
-        // For upload assignments
-        window.submitUpload = async (assignmentId) => {
-            const answer = document.getElementById('answerText').value;
-            if (!answer.trim()) { alert('Please enter your answer.'); return; }
-            try {
-                await db.collection('submissions').add({
-                    assignmentId,
-                    studentId: currentUser.uid,
-                    content: answer,
-                    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    grade: null,
-                    feedback: ''
-                });
-                alert('Submitted successfully!');
-                await loadSubmissions();
-                filterAndRender();
-                closeModal();
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        };
-
-        // For CBT assignments (redirect to a separate CBT taking page)
+        // Start CBT (test/exam)
         window.startCBT = (assignmentId) => {
-            // For now, we'll assume a separate page exists
-            window.location.href = `student-take-cbt.html?assignmentId=${assignmentId}`;
+            window.location.href = `student-take-cbt.html?id=${assignmentId}`;
+        };
+
+        // Open assignment (for upload type)
+        window.openAssignment = (assignmentId) => {
+            window.location.href = `student-assignment-detail.html?id=${assignmentId}`;
+        };
+
+        // View submission (after graded)
+        window.viewSubmission = (assignmentId) => {
+            window.location.href = `student-submission-result.html?id=${assignmentId}`;
         };
     </script>
 </body>
