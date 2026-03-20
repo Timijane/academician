@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Grade Submissions</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* ========== SAME STYLES AS PREVIOUS PAGES (condensed) ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7);
+            --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --success-bg: rgba(34,197,94,0.2);
+            --success-text: #16a34a; --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309; --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #b91c1c; --input-bg: rgba(255,255,255,0.9);
+        }
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --bg-sidebar: rgba(15, 23, 42, 0.8); --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05); --card-bg: rgba(15, 23, 42, 0.6);
+            --hover-bg: rgba(30, 41, 59, 0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171; --input-bg: rgba(30,41,59,0.8);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; transition: background 0.3s; position: relative; overflow-x: hidden; }
+        .orb { position: fixed; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%); filter: blur(80px); z-index: 0; animation: float 25s infinite alternate ease-in-out; }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(60px, 40px) scale(1.2); } }
+        .sidebar { width: 280px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border-right: 1px solid var(--border); padding: 2rem 1rem; display: flex; flex-direction: column; transition: width 0.3s; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; box-shadow: var(--shadow); }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.4rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; border-radius: 1.2rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.4rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); transform: translateX(5px); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 8px 20px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+        .main-content { flex: 1; margin-left: 280px; padding: 2rem; transition: margin-left 0.3s; position: relative; z-index: 5; }
+        .main-content.expanded { margin-left: 90px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title h1 { font-size: 2.4rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.2rem; }
+        .page-title p { color: var(--text-secondary); font-weight: 400; }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: 0.2s; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.4rem 0.4rem 0.4rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); }
+        .profile-pic { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.1rem; box-shadow: 0 5px 15px var(--accent); background-size: cover; background-position: center; }
+        .dropdown-menu { position: absolute; right: 0; top: 60px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
+
+        .card { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 1.8rem; box-shadow: var(--shadow); margin-bottom: 2rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .card-header h2 { font-size: 1.5rem; font-weight: 600; }
+        .card-header h3 { font-size: 1.3rem; font-weight: 600; }
+
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { text-align: left; padding: 1rem 0.8rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); }
+        td { padding: 1rem 0.8rem; border-bottom: 1px solid var(--border); }
+
+        .badge { padding: 0.2rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 500; display: inline-block; }
+        .badge.graded { background: var(--success-bg); color: var(--success-text); }
+        .badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+
+        .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
+
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:2rem; padding:2rem; max-width:700px; width:90%; max-height:90vh; overflow-y:auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:1.5rem; }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.3rem; color: var(--text-secondary); }
+        .form-control { width: 100%; padding: 0.6rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); }
+
+        .answers-preview { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; max-height: 300px; overflow-y: auto; }
+        .answer-item { padding: 0.5rem; border-bottom: 1px solid var(--border); }
+        .answer-question { font-weight: 600; margin-bottom: 0.2rem; }
+        .answer-student, .answer-correct { font-size: 0.9rem; margin-left: 1rem; }
+        .correct { color: var(--success-text); }
+        .incorrect { color: var(--danger-text); }
+
+        .loading-spinner { text-align: center; padding: 2rem; color: var(--text-secondary); }
+        .loading-spinner i { font-size: 2rem; margin-bottom: 1rem; color: var(--accent); }
+
+        @media (max-width: 768px) { .sidebar { width: 90px; } .sidebar .logo-area h2 { display: none; } .sidebar .nav-item span { display: none; } .main-content { margin-left: 90px; } }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-tasks"></i><h2>Teacher Panel</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>New Assignment</span></a>
+        <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>New Test</span></a>
+        <a href="teacher-create-exam.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>New Exam</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1 id="assessmentTitle">Loading...</h1>
+                <p id="assessmentInfo"></p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Submissions</h3>
+                <div><select id="statusFilter"><option value="all">All</option><option value="graded">Graded</option><option value="pending">Pending</option></select></div>
+            </div>
+            <div class="table-responsive">
+                <table id="submissionsTable">
+                    <thead> <tr><th>Student</th><th>Submitted</th><th>Score</th><th>Status</th><th>Action</th></tr> </thead>
+                    <tbody id="submissionsList"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Modal -->
+    <div class="modal-overlay" id="gradeModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="modalStudentName">Grade Submission</h3><i class="fas fa-times" onclick="closeGradeModal()"></i></div>
+            <div id="submissionContent"></div>
+            <form id="gradeForm">
+                <div class="form-group"><label>Score (max <span id="maxScore"></span>)</label><input type="number" id="gradeScore" class="form-control" step="0.5"></div>
+                <div class="form-group"><label>Feedback</label><textarea id="gradeFeedback" class="form-control" rows="3"></textarea></div>
+                <div style="text-align: right;"><button type="submit" class="btn btn-primary">Save Grade</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085",
+            measurementId: "G-ELBMT8WHQ9"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar & theme
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
+
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) {
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
+
+        // Get parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const assessmentId = urlParams.get('assessmentId');
+        const type = urlParams.get('type'); // 'assignment', 'test', or 'exam'
+        if (!assessmentId || !type) {
+            alert('No assessment specified.');
+            window.location.href = 'teacher-assignments.html';
+        }
+
+        let currentUser = null;
+        let userData = null;
+        let assessment = null;
+        let submissions = [];
+        let maxScore = 0;
+
+        // Helper: get collection name
+        function getCollection() {
+            if (type === 'assignment') return 'assignments';
+            if (type === 'test') return 'tests';
+            return 'exams';
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user;
+                userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+
+                await loadAssessment();
+                await loadSubmissions();
+            } catch (error) { console.error(error); alert('Error loading data.'); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+
+        async function loadAssessment() {
+            try {
+                const doc = await db.collection(getCollection()).doc(assessmentId).get();
+                if (!doc.exists) { alert('Assessment not found.'); window.location.href = 'teacher-assignments.html'; return; }
+                assessment = doc.data();
+                maxScore = assessment.totalPoints || 0;
+                document.getElementById('assessmentTitle').textContent = assessment.title;
+                document.getElementById('assessmentInfo').textContent = `${type.toUpperCase()} | ${assessment.subject} | Total Points: ${maxScore}`;
+            } catch (error) {
+                console.error(error);
+                alert('Error loading assessment.');
+            }
+        }
+
+        async function loadSubmissions() {
+            try {
+                const snapshot = await db.collection('submissions')
+                    .where('assessmentId', '==', assessmentId)
+                    .where('type', '==', type)
+                    .orderBy('submittedAt', 'desc')
+                    .get();
+                submissions = [];
+                for (const doc of snapshot.docs) {
+                    const sub = doc.data();
+                    // Fetch student name
+                    let studentName = 'Unknown';
+                    try {
+                        const userDoc = await db.collection('users').doc(sub.studentId).get();
+                        if (userDoc.exists) {
+                            const user = userDoc.data();
+                            studentName = `${user.firstName || ''} ${user.surname || ''}`.trim() || 'Student';
+                        }
+                    } catch (e) { console.warn(e); }
+                    submissions.push({
+                        id: doc.id,
+                        ...sub,
+                        studentName,
+                        submittedAt: sub.submittedAt ? sub.submittedAt.toDate() : null
+                    });
+                }
+                renderSubmissions();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('submissionsList').innerHTML = '<tr><td colspan="5">Error loading submissions.</td></tr>';
+            }
+        }
+
+        function renderSubmissions() {
+            const filter = document.getElementById('statusFilter').value;
+            let filtered = submissions;
+            if (filter === 'graded') filtered = submissions.filter(s => s.score !== undefined);
+            if (filter === 'pending') filtered = submissions.filter(s => s.score === undefined);
+
+            const tbody = document.getElementById('submissionsList');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No submissions found.</td></tr>';
+                return;
+            }
+            let html = '';
+            filtered.forEach(sub => {
+                const date = sub.submittedAt ? sub.submittedAt.toLocaleString() : 'Unknown';
+                const scoreDisplay = sub.score !== undefined ? `${sub.score}/${maxScore}` : '—';
+                const statusBadge = sub.score !== undefined ? '<span class="badge graded">Graded</span>' : '<span class="badge pending">Pending</span>';
+                html += `<tr>
+                    <td>${sub.studentName}</td>
+                    <td>${date}</td>
+                    <td>${scoreDisplay}</td>
+                    <td>${statusBadge}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="openGradeModal('${sub.id}')">Grade</button></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        document.getElementById('statusFilter').addEventListener('change', renderSubmissions);
+
+        // Grade modal
+        const gradeModal = document.getElementById('gradeModal');
+        const modalStudentName = document.getElementById('modalStudentName');
+        const submissionContent = document.getElementById('submissionContent');
+        const gradeScore = document.getElementById('gradeScore');
+        const gradeFeedback = document.getElementById('gradeFeedback');
+        const maxScoreSpan = document.getElementById('maxScore');
+
+        let currentSubmission = null;
+
+        window.openGradeModal = async (submissionId) => {
+            const sub = submissions.find(s => s.id === submissionId);
+            if (!sub) return;
+            currentSubmission = sub;
+
+            modalStudentName.textContent = `Grade: ${sub.studentName}`;
+            maxScoreSpan.textContent = maxScore;
+            gradeScore.value = sub.score !== undefined ? sub.score : '';
+            gradeFeedback.value = sub.feedback || '';
+
+            // Show answers/content
+            let contentHtml = '<h4>Student Submission</h4><div class="answers-preview">';
+            if (type === 'assignment') {
+                // For assignments: show essay answer (if assignmentType = essay) or MCQ answers
+                if (assessment.assignmentType === 'essay') {
+                    contentHtml += `<p><strong>Answer:</strong></p><div style="background: var(--card-bg); padding:1rem; border-radius:0.5rem;">${sub.answer || 'No answer provided.'}</div>`;
+                } else {
+                    // MCQ assignment – show answers
+                    const questions = assessment.questions || [];
+                    const answers = sub.answers || [];
+                    const answerMap = new Map();
+                    answers.forEach(ans => answerMap.set(ans.questionIndex, ans));
+                    questions.forEach((q, idx) => {
+                        const studentAns = answerMap.get(idx);
+                        const selectedLetter = studentAns ? studentAns.selected : '—';
+                        const correctLetter = q.correct;
+                        const isCorrect = selectedLetter === correctLetter;
+                        contentHtml += `
+                            <div class="answer-item">
+                                <div class="answer-question">Q${idx+1}: ${q.question}</div>
+                                <div class="answer-student ${isCorrect ? 'correct' : 'incorrect'}">
+                                    Student: ${selectedLetter}${!isCorrect && selectedLetter !== '—' ? ` (Correct: ${correctLetter})` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            } else { // test or exam
+                const questions = assessment.questions || [];
+                const answers = sub.answers || [];
+                const answerMap = new Map();
+                answers.forEach(ans => answerMap.set(ans.questionIndex, ans));
+                questions.forEach((q, idx) => {
+                    const studentAns = answerMap.get(idx);
+                    const selectedLetter = studentAns ? studentAns.selected : '—';
+                    const correctLetter = q.correct;
+                    const isCorrect = selectedLetter === correctLetter;
+                    contentHtml += `
+                        <div class="answer-item">
+                            <div class="answer-question">Q${idx+1}: ${q.question}</div>
+                            <div class="answer-student ${isCorrect ? 'correct' : 'incorrect'}">
+                                Student: ${selectedLetter}${!isCorrect && selectedLetter !== '—' ? ` (Correct: ${correctLetter})` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            contentHtml += '</div>';
+            submissionContent.innerHTML = contentHtml;
+
+            gradeModal.classList.add('active');
+        };
+
+        window.closeGradeModal = () => {
+            gradeModal.classList.remove('active');
+            currentSubmission = null;
+        };
+
+        document.getElementById('gradeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentSubmission) return;
+
+            const score = parseFloat(gradeScore.value);
+            if (isNaN(score) || score < 0 || score > maxScore) {
+                alert(`Please enter a valid score between 0 and ${maxScore}.`);
+                return;
+            }
+
+            const feedback = gradeFeedback.value.trim();
+
+            try {
+                await db.collection('submissions').doc(currentSubmission.id).update({
+                    score,
+                    feedback,
+                    gradedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await logAudit('grade_submission', { assessmentId, type, studentId: currentSubmission.studentId, score });
+                alert('Grade saved successfully!');
+                closeGradeModal();
+                await loadSubmissions(); // refresh list
+            } catch (error) {
+                console.error('Error saving grade:', error);
+                alert('Error saving grade: ' + error.message);
+            }
+        });
+
+        async function logAudit(action, details) {
+            if (!currentUser) return;
+            try {
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: userData.firstName + ' ' + userData.surname,
+                    userEmail: userData.email,
+                    role: 'teacher',
+                    action,
+                    details: JSON.stringify(details),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch(e) { console.warn('Audit log failed', e); }
+        }
+    </script>
+</body>
+</html>
