@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Assignment</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Same base styles as student-assignments.html plus Quill styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root[data-theme="light"] { --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --text-primary: #0b1e33; --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --success-bg: rgba(34,197,94,0.2); --success-text: #16a34a; --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309; --danger-bg: rgba(239,68,68,0.2); --danger-text: #b91c1c; --input-bg: rgba(255,255,255,0.9); --toolbar-bg: #f8fafc; }
+        :root[data-theme="dark"] { --bg-primary: #0a0f1e; --bg-sidebar: rgba(15, 23, 42, 0.8); --text-primary: #f0f4fa; --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05); --card-bg: rgba(15, 23, 42, 0.6); --hover-bg: rgba(30, 41, 59, 0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171; --input-bg: rgba(30,41,59,0.8); --toolbar-bg: #1e293b; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; transition: background 0.3s; position: relative; overflow-x: hidden; }
+        .orb { position: fixed; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%); filter: blur(80px); z-index: 0; animation: float 25s infinite alternate ease-in-out; }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(60px, 40px) scale(1.2); } }
+        .sidebar { width: 280px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border-right: 1px solid var(--border); padding: 2rem 1rem; display: flex; flex-direction: column; transition: width 0.3s; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; box-shadow: var(--shadow); }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.4rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; border-radius: 1.2rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.4rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); transform: translateX(5px); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 8px 20px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+        .main-content { flex: 1; margin-left: 280px; padding: 2rem; transition: margin-left 0.3s; position: relative; z-index: 5; }
+        .main-content.expanded { margin-left: 90px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title h1 { font-size: 2.4rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.2rem; }
+        .page-title p { color: var(--text-secondary); font-weight: 400; }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: 0.2s; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.4rem 0.4rem 0.4rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); }
+        .profile-pic { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.1rem; box-shadow: 0 5px 15px var(--accent); background-size: cover; background-position: center; }
+        .dropdown-menu { position: absolute; right: 0; top: 60px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
+
+        .card { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 1.8rem; box-shadow: var(--shadow); margin-bottom: 2rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .card-header h2 { font-size: 1.5rem; font-weight: 600; }
+        .assignment-info { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1.5rem; }
+        .ql-container { min-height: 300px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; }
+        .ql-toolbar { background: var(--toolbar-bg); border-top-left-radius: 1rem; border-top-right-radius: 1rem; }
+        .btn { padding: 0.6rem 1.5rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding:2rem; border-radius:2rem; text-align:center; }
+        .loading-content i { font-size:3rem; color:var(--accent); margin-bottom:1rem; }
+        @media (max-width: 768px) { .sidebar { width: 90px; } .sidebar .logo-area h2 { display: none; } .sidebar .nav-item span { display: none; } .main-content { margin-left: 90px; } }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">...</div> <!-- same sidebar as student-assignments.html -->
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">...</div>
+
+        <div class="card">
+            <div class="card-header"><h2 id="assignmentTitle">Loading...</h2><span id="statusBadge"></span></div>
+            <div id="assignmentInfo" class="assignment-info"></div>
+
+            <!-- Essay Section -->
+            <div id="essaySection">
+                <h3>Your Answer</h3>
+                <div id="editor" style="height: 400px;"></div>
+                <div style="text-align: right; margin-top: 1rem;"><button class="btn btn-primary" id="submitBtn">Submit Assignment</button></div>
+            </div>
+
+            <!-- MCQ Section (hidden by default) -->
+            <div id="mcqSection" style="display: none;">
+                <div id="questionsContainer"></div>
+                <div style="text-align: right; margin-top: 1rem;"><button class="btn btn-primary" id="submitMcqBtn">Submit Test</button></div>
+            </div>
+
+            <div id="previousSubmission" style="display:none; margin-top:1rem;"><hr><h3>Your Submission</h3><div id="prevContent"></div><p><strong>Feedback:</strong> <span id="prevFeedback"></span></p><p><strong>Score:</strong> <span id="prevScore"></span></p></div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div></div>
+
+    <script>
+        const firebaseConfig = { ... }; // same as before
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Theme, sidebar same as previous
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); const icon = toggleBtn.querySelector('i'); icon.classList.toggle('fa-chevron-left'); icon.classList.toggle('fa-chevron-right'); });
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i:first-child');
+        const themeText = themeToggle.querySelector('span');
+        function updateThemeUI(theme) { themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun'; themeText.textContent = theme === 'dark' ? 'Dark' : 'Light'; }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => { const current = html.getAttribute('data-theme'); const next = current === 'dark' ? 'light' : 'dark'; html.setAttribute('data-theme', next); localStorage.setItem('edutopscholars-theme', next); updateThemeUI(next); });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const assignmentId = urlParams.get('id');
+        if (!assignmentId) { alert('No assignment specified'); window.location.href = 'student-assignments.html'; }
+
+        let currentUser = null, assignment = null, existingSubmission = null, quill = null;
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'student-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'student') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user;
+                document.getElementById('profilePic').textContent = (userDoc.data().firstName?.[0] || 'S') + (userDoc.data().surname?.[0] || 'T');
+                document.getElementById('profileName').textContent = userDoc.data().firstName || 'Student';
+                await loadAssignment();
+                await loadSubmission();
+            } catch(e) { console.error(e); alert('Error loading data.'); }
+        });
+
+        async function loadAssignment() {
+            try {
+                const doc = await db.collection('assignments').doc(assignmentId).get();
+                if (!doc.exists) { alert('Assignment not found'); window.location.href = 'student-assignments.html'; return; }
+                assignment = doc.data();
+                document.getElementById('assignmentTitle').textContent = assignment.title;
+                document.getElementById('assignmentInfo').innerHTML = `
+                    <p><strong>Subject:</strong> ${assignment.subject}</p>
+                    <p><strong>Week:</strong> ${assignment.week}</p>
+                    <p><strong>Topic:</strong> ${assignment.topic || '—'}</p>
+                    <p><strong>Description:</strong> ${assignment.description}</p>
+                    <p><strong>Due Date:</strong> ${assignment.dueDate}</p>
+                    <p><strong>Points:</strong> ${assignment.totalPoints}</p>
+                `;
+                if (assignment.assignmentType === 'essay') {
+                    document.getElementById('assignmentInfo').innerHTML += `<p><strong>Essay Prompt:</strong></p><div style="background: var(--card-bg); padding:1rem; border-radius:1rem;">${assignment.essayPrompt}</div>`;
+                    document.getElementById('essaySection').style.display = 'block';
+                    document.getElementById('mcqSection').style.display = 'none';
+                    quill = new Quill('#editor', { theme: 'snow', modules: { toolbar: [['bold','italic','underline','strike'],[{ 'list': 'ordered'},{ 'list': 'bullet' }],['link','blockquote'],['clean']] }, placeholder: 'Write your answer here...' });
+                } else { // MCQ
+                    document.getElementById('assignmentInfo').innerHTML += `<p><strong>Number of Questions:</strong> ${assignment.questions.length}</p>`;
+                    document.getElementById('essaySection').style.display = 'none';
+                    document.getElementById('mcqSection').style.display = 'block';
+                    renderMcqQuestions(assignment.questions);
+                }
+            } catch(e) { console.error(e); alert('Error loading assignment'); }
+        }
+
+        function renderMcqQuestions(questions) {
+            const container = document.getElementById('questionsContainer');
+            let html = '';
+            questions.forEach((q, idx) => {
+                html += `<div class="question-item" style="background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;"><div class="question-text">${idx+1}. ${q.question}</div><div class="options">`;
+                q.options.forEach((opt, oi) => {
+                    const letter = String.fromCharCode(65+oi);
+                    html += `<label style="display: block; margin: 0.5rem 0;"><input type="radio" name="q_${idx}" value="${letter}"> ${letter}. ${opt}</label>`;
+                });
+                html += `</div></div>`;
+            });
+            container.innerHTML = html;
+            document.getElementById('submitMcqBtn').onclick = submitMcq;
+        }
+
+        async function loadSubmission() {
+            const snap = await db.collection('submissions').where('assessmentId','==',assignmentId).where('studentId','==',currentUser.uid).get();
+            if (snap.empty) return;
+            existingSubmission = snap.docs[0].data();
+            document.getElementById('essaySection').style.display = 'none';
+            document.getElementById('mcqSection').style.display = 'none';
+            document.getElementById('previousSubmission').style.display = 'block';
+            if (assignment.assignmentType === 'essay') document.getElementById('prevContent').innerHTML = existingSubmission.answer;
+            else document.getElementById('prevContent').innerHTML = 'MCQ answers submitted';
+            document.getElementById('prevFeedback').textContent = existingSubmission.feedback || 'Not graded yet';
+            document.getElementById('prevScore').textContent = existingSubmission.score ? `${existingSubmission.score}/${assignment.totalPoints}` : 'Not graded yet';
+        }
+
+        async function submitEssay() {
+            const content = quill.root.innerHTML;
+            if (!content || content === '<p><br></p>') { alert('Please write your answer.'); return; }
+            if (!confirm('Submit assignment?')) return;
+            showLoading();
+            try {
+                await db.collection('submissions').add({
+                    assessmentId: assignmentId, studentId: currentUser.uid, studentName: document.getElementById('profileName').textContent,
+                    type: 'assignment', answer: content, submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('Submitted!');
+                window.location.reload();
+            } catch(e) { alert('Error: '+e.message); } finally { hideLoading(); }
+        }
+
+        async function submitMcq() {
+            const questions = assignment.questions;
+            const answers = [];
+            for (let i=0; i<questions.length; i++) {
+                const selected = document.querySelector(`input[name="q_${i}"]:checked`);
+                answers.push({ questionIndex: i, selected: selected ? selected.value : null });
+            }
+            if (answers.some(a => a.selected === null)) { if (!confirm('Some questions unanswered. Submit anyway?')) return; }
+            showLoading();
+            try {
+                await db.collection('submissions').add({
+                    assessmentId: assignmentId, studentId: currentUser.uid, studentName: document.getElementById('profileName').textContent,
+                    type: 'assignment', answers, submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('Submitted!');
+                window.location.reload();
+            } catch(e) { alert('Error: '+e.message); } finally { hideLoading(); }
+        }
+
+        document.getElementById('submitBtn').addEventListener('click', submitEssay);
+
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+    </script>
+</body>
+</html>
