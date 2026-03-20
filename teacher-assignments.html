@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop · Assignments</title>
+    <title>EduTop · Create Assignment</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter + Space Grotesk -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Quill Rich Text Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- Firebase Remote Config -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
-    <!-- Groq SDK (import map) -->
+    <!-- Groq SDK -->
     <script type="importmap">
         {
             "imports": {
@@ -23,13 +25,10 @@
         }
     </script>
     <style>
-        /* ========== ROOT VARIABLES ========== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa;
             --bg-sidebar: rgba(255,255,255,0.75);
-            --glass-border: rgba(255,255,255,0.3);
             --text-primary: #0b1e33;
             --text-secondary: #2c3e50;
             --accent: #1e3c72;
@@ -47,11 +46,9 @@
             --input-bg: rgba(255,255,255,0.9);
             --toolbar-bg: #f8fafc;
         }
-
         :root[data-theme="dark"] {
             --bg-primary: #0a0f1e;
             --bg-sidebar: rgba(15, 23, 42, 0.8);
-            --glass-border: rgba(255,255,255,0.08);
             --text-primary: #f0f4fa;
             --text-secondary: #a0b3d9;
             --accent: #3b82f6;
@@ -69,7 +66,6 @@
             --input-bg: rgba(30,41,59,0.8);
             --toolbar-bg: #1e293b;
         }
-
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg-primary);
@@ -80,7 +76,6 @@
             position: relative;
             overflow-x: hidden;
         }
-
         .orb {
             position: fixed;
             width: 300px;
@@ -93,12 +88,10 @@
         }
         .orb-1 { top: -100px; left: -100px; }
         .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
-
         @keyframes float {
             0% { transform: translate(0,0) scale(1); }
             100% { transform: translate(60px, 40px) scale(1.2); }
         }
-
         .sidebar {
             width: 280px;
             background: var(--bg-sidebar);
@@ -127,7 +120,6 @@
         .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
         .sidebar.collapsed .nav-item span { display: none; }
         .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
-
         .main-content {
             flex: 1;
             margin-left: 280px;
@@ -137,7 +129,6 @@
             z-index: 5;
         }
         .main-content.expanded { margin-left: 90px; }
-
         .top-bar {
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;
         }
@@ -154,7 +145,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
 
-        /* Tabs */
         .subject-tabs, .week-tabs {
             display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap;
         }
@@ -179,13 +169,13 @@
         .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
         textarea.form-control { min-height: 100px; resize: vertical; }
 
-        .assignment-type {
+        .assignment-type-select {
             display: flex; gap: 2rem; margin-bottom: 1.5rem;
         }
-        .assignment-type label {
+        .assignment-type-select label {
             display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
         }
-        .assignment-type input[type="radio"] {
+        .assignment-type-select input[type="radio"] {
             accent-color: var(--accent); width: 1.2rem; height: 1.2rem;
         }
 
@@ -245,8 +235,6 @@
             padding: 0.2rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 500; display: inline-block;
         }
         .badge.assignment { background: var(--warning-bg); color: var(--warning-text); }
-        .badge.test { background: var(--accent); color: white; }
-        .badge.exam { background: var(--success-text); color: white; }
         .badge.draft { background: var(--hover-bg); color: var(--text-secondary); }
         .badge.published { background: var(--success-bg); color: var(--success-text); }
 
@@ -294,7 +282,9 @@
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
         <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
         <a href="teacher-assignments.html" class="nav-item active"><i class="fas fa-tasks"></i><span>Assignments</span></a>
-        <a href="teacher-cbt.html" class="nav-item"><i class="fas fa-laptop"></i><span>Test & Exam</span></a>
+        <a href="teacher-create-assignment.html" class="nav-item active"><i class="fas fa-plus-circle"></i><span>New Assignment</span></a>
+        <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>New Test</span></a>
+        <a href="teacher-create-exam.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>New Exam</span></a>
         <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
         <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
         <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
@@ -307,8 +297,8 @@
     <div class="main-content" id="mainContent">
         <div class="top-bar">
             <div class="page-title">
-                <h1>Assignments & Exams</h1>
-                <p>Create, manage, and publish tests</p>
+                <h1>Create Assignment</h1>
+                <p>Essay or Multiple Choice</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
@@ -332,7 +322,7 @@
         <!-- Assignment Creation Card -->
         <div class="card">
             <div class="card-header">
-                <h3>Create New</h3>
+                <h3>New Assignment</h3>
                 <div>
                     <button class="btn btn-outline" id="useAIBtn"><i class="fas fa-robot"></i> AI Assistant</button>
                 </div>
@@ -344,17 +334,16 @@
                     <input type="text" id="subject" class="form-control" readonly>
                 </div>
                 <div class="form-group">
-                    <label>Week (only for assignment/test)</label>
+                    <label>Week</label>
                     <input type="number" id="week" class="form-control" readonly>
                 </div>
                 <div class="form-group">
                     <label>Topic (from syllabus)</label>
                     <input type="text" id="topic" class="form-control" placeholder="Auto‑filled" readonly>
                 </div>
-                <div class="assignment-type">
-                    <label><input type="radio" name="assignmentType" value="assignment" checked> Assignment</label>
-                    <label><input type="radio" name="assignmentType" value="test"> Test</label>
-                    <label><input type="radio" name="assignmentType" value="exam"> Exam</label>
+                <div class="assignment-type-select">
+                    <label><input type="radio" name="assignmentType" value="essay" checked> Essay (Student writes answer)</label>
+                    <label><input type="radio" name="assignmentType" value="mcq"> Multiple Choice (CBT style)</label>
                 </div>
                 <div class="form-group">
                     <label>Title</label>
@@ -368,23 +357,25 @@
                     <label>Due Date</label>
                     <input type="date" id="dueDate" class="form-control" required>
                 </div>
-                <div class="form-group" id="startDateGroup">
-                    <label>Start Date (for test/exam, optional)</label>
-                    <input type="date" id="startDate" class="form-control">
-                </div>
-                <div class="form-group" id="timeLimitGroup">
-                    <label>Time Limit (minutes, optional)</label>
-                    <input type="number" id="timeLimit" class="form-control" min="0" value="0">
-                </div>
                 <div class="form-group">
                     <label>Total Points</label>
                     <input type="number" id="totalPoints" class="form-control" value="100" required>
                 </div>
 
-                <!-- Questions Section -->
-                <h4>Questions</h4>
-                <div id="questionsList" class="question-list"></div>
-                <button type="button" class="btn btn-outline" onclick="addQuestion()"><i class="fas fa-plus"></i> Add Question</button>
+                <!-- MCQ Questions Section -->
+                <div id="mcqSection">
+                    <h4>Questions</h4>
+                    <div id="questionsList" class="question-list"></div>
+                    <button type="button" class="btn btn-outline" onclick="addQuestion()"><i class="fas fa-plus"></i> Add Question</button>
+                </div>
+
+                <!-- Essay Section -->
+                <div id="essaySection" style="display: none;">
+                    <div class="form-group">
+                        <label>Essay Prompt</label>
+                        <div id="essayPromptEditor" style="height: 300px;"></div>
+                    </div>
+                </div>
 
                 <div class="actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-primary" id="saveBtn">Save as Draft</button>
@@ -397,15 +388,14 @@
         <!-- Existing Assignments List -->
         <div class="card">
             <div class="card-header">
-                <h3>Existing Items</h3>
+                <h3>Existing Assignments</h3>
             </div>
             <div class="table-responsive">
-                <table>
+                <table id="assignmentsTable">
                     <thead>
-                        <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Questions</th><th>Status</th><th>Actions</th></tr>
-                    </thead>
+                        <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Questions</th><th>Status</th><th>Actions</th>  </thead>
                     <tbody id="assignmentsList">
-                        <tr><td colspan="8">Loading...</td></tr>
+                         <td colspan="8">Loading... </td>
                     </tbody>
                 </table>
             </div>
@@ -420,13 +410,11 @@
                 <i class="fas fa-times" style="cursor:pointer;" onclick="closeAIModal()"></i>
             </div>
             <div class="ai-chat" id="aiChat">
-                <div class="message assistant">I will generate questions based on your subject and weeks. Choose options below.</div>
+                <div class="message assistant">I will generate multiple‑choice questions for your assignment.</div>
             </div>
             <div style="margin-bottom:1rem;">
                 <label>Number of Questions</label>
                 <input type="number" id="aiQuestionCount" class="form-control" value="10" min="1" max="50">
-                <label>Question Types (comma separated, e.g., multiple-choice,true-false)</label>
-                <input type="text" id="aiQuestionTypes" class="form-control" value="multiple-choice">
             </div>
             <div style="display: flex; gap: 0.5rem; margin-bottom:1rem;">
                 <button class="btn btn-primary" onclick="generateWithAI()">Generate</button>
@@ -498,11 +486,13 @@
         let subjects = [];
         let currentSubject = null;
         let currentWeek = null;
-        let syllabusMap = {}; // subject -> weeks array with topics
+        let syllabusMap = {};
         let assignments = [];
         let currentDocId = null;
-        let questions = []; // array of question objects
+        let questions = [];
+        let essayPrompt = '';
         let groq = null;
+        let quill = null;
 
         // ========== AUTH ==========
         auth.onAuthStateChanged(async (user) => {
@@ -517,26 +507,13 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
 
-                // ---- Fetch Groq API key from Remote Config ----
+                // Initialize Groq
                 try {
-                    console.log('Fetching Remote Config...');
                     await remoteConfig.fetchAndActivate();
                     const groqApiKey = remoteConfig.getString('groq_api_key');
-                    console.log('Groq API key retrieved, length:', groqApiKey ? groqApiKey.length : 0);
-
-                    if (!groqApiKey) {
-                        throw new Error('Groq API key is empty in Remote Config');
-                    }
-
-                    groq = new Groq({ 
-                        apiKey: groqApiKey,
-                        dangerouslyAllowBrowser: true
-                    });
-                    console.log('Groq client initialized successfully');
-                } catch (e) {
-                    console.error('Failed to initialize Groq client:', e);
-                    alert('AI features unavailable: ' + e.message);
-                }
+                    if (!groqApiKey) throw new Error('Groq API key is empty');
+                    groq = new Groq({ apiKey: groqApiKey, dangerouslyAllowBrowser: true });
+                } catch (e) { console.error('Groq init failed:', e); }
 
                 subjects = userData.subjects || [];
                 await loadSyllabiForSubjects();
@@ -571,9 +548,7 @@
                 tab.onclick = (e) => switchSubject(sub, e.target);
                 container.appendChild(tab);
             });
-            if (subjects.length > 0) {
-                switchSubject(subjects[0], container.children[0]);
-            }
+            if (subjects.length > 0) switchSubject(subjects[0], container.children[0]);
         }
 
         function switchSubject(subject, target) {
@@ -614,22 +589,41 @@
             document.getElementById('topic').value = topic || '';
         }
 
-        // Toggle UI based on type
-        const typeRadios = document.querySelectorAll('input[name="assignmentType"]');
-        const startDateGroup = document.getElementById('startDateGroup');
-        const timeLimitGroup = document.getElementById('timeLimitGroup');
-        function updateTypeUI() {
-            const type = document.querySelector('input[name="assignmentType"]:checked').value;
-            if (type === 'assignment') {
-                startDateGroup.style.display = 'none';
-                timeLimitGroup.style.display = 'none';
-            } else {
-                startDateGroup.style.display = 'block';
-                timeLimitGroup.style.display = 'block';
+        // Toggle UI based on assignment type
+        const essayRadio = document.querySelector('input[value="essay"]');
+        const mcqRadio = document.querySelector('input[value="mcq"]');
+        const mcqSection = document.getElementById('mcqSection');
+        const essaySection = document.getElementById('essaySection');
+
+        essayRadio.addEventListener('change', () => {
+            if (essayRadio.checked) {
+                mcqSection.style.display = 'none';
+                essaySection.style.display = 'block';
             }
-        }
-        typeRadios.forEach(r => r.addEventListener('change', updateTypeUI));
-        updateTypeUI();
+        });
+        mcqRadio.addEventListener('change', () => {
+            if (mcqRadio.checked) {
+                mcqSection.style.display = 'block';
+                essaySection.style.display = 'none';
+            }
+        });
+        essaySection.style.display = 'none';
+        mcqSection.style.display = 'block';
+
+        // Initialize Quill for essay prompt
+        quill = new Quill('#essayPromptEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link'],
+                    ['clean']
+                ]
+            },
+            placeholder: 'Enter essay prompt / question...'
+        });
 
         // ========== QUESTION MANAGEMENT ==========
         function renderQuestions() {
@@ -671,7 +665,6 @@
         window.addQuestion = () => {
             questions.push({
                 question: '',
-                type: 'multiple-choice',
                 options: ['', '', '', ''],
                 correct: '',
                 points: 1
@@ -697,7 +690,7 @@
             renderQuestions();
         };
 
-        // ========== AI GENERATION (using Groq) ==========
+        // ========== AI GENERATION ==========
         const aiModal = document.getElementById('aiModal');
         const aiChat = document.getElementById('aiChat');
         let lastGeneratedQuestions = [];
@@ -708,27 +701,14 @@
 
         window.generateWithAI = async () => {
             if (!groq) {
-                alert('AI service not available. Please check your API key.');
+                alert('AI service not available.');
                 return;
             }
             const count = document.getElementById('aiQuestionCount').value;
-            const types = document.getElementById('aiQuestionTypes').value.split(',').map(s => s.trim());
-            const type = document.querySelector('input[name="assignmentType"]:checked').value;
-            let weeksRange = '';
-            if (type === 'exam') {
-                const weeksData = syllabusMap[currentSubject] || [];
-                weeksRange = weeksData.map(w => `Week ${w.week}: ${w.topic}`).join(', ');
-            } else if (type === 'test') {
-                const weeksData = syllabusMap[currentSubject] || [];
-                const upTo = weeksData.filter(w => w.week <= currentWeek).map(w => `Week ${w.week}: ${w.topic}`).join(', ');
-                weeksRange = upTo;
-            } else {
-                weeksRange = `Week ${currentWeek}: ${document.getElementById('topic').value}`;
-            }
-
-            const prompt = `Generate ${count} multiple-choice questions (${types.join(', ')}) covering the following topics: ${weeksRange}. For each question, provide:
+            const weeksRange = `Week ${currentWeek}: ${document.getElementById('topic').value}`;
+            const prompt = `Generate ${count} multiple-choice questions covering the following topic: ${weeksRange}. For each question, provide:
 - question: the question text
-- options: an array of 4 strings (for multiple-choice) or 2 for true-false
+- options: an array of 4 strings
 - correct: the correct option letter (A, B, C, or D)
 - points: default 1
 Return the result as a valid JSON array.`;
@@ -738,7 +718,6 @@ Return the result as a valid JSON array.`;
             thinking.className = 'message assistant';
             thinking.innerHTML = '<i class="fas fa-robot fa-spin"></i> Generating...';
             aiChat.appendChild(thinking);
-
             showLoading();
             try {
                 const completion = await groq.chat.completions.create({
@@ -747,12 +726,11 @@ Return the result as a valid JSON array.`;
                     temperature: 0.7,
                 });
                 const text = completion.choices[0].message.content;
-                // Extract JSON array
                 const jsonMatch = text.match(/\[[\s\S]*\]/);
-                if (!jsonMatch) throw new Error('No JSON found in response');
+                if (!jsonMatch) throw new Error('No JSON found');
                 lastGeneratedQuestions = JSON.parse(jsonMatch[0]);
                 aiChat.removeChild(thinking);
-                aiChat.innerHTML += `<div class="message assistant">Generated ${lastGeneratedQuestions.length} questions. Click "Insert into Form" to add them.</div>`;
+                aiChat.innerHTML += `<div class="message assistant">Generated ${lastGeneratedQuestions.length} questions. Click "Insert into Form".</div>`;
             } catch (e) {
                 aiChat.removeChild(thinking);
                 aiChat.innerHTML += `<div class="message assistant">Error: ${e.message}</div>`;
@@ -771,24 +749,7 @@ Return the result as a valid JSON array.`;
             }
         };
 
-        // ========== AUDIT LOG ==========
-        async function logAudit(action, details) {
-            if (!currentUser || !userData) return;
-            try {
-                await db.collection('auditLogs').add({
-                    userId: currentUser.uid,
-                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
-                    userEmail: userData.email || currentUser.email,
-                    role: 'teacher',
-                    action,
-                    details: JSON.stringify(details),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    userAgent: navigator.userAgent
-                });
-            } catch (e) { console.warn('Audit log failed', e); }
-        }
-
-        // ========== SAVE ASSIGNMENT ==========
+        // ========== SAVE ==========
         document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await saveAssignment('draft');
@@ -802,24 +763,24 @@ Return the result as a valid JSON array.`;
             const title = document.getElementById('title').value;
             const description = document.getElementById('description').value;
             const dueDate = document.getElementById('dueDate').value;
-            const startDate = document.getElementById('startDate').value || null;
-            const timeLimit = parseInt(document.getElementById('timeLimit').value) || 0;
             const totalPoints = parseInt(document.getElementById('totalPoints').value) || 100;
             const subject = currentSubject;
-            const week = type === 'exam' ? null : currentWeek;
+            const week = currentWeek;
             const topic = document.getElementById('topic').value;
 
-            if (!subject) {
-                alert('Please select a subject.');
-                return;
-            }
-            if (type !== 'exam' && !week) {
-                alert('Please select a week.');
-                return;
-            }
-            if (questions.length === 0) {
+            if (!subject) { alert('Please select a subject.'); return; }
+            if (!week) { alert('Please select a week.'); return; }
+            if (type === 'mcq' && questions.length === 0) {
                 alert('Please add at least one question.');
                 return;
+            }
+            if (type === 'essay') {
+                const promptHtml = quill.root.innerHTML;
+                if (!promptHtml || promptHtml === '<p><br></p>') {
+                    alert('Please enter an essay prompt.');
+                    return;
+                }
+                essayPrompt = promptHtml;
             }
 
             const data = {
@@ -828,26 +789,29 @@ Return the result as a valid JSON array.`;
                 subject,
                 week,
                 topic,
-                type,
+                type: 'assignment', // always assignment, but store assignmentType inside
+                assignmentType: type,
                 title,
                 description,
                 dueDate,
-                startDate,
-                timeLimit,
                 totalPoints,
-                questions: questions,
                 status,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+
+            if (type === 'mcq') {
+                data.questions = questions;
+            } else {
+                data.essayPrompt = essayPrompt;
+            }
 
             showLoading();
             try {
                 if (currentDocId) {
                     await db.collection('assignments').doc(currentDocId).update(data);
-                    await logAudit('update_assignment', { id: currentDocId, type, title });
                 } else {
                     const ref = await db.collection('assignments').add(data);
-                    await logAudit('create_assignment', { id: ref.id, type, title });
+                    currentDocId = ref.id;
                 }
                 alert(`Assignment ${status === 'published' ? 'published' : 'saved as draft'}.`);
                 resetForm();
@@ -860,11 +824,10 @@ Return the result as a valid JSON array.`;
         }
 
         document.getElementById('deleteBtn').addEventListener('click', async () => {
-            if (!currentDocId || !confirm('Delete this assignment? All questions will be lost.')) return;
+            if (!currentDocId || !confirm('Delete this assignment?')) return;
             showLoading();
             try {
                 await db.collection('assignments').doc(currentDocId).delete();
-                await logAudit('delete_assignment', { id: currentDocId });
                 alert('Deleted.');
                 resetForm();
                 loadAssignments();
@@ -880,11 +843,10 @@ Return the result as a valid JSON array.`;
             document.getElementById('title').value = '';
             document.getElementById('description').value = '';
             document.getElementById('dueDate').value = '';
-            document.getElementById('startDate').value = '';
-            document.getElementById('timeLimit').value = '0';
             document.getElementById('totalPoints').value = '100';
             questions = [];
             renderQuestions();
+            quill.root.innerHTML = '';
             currentDocId = null;
             document.getElementById('deleteBtn').style.display = 'none';
         }
@@ -892,40 +854,42 @@ Return the result as a valid JSON array.`;
         // ========== LOAD ASSIGNMENTS ==========
         async function loadAssignments() {
             const tbody = document.getElementById('assignmentsList');
-            tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+            tbody.innerHTML = ' <td colspan="8">Loading... </td>';
             try {
                 const snapshot = await db.collection('assignments')
                     .where('teacherId', '==', currentUser.uid)
+                    .where('type', '==', 'assignment')
                     .orderBy('createdAt', 'desc')
                     .get();
                 if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="8">No assignments yet.</td></tr>';
+                    tbody.innerHTML = ' <td colspan="8">No assignments yet. </td>';
                     return;
                 }
                 let html = '';
                 snapshot.forEach(doc => {
                     const a = doc.data();
-                    const typeBadge = `<span class="badge ${a.type}">${a.type}</span>`;
+                    const assignmentBadge = a.assignmentType === 'mcq' ? 'MCQ' : 'Essay';
                     const statusBadge = a.status === 'published' ? '<span class="badge published">Published</span>' : '<span class="badge draft">Draft</span>';
+                    let questionsCount = a.assignmentType === 'mcq' ? (a.questions?.length || 0) : 'essay';
                     html += `
-                        <tr>
-                            <td>${typeBadge}</td>
+                         <tr>
+                            <td><span class="badge assignment">Assignment</span></td>
                             <td>${a.subject}</td>
-                            <td>${a.week || '—'}</td>
+                            <td>Week ${a.week}</td>
                             <td>${a.title}</td>
                             <td>${a.dueDate}</td>
-                            <td>${a.questions?.length || 0}</td>
+                            <td>${questionsCount}</td>
                             <td>${statusBadge}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline" onclick="editAssignment('${doc.id}')">Edit</button>
                                 <button class="btn btn-sm btn-outline" onclick="viewSubmissions('${doc.id}')">Submissions</button>
                             </td>
-                        </tr>
+                         </tr>
                     `;
                 });
                 tbody.innerHTML = html;
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="8">Error loading.</td></tr>';
+                tbody.innerHTML = ' <td colspan="8">Error loading. </td>';
                 console.error(e);
             }
         }
@@ -938,7 +902,6 @@ Return the result as a valid JSON array.`;
                 currentDocId = id;
                 document.getElementById('docId').value = id;
 
-                // Set subject and week
                 if (a.subject !== currentSubject) {
                     const tabs = document.querySelectorAll('#subjectTabs .tab');
                     for (let tab of tabs) {
@@ -949,41 +912,44 @@ Return the result as a valid JSON array.`;
                     }
                 }
                 setTimeout(() => {
-                    if (a.week) {
-                        const weekTabs = document.querySelectorAll('#weekTabs .tab');
-                        for (let wt of weekTabs) {
-                            if (wt.textContent.includes(`Week ${a.week}`)) {
-                                wt.click();
-                                break;
-                            }
+                    const weekTabs = document.querySelectorAll('#weekTabs .tab');
+                    for (let wt of weekTabs) {
+                        if (wt.textContent.includes(`Week ${a.week}`)) {
+                            wt.click();
+                            break;
                         }
                     }
                 }, 500);
 
-                document.querySelector(`input[name="assignmentType"][value="${a.type}"]`).checked = true;
-                updateTypeUI();
+                if (a.assignmentType === 'mcq') {
+                    document.querySelector('input[value="mcq"]').checked = true;
+                    mcqSection.style.display = 'block';
+                    essaySection.style.display = 'none';
+                    questions = a.questions || [];
+                    renderQuestions();
+                } else {
+                    document.querySelector('input[value="essay"]').checked = true;
+                    mcqSection.style.display = 'none';
+                    essaySection.style.display = 'block';
+                    quill.root.innerHTML = a.essayPrompt || '';
+                }
+
                 document.getElementById('title').value = a.title || '';
                 document.getElementById('description').value = a.description || '';
                 document.getElementById('dueDate').value = a.dueDate || '';
-                document.getElementById('startDate').value = a.startDate || '';
-                document.getElementById('timeLimit').value = a.timeLimit || 0;
                 document.getElementById('totalPoints').value = a.totalPoints || 100;
-                questions = a.questions || [];
-                renderQuestions();
                 document.getElementById('deleteBtn').style.display = 'inline-block';
             } catch (e) {
-                alert('Error loading assignment: ' + e.message);
+                alert('Error loading: ' + e.message);
             } finally {
                 hideLoading();
             }
         };
 
         window.viewSubmissions = (id) => {
-            // Redirect to submissions page (to be built later)
-            alert('Submissions page coming soon.');
+            window.location.href = `teacher-grade.html?assignmentId=${id}`;
         };
 
-        // ========== LOADING ==========
         function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
     </script>
