@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Question Bank | Teacher Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: rgba(255,255,255,0.95);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05);
+            --success-bg: #dcfce7;
+            --success-text: #16a34a;
+            --warning-bg: #fef9c3;
+            --warning-text: #ca8a04;
+            --danger-bg: #fee2e2;
+            --danger-text: #dc2626;
+            --info-bg: #dbeafe;
+            --info-text: #2563eb;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: rgba(15,23,42,0.95);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #1e293b;
+            --card-bg: #1e293b;
+            --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            transition: all 0.3s;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .orb {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%);
+            filter: blur(100px);
+            z-index: 0;
+            animation: float 20s infinite alternate;
+            pointer-events: none;
+        }
+
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(40px, 40px) scale(1.1); }
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar.collapsed { width: 90px; }
+
+        .sidebar .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            padding: 0 0.5rem;
+        }
+
+        .sidebar .logo-area i {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar .logo-area h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            white-space: nowrap;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar.collapsed .logo-area h2 { display: none; }
+
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1.2rem;
+            border-radius: 1rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .sidebar .nav-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+            transform: translateX(5px);
+            border-color: var(--border);
+        }
+
+        .sidebar .nav-item.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            box-shadow: 0 5px 15px -5px var(--accent);
+        }
+
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+
+        .sidebar .toggle-btn {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+            position: relative;
+            z-index: 5;
+        }
+
+        .main-content.expanded { margin-left: 90px; }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.3rem 0.3rem 0.3rem 1rem;
+        }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 2px 10px var(--accent);
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 55px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            min-width: 200px;
+            display: none;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 1rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-info h3 { font-size: 1.5rem; font-weight: 700; }
+        .stat-info p { color: var(--text-secondary); font-size: 0.8rem; }
+
+        /* Filters */
+        .filters-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.75rem 1.25rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* Question Grid */
+        .questions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .question-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .question-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+        }
+
+        .question-header {
+            padding: 1rem;
+            background: var(--hover-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .question-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: var(--info-bg);
+            color: var(--info-text);
+        }
+
+        .difficulty-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .difficulty-easy { background: var(--success-bg); color: var(--success-text); }
+        .difficulty-medium { background: var(--warning-bg); color: var(--warning-text); }
+        .difficulty-hard { background: var(--danger-bg); color: var(--danger-text); }
+
+        .question-body {
+            padding: 1rem;
+        }
+
+        .question-text {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .question-options {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+        }
+
+        .correct-answer {
+            margin-top: 0.75rem;
+            padding: 0.5rem;
+            background: var(--success-bg);
+            border-radius: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--success-text);
+        }
+
+        .question-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.85rem; }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+        }
+        select.form-control { cursor: pointer; }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .btn-danger {
+            background: var(--danger-text);
+            color: white;
+        }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem;
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            border: 1px solid var(--border);
+            grid-column: 1 / -1;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .questions-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-graduation-cap"></i><h2>EduTop</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Tests</span></a>
+        <a href="teacher-question-bank.html" class="nav-item active"><i class="fas fa-database"></i><span>Question Bank</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-results-dashboard.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>Results Dashboard</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Question Bank</h1>
+                <p>Manage reusable questions for tests and assignments</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-database"></i></div><div class="stat-info"><h3 id="totalCount">0</h3><p>Total Questions</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="mcqCount">0</h3><p>MCQ</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-toggle-on"></i></div><div class="stat-info"><h3 id="tfCount">0</h3><p>True/False</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-i-cursor"></i></div><div class="stat-info"><h3 id="fbCount">0</h3><p>Fill Blank</p></div></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Search questions..."></div>
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="mcq">MCQ</button>
+                <button class="filter-btn" data-filter="truefalse">True/False</button>
+                <button class="filter-btn" data-filter="fillblank">Fill Blank</button>
+            </div>
+            <button class="btn btn-primary" id="addQuestionBtn"><i class="fas fa-plus"></i> Add Question</button>
+        </div>
+
+        <!-- Questions Grid -->
+        <div class="questions-grid" id="questionsGrid">
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <h3>Loading questions...</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="questionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Question</h3>
+                <i class="fas fa-times" onclick="closeModal()" style="cursor: pointer;"></i>
+            </div>
+            <form id="questionForm">
+                <input type="hidden" id="questionId">
+                <div class="form-group">
+                    <label>Question Type</label>
+                    <select id="questionType" class="form-control" required>
+                        <option value="mcq">Multiple Choice (MCQ)</option>
+                        <option value="truefalse">True/False</option>
+                        <option value="fillblank">Fill in the Blank</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <select id="questionSubject" class="form-control" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty Level</label>
+                    <select id="questionDifficulty" class="form-control" required>
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Question Text</label>
+                    <textarea id="questionText" class="form-control" rows="3" required placeholder="Enter the question..."></textarea>
+                </div>
+                <div id="mcqOptions">
+                    <div class="form-group"><label>Option A</label><input type="text" id="optA" class="form-control" placeholder="Option A"></div>
+                    <div class="form-group"><label>Option B</label><input type="text" id="optB" class="form-control" placeholder="Option B"></div>
+                    <div class="form-group"><label>Option C</label><input type="text" id="optC" class="form-control" placeholder="Option C"></div>
+                    <div class="form-group"><label>Option D</label><input type="text" id="optD" class="form-control" placeholder="Option D"></div>
+                </div>
+                <div class="form-group">
+                    <label>Correct Answer</label>
+                    <input type="text" id="correctAnswer" class="form-control" required placeholder="A, B, C, D, True, False, or the correct word">
+                </div>
+                <div class="form-group">
+                    <label>Points</label>
+                    <input type="number" id="points" class="form-control" value="1" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>Topic (Optional)</label>
+                    <input type="text" id="topic" class="form-control" placeholder="e.g., Verbs, Algebra, etc.">
+                </div>
+                <div class="btn-group" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary">Save Question</button>
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Loading...</h3></div></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+        
+        let currentUser = null;
+        let userData = null;
+        let allQuestions = [];
+        let subjects = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+        
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        
+        async function loadSubjects() {
+            const syllabusSnap = await db.collection('syllabus')
+                .where('teacherId', '==', currentUser.uid)
+                .where('status', '==', 'approved')
+                .get();
+            const subjectSet = new Set();
+            syllabusSnap.forEach(doc => subjectSet.add(doc.data().subject));
+            subjects = Array.from(subjectSet);
+            
+            const subjectSelect = document.getElementById('questionSubject');
+            subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+            subjects.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub;
+                option.textContent = sub;
+                subjectSelect.appendChild(option);
+            });
+        }
+        
+        async function loadQuestions() {
+            showLoading();
+            try {
+                const snap = await db.collection('questionBank')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+                
+                allQuestions = [];
+                snap.forEach(doc => {
+                    allQuestions.push({ id: doc.id, ...doc.data() });
+                });
+                
+                updateStats();
+                renderQuestions();
+            } catch(e) {
+                console.error('Error loading questions:', e);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function updateStats() {
+            const total = allQuestions.length;
+            const mcq = allQuestions.filter(q => q.type === 'mcq').length;
+            const tf = allQuestions.filter(q => q.type === 'truefalse').length;
+            const fb = allQuestions.filter(q => q.type === 'fillblank').length;
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('mcqCount').textContent = mcq;
+            document.getElementById('tfCount').textContent = tf;
+            document.getElementById('fbCount').textContent = fb;
+        }
+        
+        function renderQuestions() {
+            const grid = document.getElementById('questionsGrid');
+            
+            let filtered = allQuestions.filter(q => {
+                if (currentFilter !== 'all' && q.type !== currentFilter) return false;
+                if (searchQuery) {
+                    const query = searchQuery.toLowerCase();
+                    return q.question?.toLowerCase().includes(query) || q.subject?.toLowerCase().includes(query);
+                }
+                return true;
+            });
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><h3>No questions found</h3><p>${searchQuery ? 'Try a different search' : 'Add your first question'}</p></div>`;
+                return;
+            }
+            
+            grid.innerHTML = filtered.map(q => {
+                const typeName = q.type === 'mcq' ? 'MCQ' : q.type === 'truefalse' ? 'True/False' : 'Fill in the Blank';
+                let optionsHtml = '';
+                if (q.type === 'mcq' && q.options) {
+                    optionsHtml = `<div class="question-options">${q.options.map((opt, i) => `<div>${String.fromCharCode(65+i)}. ${escapeHtml(opt)}</div>`).join('')}</div>`;
+                }
+                
+                return `
+                    <div class="question-card">
+                        <div class="question-header">
+                            <span class="question-type">${typeName}</span>
+                            <span class="difficulty-badge difficulty-${q.difficulty}">${q.difficulty.toUpperCase()}</span>
+                        </div>
+                        <div class="question-body">
+                            <div class="question-text">${escapeHtml(q.question)}</div>
+                            ${optionsHtml}
+                            <div class="correct-answer"><strong>✓ Correct:</strong> ${escapeHtml(q.correct)}</div>
+                            <div class="question-footer" style="margin-top: 0.75rem; padding: 0;">
+                                <small><i class="fas fa-tag"></i> ${escapeHtml(q.subject)}</small>
+                                ${q.topic ? `<small><i class="fas fa-bookmark"></i> ${escapeHtml(q.topic)}</small>` : ''}
+                                <small><i class="fas fa-star"></i> ${q.points || 1} pt</small>
+                            </div>
+                        </div>
+                        <div class="question-footer">
+                            <button class="btn btn-outline btn-sm" onclick="editQuestion('${q.id}')"><i class="fas fa-edit"></i> Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteQuestion('${q.id}')"><i class="fas fa-trash"></i> Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function toggleOptionsFields() {
+            const type = document.getElementById('questionType').value;
+            const mcqDiv = document.getElementById('mcqOptions');
+            mcqDiv.style.display = type === 'mcq' ? 'block' : 'none';
+            const correctHint = document.getElementById('correctAnswer');
+            if (type === 'truefalse') correctHint.placeholder = 'Enter "True" or "False"';
+            else if (type === 'fillblank') correctHint.placeholder = 'Enter the correct word/phrase';
+            else correctHint.placeholder = 'Enter A, B, C, or D';
+        }
+        
+        document.getElementById('questionType').addEventListener('change', toggleOptionsFields);
+        
+        async function saveQuestion() {
+            const id = document.getElementById('questionId').value;
+            const type = document.getElementById('questionType').value;
+            const subject = document.getElementById('questionSubject').value;
+            const difficulty = document.getElementById('questionDifficulty').value;
+            const question = document.getElementById('questionText').value;
+            const correct = document.getElementById('correctAnswer').value;
+            const points = parseInt(document.getElementById('points').value);
+            const topic = document.getElementById('topic').value;
+            
+            if (!subject || !question || !correct) {
+                alert('Please fill required fields');
+                return;
+            }
+            
+            let data = { teacherId: currentUser.uid, type, subject, difficulty, question, correct, points, topic, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            
+            if (type === 'mcq') {
+                const options = [document.getElementById('optA').value, document.getElementById('optB').value, document.getElementById('optC').value, document.getElementById('optD').value];
+                if (options.some(o => !o)) { alert('Please fill all options'); return; }
+                data.options = options;
+            }
+            
+            showLoading();
+            try {
+                if (id) {
+                    await db.collection('questionBank').doc(id).update(data);
+                } else {
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('questionBank').add(data);
+                }
+                closeModal();
+                await loadQuestions();
+            } catch(e) { alert('Error: ' + e.message); } finally { hideLoading(); }
+        }
+        
+        window.editQuestion = async (id) => {
+            const q = allQuestions.find(q => q.id === id);
+            if (!q) return;
+            document.getElementById('questionId').value = q.id;
+            document.getElementById('questionType').value = q.type;
+            document.getElementById('questionSubject').value = q.subject;
+            document.getElementById('questionDifficulty').value = q.difficulty;
+            document.getElementById('questionText').value = q.question;
+            document.getElementById('correctAnswer').value = q.correct;
+            document.getElementById('points').value = q.points || 1;
+            document.getElementById('topic').value = q.topic || '';
+            if (q.type === 'mcq' && q.options) {
+                document.getElementById('optA').value = q.options[0] || '';
+                document.getElementById('optB').value = q.options[1] || '';
+                document.getElementById('optC').value = q.options[2] || '';
+                document.getElementById('optD').value = q.options[3] || '';
+            }
+            toggleOptionsFields();
+            document.getElementById('modalTitle').textContent = 'Edit Question';
+            document.getElementById('questionModal').classList.add('active');
+        };
+        
+        window.deleteQuestion = async (id) => {
+            if (!confirm('Delete this question permanently?')) return;
+            showLoading();
+            try {
+                await db.collection('questionBank').doc(id).delete();
+                await loadQuestions();
+            } catch(e) { alert('Error: ' + e.message); } finally { hideLoading(); }
+        };
+        
+        function openModal() {
+            document.getElementById('questionId').value = '';
+            document.getElementById('questionForm').reset();
+            document.getElementById('modalTitle').textContent = 'Add New Question';
+            document.getElementById('mcqOptions').style.display = 'block';
+            document.getElementById('questionModal').classList.add('active');
+        }
+        
+        function closeModal() { document.getElementById('questionModal').classList.remove('active'); }
+        
+        document.getElementById('addQuestionBtn').addEventListener('click', openModal);
+        document.getElementById('questionForm').addEventListener('submit', (e) => { e.preventDefault(); saveQuestion(); });
+        document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderQuestions(); });
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderQuestions();
+            });
+        });
+        
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                await loadSubjects();
+                await loadQuestions();
+            } catch(e) { console.error(e); }
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+        
+        window.closeModal = closeModal;
+    </script>
+</body>
+</html>
