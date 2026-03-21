@@ -39,8 +39,9 @@
             --warning-text: #ca8a04;
             --danger-bg: #fee2e2;
             --danger-text: #dc2626;
+            --info-bg: #dbeafe;
+            --info-text: #2563eb;
             --input-bg: #ffffff;
-            --toolbar-bg: #f8fafc;
             --gradient-start: #3b82f6;
             --gradient-end: #8b5cf6;
         }
@@ -63,8 +64,9 @@
             --warning-text: #fbbf24;
             --danger-bg: rgba(239, 68, 68, 0.2);
             --danger-text: #f87171;
+            --info-bg: rgba(59, 130, 246, 0.2);
+            --info-text: #60a5fa;
             --input-bg: #1e293b;
-            --toolbar-bg: #1e293b;
             --gradient-start: #3b82f6;
             --gradient-end: #8b5cf6;
         }
@@ -80,7 +82,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated Background */
         .orb {
             position: fixed;
             width: 500px;
@@ -115,7 +116,6 @@
             }
         }
 
-        /* Sidebar */
         .sidebar {
             width: 280px;
             background: var(--bg-sidebar);
@@ -221,7 +221,6 @@
             color: var(--accent);
         }
 
-        /* Main Content */
         .main-content {
             flex: 1;
             margin-left: 280px;
@@ -235,7 +234,6 @@
             margin-left: 90px;
         }
 
-        /* Top Bar */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -368,9 +366,7 @@
             color: var(--accent);
         }
 
-        /* Tabs */
-        .subject-tabs,
-        .week-tabs {
+        .subject-tabs, .week-tabs {
             display: flex;
             gap: 0.5rem;
             margin-bottom: 1.5rem;
@@ -399,7 +395,6 @@
             color: white;
         }
 
-        /* Cards */
         .card {
             background: var(--card-bg);
             backdrop-filter: blur(12px);
@@ -429,7 +424,6 @@
             gap: 0.5rem;
         }
 
-        /* Form Elements */
         .form-group {
             margin-bottom: 1.25rem;
         }
@@ -469,7 +463,6 @@
             resize: vertical;
         }
 
-        /* Assignment Type Select */
         .assignment-type-select {
             display: flex;
             gap: 1.5rem;
@@ -494,7 +487,6 @@
             height: 1.1rem;
         }
 
-        /* Advanced Settings */
         .advanced-settings {
             background: var(--hover-bg);
             border-radius: 1rem;
@@ -544,7 +536,6 @@
             accent-color: var(--accent);
         }
 
-        /* File Upload */
         .file-upload-area {
             border: 2px dashed var(--border);
             border-radius: 1rem;
@@ -580,7 +571,6 @@
             margin-bottom: 0.5rem;
         }
 
-        /* Question Management */
         .question-list {
             margin-top: 1rem;
         }
@@ -629,7 +619,6 @@
             display: inline-block;
         }
 
-        /* Buttons */
         .btn {
             padding: 0.6rem 1.2rem;
             border: none;
@@ -685,7 +674,6 @@
             flex-wrap: wrap;
         }
 
-        /* Table */
         .table-responsive {
             overflow-x: auto;
         }
@@ -728,7 +716,6 @@
             color: var(--success-text);
         }
 
-        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -772,7 +759,6 @@
             font-size: 1.2rem;
         }
 
-        /* AI Chat */
         .ai-chat {
             height: 300px;
             overflow-y: auto;
@@ -802,7 +788,6 @@
             border: 1px solid var(--border);
         }
 
-        /* Loading */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -833,7 +818,6 @@
             margin-bottom: 1rem;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 width: 80px;
@@ -965,7 +949,7 @@
                 
                 <div class="form-group">
                     <label><i class="fas fa-calendar-week"></i> Week</label>
-                    <input type="number" id="week" class="form-control" readonly>
+                    <input type="text" id="week" class="form-control" readonly>
                 </div>
                 
                 <div class="form-group">
@@ -1098,14 +1082,14 @@
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-history"></i> Recent Assignments</h3>
-                <button class="btn btn-outline btn-sm" onclick="loadAssignments()">
+                <button class="btn btn-outline btn-sm" id="refreshAssignmentsBtn">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
             <div class="table-responsive">
                 <table>
                     <thead>
-                        <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th>
+                        <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="assignmentsList">
                         <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
@@ -1122,7 +1106,7 @@
                 <i class="fas fa-times" onclick="closeAIModal()"></i>
             </div>
             <div class="ai-chat" id="aiChat">
-                <div class="message assistant">👋 Hi! I'll help you generate high-quality multiple-choice questions for your assignment. What topic would you like me to create questions for?</div>
+                <div class="message assistant">👋 Hi! I'll help you generate questions based on your lesson notes and syllabus content. First, select a subject and week above, then I'll analyze your teaching materials to create relevant questions.</div>
             </div>
             <div class="form-group">
                 <label>Number of Questions</label>
@@ -1135,6 +1119,15 @@
                     <option value="medium" selected>Medium</option>
                     <option value="hard">Hard</option>
                     <option value="mixed">Mixed</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Question Type</label>
+                <select id="aiQuestionType" class="form-control">
+                    <option value="mcq">Multiple Choice</option>
+                    <option value="truefalse">True/False</option>
+                    <option value="fillblank">Fill in the Blank</option>
+                    <option value="mixed">Mixed Types</option>
                 </select>
             </div>
             <div class="btn-group">
@@ -1190,16 +1183,10 @@
         
         // Theme Management
         function updateThemeUI(theme) {
-            const sunIcon = themeToggle.querySelector('i:first-child');
-            const moonIcon = themeToggle.querySelector('i:last-child');
             const span = themeToggle.querySelector('span');
             if (theme === 'dark') {
-                sunIcon.style.display = 'inline';
-                moonIcon.style.display = 'inline';
                 span.textContent = 'Light';
             } else {
-                sunIcon.style.display = 'inline';
-                moonIcon.style.display = 'inline';
                 span.textContent = 'Dark';
             }
         }
@@ -1222,7 +1209,8 @@
         let subjects = [];
         let currentSubject = null;
         let currentWeek = null;
-        let syllabusMap = {};
+        let syllabusWeeks = []; // Array to store weeks data
+        let lessonNotesMap = {}; // Store lesson notes by week
         let groq = null;
         let questions = [];
         let essayPrompt = '';
@@ -1296,6 +1284,7 @@
         });
         
         async function uploadFiles(files) {
+            if (!currentUser) return;
             showLoading();
             for (const file of files) {
                 if (file.size > 10 * 1024 * 1024) {
@@ -1330,7 +1319,7 @@
                         <i class="fas ${file.type.includes('pdf') ? 'fa-file-pdf' : file.type.includes('image') ? 'fa-file-image' : 'fa-file-alt'}"></i>
                         <span style="margin-left: 0.5rem;">${file.name}</span>
                     </div>
-                    <button class="btn btn-sm btn-danger" onclick="removeFile(${index})">
+                    <button class="btn btn-sm btn-danger" onclick="window.removeFile(${index})">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1356,7 +1345,7 @@
                     <div class="question-option">
                         <input type="radio" name="correct_${idx}" value="${String.fromCharCode(65 + oi)}" 
                             ${q.correct === String.fromCharCode(65 + oi) ? 'checked' : ''} 
-                            onchange="setCorrect(${idx}, '${String.fromCharCode(65 + oi)}')">
+                            onchange="window.setCorrect(${idx}, '${String.fromCharCode(65 + oi)}')">
                         <span>${String.fromCharCode(65 + oi)}. ${opt}</span>
                     </div>
                 `).join('');
@@ -1367,10 +1356,10 @@
                             <span class="question-text">Q${idx + 1}: ${q.question || 'Untitled Question'}</span>
                             <div>
                                 <span class="correct-badge">${q.points || 1} pts</span>
-                                <button class="btn btn-sm btn-outline" onclick="editQuestion(${idx})">
+                                <button class="btn btn-sm btn-outline" onclick="window.editQuestion(${idx})">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger" onclick="removeQuestion(${idx})">
+                                <button class="btn btn-sm btn-danger" onclick="window.removeQuestion(${idx})">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -1390,9 +1379,7 @@
                 points: 1
             });
             renderQuestions();
-            
-            // Auto-edit the new question
-            setTimeout(() => editQuestion(questions.length - 1), 100);
+            setTimeout(() => window.editQuestion(questions.length - 1), 100);
         };
         
         window.removeQuestion = (i) => {
@@ -1420,7 +1407,82 @@
             renderQuestions();
         };
         
-        // AI Generation
+        // Load Lesson Notes for AI Context
+        async function loadLessonNotesForWeek(subject, week) {
+            if (!currentUser) return null;
+            
+            try {
+                // First get syllabus ID for this subject and week
+                const syllabusSnap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('subject', '==', subject)
+                    .where('week', '==', parseInt(week))
+                    .where('status', '==', 'approved')
+                    .limit(1)
+                    .get();
+                
+                if (syllabusSnap.empty) return null;
+                
+                const syllabusId = syllabusSnap.docs[0].id;
+                
+                // Get lesson notes for this syllabus
+                const notesSnap = await db.collection('lessonNotes')
+                    .where('syllabusId', '==', syllabusId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'approved')
+                    .orderBy('createdAt', 'desc')
+                    .limit(1)
+                    .get();
+                
+                if (notesSnap.empty) return null;
+                
+                return notesSnap.docs[0].data();
+            } catch (error) {
+                console.error('Error loading lesson notes:', error);
+                return null;
+            }
+        }
+        
+        // Load Resources for AI Context
+        async function loadResourcesForWeek(subject, week) {
+            if (!currentUser) return [];
+            
+            try {
+                const syllabusSnap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('subject', '==', subject)
+                    .where('week', '==', parseInt(week))
+                    .where('status', '==', 'approved')
+                    .limit(1)
+                    .get();
+                
+                if (syllabusSnap.empty) return [];
+                
+                const syllabusId = syllabusSnap.docs[0].id;
+                
+                const notesSnap = await db.collection('lessonNotes')
+                    .where('syllabusId', '==', syllabusId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .limit(1)
+                    .get();
+                
+                if (notesSnap.empty) return [];
+                
+                const lessonNoteId = notesSnap.docs[0].id;
+                
+                const resourcesSnap = await db.collection('resources')
+                    .where('lessonNoteId', '==', lessonNoteId)
+                    .where('teacherId', '==', currentUser.uid)
+                    .get();
+                
+                return resourcesSnap.docs.map(doc => doc.data());
+            } catch (error) {
+                console.error('Error loading resources:', error);
+                return [];
+            }
+        }
+        
+        // AI Generation with Context
         const aiModal = document.getElementById('aiModal');
         
         window.openAIModal = () => aiModal.classList.add('active');
@@ -1432,45 +1494,93 @@
         
         window.generateWithAI = async () => {
             if (!groq) {
-                alert('AI service is not ready. Please try again later.');
+                alert('AI service is not ready. Please check your internet connection and try again.');
+                return;
+            }
+            
+            if (!currentSubject || !currentWeek) {
+                alert('Please select a subject and week first. This helps the AI create relevant questions based on your lesson content.');
                 return;
             }
             
             const count = document.getElementById('aiQuestionCount').value;
             const difficulty = document.getElementById('aiDifficulty').value;
-            const topic = `Week ${currentWeek}: ${document.getElementById('topic').value || currentSubject}`;
-            
-            const prompt = `Generate ${count} ${difficulty} difficulty multiple-choice questions on "${topic}". Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
+            const questionType = document.getElementById('aiQuestionType').value;
+            const topic = document.getElementById('topic').value;
             
             const chatDiv = document.getElementById('aiChat');
-            chatDiv.innerHTML += `<div class="message user">Generate ${count} ${difficulty} questions about ${topic}</div>`;
+            chatDiv.innerHTML += `<div class="message user">Generate ${count} ${difficulty} ${questionType} questions about "${topic}" (Week ${currentWeek})</div>`;
             
             const thinking = document.createElement('div');
             thinking.className = 'message assistant';
-            thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating questions...';
+            thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading your lesson notes and resources...';
             chatDiv.appendChild(thinking);
             chatDiv.scrollTop = chatDiv.scrollHeight;
             
             showLoading();
             
             try {
+                // Load lesson notes and resources for context
+                thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing your lesson notes...';
+                const lessonNote = await loadLessonNotesForWeek(currentSubject, currentWeek);
+                const resources = await loadResourcesForWeek(currentSubject, currentWeek);
+                
+                thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating questions based on your teaching materials...';
+                
+                // Build context from lesson notes and resources
+                let contextText = `Topic: ${topic}\n\n`;
+                
+                if (lessonNote) {
+                    contextText += `Lesson Content:\n${lessonNote.content || lessonNote.notes || ''}\n\n`;
+                    if (lessonNote.objectives) {
+                        contextText += `Learning Objectives:\n${lessonNote.objectives}\n\n`;
+                    }
+                }
+                
+                if (resources.length > 0) {
+                    contextText += `Teaching Resources/Materials:\n`;
+                    resources.forEach(res => {
+                        contextText += `- ${res.title || res.name || 'Resource'}: ${res.description || ''}\n`;
+                    });
+                    contextText += `\n`;
+                }
+                
+                // Fallback if no lesson notes found
+                if (!lessonNote && resources.length === 0) {
+                    contextText += `Note: No lesson notes found for this week. Please create lesson notes first for better AI-generated questions. For now, generating general questions about ${topic}.\n\n`;
+                }
+                
+                let prompt = `You are an expert educational content creator. Based on the following teaching materials for ${currentSubject} (Week ${currentWeek}):\n\n${contextText}\n\n`;
+                
+                if (questionType === 'mcq') {
+                    prompt += `Generate ${count} ${difficulty} difficulty multiple-choice questions. Each question should have 4 options (A, B, C, D) with one correct answer. Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
+                } else if (questionType === 'truefalse') {
+                    prompt += `Generate ${count} ${difficulty} difficulty True/False questions. Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["True","False"],"correct":"True","points":1}]`;
+                } else if (questionType === 'fillblank') {
+                    prompt += `Generate ${count} ${difficulty} difficulty fill-in-the-blank questions. Use "_____" for the blank. Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["answer"],"correct":"answer","points":1}]`;
+                } else {
+                    prompt += `Generate ${count} ${difficulty} difficulty questions mixing types (MCQ, True/False, Fill in the Blank). Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
+                }
+                
                 const res = await groq.chat.completions.create({
                     messages: [{ role: 'user', content: prompt }],
                     model: 'llama-3.3-70b-versatile',
-                    temperature: 0.7
+                    temperature: 0.7,
+                    max_tokens: 4000
                 });
                 
                 const text = res.choices[0].message.content;
                 const match = text.match(/\[[\s\S]*\]/);
-                if (!match) throw new Error('No valid JSON found');
+                if (!match) throw new Error('No valid JSON found in response');
                 
                 lastGenerated = JSON.parse(match[0]);
                 chatDiv.removeChild(thinking);
-                chatDiv.innerHTML += `<div class="message assistant">✅ Generated ${lastGenerated.length} questions successfully! Click "Insert into Form" to add them.</div>`;
+                chatDiv.innerHTML += `<div class="message assistant">✅ Generated ${lastGenerated.length} questions successfully based on your lesson content! Click "Insert into Form" to add them.</div>`;
                 chatDiv.scrollTop = chatDiv.scrollHeight;
             } catch (error) {
+                console.error('AI Error:', error);
                 chatDiv.removeChild(thinking);
-                chatDiv.innerHTML += `<div class="message assistant">❌ Error: ${error.message}. Please try again.</div>`;
+                chatDiv.innerHTML += `<div class="message assistant">❌ Error: ${error.message}. Please make sure you have lesson notes created for this week, or try again.</div>`;
             } finally {
                 hideLoading();
             }
@@ -1498,6 +1608,11 @@
             if (confirm('Publish this assignment? Students will be able to see and submit it.')) {
                 saveAssignment('published');
             }
+        });
+        
+        // Refresh button
+        document.getElementById('refreshAssignmentsBtn').addEventListener('click', () => {
+            loadAssignments();
         });
         
         async function saveAssignment(status) {
@@ -1546,7 +1661,7 @@
                 teacherId: currentUser.uid,
                 classId: userData.classTeaching,
                 subject,
-                week,
+                week: parseInt(week),
                 topic,
                 title,
                 description,
@@ -1631,6 +1746,8 @@
         
         // Load Assignments
         async function loadAssignments() {
+            if (!currentUser) return;
+            
             const tbody = document.getElementById('assignmentsList');
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading...</td></tr>';
             
@@ -1660,14 +1777,14 @@
                             <td>${typeBadge}</td>
                             <td>${a.subject}</td>
                             <td>Week ${a.week}</td>
-                            <td><strong>${a.title}</strong></td>
+                            <td><strong>${escapeHtml(a.title)}</strong></td>
                             <td>${dueDateFormatted}</td>
                             <td>${statusBadge}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline" onclick="editAssignment('${doc.id}')">
+                                <button class="btn btn-sm btn-outline" onclick="window.editAssignment('${doc.id}')">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <button class="btn btn-sm btn-outline" onclick="viewSubmissions('${doc.id}')">
+                                <button class="btn btn-sm btn-outline" onclick="window.viewSubmissions('${doc.id}')">
                                     <i class="fas fa-users"></i> Grade
                                 </button>
                             </td>
@@ -1679,6 +1796,13 @@
                 console.error('Load error:', error);
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Error loading assignments</td></tr>';
             }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         window.editAssignment = async (id) => {
@@ -1700,6 +1824,7 @@
                     }
                 }
                 
+                // Wait for week tabs to load then select
                 setTimeout(() => {
                     const wtabs = document.querySelectorAll('#weekTabs .tab');
                     for (let w of wtabs) {
@@ -1744,28 +1869,43 @@
             window.location.href = `teacher-grade.html?assignmentId=${id}`;
         };
         
-        // Subject and Week Management
+        // Subject and Week Management - FIXED VERSION
         async function loadSyllabi() {
-            if (!subjects.length) return;
-            const snap = await db.collection('syllabus')
-                .where('teacherId', '==', currentUser.uid)
-                .where('status', '==', 'approved')
-                .get();
+            if (!currentUser || !subjects.length) return;
             
-            syllabusMap = {};
-            snap.forEach(doc => {
-                const data = doc.data();
-                if (!syllabusMap[data.subject]) syllabusMap[data.subject] = [];
-                syllabusMap[data.subject].push({
-                    week: data.week,
-                    topic: data.topic,
-                    id: doc.id
+            showLoading();
+            try {
+                const snap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'approved')
+                    .get();
+                
+                syllabusWeeks = [];
+                const subjectWeeksMap = {};
+                
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const subject = data.subject;
+                    if (!subjectWeeksMap[subject]) {
+                        subjectWeeksMap[subject] = [];
+                    }
+                    subjectWeeksMap[subject].push({
+                        week: data.week,
+                        topic: data.topic,
+                        id: doc.id
+                    });
                 });
-            });
-            
-            // Sort weeks
-            for (let subject in syllabusMap) {
-                syllabusMap[subject].sort((a, b) => a.week - b.week);
+                
+                // Sort weeks for each subject
+                for (let subject in subjectWeeksMap) {
+                    subjectWeeksMap[subject].sort((a, b) => a.week - b.week);
+                }
+                
+                syllabusWeeks = subjectWeeksMap;
+            } catch (error) {
+                console.error('Error loading syllabus:', error);
+            } finally {
+                hideLoading();
             }
         }
         
@@ -1779,7 +1919,9 @@
                 tab.onclick = () => switchSubject(sub, tab);
                 container.appendChild(tab);
             });
-            if (subjects.length) switchSubject(subjects[0], container.children[0]);
+            if (subjects.length) {
+                switchSubject(subjects[0], container.children[0]);
+            }
         }
         
         function switchSubject(subject, target) {
@@ -1787,28 +1929,41 @@
             target.classList.add('active');
             currentSubject = subject;
             document.getElementById('subject').value = subject;
-            const weeksData = syllabusMap[subject] || [];
+            
+            const weeksData = syllabusWeeks[subject] || [];
             renderWeekTabs(weeksData);
+            
             if (weeksData.length) {
-                selectWeek(weeksData[0].week, weeksData[0].topic, weeksData[0]);
+                selectWeek(weeksData[0].week, weeksData[0].topic, null);
             } else {
                 document.getElementById('week').value = '';
                 document.getElementById('topic').value = '';
-                document.getElementById('weekTabs').innerHTML = '';
+                document.getElementById('weekTabs').innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks found. Please create syllabus first.</div>';
             }
         }
         
         function renderWeekTabs(weeksData) {
             const container = document.getElementById('weekTabs');
             container.innerHTML = '';
+            
+            if (!weeksData.length) {
+                container.innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks available</div>';
+                return;
+            }
+            
             weeksData.forEach(w => {
                 const tab = document.createElement('span');
                 tab.className = 'tab';
-                tab.textContent = `Week ${w.week}: ${w.topic}`;
+                tab.textContent = `Week ${w.week}: ${w.topic.length > 30 ? w.topic.substring(0, 30) + '...' : w.topic}`;
+                tab.title = w.topic;
                 tab.onclick = () => selectWeek(w.week, w.topic, tab);
                 container.appendChild(tab);
             });
-            if (weeksData.length) container.children[0]?.classList.add('active');
+            
+            // Auto-select first week if none selected
+            if (weeksData.length && !currentWeek) {
+                selectWeek(weeksData[0].week, weeksData[0].topic, container.children[0]);
+            }
         }
         
         function selectWeek(week, topic, target) {
@@ -1877,17 +2032,17 @@
         }
         
         // Make functions global
-        window.addQuestion = addQuestion;
-        window.removeQuestion = removeQuestion;
-        window.setCorrect = setCorrect;
-        window.editQuestion = editQuestion;
-        window.removeFile = removeFile;
-        window.editAssignment = editAssignment;
-        window.viewSubmissions = viewSubmissions;
-        window.generateWithAI = generateWithAI;
-        window.insertAIGenerated = insertAIGenerated;
-        window.openAIModal = openAIModal;
-        window.closeAIModal = closeAIModal;
+        window.addQuestion = window.addQuestion;
+        window.removeQuestion = window.removeQuestion;
+        window.setCorrect = window.setCorrect;
+        window.editQuestion = window.editQuestion;
+        window.removeFile = window.removeFile;
+        window.editAssignment = window.editAssignment;
+        window.viewSubmissions = window.viewSubmissions;
+        window.generateWithAI = window.generateWithAI;
+        window.insertAIGenerated = window.insertAIGenerated;
+        window.openAIModal = window.openAIModal;
+        window.closeAIModal = window.closeAIModal;
     </script>
 </body>
 </html>
