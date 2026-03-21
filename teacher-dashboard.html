@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop Scholars · Teacher</title>
-    <!-- Font Awesome 6 -->
+    <title>EduTop · Teacher Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font: Inter + Space Grotesk -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -18,7 +15,6 @@
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa;
             --bg-sidebar: rgba(255,255,255,0.75);
-            --glass-border: rgba(255,255,255,0.3);
             --text-primary: #0b1e33;
             --text-secondary: #2c3e50;
             --accent: #1e3c72;
@@ -27,19 +23,19 @@
             --card-bg: rgba(255,255,255,0.7);
             --hover-bg: rgba(255,255,255,0.9);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
-            --stat-icon: #1e3c72;
             --success-bg: rgba(34,197,94,0.2);
             --success-text: #16a34a;
             --warning-bg: rgba(245,158,11,0.2);
             --warning-text: #b45309;
             --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #b91c1c;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #2563eb;
         }
 
         :root[data-theme="dark"] {
             --bg-primary: #0a0f1e;
             --bg-sidebar: rgba(15, 23, 42, 0.8);
-            --glass-border: rgba(255,255,255,0.08);
             --text-primary: #f0f4fa;
             --text-secondary: #a0b3d9;
             --accent: #3b82f6;
@@ -48,13 +44,14 @@
             --card-bg: rgba(15, 23, 42, 0.6);
             --hover-bg: rgba(30, 41, 59, 0.8);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
-            --stat-icon: #60a5fa;
             --success-bg: rgba(34,197,94,0.2);
             --success-text: #4ade80;
             --warning-bg: rgba(245,158,11,0.2);
             --warning-text: #fbbf24;
             --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
         }
 
         body {
@@ -90,12 +87,11 @@
             width: 280px;
             background: var(--bg-sidebar);
             backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             border-right: 1px solid var(--border);
             padding: 2rem 1rem;
             display: flex;
             flex-direction: column;
-            transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+            transition: width 0.3s;
             position: fixed;
             top: 0;
             left: 0;
@@ -106,266 +102,125 @@
         }
         .sidebar.collapsed { width: 90px; }
         .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
-        .sidebar .logo-area i { font-size: 2.4rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area i { font-size: 2.2rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .sidebar.collapsed .logo-area h2 { display: none; }
-        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; border-radius: 1.2rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.4rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
-        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); transform: translateX(5px); }
-        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 8px 20px -5px var(--accent); }
-        .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1.2rem; border-radius: 1rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.5rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); transform: translateX(5px); border-color: var(--border); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 5px 15px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; text-align: center; }
         .sidebar.collapsed .nav-item span { display: none; }
         .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
-        .sidebar .toggle-btn:hover { color: var(--accent); }
 
         .main-content {
             flex: 1;
             margin-left: 280px;
             padding: 2rem;
-            transition: margin-left 0.3s cubic-bezier(0.4,0,0.2,1);
+            transition: margin-left 0.3s;
             position: relative;
             z-index: 5;
         }
         .main-content.expanded { margin-left: 90px; }
 
         .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
         }
-        .page-title h1 {
-            font-size: 2.4rem;
-            font-weight: 700;
-            font-family: 'Space Grotesk', sans-serif;
-            background: linear-gradient(135deg, var(--text-primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.2rem;
-        }
-        .page-title p {
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-        .profile-area {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-        .theme-toggle {
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 0.6rem 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-weight: 500;
-            transition: 0.2s;
-        }
-        .theme-toggle:hover {
-            background: var(--hover-bg);
-            color: var(--accent);
-        }
-        .profile-dropdown {
-            position: relative;
-            cursor: pointer;
-        }
-        .profile-trigger {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 0.4rem 0.4rem 0.4rem 1rem;
-        }
-        .profile-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .profile-pic {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
-            box-shadow: 0 5px 15px var(--accent);
-            background-size: cover;
-            background-position: center;
-        }
-        .dropdown-menu {
-            position: absolute;
-            right: 0;
-            top: 60px;
-            background: var(--bg-sidebar);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
-            border-radius: 1.2rem;
-            padding: 0.5rem;
-            min-width: 180px;
-            display: none;
-            z-index: 1000;
-            box-shadow: var(--shadow);
-        }
-        .profile-dropdown:hover .dropdown-menu {
-            display: block;
-            animation: fadeIn 0.2s;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .dropdown-item {
-            padding: 0.8rem 1.2rem;
-            color: var(--text-primary);
-            border-radius: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            transition: 0.2s;
-        }
-        .dropdown-item:hover {
-            background: var(--hover-bg);
-            color: var(--accent);
-        }
+        .page-title h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 10px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
         .stat-card {
             background: var(--card-bg);
-            backdrop-filter: blur(8px);
             border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 1.5rem;
+            border-radius: 1.5rem;
+            padding: 1.25rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: var(--shadow);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s;
         }
-        .stat-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 40px -10px var(--accent);
-            border-color: var(--accent);
-        }
-        .stat-info h3 {
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .stat-info .value {
-            font-size: 2.4rem;
-            font-weight: 700;
-            font-family: 'Space Grotesk', sans-serif;
-        }
-        .stat-icon {
-            font-size: 2.5rem;
-            color: var(--stat-icon);
-            opacity: 0.7;
-        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-info h3 { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .stat-info .value { font-size: 1.8rem; font-weight: 700; }
+        .stat-icon { font-size: 2rem; color: var(--accent); opacity: 0.7; }
 
         .recent-section {
             background: var(--card-bg);
-            backdrop-filter: blur(8px);
             border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 1.8rem;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
             box-shadow: var(--shadow);
-            margin-top: 1.5rem;
         }
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
-        .section-header h2 {
-            font-size: 1.4rem;
-            font-weight: 600;
-        }
-        .section-header a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .table-responsive {
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        th {
-            text-align: left;
-            padding: 1rem 0.8rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-            border-bottom: 1px solid var(--border);
-        }
-        td {
-            padding: 1rem 0.8rem;
-            border-bottom: 1px solid var(--border);
-        }
+        .section-header h2 { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .section-header a { color: var(--accent); text-decoration: none; font-size: 0.8rem; }
+
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.75rem 0.5rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+        td { padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+
         .badge {
-            padding: 0.25rem 1rem;
+            padding: 0.2rem 0.6rem;
             border-radius: 2rem;
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: 0.7rem;
+            font-weight: 600;
             display: inline-block;
         }
-        .badge.pending { background: var(--warning-bg); color: var(--warning-text); }
-        .badge.approved { background: var(--success-bg); color: var(--success-text); }
-        .badge.denied { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-approved { background: var(--success-bg); color: var(--success-text); }
+        .badge-draft { background: var(--info-bg); color: var(--info-text); }
 
         .btn {
-            padding: 0.25rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            background: transparent;
-            color: var(--text-primary);
+            padding: 0.3rem 0.8rem;
+            border: none;
+            border-radius: 0.75rem;
             font-weight: 500;
             cursor: pointer;
             transition: 0.2s;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            text-decoration: none;
         }
-        .btn:hover {
-            background: var(--hover-bg);
-            border-color: var(--accent);
-        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
+
+        .schedule-list { list-style: none; padding: 0; }
+        .schedule-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
+        .schedule-list li:last-child { border-bottom: none; }
 
         @media (max-width: 768px) {
-            .sidebar { width: 90px; }
-            .sidebar .logo-area h2 { display: none; }
-            .sidebar .nav-item span { display: none; }
-            .main-content { margin-left: 90px; }
-            .sidebar.collapsed { width: 90px; }
-            .main-content.expanded { margin-left: 90px; }
-            .top-bar { flex-direction: column; align-items: flex-start; }
-        }
-        @media (max-width: 480px) {
-            .profile-name { display: none; }
-            .stats-grid { grid-template-columns: 1fr; }
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -373,30 +228,24 @@
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
-    <!-- Sidebar with NEW NAVIGATIONS and UPDATED Profile link -->
     <div class="sidebar" id="sidebar">
-        <div class="logo-area">
-            <i class="fas fa-chalkboard-teacher"></i>
-            <h2>Teacher Panel</h2>
-        </div>
-        <a href="teacher-dashboard.html" class="nav-item active"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <div class="logo-area"><i class="fas fa-chalkboard-teacher"></i><h2>Teacher Panel</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item active"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
         <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
-        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
         <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
         <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Assignment</span></a>
-        <a href="teacher-exam.html" class="nav-item"><i class="fas fa-pencil-alt"></i><span>Exam</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Tests</span></a>
         <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-square"></i><span>Create Test</span></a>
-        <a href="teacher-test.html" class="nav-item"><i class="fas fa-vial"></i><span>Test</span></a>
-        <a href="teacher-grade-submissions.html" class="nav-item"><i class="fas fa-check-circle"></i><span>Grade Submissions</span></a>
-        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-grade.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Submissions</span></a>
+        <a href="teacher-grading-engine.html" class="nav-item"><i class="fas fa-calculator"></i><span>Grading Engine</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Report Cards</span></a>
+        <a href="teacher-question-bank.html" class="nav-item"><i class="fas fa-database"></i><span>Question Bank</span></a>
+        <a href="teacher-results-dashboard.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>Results Dashboard</span></a>
         <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
         <a href="teacher-approve-students.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approve Students</span></a>
         <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-        <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
-        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
-        <a href="teacher-evaluation.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Evaluation</span></a>
-        <!-- UPDATED: Changed from "Profile" to "Update Profile" -->
         <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Update Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
@@ -408,108 +257,34 @@
                 <p>Welcome back, <span id="teacherName">Teacher</span></p>
             </div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-sun"></i>
-                    <span>Light</span>
-                    <i class="fas fa-moon"></i>
-                </div>
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
                 <div class="profile-dropdown">
-                    <div class="profile-trigger">
-                        <span class="profile-name" id="profileName">Teacher</span>
-                        <div class="profile-pic" id="profilePic">T</div>
-                    </div>
-                    <div class="dropdown-menu">
-                        <!-- UPDATED: Changed to Update Profile -->
-                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user-edit"></i> Update Profile</div>
-                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
-                    </div>
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><a href="teacher-profile.html" class="dropdown-item"><i class="fas fa-user-edit"></i> Update Profile</a><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
                 </div>
             </div>
         </div>
 
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3>Pending Lesson Notes</h3>
-                    <div class="value" id="pendingNotesCount">—</div>
-                </div>
-                <i class="fas fa-clock stat-icon"></i>
-            </div>
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3>Today's Classes</h3>
-                    <div class="value" id="todayClassesCount">—</div>
-                </div>
-                <i class="fas fa-chalkboard stat-icon"></i>
-            </div>
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3>Students in Class</h3>
-                    <div class="value" id="studentsInClassCount">—</div>
-                </div>
-                <i class="fas fa-user-graduate stat-icon"></i>
-            </div>
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3>Pending Submissions</h3>
-                    <div class="value" id="pendingSubmissionsCount">—</div>
-                </div>
-                <i class="fas fa-tasks stat-icon"></i>
-            </div>
+            <div class="stat-card"><div class="stat-info"><h3>Total Students</h3><div class="value" id="totalStudents">—</div></div><i class="fas fa-users stat-icon"></i></div>
+            <div class="stat-card"><div class="stat-info"><h3>Published Tests</h3><div class="value" id="publishedTests">—</div></div><i class="fas fa-file-alt stat-icon"></i></div>
+            <div class="stat-card"><div class="stat-info"><h3>Pending Submissions</h3><div class="value" id="pendingSubmissions">—</div></div><i class="fas fa-tasks stat-icon"></i></div>
+            <div class="stat-card"><div class="stat-info"><h3>Avg Class Score</h3><div class="value" id="avgScore">—</div></div><i class="fas fa-chart-line stat-icon"></i></div>
         </div>
 
         <div class="recent-section">
-            <div class="section-header">
-                <h2>Recent Lesson Notes</h2>
-                <a href="teacher-lesson-notes.html">View all <i class="fas fa-arrow-right"></i></a>
-            </div>
-            <div class="table-responsive">
-                <table id="recentNotesTable">
-                    <thead>
-                        <tr>
-                            <th>Subject</th>
-                            <th>Topic</th>
-                            <th>Week</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recentNotesBody">
-                        <tr><td colspan="5">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="section-header"><h2><i class="fas fa-tasks"></i> Recent Submissions to Grade</h2><a href="teacher-grade.html">View All <i class="fas fa-arrow-right"></i></a></div>
+            <div class="table-responsive"> <table><thead><tr><th>Student</th><th>Assignment/Test</th><th>Subject</th><th>Submitted</th><th>Action</th></tr></thead><tbody id="recentSubmissionsBody"><tr><td colspan="5">Loading...</td></tr></tbody></table></div>
         </div>
 
         <div class="recent-section">
-            <div class="section-header">
-                <h2>Pending Submissions to Grade</h2>
-                <a href="teacher-grade-submissions.html">View all <i class="fas fa-arrow-right"></i></a>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Assignment</th>
-                            <th>Subject</th>
-                            <th>Submitted</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pendingSubmissionsBody">
-                        <tr><td colspan="5">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="section-header"><h2><i class="fas fa-calendar-alt"></i> Today's Schedule</h2><a href="teacher-timetable.html">View Full <i class="fas fa-arrow-right"></i></a></div>
+            <div id="todaySchedule">Loading...</div>
         </div>
 
         <div class="recent-section">
-            <div class="section-header">
-                <h2>Today's Schedule</h2>
-                <a href="teacher-timetable.html">View full timetable <i class="fas fa-arrow-right"></i></a>
-            </div>
-            <div id="todaySchedule"></div>
+            <div class="section-header"><h2><i class="fas fa-clock"></i> Pending Lesson Notes</h2><a href="teacher-lesson-notes.html">View All <i class="fas fa-arrow-right"></i></a></div>
+            <div class="table-responsive"><table><thead><tr><th>Subject</th><th>Topic</th><th>Week</th><th>Status</th><th>Action</th></tr></thead><tbody id="pendingNotesBody"><tr><td colspan="5">Loading...</td></tr></tbody></table></div>
         </div>
     </div>
 
@@ -520,8 +295,7 @@
             projectId: "triangle-6e6b7",
             storageBucket: "triangle-6e6b7.firebasestorage.app",
             messagingSenderId: "673937760480",
-            appId: "1:673937760480:web:f03c06e1207232213ef085",
-            measurementId: "G-ELBMT8WHQ9"
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -530,252 +304,115 @@
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            const icon = toggleBtn.querySelector('i');
-            icon.classList.toggle('fa-chevron-left');
-            icon.classList.toggle('fa-chevron-right');
-        });
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
 
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = themeToggle.querySelector('i:first-child');
-        const themeText = themeToggle.querySelector('span');
-        function updateThemeUI(theme) {
-            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
-        }
-        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        function updateThemeUI(theme) { themeToggle.querySelector('span').textContent = theme === 'dark' ? 'Light' : 'Dark'; }
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
         themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
-            localStorage.setItem('edutopscholars-theme', next);
+            localStorage.setItem('edutop-theme', next);
             updateThemeUI(next);
         });
 
-        let currentUser = null;
-        let userData = null;
+        let currentUser = null, userData = null;
 
         auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'teacher-login.html';
-                return;
-            }
-
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists) {
-                    await auth.signOut();
-                    window.location.href = 'teacher-login.html';
-                    return;
-                }
-
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
                 userData = userDoc.data();
-                if (userData.role !== 'teacher') {
-                    await auth.signOut();
-                    window.location.href = 'index.html';
-                    return;
-                }
-                if (!userData.approved) {
-                    await auth.signOut();
-                    alert('Your account is pending admin approval.');
-                    window.location.href = 'teacher-login.html';
-                    return;
-                }
-
+                if (!(userData.approved === true || userData.status === 'approved')) { alert('Account pending approval.'); auth.signOut(); window.location.href = 'teacher-login.html'; return; }
                 currentUser = user;
                 document.getElementById('teacherName').textContent = userData.firstName || 'Teacher';
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
                 const initials = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profilePic').textContent = initials;
-
-                loadStats();
-                loadRecentNotes();
-                loadPendingSubmissions();
-                loadTodaySchedule();
-            } catch (error) {
-                console.error('Auth error:', error);
-                await auth.signOut();
-                window.location.href = 'teacher-login.html';
-            }
+                loadDashboardData();
+            } catch(e) { console.error(e); }
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            await auth.signOut();
-            window.location.href = 'index.html';
-        });
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
 
-        document.getElementById('profileLink').addEventListener('click', () => {
-            window.location.href = 'teacher-profile.html';
-        });
-
-        async function loadStats() {
-            if (!currentUser || !userData) return;
+        async function loadDashboardData() {
+            if (!currentUser) return;
 
             try {
-                const pendingNotesSnap = await db.collection('lessonNotes')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'pending')
-                    .get();
-                document.getElementById('pendingNotesCount').textContent = pendingNotesSnap.size;
-
-                const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-                let classesToday = 0;
-                if (userData.classTeaching) {
-                    const timetableSnap = await db.collection('timetable')
-                        .where('class', '==', userData.classTeaching)
-                        .where('day', '==', today)
-                        .get();
-                    classesToday = timetableSnap.size;
-                }
-                document.getElementById('todayClassesCount').textContent = classesToday;
-
+                // Total students in class
                 let studentCount = 0;
                 if (userData.classTeaching) {
-                    const studentsSnap = await db.collection('users')
-                        .where('role', '==', 'student')
-                        .where('class', '==', userData.classTeaching)
-                        .get();
+                    const studentsSnap = await db.collection('users').where('role', '==', 'student').where('class', '==', userData.classTeaching).get();
                     studentCount = studentsSnap.size;
                 }
-                document.getElementById('studentsInClassCount').textContent = studentCount;
+                document.getElementById('totalStudents').textContent = studentCount;
 
-                const submissionsSnap = await db.collection('submissions')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('graded', '==', false)
-                    .get();
-                document.getElementById('pendingSubmissionsCount').textContent = submissionsSnap.size;
-            } catch (error) {
-                console.error('Error loading stats:', error);
-            }
-        }
+                // Published tests
+                const testsSnap = await db.collection('tests').where('teacherId', '==', currentUser.uid).where('status', '==', 'published').get();
+                document.getElementById('publishedTests').textContent = testsSnap.size;
 
-        async function loadRecentNotes() {
-            if (!currentUser) return;
+                // Pending submissions
+                const submissionsSnap = await db.collection('submissions').where('teacherId', '==', currentUser.uid).where('graded', '==', false).get();
+                document.getElementById('pendingSubmissions').textContent = submissionsSnap.size;
 
-            try {
-                const notesSnap = await db.collection('lessonNotes')
-                    .where('teacherId', '==', currentUser.uid)
-                    .orderBy('submittedAt', 'desc')
-                    .limit(5)
-                    .get();
+                // Recent submissions
+                let subsHtml = '';
+                for (const doc of submissionsSnap.docs.slice(0, 5)) {
+                    const sub = doc.data();
+                    let studentName = sub.studentName || 'Student';
+                    try {
+                        const studentDoc = await db.collection('users').doc(sub.studentId).get();
+                        if (studentDoc.exists) studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim() || 'Student';
+                    } catch(e) {}
+                    subsHtml += `<tr><td>${studentName}</td><td>${sub.assignmentTitle || 'Assignment'}</td><td>${sub.subject || '—'}</td><td>${sub.submittedAt ? new Date(sub.submittedAt.toDate()).toLocaleDateString() : '—'}</td><td><a href="teacher-grade.html?assignmentId=${sub.assignmentId}" class="btn btn-primary btn-sm">Grade</a></td></tr>`;
+                }
+                document.getElementById('recentSubmissionsBody').innerHTML = subsHtml || '<tr><td colspan="5">No pending submissions</td></tr>';
 
-                const tbody = document.getElementById('recentNotesBody');
-                if (notesSnap.empty) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem;">No lesson notes yet.</td></tr>';
-                    return;
+                // Today's schedule
+                const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+                if (userData.classTeaching) {
+                    const timetableSnap = await db.collection('timetable').where('class', '==', userData.classTeaching).where('day', '==', today).orderBy('startTime').get();
+                    let scheduleHtml = '<ul class="schedule-list">';
+                    if (timetableSnap.empty) scheduleHtml += '<li>No classes scheduled for today</li>';
+                    timetableSnap.forEach(doc => {
+                        const p = doc.data();
+                        scheduleHtml += `<li><i class="fas fa-clock"></i> ${p.startTime} – ${p.endTime}: <strong>${p.subject}</strong> (${p.teacher || 'You'})</li>`;
+                    });
+                    scheduleHtml += '</ul>';
+                    document.getElementById('todaySchedule').innerHTML = scheduleHtml;
+                } else {
+                    document.getElementById('todaySchedule').innerHTML = '<p>No class assigned</p>';
                 }
 
-                let html = '';
+                // Pending lesson notes
+                const notesSnap = await db.collection('lessonNotes').where('teacherId', '==', currentUser.uid).where('status', '==', 'pending').limit(5).get();
+                let notesHtml = '';
                 notesSnap.forEach(doc => {
                     const note = doc.data();
-                    const status = note.status || 'draft';
-                    html += `
-                        <tr>
-                            <td>${note.subject || '—'}</td>
-                            <td>${note.topic || '—'}</td>
-                            <td>Week ${note.week || '?'}</td>
-                            <td><span class="badge ${status}">${status}</span></td>
-                            <td><button class="btn" onclick="viewNote('${doc.id}')">View</button></td>
-                        </tr>
-                    `;
+                    notesHtml += `<tr><td>${note.subject || '—'}</td><td>${note.topic || '—'}</td><td>Week ${note.week || '?'}</td><td><span class="badge badge-pending">Pending</span></td><td><a href="teacher-lesson-notes.html?note=${doc.id}" class="btn btn-outline btn-sm">Review</a></td></tr>`;
                 });
-                tbody.innerHTML = html;
-            } catch (error) {
-                console.error('Error loading recent notes:', error);
-                document.getElementById('recentNotesBody').innerHTML = '<tr><td colspan="5">Error loading notes.</td></tr>';
-            }
-        }
+                document.getElementById('pendingNotesBody').innerHTML = notesHtml || '<tr><td colspan="5">No pending lesson notes</td></tr>';
 
-        async function loadPendingSubmissions() {
-            if (!currentUser) return;
-
-            try {
-                const submissionsSnap = await db.collection('submissions')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('graded', '==', false)
-                    .limit(5)
-                    .get();
-
-                const tbody = document.getElementById('pendingSubmissionsBody');
-                if (submissionsSnap.empty) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem;">No pending submissions to grade.</td></tr>';
-                    return;
+                // Average score calculation
+                const gradedSubs = await db.collection('submissions').where('teacherId', '==', currentUser.uid).where('graded', '==', true).get();
+                let totalScore = 0, totalMax = 0;
+                for (const doc of gradedSubs.docs) {
+                    const sub = doc.data();
+                    const assignDoc = await db.collection('assignments').doc(sub.assignmentId).get();
+                    if (assignDoc.exists) {
+                        totalScore += sub.score || 0;
+                        totalMax += assignDoc.data().totalPoints || 100;
+                    }
                 }
-
-                let html = '';
-                for (const doc of submissionsSnap.docs) {
-                    const submission = doc.data();
-                    let studentName = submission.studentName || 'Student';
-                    try {
-                        const studentDoc = await db.collection('users').doc(submission.studentId).get();
-                        if (studentDoc.exists) {
-                            const studentData = studentDoc.data();
-                            studentName = `${studentData.firstName || ''} ${studentData.surname || ''}`.trim() || 'Student';
-                        }
-                    } catch (e) {}
-                    
-                    html += `
-                        <tr>
-                            <td>${studentName}</td>
-                            <td>${submission.assignmentTitle || 'Assignment'}</td>
-                            <td>${submission.subject || '—'}</td>
-                            <td>${submission.submittedAt ? new Date(submission.submittedAt.seconds * 1000).toLocaleDateString() : '—'}</td>
-                            <td><button class="btn" onclick="gradeSubmission('${doc.id}')">Grade</button></td>
-                        </tr>
-                    `;
-                }
-                tbody.innerHTML = html;
-            } catch (error) {
-                console.error('Error loading pending submissions:', error);
-                tbody.innerHTML = '<tr><td colspan="5">Error loading submissions.</td></tr>';
-            }
+                const avg = totalMax ? ((totalScore / totalMax) * 100).toFixed(1) : 0;
+                document.getElementById('avgScore').textContent = avg + '%';
+            } catch(e) { console.error(e); }
         }
-
-        async function loadTodaySchedule() {
-            const scheduleDiv = document.getElementById('todaySchedule');
-            if (!userData || !userData.classTeaching) {
-                scheduleDiv.innerHTML = '<p>No class assigned.</p>';
-                return;
-            }
-
-            try {
-                const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-                const timetableSnap = await db.collection('timetable')
-                    .where('class', '==', userData.classTeaching)
-                    .where('day', '==', today)
-                    .orderBy('startTime')
-                    .get();
-
-                if (timetableSnap.empty) {
-                    scheduleDiv.innerHTML = '<p>No classes scheduled for today.</p>';
-                    return;
-                }
-
-                let html = '<ul style="list-style:none; padding:0;">';
-                timetableSnap.forEach(doc => {
-                    const period = doc.data();
-                    html += `<li style="margin-bottom:0.5rem;">⏰ ${period.startTime} – ${period.endTime}: <strong>${period.subject}</strong></li>`;
-                });
-                html += '</ul>';
-                scheduleDiv.innerHTML = html;
-            } catch (error) {
-                console.error('Error loading schedule:', error);
-                scheduleDiv.innerHTML = '<p>Error loading schedule.</p>';
-            }
-        }
-
-        window.viewNote = (noteId) => {
-            window.location.href = `teacher-lesson-notes.html?note=${noteId}`;
-        };
-
-        window.gradeSubmission = (submissionId) => {
-            window.location.href = `teacher-grade-submissions.html?id=${submissionId}`;
-        };
     </script>
 </body>
 </html>
