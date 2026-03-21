@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Report Card | Student Performance</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: rgba(255,255,255,0.95);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05);
+            --success-bg: #dcfce7;
+            --success-text: #16a34a;
+            --warning-bg: #fef9c3;
+            --warning-text: #ca8a04;
+            --danger-bg: #fee2e2;
+            --danger-text: #dc2626;
+            --info-bg: #dbeafe;
+            --info-text: #2563eb;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: rgba(15,23,42,0.95);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #1e293b;
+            --card-bg: #1e293b;
+            --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            transition: all 0.3s;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .orb {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%);
+            filter: blur(100px);
+            z-index: 0;
+            animation: float 20s infinite alternate;
+            pointer-events: none;
+        }
+
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(40px, 40px) scale(1.1); }
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar.collapsed { width: 90px; }
+
+        .sidebar .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            padding: 0 0.5rem;
+        }
+
+        .sidebar .logo-area i {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar .logo-area h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            white-space: nowrap;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar.collapsed .logo-area h2 { display: none; }
+
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1.2rem;
+            border-radius: 1rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .sidebar .nav-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+            transform: translateX(5px);
+            border-color: var(--border);
+        }
+
+        .sidebar .nav-item.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            box-shadow: 0 5px 15px -5px var(--accent);
+        }
+
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+
+        .sidebar .toggle-btn {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+            position: relative;
+            z-index: 5;
+        }
+
+        .main-content.expanded { margin-left: 90px; }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.3rem 0.3rem 0.3rem 1rem;
+        }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 2px 10px var(--accent);
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 55px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            min-width: 200px;
+            display: none;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Report Card */
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .report-header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .school-name {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .student-info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .info-item i {
+            width: 2rem;
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+
+        .info-item strong {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        .info-item span {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Subject Table */
+        .subject-table {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .subject-table h3 {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem 1rem;
+            background: var(--hover-bg);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .total-row {
+            background: var(--hover-bg);
+            font-weight: 700;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .grade-A { background: var(--success-bg); color: var(--success-text); }
+        .grade-B { background: var(--success-bg); color: var(--success-text); }
+        .grade-C { background: var(--warning-bg); color: var(--warning-text); }
+        .grade-D { background: var(--warning-bg); color: var(--warning-text); }
+        .grade-F { background: var(--danger-bg); color: var(--danger-text); }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .summary-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Psychomotor & Affective */
+        .psychomotor-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .psychomotor-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .skill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--hover-bg);
+            border-radius: 0.75rem;
+        }
+
+        .skill-rating {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Comments Section */
+        .comments-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .comments-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .comment-box {
+            background: var(--hover-bg);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .comment-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .comment-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59,130,246,0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--hover-bg);
+            border-color: var(--accent);
+        }
+
+        /* Selectors */
+        .selectors {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .selector-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .selector-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .selector-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--hover-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem;
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .loading-overlay.active { display: flex; }
+        .loading-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            text-align: center;
+        }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; }
+
+        @media print {
+            .sidebar, .top-bar, .selectors, .action-buttons, .theme-toggle, .profile-area, .toggle-btn {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding: 0 !important;
+            }
+            body {
+                background: white;
+            }
+            .report-container {
+                max-width: 100%;
+            }
+            .orb {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .info-grid { grid-template-columns: 1fr; }
+            .skills-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-graduation-cap"></i><h2>EduTop</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Tests</span></a>
+        <a href="teacher-report-card.html" class="nav-item active"><i class="fas fa-file-alt"></i><span>Report Cards</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Report Cards</h1>
+                <p>Generate comprehensive student performance reports</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-container" id="reportContainer">
+            <div class="selectors" id="selectors">
+                <div class="selector-group">
+                    <label><i class="fas fa-users"></i> Select Student</label>
+                    <select id="studentSelect">
+                        <option value="">-- Select Student --</option>
+                    </select>
+                </div>
+                <div class="selector-group">
+                    <label><i class="fas fa-calendar"></i> Term</label>
+                    <select id="termSelect">
+                        <option value="1">First Term</option>
+                        <option value="2">Second Term</option>
+                        <option value="3">Third Term</option>
+                    </select>
+                </div>
+                <div class="selector-group">
+                    <label><i class="fas fa-calendar-alt"></i> Session</label>
+                    <select id="sessionSelect">
+                        <option value="2024/2025">2024/2025</option>
+                        <option value="2023/2024">2023/2024</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="generateBtn"><i class="fas fa-file-alt"></i> Generate Report</button>
+            </div>
+
+            <div id="reportContent">
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>Select a student to view report card</h3>
+                    <p>Choose a student from the dropdown to generate their report card</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <i class="fas fa-spinner fa-spin"></i>
+            <h3>Generating Report Card...</h3>
+            <p>Please wait</p>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+        
+        let currentUser = null;
+        let userData = null;
+        let students = [];
+        let subjects = [];
+        let assignments = [];
+        let tests = [];
+        
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function getGrade(percentage) {
+            if (percentage >= 75) return { letter: 'A', description: 'Excellent' };
+            if (percentage >= 65) return { letter: 'B', description: 'Good' };
+            if (percentage >= 50) return { letter: 'C', description: 'Average' };
+            if (percentage >= 40) return { letter: 'D', description: 'Pass' };
+            return { letter: 'F', description: 'Fail' };
+        }
+        
+        async function loadStudents() {
+            if (!currentUser) return;
+            
+            showLoading();
+            try {
+                const teacherClass = userData.classTeaching;
+                const studentsSnap = await db.collection('users')
+                    .where('role', '==', 'student')
+                    .where('class', '==', teacherClass)
+                    .get();
+                
+                students = [];
+                studentsSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.approved === true || data.status === 'approved') {
+                        students.push({ id: doc.id, ...data });
+                    }
+                });
+                
+                const studentSelect = document.getElementById('studentSelect');
+                studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
+                students.forEach(student => {
+                    const name = `${student.firstName || ''} ${student.surname || ''}`.trim() || 'Unknown';
+                    const option = document.createElement('option');
+                    option.value = student.id;
+                    option.textContent = `${name} (${student.class || 'No class'})`;
+                    studentSelect.appendChild(option);
+                });
+                
+                // Get subjects from syllabus
+                const syllabusSnap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'approved')
+                    .get();
+                
+                const subjectSet = new Set();
+                syllabusSnap.forEach(doc => {
+                    const data = doc.data();
+                    subjectSet.add(data.subject);
+                });
+                subjects = Array.from(subjectSet);
+                
+            } catch(e) {
+                console.error('Error loading students:', e);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function loadStudentData(studentId, term, session) {
+            showLoading();
+            try {
+                // Load assignments for this student
+                const assignSnap = await db.collection('submissions')
+                    .where('studentId', '==', studentId)
+                    .where('graded', '==', true)
+                    .get();
+                
+                assignments = [];
+                assignSnap.forEach(doc => {
+                    const data = doc.data();
+                    assignments.push(data);
+                });
+                
+                // Load tests for this student
+                const testSnap = await db.collection('testSubmissions')
+                    .where('studentId', '==', studentId)
+                    .get();
+                
+                tests = [];
+                testSnap.forEach(doc => {
+                    const data = doc.data();
+                    tests.push(data);
+                });
+                
+                return true;
+            } catch(e) {
+                console.error('Error loading student data:', e);
+                return false;
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function calculateSubjectScores() {
+            const subjectScores = {};
+            
+            subjects.forEach(subject => {
+                subjectScores[subject] = {
+                    assignments: [],
+                    tests: [],
+                    totalScore: 0,
+                    maxPossible: 0
+                };
+            });
+            
+            // Process assignments
+            assignments.forEach(assign => {
+                const subject = assign.subject;
+                if (subjectScores[subject]) {
+                    const percentage = (assign.score / assign.totalPoints) * 100;
+                    subjectScores[subject].assignments.push(percentage);
+                }
+            });
+            
+            // Process tests
+            tests.forEach(test => {
+                const subject = test.subject;
+                if (subjectScores[subject]) {
+                    const percentage = (test.score / test.totalPoints) * 100;
+                    subjectScores[subject].tests.push(percentage);
+                }
+            });
+            
+            // Calculate final scores
+            const results = [];
+            let totalPercentage = 0;
+            let subjectCount = 0;
+            
+            subjects.forEach(subject => {
+                const data = subjectScores[subject];
+                const assignAvg = data.assignments.length > 0 
+                    ? data.assignments.reduce((a, b) => a + b, 0) / data.assignments.length 
+                    : 0;
+                const testAvg = data.tests.length > 0 
+                    ? data.tests.reduce((a, b) => a + b, 0) / data.tests.length 
+                    : 0;
+                
+                // Weight: Assignment 30%, Test 70% (can be adjusted)
+                const finalPercentage = (assignAvg * 0.3) + (testAvg * 0.7);
+                const grade = getGrade(finalPercentage);
+                
+                results.push({
+                    subject,
+                    assignmentAvg: assignAvg.toFixed(1),
+                    testAvg: testAvg.toFixed(1),
+                    total: finalPercentage.toFixed(1),
+                    grade: grade.letter,
+                    gradeDesc: grade.description
+                });
+                
+                totalPercentage += finalPercentage;
+                subjectCount++;
+            });
+            
+            const overallPercentage = subjectCount > 0 ? (totalPercentage / subjectCount).toFixed(1) : 0;
+            const overallGrade = getGrade(overallPercentage);
+            
+            return { results, overallPercentage, overallGrade, subjectCount };
+        }
+        
+        async function generateReport() {
+            const studentId = document.getElementById('studentSelect').value;
+            const term = document.getElementById('termSelect').value;
+            const session = document.getElementById('sessionSelect').value;
+            
+            if (!studentId) {
+                alert('Please select a student');
+                return;
+            }
+            
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            await loadStudentData(studentId, term, session);
+            const { results, overallPercentage, overallGrade, subjectCount } = calculateSubjectScores();
+            
+            const studentName = `${student.firstName || ''} ${student.surname || ''}`.trim() || 'Unknown';
+            const termNames = { 1: 'First Term', 2: 'Second Term', 3: 'Third Term' };
+            
+            const reportHtml = `
+                <div class="report-header">
+                    <div class="school-name">EduTop International School</div>
+                    <div class="report-title">ACADEMIC REPORT CARD</div>
+                    <div>${session} | ${termNames[term]}</div>
+                </div>
+                
+                <div class="student-info-card">
+                    <div class="info-grid">
+                        <div class="info-item"><i class="fas fa-user-graduate"></i><div><strong>Student Name</strong><span>${escapeHtml(studentName)}</span></div></div>
+                        <div class="info-item"><i class="fas fa-id-card"></i><div><strong>Student ID</strong><span>${student.id.substring(0, 8).toUpperCase()}</span></div></div>
+                        <div class="info-item"><i class="fas fa-users"></i><div><strong>Class</strong><span>${student.class || 'Not Assigned'}</span></div></div>
+                        <div class="info-item"><i class="fas fa-calendar"></i><div><strong>Term</strong><span>${termNames[term]}</span></div></div>
+                    </div>
+                </div>
+                
+                <div class="subject-table">
+                    <h3><i class="fas fa-book-open"></i> Academic Performance</h3>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>S/N</th>
+                                    <th>Subject</th>
+                                    <th>Assignment (30%)</th>
+                                    <th>Test (70%)</th>
+                                    <th>Total (%)</th>
+                                    <th>Grade</th>
+                                    <th>Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${results.map((r, idx) => `
+                                    <tr>
+                                        <td>${idx + 1}</td>
+                                        <td><strong>${escapeHtml(r.subject)}</strong></td>
+                                        <td>${r.assignmentAvg}%</td>
+                                        <td>${r.testAvg}%</td>
+                                        <td><strong>${r.total}%</strong></td>
+                                        <td><span class="grade-badge grade-${r.grade}">${r.grade}</span></td>
+                                        <td>${r.gradeDesc}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr class="total-row">
+                                    <td colspan="4"><strong>OVERALL PERFORMANCE</strong></td>
+                                    <td><strong>${overallPercentage}%</strong></td>
+                                    <td><span class="grade-badge grade-${overallGrade.letter}">${overallGrade.letter}</span></td>
+                                    <td><strong>${overallGrade.description}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-value">${results.length}</div>
+                        <div class="summary-label">Subjects Offered</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${overallPercentage}%</div>
+                        <div class="summary-label">Overall Score</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${overallGrade.letter}</div>
+                        <div class="summary-label">Cumulative Grade</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${results.filter(r => r.grade !== 'F').length}</div>
+                        <div class="summary-label">Subjects Passed</div>
+                    </div>
+                </div>
+                
+                <div class="psychomotor-section">
+                    <h3><i class="fas fa-heart"></i> Psychomotor & Affective Skills</h3>
+                    <div class="skills-grid">
+                        <div class="skill-item"><span>Punctuality</span><span class="skill-rating">★★★★☆</span></div>
+                        <div class="skill-item"><span>Neatness</span><span class="skill-rating">★★★★☆</span></div>
+                        <div class="skill-item"><span>Leadership</span><span class="skill-rating">★★★☆☆</span></div>
+                        <div class="skill-item"><span>Participation</span><span class="skill-rating">★★★★☆</span></div>
+                        <div class="skill-item"><span>Attentiveness</span><span class="skill-rating">★★★★☆</span></div>
+                        <div class="skill-item"><span>Teamwork</span><span class="skill-rating">★★★☆☆</span></div>
+                    </div>
+                </div>
+                
+                <div class="comments-section">
+                    <h3><i class="fas fa-comment-dots"></i> Comments</h3>
+                    <div class="comment-box">
+                        <div class="comment-label">Teacher's Comment</div>
+                        <div class="comment-text">${overallPercentage >= 75 ? 'Excellent performance! Keep up the good work.' : overallPercentage >= 50 ? 'Good effort. More consistency will improve results.' : 'Needs improvement. Please focus on core subjects.'}</div>
+                    </div>
+                    <div class="comment-box">
+                        <div class="comment-label">Principal's Comment</div>
+                        <div class="comment-text">Approved. Student is promoted to the next class.</div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print Report Card</button>
+                    <button class="btn btn-outline" onclick="downloadReport()"><i class="fas fa-download"></i> Download PDF</button>
+                </div>
+            `;
+            
+            document.getElementById('reportContent').innerHTML = reportHtml;
+        }
+        
+        window.downloadReport = () => {
+            window.print();
+        };
+        
+        document.getElementById('generateBtn').addEventListener('click', generateReport);
+        
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                await loadStudents();
+            } catch(e) { console.error(e); }
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+    </script>
+</body>
+</html>
