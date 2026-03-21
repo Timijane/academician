@@ -366,7 +366,7 @@
             color: var(--accent);
         }
 
-        .subject-tabs, .week-tabs {
+        .subject-tabs {
             display: flex;
             gap: 0.5rem;
             margin-bottom: 1.5rem;
@@ -456,6 +456,10 @@
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        select.form-control {
+            cursor: pointer;
         }
 
         textarea.form-control {
@@ -818,6 +822,19 @@
             margin-bottom: 1rem;
         }
 
+        .info-box {
+            background: var(--info-bg);
+            border-left: 4px solid var(--accent);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-box i {
+            color: var(--accent);
+            margin-right: 0.5rem;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 80px;
@@ -833,8 +850,7 @@
                 padding: 1rem;
             }
 
-            .subject-tabs,
-            .week-tabs {
+            .subject-tabs {
                 width: 100%;
                 justify-content: center;
             }
@@ -929,7 +945,6 @@
         </div>
 
         <div class="subject-tabs" id="subjectTabs"></div>
-        <div class="week-tabs" id="weekTabs"></div>
 
         <div class="card">
             <div class="card-header">
@@ -948,13 +963,19 @@
                 </div>
                 
                 <div class="form-group">
-                    <label><i class="fas fa-calendar-week"></i> Week</label>
-                    <input type="text" id="week" class="form-control" readonly>
+                    <label><i class="fas fa-calendar-week"></i> Select Week *</label>
+                    <select id="weekSelect" class="form-control" required>
+                        <option value="">-- Select Week --</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
-                    <label><i class="fas fa-tag"></i> Topic (from syllabus)</label>
-                    <input type="text" id="topic" class="form-control" readonly>
+                    <label><i class="fas fa-tag"></i> Topic (auto-populated from syllabus)</label>
+                    <input type="text" id="topic" class="form-control" readonly placeholder="Topic will appear here after selecting week">
+                </div>
+                
+                <div class="info-box" id="topicInfoBox" style="display: none;">
+                    <i class="fas fa-info-circle"></i> The topic is automatically loaded from your syllabus for the selected week.
                 </div>
                 
                 <div class="form-group">
@@ -1089,7 +1110,7 @@
             <div class="table-responsive">
                 <table>
                     <thead>
-                        <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th></tr>
+                        <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th>
                     </thead>
                     <tbody id="assignmentsList">
                         <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
@@ -1208,9 +1229,8 @@
         let userData = null;
         let subjects = [];
         let currentSubject = null;
-        let currentWeek = null;
-        let syllabusWeeks = []; // Array to store weeks data
-        let lessonNotesMap = {}; // Store lesson notes by week
+        let syllabusWeeksMap = {}; // Store weeks by subject
+        let currentWeekData = null;
         let groq = null;
         let questions = [];
         let essayPrompt = '';
@@ -1407,12 +1427,124 @@
             renderQuestions();
         };
         
+        // Load Syllabus Weeks
+        async function loadSyllabusWeeks() {
+            if (!currentUser || !subjects.length) return;
+            
+            showLoading();
+            try {
+                const snap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'approved')
+                    .get();
+                
+                // Build map of weeks by subject
+                syllabusWeeksMap = {};
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const subject = data.subject;
+                    if (!syllabusWeeksMap[subject]) {
+                        syllabusWeeksMap[subject] = [];
+                    }
+                    syllabusWeeksMap[subject].push({
+                        week: data.week,
+                        topic: data.topic,
+                        id: doc.id
+                    });
+                });
+                
+                // Sort weeks for each subject
+                for (let subject in syllabusWeeksMap) {
+                    syllabusWeeksMap[subject].sort((a, b) => a.week - b.week);
+                }
+                
+                console.log('Loaded syllabus weeks:', syllabusWeeksMap);
+            } catch (error) {
+                console.error('Error loading syllabus:', error);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // Populate Week Dropdown
+        function populateWeekDropdown() {
+            const weekSelect = document.getElementById('weekSelect');
+            weekSelect.innerHTML = '<option value="">-- Select Week --</option>';
+            
+            if (!currentSubject || !syllabusWeeksMap[currentSubject] || syllabusWeeksMap[currentSubject].length === 0) {
+                weekSelect.innerHTML = '<option value="">-- No weeks available. Please create syllabus first --</option>';
+                document.getElementById('topic').value = '';
+                document.getElementById('topicInfoBox').style.display = 'none';
+                return;
+            }
+            
+            const weeks = syllabusWeeksMap[currentSubject];
+            weeks.forEach(weekData => {
+                const option = document.createElement('option');
+                option.value = weekData.week;
+                option.textContent = `Week ${weekData.week}: ${weekData.topic.length > 50 ? weekData.topic.substring(0, 50) + '...' : weekData.topic}`;
+                option.title = weekData.topic;
+                option.dataset.topic = weekData.topic;
+                weekSelect.appendChild(option);
+            });
+            
+            document.getElementById('topicInfoBox').style.display = 'block';
+        }
+        
+        // Handle week selection change
+        function onWeekChange() {
+            const weekSelect = document.getElementById('weekSelect');
+            const selectedOption = weekSelect.options[weekSelect.selectedIndex];
+            const week = weekSelect.value;
+            
+            if (!week) {
+                document.getElementById('topic').value = '';
+                return;
+            }
+            
+            const topic = selectedOption?.dataset?.topic || '';
+            document.getElementById('topic').value = topic;
+            currentWeekData = {
+                week: parseInt(week),
+                topic: topic
+            };
+        }
+        
+        // Subject Selection
+        function renderSubjectTabs() {
+            const container = document.getElementById('subjectTabs');
+            container.innerHTML = '';
+            subjects.forEach(sub => {
+                const tab = document.createElement('span');
+                tab.className = 'tab';
+                tab.textContent = sub;
+                tab.onclick = () => switchSubject(sub, tab);
+                container.appendChild(tab);
+            });
+            if (subjects.length) {
+                switchSubject(subjects[0], container.children[0]);
+            }
+        }
+        
+        function switchSubject(subject, target) {
+            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
+            target.classList.add('active');
+            currentSubject = subject;
+            document.getElementById('subject').value = subject;
+            
+            // Reset week and topic
+            document.getElementById('weekSelect').value = '';
+            document.getElementById('topic').value = '';
+            
+            // Populate week dropdown
+            populateWeekDropdown();
+        }
+        
         // Load Lesson Notes for AI Context
         async function loadLessonNotesForWeek(subject, week) {
             if (!currentUser) return null;
             
             try {
-                // First get syllabus ID for this subject and week
                 const syllabusSnap = await db.collection('syllabus')
                     .where('teacherId', '==', currentUser.uid)
                     .where('subject', '==', subject)
@@ -1425,7 +1557,6 @@
                 
                 const syllabusId = syllabusSnap.docs[0].id;
                 
-                // Get lesson notes for this syllabus
                 const notesSnap = await db.collection('lessonNotes')
                     .where('syllabusId', '==', syllabusId)
                     .where('teacherId', '==', currentUser.uid)
@@ -1443,46 +1574,7 @@
             }
         }
         
-        // Load Resources for AI Context
-        async function loadResourcesForWeek(subject, week) {
-            if (!currentUser) return [];
-            
-            try {
-                const syllabusSnap = await db.collection('syllabus')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', subject)
-                    .where('week', '==', parseInt(week))
-                    .where('status', '==', 'approved')
-                    .limit(1)
-                    .get();
-                
-                if (syllabusSnap.empty) return [];
-                
-                const syllabusId = syllabusSnap.docs[0].id;
-                
-                const notesSnap = await db.collection('lessonNotes')
-                    .where('syllabusId', '==', syllabusId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .limit(1)
-                    .get();
-                
-                if (notesSnap.empty) return [];
-                
-                const lessonNoteId = notesSnap.docs[0].id;
-                
-                const resourcesSnap = await db.collection('resources')
-                    .where('lessonNoteId', '==', lessonNoteId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .get();
-                
-                return resourcesSnap.docs.map(doc => doc.data());
-            } catch (error) {
-                console.error('Error loading resources:', error);
-                return [];
-            }
-        }
-        
-        // AI Generation with Context
+        // AI Generation
         const aiModal = document.getElementById('aiModal');
         
         window.openAIModal = () => aiModal.classList.add('active');
@@ -1498,8 +1590,14 @@
                 return;
             }
             
-            if (!currentSubject || !currentWeek) {
-                alert('Please select a subject and week first. This helps the AI create relevant questions based on your lesson content.');
+            if (!currentSubject) {
+                alert('Please select a subject first.');
+                return;
+            }
+            
+            const week = document.getElementById('weekSelect').value;
+            if (!week) {
+                alert('Please select a week first. This helps the AI create relevant questions based on your lesson content.');
                 return;
             }
             
@@ -1509,7 +1607,7 @@
             const topic = document.getElementById('topic').value;
             
             const chatDiv = document.getElementById('aiChat');
-            chatDiv.innerHTML += `<div class="message user">Generate ${count} ${difficulty} ${questionType} questions about "${topic}" (Week ${currentWeek})</div>`;
+            chatDiv.innerHTML += `<div class="message user">Generate ${count} ${difficulty} ${questionType} questions about "${topic}" (Week ${week})</div>`;
             
             const thinking = document.createElement('div');
             thinking.className = 'message assistant';
@@ -1520,14 +1618,11 @@
             showLoading();
             
             try {
-                // Load lesson notes and resources for context
                 thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing your lesson notes...';
-                const lessonNote = await loadLessonNotesForWeek(currentSubject, currentWeek);
-                const resources = await loadResourcesForWeek(currentSubject, currentWeek);
+                const lessonNote = await loadLessonNotesForWeek(currentSubject, week);
                 
                 thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating questions based on your teaching materials...';
                 
-                // Build context from lesson notes and resources
                 let contextText = `Topic: ${topic}\n\n`;
                 
                 if (lessonNote) {
@@ -1535,22 +1630,11 @@
                     if (lessonNote.objectives) {
                         contextText += `Learning Objectives:\n${lessonNote.objectives}\n\n`;
                     }
-                }
-                
-                if (resources.length > 0) {
-                    contextText += `Teaching Resources/Materials:\n`;
-                    resources.forEach(res => {
-                        contextText += `- ${res.title || res.name || 'Resource'}: ${res.description || ''}\n`;
-                    });
-                    contextText += `\n`;
-                }
-                
-                // Fallback if no lesson notes found
-                if (!lessonNote && resources.length === 0) {
+                } else {
                     contextText += `Note: No lesson notes found for this week. Please create lesson notes first for better AI-generated questions. For now, generating general questions about ${topic}.\n\n`;
                 }
                 
-                let prompt = `You are an expert educational content creator. Based on the following teaching materials for ${currentSubject} (Week ${currentWeek}):\n\n${contextText}\n\n`;
+                let prompt = `You are an expert educational content creator. Based on the following teaching materials for ${currentSubject} (Week ${week}):\n\n${contextText}\n\n`;
                 
                 if (questionType === 'mcq') {
                     prompt += `Generate ${count} ${difficulty} difficulty multiple-choice questions. Each question should have 4 options (A, B, C, D) with one correct answer. Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
@@ -1610,10 +1694,12 @@
             }
         });
         
-        // Refresh button
         document.getElementById('refreshAssignmentsBtn').addEventListener('click', () => {
             loadAssignments();
         });
+        
+        // Week select change listener
+        document.getElementById('weekSelect').addEventListener('change', onWeekChange);
         
         async function saveAssignment(status) {
             const type = document.querySelector('input[name="assignmentType"]:checked').value;
@@ -1625,11 +1711,16 @@
             const allowResubmission = document.getElementById('allowResubmission').checked;
             const aiGradingSuggestions = document.getElementById('aiGradingSuggestions').checked;
             const subject = currentSubject;
-            const week = currentWeek;
+            const week = document.getElementById('weekSelect').value;
             const topic = document.getElementById('topic').value;
             
-            if (!subject || !week) {
-                alert('Please select a subject and week.');
+            if (!subject) {
+                alert('Please select a subject.');
+                return;
+            }
+            
+            if (!week) {
+                alert('Please select a week.');
                 return;
             }
             
@@ -1718,6 +1809,8 @@
             document.getElementById('latePenalty').value = '0';
             document.getElementById('allowResubmission').checked = false;
             document.getElementById('aiGradingSuggestions').checked = false;
+            document.getElementById('weekSelect').value = '';
+            document.getElementById('topic').value = '';
             questions = [];
             uploadedFiles = [];
             renderQuestions();
@@ -1775,7 +1868,7 @@
                     html += `
                         <tr>
                             <td>${typeBadge}</td>
-                            <td>${a.subject}</td>
+                            <td>${escapeHtml(a.subject)}</td>
                             <td>Week ${a.week}</td>
                             <td><strong>${escapeHtml(a.title)}</strong></td>
                             <td>${dueDateFormatted}</td>
@@ -1813,7 +1906,7 @@
                 currentDocId = id;
                 document.getElementById('docId').value = id;
                 
-                // Set subject and week
+                // Set subject
                 if (a.subject !== currentSubject) {
                     const tabs = document.querySelectorAll('#subjectTabs .tab');
                     for (let tab of tabs) {
@@ -1824,12 +1917,13 @@
                     }
                 }
                 
-                // Wait for week tabs to load then select
+                // Wait for week dropdown to populate then set value
                 setTimeout(() => {
-                    const wtabs = document.querySelectorAll('#weekTabs .tab');
-                    for (let w of wtabs) {
-                        if (w.textContent.includes(`Week ${a.week}`)) {
-                            w.click();
+                    const weekSelect = document.getElementById('weekSelect');
+                    for (let i = 0; i < weekSelect.options.length; i++) {
+                        if (weekSelect.options[i].value == a.week) {
+                            weekSelect.selectedIndex = i;
+                            onWeekChange();
                             break;
                         }
                     }
@@ -1869,111 +1963,6 @@
             window.location.href = `teacher-grade.html?assignmentId=${id}`;
         };
         
-        // Subject and Week Management - FIXED VERSION
-        async function loadSyllabi() {
-            if (!currentUser || !subjects.length) return;
-            
-            showLoading();
-            try {
-                const snap = await db.collection('syllabus')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'approved')
-                    .get();
-                
-                syllabusWeeks = [];
-                const subjectWeeksMap = {};
-                
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    const subject = data.subject;
-                    if (!subjectWeeksMap[subject]) {
-                        subjectWeeksMap[subject] = [];
-                    }
-                    subjectWeeksMap[subject].push({
-                        week: data.week,
-                        topic: data.topic,
-                        id: doc.id
-                    });
-                });
-                
-                // Sort weeks for each subject
-                for (let subject in subjectWeeksMap) {
-                    subjectWeeksMap[subject].sort((a, b) => a.week - b.week);
-                }
-                
-                syllabusWeeks = subjectWeeksMap;
-            } catch (error) {
-                console.error('Error loading syllabus:', error);
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        function renderSubjectTabs() {
-            const container = document.getElementById('subjectTabs');
-            container.innerHTML = '';
-            subjects.forEach(sub => {
-                const tab = document.createElement('span');
-                tab.className = 'tab';
-                tab.textContent = sub;
-                tab.onclick = () => switchSubject(sub, tab);
-                container.appendChild(tab);
-            });
-            if (subjects.length) {
-                switchSubject(subjects[0], container.children[0]);
-            }
-        }
-        
-        function switchSubject(subject, target) {
-            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
-            target.classList.add('active');
-            currentSubject = subject;
-            document.getElementById('subject').value = subject;
-            
-            const weeksData = syllabusWeeks[subject] || [];
-            renderWeekTabs(weeksData);
-            
-            if (weeksData.length) {
-                selectWeek(weeksData[0].week, weeksData[0].topic, null);
-            } else {
-                document.getElementById('week').value = '';
-                document.getElementById('topic').value = '';
-                document.getElementById('weekTabs').innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks found. Please create syllabus first.</div>';
-            }
-        }
-        
-        function renderWeekTabs(weeksData) {
-            const container = document.getElementById('weekTabs');
-            container.innerHTML = '';
-            
-            if (!weeksData.length) {
-                container.innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks available</div>';
-                return;
-            }
-            
-            weeksData.forEach(w => {
-                const tab = document.createElement('span');
-                tab.className = 'tab';
-                tab.textContent = `Week ${w.week}: ${w.topic.length > 30 ? w.topic.substring(0, 30) + '...' : w.topic}`;
-                tab.title = w.topic;
-                tab.onclick = () => selectWeek(w.week, w.topic, tab);
-                container.appendChild(tab);
-            });
-            
-            // Auto-select first week if none selected
-            if (weeksData.length && !currentWeek) {
-                selectWeek(weeksData[0].week, weeksData[0].topic, container.children[0]);
-            }
-        }
-        
-        function selectWeek(week, topic, target) {
-            document.querySelectorAll('#weekTabs .tab').forEach(t => t.classList.remove('active'));
-            if (target) target.classList.add('active');
-            currentWeek = week;
-            document.getElementById('week').value = week;
-            document.getElementById('topic').value = topic || '';
-        }
-        
         // Authentication
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -2007,7 +1996,7 @@
                     console.warn('Groq not available:', e);
                 }
                 
-                await loadSyllabi();
+                await loadSyllabusWeeks();
                 renderSubjectTabs();
                 loadAssignments();
             } catch (error) {
@@ -2032,17 +2021,17 @@
         }
         
         // Make functions global
-        window.addQuestion = window.addQuestion;
-        window.removeQuestion = window.removeQuestion;
-        window.setCorrect = window.setCorrect;
-        window.editQuestion = window.editQuestion;
-        window.removeFile = window.removeFile;
-        window.editAssignment = window.editAssignment;
-        window.viewSubmissions = window.viewSubmissions;
-        window.generateWithAI = window.generateWithAI;
-        window.insertAIGenerated = window.insertAIGenerated;
-        window.openAIModal = window.openAIModal;
-        window.closeAIModal = window.closeAIModal;
+        window.addQuestion = addQuestion;
+        window.removeQuestion = removeQuestion;
+        window.setCorrect = setCorrect;
+        window.editQuestion = editQuestion;
+        window.removeFile = removeFile;
+        window.editAssignment = editAssignment;
+        window.viewSubmissions = viewSubmissions;
+        window.generateWithAI = generateWithAI;
+        window.insertAIGenerated = insertAIGenerated;
+        window.openAIModal = openAIModal;
+        window.closeAIModal = closeAIModal;
     </script>
 </body>
 </html>
