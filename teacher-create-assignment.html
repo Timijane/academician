@@ -187,9 +187,9 @@
             <div class="card-header"><h3><i class="fas fa-edit"></i> Assignment Details</h3><button class="btn btn-outline" id="useAIBtn"><i class="fas fa-robot"></i> AI Assistant</button></div>
             <form id="assignmentForm">
                 <input type="hidden" id="docId">
-                <div class="form-group"><label><i class="fas fa-book"></i> Subject</label><input type="text" id="subject" class="form-control" readonly></div>
-                <div class="form-group"><label><i class="fas fa-calendar-week"></i> Week</label><input type="text" id="week" class="form-control" readonly></div>
-                <div class="form-group"><label><i class="fas fa-tag"></i> Topic (from syllabus)</label><input type="text" id="topic" class="form-control" readonly placeholder="Click a week above to auto-fill topic"></div>
+                <div class="form-group"><label><i class="fas fa-book"></i> Subject</label><input type="text" id="subject" class="form-control" readonly placeholder="Click a subject above"></div>
+                <div class="form-group"><label><i class="fas fa-calendar-week"></i> Week</label><input type="text" id="week" class="form-control" readonly placeholder="Click a week above"></div>
+                <div class="form-group"><label><i class="fas fa-tag"></i> Topic (from syllabus)</label><input type="text" id="topic" class="form-control" readonly placeholder="Topic will appear here when you click a week"></div>
                 <div class="form-group"><label><i class="fas fa-heading"></i> Assignment Title *</label><input type="text" id="title" class="form-control" required placeholder="e.g., Introduction to Algebra"></div>
                 <div class="form-group"><label><i class="fas fa-align-left"></i> Description / Instructions</label><textarea id="description" class="form-control" rows="3" placeholder="Provide clear instructions for students..."></textarea></div>
                 <div class="assignment-type-select">
@@ -217,7 +217,7 @@
         
         <div class="card">
             <div class="card-header"><h3><i class="fas fa-history"></i> Recent Assignments</h3><button class="btn btn-outline btn-sm" id="refreshAssignmentsBtn"><i class="fas fa-sync-alt"></i> Refresh</button></div>
-            <div class="table-responsive"> aplenty<thead> <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th></tr> </thead><tbody id="assignmentsList"></tbody> </table>
+            <div class="table-responsive"> <table><thead> <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th></tr> </thead><tbody id="assignmentsList"></tbody> </table></div>
         </div>
     </div>
     
@@ -346,26 +346,35 @@
             renderQuestions(); 
         };
         
-        // ========== SYLLABUS LOADING - FIXED TO MATCH YOUR DATA STRUCTURE ==========
+        // ========== SYLLABUS LOADING - FIXED: Reading individual syllabus documents with week and topic fields ==========
         async function loadSyllabi() {
-            if (!subjects.length) return;
+            if (!subjects.length) {
+                console.log('No subjects found for teacher');
+                return;
+            }
+            
             showLoading();
             try {
+                console.log('Loading syllabus for teacher:', currentUser.uid);
+                console.log('Teacher subjects:', subjects);
+                
                 const snap = await db.collection('syllabus')
-                    .where('teacherId','==',currentUser.uid)
-                    .where('status','==','approved')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'approved')
                     .get();
                 
                 console.log('Syllabus documents found:', snap.size);
                 
+                // Reset syllabus map
                 syllabusMap = {};
+                
                 snap.forEach(doc => { 
                     const data = doc.data();
                     const subject = data.subject;
                     const week = data.week;
                     const topic = data.topic;
                     
-                    console.log(`Processing: Subject=${subject}, Week=${week}, Topic=${topic}`);
+                    console.log(`Found syllabus item: Subject=${subject}, Week=${week}, Topic=${topic}`);
                     
                     if (!syllabusMap[subject]) {
                         syllabusMap[subject] = [];
@@ -386,6 +395,10 @@
                 console.log('Final syllabusMap:', syllabusMap);
                 console.log('Subjects with weeks:', Object.keys(syllabusMap));
                 
+                if (Object.keys(syllabusMap).length === 0) {
+                    console.warn('No syllabus data found! Please create syllabus entries first.');
+                }
+                
             } catch(error) {
                 console.error('Error loading syllabus:', error);
             } finally {
@@ -398,7 +411,7 @@
             container.innerHTML = '';
             
             if (!subjects.length) {
-                container.innerHTML = '<div class="tab" style="background: var(--warning-bg);">No subjects assigned</div>';
+                container.innerHTML = '<div class="tab" style="background: var(--warning-bg);">No subjects assigned. Contact admin.</div>';
                 return;
             }
             
@@ -423,6 +436,7 @@
             
             const weeksData = syllabusMap[subject] || [];
             console.log(`Switched to subject: ${subject}, Weeks found: ${weeksData.length}`);
+            
             renderWeekTabs(weeksData);
             
             if (weeksData.length) {
@@ -455,7 +469,7 @@
                 container.appendChild(tab);
             });
             
-            // Auto-select first week
+            // Auto-select first week if none selected
             if (weeksData.length && !currentWeek) {
                 selectWeek(weeksData[0].week, weeksData[0].topic, container.children[0]);
             }
@@ -598,7 +612,7 @@
                     const typeBadge = a.assignmentType === 'mcq' ? '<i class="fas fa-check-circle"></i> MCQ' : '<i class="fas fa-pen-fancy"></i> Essay';
                     const statusBadge = a.status === 'published' ? '<span class="badge published">Published</span>' : '<span class="badge draft">Draft</span>';
                     const dueDateFormatted = a.dueDate ? new Date(a.dueDate.toDate()).toLocaleDateString() : 'No date';
-                    html += `<tr><td>${typeBadge}<\/td><td>${escapeHtml(a.subject)}<\/td><td>Week ${a.week}<\/td><td><strong>${escapeHtml(a.title)}<\/strong><\/td><td>${dueDateFormatted}<\/td><td>${statusBadge}<\/td><td><button class="btn btn-sm btn-outline" onclick="window.editAssignment('${doc.id}')"><i class="fas fa-edit"></i> Edit</button> <button class="btn btn-sm btn-outline" onclick="window.viewSubmissions('${doc.id}')"><i class="fas fa-users"></i> Grade</button><\/td><\/tr>`;
+                    html += `acaos<td>${typeBadge}<\/td><td>${escapeHtml(a.subject)}<\/td><td>Week ${a.week}<\/td><td><strong>${escapeHtml(a.title)}<\/strong><\/td><td>${dueDateFormatted}<\/td><td>${statusBadge}<\/td><td><button class="btn btn-sm btn-outline" onclick="window.editAssignment('${doc.id}')"><i class="fas fa-edit"></i> Edit</button> <button class="btn btn-sm btn-outline" onclick="window.viewSubmissions('${doc.id}')"><i class="fas fa-users"></i> Grade</button><\/td><\/tr>`;
                 });
                 tbody.innerHTML = html;
             } catch(e) { tbody.innerHTML = ' <td colspan="7" style="text-align: center;">Error loading.<\/td>'; console.error(e); }
@@ -644,6 +658,8 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
                 subjects = userData.subjects || [];
+                
+                console.log('Teacher subjects loaded:', subjects);
                 
                 try {
                     await remoteConfig.fetchAndActivate();
