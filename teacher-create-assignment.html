@@ -345,20 +345,26 @@
             renderQuestions(); 
         };
         
-        // ========== SYLLABUS LOADING - WORKING FROM YOUR ORIGINAL CODE ==========
+        // ========== SYLLABUS LOADING - EXACT COPY FROM YOUR WORKING CODE ==========
         async function loadSyllabi() {
             if (!subjects.length) return;
             const snap = await db.collection('syllabus').where('teacherId','==',currentUser.uid).where('status','==','approved').get();
             syllabusMap = {};
             snap.forEach(doc => { 
                 const data = doc.data(); 
+                // Store weeks as array for each subject - this matches your original working code
                 if (!syllabusMap[data.subject]) syllabusMap[data.subject] = [];
-                syllabusMap[data.subject].push({ week: data.week, topic: data.topic, id: doc.id });
+                syllabusMap[data.subject].push({
+                    week: data.week,
+                    topic: data.topic,
+                    id: doc.id
+                });
             });
-            // Sort weeks
+            // Sort weeks by week number
             for (let subject in syllabusMap) {
                 syllabusMap[subject].sort((a, b) => a.week - b.week);
             }
+            console.log('Syllabus loaded:', syllabusMap);
         }
 
         function renderSubjectTabs() {
@@ -379,20 +385,34 @@
             document.getElementById('subject').value = subject;
             const weeksData = syllabusMap[subject] || [];
             renderWeekTabs(weeksData);
-            if (weeksData.length) selectWeek(weeksData[0].week, weeksData[0].topic, null);
-            else { document.getElementById('week').value = ''; document.getElementById('topic').value = ''; document.getElementById('weekTabs').innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks found. Create syllabus first.</div>'; }
+            if (weeksData.length) {
+                selectWeek(weeksData[0].week, weeksData[0].topic, null);
+            } else {
+                document.getElementById('week').value = '';
+                document.getElementById('topic').value = '';
+                document.getElementById('weekTabs').innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks found. Create syllabus first.</div>';
+            }
         }
 
         function renderWeekTabs(weeksData) {
             const container = document.getElementById('weekTabs');
             container.innerHTML = '';
-            if (!weeksData.length) { container.innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks available</div>'; return; }
+            if (!weeksData.length) {
+                container.innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks available</div>';
+                return;
+            }
             weeksData.forEach(w => {
-                const tab = document.createElement('span'); tab.className = 'tab'; tab.textContent = `Week ${w.week}: ${w.topic.length > 35 ? w.topic.substring(0,35)+'...' : w.topic}`;
+                const tab = document.createElement('span'); 
+                tab.className = 'tab'; 
+                tab.textContent = `Week ${w.week}: ${w.topic.length > 35 ? w.topic.substring(0,35)+'...' : w.topic}`;
                 tab.title = w.topic;
                 tab.onclick = (e) => selectWeek(w.week, w.topic, e.target);
                 container.appendChild(tab);
             });
+            // Auto-select first week
+            if (weeksData.length && !currentWeek) {
+                selectWeek(weeksData[0].week, weeksData[0].topic, container.children[0]);
+            }
         }
 
         function selectWeek(week, topic, target) {
@@ -401,9 +421,10 @@
             currentWeek = week;
             document.getElementById('week').value = week;
             document.getElementById('topic').value = topic || '';
+            console.log('Selected week:', week, 'Topic:', topic);
         }
         
-        // AI Generation
+        // AI Generation - Enhanced with lesson notes
         const aiModal = document.getElementById('aiModal');
         const aiChat = document.getElementById('aiChat');
         let lastGenerated = [];
@@ -444,7 +465,7 @@
             const topic = document.getElementById('topic').value;
             
             const chatDiv = document.getElementById('aiChat');
-            chatDiv.innerHTML += `<div class="message user">Generate ${count} ${difficulty} ${questionType} questions about "${topic}"</div>`;
+            chatDiv.innerHTML += `<div class="message user">Generate ${count} ${difficulty} ${questionType} questions about "${topic}" (Week ${currentWeek})</div>`;
             const thinking = document.createElement('div'); thinking.className = 'message assistant'; thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading lesson notes...'; chatDiv.appendChild(thinking);
             showLoading();
             try {
@@ -533,7 +554,7 @@
                     const typeBadge = a.assignmentType === 'mcq' ? '<i class="fas fa-check-circle"></i> MCQ' : '<i class="fas fa-pen-fancy"></i> Essay';
                     const statusBadge = a.status === 'published' ? '<span class="badge published">Published</span>' : '<span class="badge draft">Draft</span>';
                     const dueDateFormatted = a.dueDate ? new Date(a.dueDate.toDate()).toLocaleDateString() : 'No date';
-                    html += `<tr><td>${typeBadge}<\/td><td>${escapeHtml(a.subject)}<\/td><td>Week ${a.week}<\/td><td><strong>${escapeHtml(a.title)}<\/strong><\/td><td>${dueDateFormatted}<\/td><td>${statusBadge}<\/td><td><button class="btn btn-sm btn-outline" onclick="window.editAssignment('${doc.id}')"><i class="fas fa-edit"></i> Edit</button> <button class="btn btn-sm btn-outline" onclick="window.viewSubmissions('${doc.id}')"><i class="fas fa-users"></i> Grade</button><\/td><\/tr>`;
+                    html += `acaos<td>${typeBadge}<\/td><td>${escapeHtml(a.subject)}<\/td><td>Week ${a.week}<\/td><td><strong>${escapeHtml(a.title)}<\/strong><\/td><td>${dueDateFormatted}<\/td><td>${statusBadge}<\/td><td><button class="btn btn-sm btn-outline" onclick="window.editAssignment('${doc.id}')"><i class="fas fa-edit"></i> Edit</button> <button class="btn btn-sm btn-outline" onclick="window.viewSubmissions('${doc.id}')"><i class="fas fa-users"></i> Grade</button><\/td><\/tr>`;
                 });
                 tbody.innerHTML = html;
             } catch(e) { tbody.innerHTML = ' <td colspan="7">Error loading.<\/td>'; console.error(e); }
