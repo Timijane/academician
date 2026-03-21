@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Teacher Approval - EduTop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        p {
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+        .info-box {
+            background: #334155;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-approved {
+            background: #16a34a;
+            color: white;
+        }
+        .status-pending {
+            background: #ca8a04;
+            color: white;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background: #16a34a;
+            color: white;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            background: #7f1a1a;
+            border-left: 4px solid #ef4444;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .success {
+            background: #14532d;
+            border-left: 4px solid #22c55e;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1><i class="fas fa-user-check"></i> Teacher Approval Fix</h1>
+        <p>This tool checks if your teacher account is approved and fixes permission issues.</p>
+        
+        <div id="userInfo" class="info-box">
+            <div><strong>User ID:</strong> <span id="userId">Loading...</span></div>
+            <div><strong>Role:</strong> <span id="userRole">Loading...</span></div>
+            <div><strong>Approval Status:</strong> <span id="approvalStatus">Loading...</span></div>
+            <div><strong>Status Field:</strong> <span id="statusField">Loading...</span></div>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div id="actionButtons" style="display: none;">
+            <button class="btn btn-primary" id="fixApprovalBtn" onclick="fixApproval()">
+                <i class="fas fa-check-circle"></i> Set Approved = true
+            </button>
+            <button class="btn btn-primary" id="fixStatusBtn" onclick="fixStatus()" style="margin-left: 1rem;">
+                <i class="fas fa-check-circle"></i> Set Status = "approved"
+            </button>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <button class="btn btn-primary" onclick="window.location.href='teacher-assignments.html'">
+                <i class="fas fa-arrow-left"></i> Go to Assignments
+            </button>
+            <button class="btn btn-primary" onclick="window.location.href='teacher-create-assignment.html'" style="margin-left: 1rem;">
+                <i class="fas fa-plus"></i> Create Assignment
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        let currentUser = null;
+        let userData = null;
+        
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.innerHTML = `<div class="${type}"><i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${text}</div>`;
+            setTimeout(() => {
+                if (msgDiv.innerHTML === `<div class="${type}"><i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${text}</div>`) {
+                    msgDiv.innerHTML = '';
+                }
+            }, 5000);
+        }
+        
+        async function fixApproval() {
+            if (!currentUser || !userData) return;
+            
+            const btn = document.getElementById('fixApprovalBtn');
+            btn.innerHTML = '<span class="loading"></span> Updating...';
+            btn.disabled = true;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).update({
+                    approved: true
+                });
+                showMessage('✅ Successfully set approved = true!', 'success');
+                userData.approved = true;
+                updateUI();
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Set Approved = true';
+                btn.disabled = false;
+            }
+        }
+        
+        async function fixStatus() {
+            if (!currentUser || !userData) return;
+            
+            const btn = document.getElementById('fixStatusBtn');
+            btn.innerHTML = '<span class="loading"></span> Updating...';
+            btn.disabled = true;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).update({
+                    status: "approved"
+                });
+                showMessage('✅ Successfully set status = "approved"!', 'success');
+                userData.status = "approved";
+                updateUI();
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Set Status = "approved"';
+                btn.disabled = false;
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('userId').textContent = currentUser?.uid || 'Not logged in';
+            document.getElementById('userRole').textContent = userData?.role || 'Unknown';
+            
+            const approved = userData?.approved === true;
+            const status = userData?.status === 'approved';
+            const isApproved = approved || status;
+            
+            const approvalSpan = document.getElementById('approvalStatus');
+            if (approved) {
+                approvalSpan.innerHTML = '<span class="status-badge status-approved"><i class="fas fa-check"></i> Approved = true</span>';
+            } else {
+                approvalSpan.innerHTML = '<span class="status-badge status-pending"><i class="fas fa-clock"></i> Approved = false or missing</span>';
+            }
+            
+            const statusSpan = document.getElementById('statusField');
+            if (userData?.status === 'approved') {
+                statusSpan.innerHTML = '<span class="status-badge status-approved"><i class="fas fa-check"></i> Status = "approved"</span>';
+            } else {
+                statusSpan.innerHTML = `<span class="status-badge status-pending"><i class="fas fa-clock"></i> Status = "${userData?.status || 'missing'}"</span>`;
+            }
+            
+            if (!approved || userData?.status !== 'approved') {
+                document.getElementById('actionButtons').style.display = 'block';
+            } else {
+                document.getElementById('actionButtons').style.display = 'none';
+                showMessage('✅ Your teacher account is already approved! You can access assignments.', 'success');
+            }
+        }
+        
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                document.getElementById('userInfo').innerHTML = '<div class="error">Please login first. Redirecting...</div>';
+                setTimeout(() => {
+                    window.location.href = 'teacher-login.html';
+                }, 2000);
+                return;
+            }
+            
+            currentUser = user;
+            
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    userData = userDoc.data();
+                } else {
+                    userData = { role: 'teacher', approved: false };
+                }
+                
+                updateUI();
+            } catch (error) {
+                console.error('Error loading user:', error);
+                document.getElementById('userInfo').innerHTML = `<div class="error">Error loading user data: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
