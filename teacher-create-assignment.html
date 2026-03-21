@@ -15,850 +15,116 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-sidebar: rgba(255, 255, 255, 0.95);
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --accent: #3b82f6;
-            --accent-dark: #2563eb;
-            --accent-glow: #60a5fa;
-            --border: #e2e8f0;
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --hover-bg: #f1f5f9;
-            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
-            --success-bg: #dcfce7;
-            --success-text: #16a34a;
-            --warning-bg: #fef9c3;
-            --warning-text: #ca8a04;
-            --danger-bg: #fee2e2;
-            --danger-text: #dc2626;
-            --info-bg: #dbeafe;
-            --info-text: #2563eb;
-            --input-bg: #ffffff;
-            --gradient-start: #3b82f6;
-            --gradient-end: #8b5cf6;
+            --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7);
+            --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --success-bg: rgba(34,197,94,0.2);
+            --success-text: #16a34a; --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309; --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #b91c1c; --input-bg: rgba(255,255,255,0.9); --toolbar-bg: #f8fafc;
         }
-
         :root[data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-sidebar: rgba(15, 23, 42, 0.95);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --accent: #3b82f6;
-            --accent-dark: #2563eb;
-            --accent-glow: #60a5fa;
-            --border: #1e293b;
-            --card-bg: rgba(15, 23, 42, 0.8);
-            --hover-bg: #1e293b;
-            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-            --success-bg: rgba(34, 197, 94, 0.2);
-            --success-text: #4ade80;
-            --warning-bg: rgba(245, 158, 11, 0.2);
-            --warning-text: #fbbf24;
-            --danger-bg: rgba(239, 68, 68, 0.2);
-            --danger-text: #f87171;
-            --info-bg: rgba(59, 130, 246, 0.2);
-            --info-text: #60a5fa;
-            --input-bg: #1e293b;
-            --gradient-start: #3b82f6;
-            --gradient-end: #8b5cf6;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        .orb {
-            position: fixed;
-            width: 500px;
-            height: 500px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.1), transparent 70%);
-            filter: blur(100px);
-            z-index: 0;
-            animation: float 20s infinite alternate ease-in-out;
-            pointer-events: none;
-        }
-
-        .orb-1 {
-            top: -200px;
-            right: -200px;
-            background: radial-gradient(circle at 70% 30%, rgba(139, 92, 246, 0.12), transparent 70%);
-        }
-
-        .orb-2 {
-            bottom: -200px;
-            left: -200px;
-            background: radial-gradient(circle at 30% 70%, rgba(59, 130, 246, 0.1), transparent 70%);
-            animation-duration: 25s;
-        }
-
-        @keyframes float {
-            0% {
-                transform: translate(0, 0) scale(1);
-            }
-            100% {
-                transform: translate(40px, 40px) scale(1.1);
-            }
-        }
-
-        .sidebar {
-            width: 280px;
-            background: var(--bg-sidebar);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid var(--border);
-            padding: 2rem 1rem;
-            display: flex;
-            flex-direction: column;
-            transition: width 0.3s ease;
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 100;
-            box-shadow: var(--shadow);
-        }
-
-        .sidebar.collapsed {
-            width: 90px;
-        }
-
-        .sidebar .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 2.5rem;
-            padding: 0 0.5rem;
-        }
-
-        .sidebar .logo-area i {
-            font-size: 2.2rem;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar .logo-area h2 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            font-family: 'Space Grotesk', sans-serif;
-            background: linear-gradient(135deg, var(--text-primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            white-space: nowrap;
-        }
-
-        .sidebar.collapsed .logo-area h2 {
-            display: none;
-        }
-
-        .sidebar .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.85rem 1.2rem;
-            border-radius: 1rem;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-            cursor: pointer;
-            margin-bottom: 0.5rem;
-            text-decoration: none;
-            font-weight: 500;
-            white-space: nowrap;
-            border: 1px solid transparent;
-        }
-
-        .sidebar .nav-item:hover {
-            background: var(--hover-bg);
-            color: var(--accent);
-            transform: translateX(5px);
-            border-color: var(--border);
-        }
-
-        .sidebar .nav-item.active {
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            color: white;
-            box-shadow: 0 5px 15px -5px var(--accent);
-        }
-
-        .sidebar .nav-item i {
-            font-size: 1.2rem;
-            width: 1.6rem;
-            text-align: center;
-        }
-
-        .sidebar.collapsed .nav-item span {
-            display: none;
-        }
-
-        .sidebar .toggle-btn {
-            margin-top: auto;
-            display: flex;
-            justify-content: flex-end;
-            padding: 1rem 0.5rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            transition: 0.2s;
-        }
-
-        .sidebar .toggle-btn:hover {
-            color: var(--accent);
-        }
-
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
-            transition: margin-left 0.3s ease;
-            position: relative;
-            z-index: 5;
-        }
-
-        .main-content.expanded {
-            margin-left: 90px;
-        }
-
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .page-title h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            font-family: 'Space Grotesk', sans-serif;
-            background: linear-gradient(135deg, var(--text-primary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.25rem;
-        }
-
-        .page-title p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .profile-area {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .theme-toggle {
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.5rem 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .theme-toggle:hover {
-            background: var(--hover-bg);
-        }
-
-        .profile-dropdown {
-            position: relative;
-            cursor: pointer;
-        }
-
-        .profile-trigger {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.3rem 0.3rem 0.3rem 1rem;
-        }
-
-        .profile-name {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-        }
-
-        .profile-pic {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 1rem;
-            box-shadow: 0 2px 10px var(--accent);
-        }
-
-        .dropdown-menu {
-            position: absolute;
-            right: 0;
-            top: 55px;
-            background: var(--bg-sidebar);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 0.5rem;
-            min-width: 200px;
-            display: none;
-            z-index: 1000;
-            box-shadow: var(--shadow);
-        }
-
-        .profile-dropdown:hover .dropdown-menu {
-            display: block;
-            animation: fadeIn 0.2s;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .dropdown-item {
-            padding: 0.75rem 1rem;
-            color: var(--text-primary);
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            transition: 0.2s;
-            cursor: pointer;
-        }
-
-        .dropdown-item:hover {
-            background: var(--hover-bg);
-            color: var(--accent);
-        }
-
-        .subject-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 0.3rem;
-            width: fit-content;
-            flex-wrap: wrap;
-        }
-
-        .tab {
-            padding: 0.6rem 1.5rem;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            font-size: 0.9rem;
-        }
-
-        .tab.active {
-            background: var(--accent);
-            color: white;
-        }
-
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-header h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .form-group label i {
-            margin-right: 0.5rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            transition: all 0.2s;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        select.form-control {
-            cursor: pointer;
-        }
-
-        textarea.form-control {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .assignment-type-select {
-            display: flex;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            background: var(--hover-bg);
-            border-radius: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .assignment-type-select label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .assignment-type-select input[type="radio"] {
-            accent-color: var(--accent);
-            width: 1.1rem;
-            height: 1.1rem;
-        }
-
-        .advanced-settings {
-            background: var(--hover-bg);
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-
-        .setting-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            border-bottom: 1px solid var(--border);
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .setting-item:last-child {
-            border-bottom: none;
-        }
-
-        .setting-label {
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .setting-label small {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-top: 0.25rem;
-        }
-
-        .setting-control input[type="number"] {
-            width: 100px;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
-
-        .setting-control input[type="checkbox"] {
-            width: 1.2rem;
-            height: 1.2rem;
-            cursor: pointer;
-            accent-color: var(--accent);
-        }
-
-        .file-upload-area {
-            border: 2px dashed var(--border);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            text-align: center;
-            background: var(--input-bg);
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .file-upload-area:hover {
-            border-color: var(--accent);
-            background: var(--hover-bg);
-        }
-
-        .file-upload-area i {
-            font-size: 2rem;
-            color: var(--accent);
-            margin-bottom: 0.5rem;
-        }
-
-        .file-list {
-            margin-top: 1rem;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.5rem;
-            background: var(--hover-bg);
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .question-list {
-            margin-top: 1rem;
-        }
-
-        .question-item {
-            background: var(--hover-bg);
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .question-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .question-text {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .question-options {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-            margin: 0.75rem 0;
-        }
-
-        .question-option {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .correct-badge {
-            background: var(--success-bg);
-            color: var(--success-text);
-            padding: 0.2rem 0.8rem;
-            border-radius: 2rem;
-            font-size: 0.8rem;
-            display: inline-block;
-        }
-
-        .btn {
-            padding: 0.6rem 1.2rem;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-success {
-            background: var(--success-text);
-            color: white;
-        }
-
-        .btn-danger {
-            background: var(--danger-text);
-            color: white;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
-
-        .btn-outline:hover {
-            background: var(--hover-bg);
-            border-color: var(--accent);
-        }
-
-        .btn-sm {
-            padding: 0.3rem 0.8rem;
-            font-size: 0.8rem;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            text-align: left;
-            padding: 1rem 0.75rem;
-            color: var(--text-secondary);
-            font-weight: 600;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.85rem;
-        }
-
-        td {
-            padding: 1rem 0.75rem;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.85rem;
-        }
-
-        .badge {
-            padding: 0.2rem 0.8rem;
-            border-radius: 2rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .badge.draft {
-            background: var(--warning-bg);
-            color: var(--warning-text);
-        }
-
-        .badge.published {
-            background: var(--success-bg);
-            color: var(--success-text);
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            max-width: 700px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .modal-header i {
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-
-        .ai-chat {
-            height: 300px;
-            overflow-y: auto;
-            padding: 1rem;
-            background: var(--hover-bg);
-            border-radius: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .message {
-            margin-bottom: 1rem;
-            padding: 0.75rem;
-            border-radius: 1rem;
-            max-width: 85%;
-            font-size: 0.9rem;
-        }
-
-        .message.user {
-            background: var(--accent);
-            color: white;
-            margin-left: auto;
-        }
-
-        .message.assistant {
-            background: var(--card-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 3000;
-        }
-
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        .loading-content {
-            background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 1.5rem;
-            text-align: center;
-        }
-
-        .loading-content i {
-            font-size: 2.5rem;
-            color: var(--accent);
-            margin-bottom: 1rem;
-        }
-
-        .info-box {
-            background: var(--info-bg);
-            border-left: 4px solid var(--accent);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
-        .info-box i {
-            color: var(--accent);
-            margin-right: 0.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-            }
-
-            .sidebar .logo-area h2,
-            .sidebar .nav-item span {
-                display: none;
-            }
-
-            .main-content {
-                margin-left: 80px;
-                padding: 1rem;
-            }
-
-            .subject-tabs {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .question-options {
-                grid-template-columns: 1fr;
-            }
-        }
+            --bg-primary: #0a0f1e; --bg-sidebar: rgba(15, 23, 42, 0.8); --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05); --card-bg: rgba(15, 23, 42, 0.6);
+            --hover-bg: rgba(30, 41, 59, 0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171; --input-bg: rgba(30,41,59,0.8); --toolbar-bg: #1e293b;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; transition: background 0.3s; position: relative; overflow-x: hidden; }
+        .orb { position: fixed; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%); filter: blur(80px); z-index: 0; animation: float 25s infinite alternate ease-in-out; }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(60px, 40px) scale(1.2); } }
+        .sidebar { width: 280px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border-right: 1px solid var(--border); padding: 2rem 1rem; display: flex; flex-direction: column; transition: width 0.3s; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; box-shadow: var(--shadow); }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.4rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; border-radius: 1.2rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.4rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); transform: translateX(5px); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 8px 20px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+        .main-content { flex: 1; margin-left: 280px; padding: 2rem; transition: margin-left 0.3s; position: relative; z-index: 5; }
+        .main-content.expanded { margin-left: 90px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title h1 { font-size: 2.4rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.2rem; }
+        .page-title p { color: var(--text-secondary); font-weight: 400; }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: var(--text-secondary); font-weight: 500; transition: 0.2s; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.4rem 0.4rem 0.4rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); }
+        .profile-pic { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.1rem; box-shadow: 0 5px 15px var(--accent); background-size: cover; background-position: center; }
+        .dropdown-menu { position: absolute; right: 0; top: 60px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; }
+
+        .subject-tabs, .week-tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap; }
+        .tab { padding: 0.7rem 2rem; border-radius: 3rem; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap; }
+        .tab.active { background: var(--accent); color: white; }
+
+        .card { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 1.8rem; box-shadow: var(--shadow); margin-bottom: 2rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .card-header h3 { font-size: 1.3rem; font-weight: 600; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500; }
+        .form-control { width: 100%; padding: 0.8rem 1.2rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1.5rem; color: var(--text-primary); font-size: 1rem; transition: 0.2s; }
+        .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+        select.form-control { cursor: pointer; }
+
+        .assignment-type-select { display: flex; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .assignment-type-select label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        .assignment-type-select input[type="radio"] { accent-color: var(--accent); width: 1.2rem; height: 1.2rem; }
+
+        .question-list { margin-top: 1.5rem; }
+        .question-item { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
+        .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+        .question-text { font-weight: 600; }
+        .question-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 0.5rem 0; }
+        .question-option { display: flex; align-items: center; gap: 0.5rem; }
+        .correct-badge { background: var(--success-bg); color: var(--success-text); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; display: inline-block; }
+
+        .btn { padding: 0.6rem 1.5rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.3rem 1rem; font-size: 0.9rem; }
+
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th { text-align: left; padding: 1rem 0.8rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); }
+        td { padding: 1rem 0.8rem; border-bottom: 1px solid var(--border); }
+
+        .badge { padding: 0.2rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 500; display: inline-block; }
+        .badge.draft { background: var(--hover-bg); color: var(--text-secondary); }
+        .badge.published { background: var(--success-bg); color: var(--success-text); }
+
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:2rem; padding:2rem; max-width:800px; width:90%; max-height:80vh; overflow-y:auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:1.5rem; }
+
+        .ai-chat { height: 300px; overflow-y: auto; padding:1rem; background: var(--hover-bg); border-radius:1rem; margin-bottom:1rem; }
+        .message { margin-bottom:1rem; padding:0.8rem; border-radius:1rem; max-width:80%; }
+        .message.user { background: var(--accent); color:white; margin-left:auto; }
+        .message.assistant { background: var(--card-bg); color:var(--text-primary); border:1px solid var(--border); }
+
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding:2rem; border-radius:2rem; text-align:center; }
+        .loading-content i { font-size:3rem; color:var(--accent); margin-bottom:1rem; }
+
+        .info-box { background: var(--info-bg); border-left: 4px solid var(--accent); padding: 1rem; border-radius: 0.75rem; margin-bottom: 1rem; display: none; }
+        .info-box i { color: var(--accent); margin-right: 0.5rem; }
+
+        @media (max-width: 768px) { .sidebar { width: 90px; } .sidebar .logo-area h2 { display: none; } .sidebar .nav-item span { display: none; } .main-content { margin-left: 90px; } .subject-tabs { width: 100%; justify-content: center; } .question-options { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -866,309 +132,79 @@
     <div class="orb orb-2"></div>
 
     <div class="sidebar" id="sidebar">
-        <div class="logo-area">
-            <i class="fas fa-graduation-cap"></i>
-            <h2>EduTop</h2>
-        </div>
-        <a href="teacher-dashboard.html" class="nav-item">
-            <i class="fas fa-chart-line"></i>
-            <span>Dashboard</span>
-        </a>
-        <a href="teacher-timetable.html" class="nav-item">
-            <i class="fas fa-calendar-alt"></i>
-            <span>Timetable</span>
-        </a>
-        <a href="teacher-lesson-notes.html" class="nav-item">
-            <i class="fas fa-book-open"></i>
-            <span>Lesson Notes</span>
-        </a>
-        <a href="teacher-assignments.html" class="nav-item">
-            <i class="fas fa-tasks"></i>
-            <span>Assignments</span>
-        </a>
-        <a href="teacher-create-assignment.html" class="nav-item active">
-            <i class="fas fa-plus-circle"></i>
-            <span>New Assignment</span>
-        </a>
-        <a href="teacher-grade.html" class="nav-item">
-            <i class="fas fa-check-double"></i>
-            <span>Grade</span>
-        </a>
-        <a href="teacher-my-class.html" class="nav-item">
-            <i class="fas fa-users"></i>
-            <span>My Class</span>
-        </a>
-        <a href="teacher-attendance.html" class="nav-item">
-            <i class="fas fa-fingerprint"></i>
-            <span>Attendance</span>
-        </a>
-        <a href="teacher-announcements.html" class="nav-item">
-            <i class="fas fa-bullhorn"></i>
-            <span>Announcements</span>
-        </a>
-        <a href="teacher-profile.html" class="nav-item">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-        </a>
-        <div class="toggle-btn" id="sidebarToggle">
-            <i class="fas fa-chevron-left"></i>
-        </div>
+        <div class="logo-area"><i class="fas fa-tasks"></i><h2>Teacher Panel</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-create-assignment.html" class="nav-item active"><i class="fas fa-plus-circle"></i><span>New Assignment</span></a>
+        <a href="teacher-grade.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
     <div class="main-content" id="mainContent">
         <div class="top-bar">
-            <div class="page-title">
-                <h1>Create Assignment</h1>
-                <p>Design engaging assignments with rich content and smart features</p>
-            </div>
+            <div class="page-title"><h1>Create Assignment</h1><p>Essay or Multiple Choice</p></div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-sun"></i>
-                    <span>Light</span>
-                    <i class="fas fa-moon"></i>
-                </div>
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
                 <div class="profile-dropdown">
-                    <div class="profile-trigger">
-                        <span class="profile-name" id="profileName">Teacher</span>
-                        <div class="profile-pic" id="profilePic">T</div>
-                    </div>
-                    <div class="dropdown-menu">
-                        <div class="dropdown-item" id="profileLink">
-                            <i class="fas fa-user"></i> Profile
-                        </div>
-                        <div class="dropdown-item" id="logoutBtn">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </div>
-                    </div>
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
                 </div>
             </div>
         </div>
 
         <div class="subject-tabs" id="subjectTabs"></div>
+        <div class="week-tabs" id="weekTabs"></div>
 
         <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-edit"></i> Assignment Details</h3>
-                <button class="btn btn-outline" id="useAIBtn">
-                    <i class="fas fa-robot"></i> AI Assistant
-                </button>
-            </div>
-            
+            <div class="card-header"><h3>New Assignment</h3><button class="btn btn-outline" id="useAIBtn"><i class="fas fa-robot"></i> AI Assistant</button></div>
             <form id="assignmentForm">
                 <input type="hidden" id="docId">
-                
-                <div class="form-group">
-                    <label><i class="fas fa-book"></i> Subject</label>
-                    <input type="text" id="subject" class="form-control" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-calendar-week"></i> Select Week *</label>
-                    <select id="weekSelect" class="form-control" required>
-                        <option value="">-- Select Week --</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-tag"></i> Topic (auto-populated from syllabus)</label>
-                    <input type="text" id="topic" class="form-control" readonly placeholder="Topic will appear here after selecting week">
-                </div>
-                
-                <div class="info-box" id="topicInfoBox" style="display: none;">
-                    <i class="fas fa-info-circle"></i> The topic is automatically loaded from your syllabus for the selected week.
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-heading"></i> Assignment Title *</label>
-                    <input type="text" id="title" class="form-control" required placeholder="e.g., Introduction to Algebra">
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-align-left"></i> Description / Instructions</label>
-                    <textarea id="description" class="form-control" rows="3" placeholder="Provide clear instructions for students..."></textarea>
-                </div>
-                
+                <div class="form-group"><label><i class="fas fa-book"></i> Subject</label><input type="text" id="subject" class="form-control" readonly></div>
+                <div class="form-group"><label><i class="fas fa-calendar-week"></i> Week</label><input type="number" id="week" class="form-control" readonly></div>
+                <div class="form-group"><label><i class="fas fa-tag"></i> Topic (from syllabus)</label><input type="text" id="topic" class="form-control" readonly placeholder="Select a week above to auto-fill topic"></div>
                 <div class="assignment-type-select">
-                    <label>
-                        <input type="radio" name="assignmentType" value="essay" checked> 
-                        <i class="fas fa-pen-fancy"></i> Essay (Written Response)
-                    </label>
-                    <label>
-                        <input type="radio" name="assignmentType" value="mcq"> 
-                        <i class="fas fa-check-circle"></i> Multiple Choice (CBT Style)
-                    </label>
+                    <label><input type="radio" name="assignmentType" value="essay" checked> <i class="fas fa-pen-fancy"></i> Essay (Student writes answer)</label>
+                    <label><input type="radio" name="assignmentType" value="mcq"> <i class="fas fa-check-circle"></i> Multiple Choice (CBT style)</label>
                 </div>
-                
-                <div id="essaySection">
-                    <div class="form-group">
-                        <label><i class="fas fa-quote-right"></i> Essay Prompt</label>
-                        <div id="essayPromptEditor" style="height: 250px;"></div>
-                    </div>
-                </div>
-                
-                <div id="mcqSection" style="display: none;">
-                    <div class="form-group">
-                        <label><i class="fas fa-question-circle"></i> Questions</label>
-                        <div id="questionsList" class="question-list"></div>
-                        <button type="button" class="btn btn-outline" onclick="addQuestion()">
-                            <i class="fas fa-plus"></i> Add Question
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="advanced-settings">
+                <div class="form-group"><label><i class="fas fa-heading"></i> Title</label><input type="text" id="title" class="form-control" required placeholder="e.g., Introduction to Algebra"></div>
+                <div class="form-group"><label><i class="fas fa-align-left"></i> Description / Instructions</label><textarea id="description" class="form-control" rows="3" placeholder="Provide clear instructions for students..."></textarea></div>
+                <div class="form-group"><label><i class="fas fa-calendar-alt"></i> Due Date</label><input type="datetime-local" id="dueDate" class="form-control" required></div>
+                <div class="form-group"><label><i class="fas fa-star"></i> Total Points</label><input type="number" id="totalPoints" class="form-control" value="100" required></div>
+                <div class="advanced-settings" style="background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-top: 1rem;">
                     <h4 style="margin-bottom: 1rem;"><i class="fas fa-sliders-h"></i> Advanced Settings</h4>
-                    
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <i class="fas fa-calendar-alt"></i> Due Date
-                            <small>When is this assignment due?</small>
-                        </div>
-                        <div class="setting-control">
-                            <input type="datetime-local" id="dueDate" class="form-control" style="width: auto;">
-                        </div>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <i class="fas fa-star"></i> Total Points
-                            <small>Maximum score students can earn</small>
-                        </div>
-                        <div class="setting-control">
-                            <input type="number" id="totalPoints" class="form-control" value="100" min="1" max="1000" style="width: 120px;">
-                        </div>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <i class="fas fa-clock"></i> Late Submission Penalty
-                            <small>Deduct points per day after due date</small>
-                        </div>
-                        <div class="setting-control">
-                            <input type="number" id="latePenalty" class="form-control" value="0" min="0" max="50" step="1" style="width: 100px;">
-                            <span style="margin-left: 0.5rem;">points/day</span>
-                        </div>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <i class="fas fa-redo-alt"></i> Allow Resubmission
-                            <small>Let students submit multiple times</small>
-                        </div>
-                        <div class="setting-control">
-                            <input type="checkbox" id="allowResubmission">
-                        </div>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <i class="fas fa-robot"></i> AI Grading Suggestions
-                            <small>Get AI-powered grading assistance</small>
-                        </div>
-                        <div class="setting-control">
-                            <input type="checkbox" id="aiGradingSuggestions">
-                        </div>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-label">
-                            <i class="fas fa-paperclip"></i> Attachments
-                            <small>Upload reference materials (PDF, images, docs)</small>
-                        </div>
-                        <div class="setting-control" style="flex: 1;">
-                            <div class="file-upload-area" id="fileUploadArea">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Click or drag files to upload</p>
-                                <input type="file" id="fileInput" multiple style="display: none;" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                            </div>
-                            <div id="fileList" class="file-list"></div>
-                        </div>
+                    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                        <label><input type="checkbox" id="allowResubmission"> Allow Resubmission</label>
+                        <label><input type="checkbox" id="aiGradingSuggestions"> AI Grading Suggestions</label>
+                        <div><label>Late Penalty: <input type="number" id="latePenalty" style="width: 80px;" value="0"> pts/day</label></div>
                     </div>
                 </div>
-                
-                <div class="btn-group" style="margin-top: 1.5rem;">
-                    <button type="submit" class="btn btn-primary" id="saveBtn">
-                        <i class="fas fa-save"></i> Save as Draft
-                    </button>
-                    <button type="button" class="btn btn-success" id="publishBtn">
-                        <i class="fas fa-paper-plane"></i> Publish Now
-                    </button>
-                    <button type="button" class="btn btn-danger" id="deleteBtn" style="display: none;">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
+                <div id="mcqSection"><h4><i class="fas fa-question-circle"></i> Questions</h4><div id="questionsList" class="question-list"></div><button type="button" class="btn btn-outline" onclick="addQuestion()"><i class="fas fa-plus"></i> Add Question</button></div>
+                <div id="essaySection" style="display:none;"><div class="form-group"><label><i class="fas fa-quote-right"></i> Essay Prompt</label><div id="essayPromptEditor" style="height:300px;"></div></div></div>
+                <div class="actions" style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" id="saveBtn"><i class="fas fa-save"></i> Save as Draft</button>
+                    <button type="button" class="btn btn-success" id="publishBtn"><i class="fas fa-paper-plane"></i> Publish</button>
+                    <button type="button" class="btn btn-danger" id="deleteBtn" style="display: none;"><i class="fas fa-trash"></i> Delete</button>
                 </div>
             </form>
         </div>
-        
+
         <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-history"></i> Recent Assignments</h3>
-                <button class="btn btn-outline btn-sm" id="refreshAssignmentsBtn">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th>
-                    </thead>
-                    <tbody id="assignmentsList">
-                        <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="card-header"><h3><i class="fas fa-history"></i> Existing Assignments</h3><button class="btn btn-outline btn-sm" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+            <div class="table-responsive"><table><thead><tr><th>Type</th><th>Subject</th><th>Week</th><th>Title</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead><tbody id="assignmentsList"></tbody></table></div>
         </div>
     </div>
-    
-    <div class="modal-overlay" id="aiModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-robot"></i> AI Question Generator</h3>
-                <i class="fas fa-times" onclick="closeAIModal()"></i>
-            </div>
-            <div class="ai-chat" id="aiChat">
-                <div class="message assistant">👋 Hi! I'll help you generate questions based on your lesson notes and syllabus content. First, select a subject and week above, then I'll analyze your teaching materials to create relevant questions.</div>
-            </div>
-            <div class="form-group">
-                <label>Number of Questions</label>
-                <input type="number" id="aiQuestionCount" value="5" min="1" max="30" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Difficulty Level</label>
-                <select id="aiDifficulty" class="form-control">
-                    <option value="easy">Easy</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="hard">Hard</option>
-                    <option value="mixed">Mixed</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Question Type</label>
-                <select id="aiQuestionType" class="form-control">
-                    <option value="mcq">Multiple Choice</option>
-                    <option value="truefalse">True/False</option>
-                    <option value="fillblank">Fill in the Blank</option>
-                    <option value="mixed">Mixed Types</option>
-                </select>
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-primary" onclick="generateWithAI()">Generate Questions</button>
-                <button class="btn btn-outline" onclick="insertAIGenerated()">Insert into Form</button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content">
-            <i class="fas fa-spinner fa-spin"></i>
-            <h3>Processing...</h3>
-            <p>Please wait</p>
-        </div>
-    </div>
-    
+
+    <div class="modal-overlay" id="aiModal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-robot"></i> AI Question Generator</h3><i class="fas fa-times" onclick="closeAIModal()"></i></div><div class="ai-chat" id="aiChat"><div class="message assistant">I will generate questions based on your lesson notes and syllabus content.</div></div><div><label>Number of Questions</label><input type="number" id="aiQuestionCount" value="5" min="1" max="30" class="form-control"></div><div><label>Difficulty</label><select id="aiDifficulty" class="form-control"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div><div style="margin:1rem 0;"><button class="btn btn-primary" onclick="generateWithAI()">Generate</button> <button class="btn btn-outline" onclick="insertAIGenerated()">Insert into Form</button></div></div></div>
+    <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div></div>
+
     <script type="module">
         import Groq from "groq-sdk";
-        
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -1178,22 +214,17 @@
             appId: "1:673937760480:web:f03c06e1207232213ef085",
             measurementId: "G-ELBMT8WHQ9"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const storage = firebase.storage();
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.settings.minimumFetchIntervalMillis = 0;
-        
-        // DOM Elements
+
+        // Theme & sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
-        
-        // Sidebar Toggle
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
@@ -1201,21 +232,15 @@
             icon.classList.toggle('fa-chevron-left');
             icon.classList.toggle('fa-chevron-right');
         });
-        
-        // Theme Management
-        function updateThemeUI(theme) {
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        function updateThemeUI(theme) { 
             const span = themeToggle.querySelector('span');
-            if (theme === 'dark') {
-                span.textContent = 'Light';
-            } else {
-                span.textContent = 'Dark';
-            }
+            span.textContent = theme === 'dark' ? 'Light' : 'Dark';
         }
-        
         const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
-        
         themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
@@ -1223,214 +248,40 @@
             localStorage.setItem('edutop-theme', next);
             updateThemeUI(next);
         });
-        
-        // Global Variables
-        let currentUser = null;
-        let userData = null;
-        let subjects = [];
-        let currentSubject = null;
-        let syllabusWeeksMap = {}; // Store weeks by subject
-        let currentWeekData = null;
-        let groq = null;
-        let questions = [];
-        let essayPrompt = '';
-        let quill = null;
-        let currentDocId = null;
+
+        // ========== GLOBALS ==========
+        let currentUser = null, userData = null, subjects = [], currentSubject = null, currentWeek = null, syllabusWeeks = [], groq = null;
+        let assignments = [], currentDocId = null, questions = [], essayPrompt = '', quill = null;
         let uploadedFiles = [];
-        
-        // Initialize Quill
-        quill = new Quill('#essayPromptEditor', {
-            theme: 'snow',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline', 'strike'],
-                    ['blockquote', 'code-block'],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                    ['link', 'image'],
-                    ['clean']
-                ]
-            },
-            placeholder: 'Enter the essay prompt here...'
+
+        // ========== AUTH ==========
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                try {
+                    await remoteConfig.fetchAndActivate();
+                    const groqApiKey = remoteConfig.getString('groq_api_key');
+                    if (groqApiKey) groq = new Groq({ apiKey: groqApiKey, dangerouslyAllowBrowser: true });
+                } catch(e) { console.error(e); }
+                subjects = userData.subjects || [];
+                await loadSyllabusData();
+                renderSubjectTabs();
+                loadAssignments();
+            } catch(e) { console.error(e); }
         });
-        
-        // Toggle between MCQ and Essay
-        const essayRadio = document.querySelector('input[value="essay"]');
-        const mcqRadio = document.querySelector('input[value="mcq"]');
-        const mcqDiv = document.getElementById('mcqSection');
-        const essayDiv = document.getElementById('essaySection');
-        
-        essayRadio.addEventListener('change', () => {
-            if (essayRadio.checked) {
-                mcqDiv.style.display = 'none';
-                essayDiv.style.display = 'block';
-            }
-        });
-        
-        mcqRadio.addEventListener('change', () => {
-            if (mcqRadio.checked) {
-                mcqDiv.style.display = 'block';
-                essayDiv.style.display = 'none';
-            }
-        });
-        
-        essayDiv.style.display = 'block';
-        mcqDiv.style.display = 'none';
-        
-        // File Upload
-        const fileUploadArea = document.getElementById('fileUploadArea');
-        const fileInput = document.getElementById('fileInput');
-        
-        fileUploadArea.addEventListener('click', () => fileInput.click());
-        fileUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileUploadArea.style.borderColor = 'var(--accent)';
-        });
-        
-        fileUploadArea.addEventListener('dragleave', () => {
-            fileUploadArea.style.borderColor = 'var(--border)';
-        });
-        
-        fileUploadArea.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            fileUploadArea.style.borderColor = 'var(--border)';
-            const files = Array.from(e.dataTransfer.files);
-            await uploadFiles(files);
-        });
-        
-        fileInput.addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            await uploadFiles(files);
-            fileInput.value = '';
-        });
-        
-        async function uploadFiles(files) {
-            if (!currentUser) return;
-            showLoading();
-            for (const file of files) {
-                if (file.size > 10 * 1024 * 1024) {
-                    alert(`${file.name} exceeds 10MB limit`);
-                    continue;
-                }
-                
-                const storageRef = storage.ref();
-                const fileRef = storageRef.child(`assignments/${currentUser.uid}/${Date.now()}_${file.name}`);
-                await fileRef.put(file);
-                const url = await fileRef.getDownloadURL();
-                uploadedFiles.push({
-                    name: file.name,
-                    url: url,
-                    type: file.type,
-                    size: file.size
-                });
-            }
-            renderFileList();
-            hideLoading();
-        }
-        
-        function renderFileList() {
-            const container = document.getElementById('fileList');
-            if (uploadedFiles.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-            container.innerHTML = uploadedFiles.map((file, index) => `
-                <div class="file-item">
-                    <div>
-                        <i class="fas ${file.type.includes('pdf') ? 'fa-file-pdf' : file.type.includes('image') ? 'fa-file-image' : 'fa-file-alt'}"></i>
-                        <span style="margin-left: 0.5rem;">${file.name}</span>
-                    </div>
-                    <button class="btn btn-sm btn-danger" onclick="window.removeFile(${index})">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
-        
-        window.removeFile = (index) => {
-            uploadedFiles.splice(index, 1);
-            renderFileList();
-        };
-        
-        // Question Management
-        function renderQuestions() {
-            const container = document.getElementById('questionsList');
-            if (!questions.length) {
-                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No questions added yet. Click "Add Question" to begin.</p>';
-                return;
-            }
-            
-            let html = '';
-            questions.forEach((q, idx) => {
-                const opts = q.options.map((opt, oi) => `
-                    <div class="question-option">
-                        <input type="radio" name="correct_${idx}" value="${String.fromCharCode(65 + oi)}" 
-                            ${q.correct === String.fromCharCode(65 + oi) ? 'checked' : ''} 
-                            onchange="window.setCorrect(${idx}, '${String.fromCharCode(65 + oi)}')">
-                        <span>${String.fromCharCode(65 + oi)}. ${opt}</span>
-                    </div>
-                `).join('');
-                
-                html += `
-                    <div class="question-item">
-                        <div class="question-header">
-                            <span class="question-text">Q${idx + 1}: ${q.question || 'Untitled Question'}</span>
-                            <div>
-                                <span class="correct-badge">${q.points || 1} pts</span>
-                                <button class="btn btn-sm btn-outline" onclick="window.editQuestion(${idx})">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="window.removeQuestion(${idx})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="question-options">${opts}</div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-        
-        window.addQuestion = () => {
-            questions.push({
-                question: '',
-                options: ['', '', '', ''],
-                correct: 'A',
-                points: 1
-            });
-            renderQuestions();
-            setTimeout(() => window.editQuestion(questions.length - 1), 100);
-        };
-        
-        window.removeQuestion = (i) => {
-            questions.splice(i, 1);
-            renderQuestions();
-        };
-        
-        window.setCorrect = (i, letter) => {
-            questions[i].correct = letter;
-        };
-        
-        window.editQuestion = (i) => {
-            const q = questions[i];
-            const newQuestion = prompt('Enter question text:', q.question);
-            if (newQuestion !== null) q.question = newQuestion;
-            
-            for (let j = 0; j < 4; j++) {
-                const newOption = prompt(`Option ${String.fromCharCode(65 + j)}:`, q.options[j]);
-                if (newOption !== null) q.options[j] = newOption;
-            }
-            
-            const newPoints = prompt('Points for this question:', q.points);
-            if (newPoints !== null) q.points = parseInt(newPoints) || 1;
-            
-            renderQuestions();
-        };
-        
-        // Load Syllabus Weeks
-        async function loadSyllabusWeeks() {
-            if (!currentUser || !subjects.length) return;
-            
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+        document.getElementById('refreshBtn').addEventListener('click', () => loadAssignments());
+
+        // ========== SYLLABUS LOADING - FIXED ==========
+        async function loadSyllabusData() {
+            if (!subjects.length) return;
             showLoading();
             try {
                 const snap = await db.collection('syllabus')
@@ -1438,268 +289,166 @@
                     .where('status', '==', 'approved')
                     .get();
                 
-                // Build map of weeks by subject
-                syllabusWeeksMap = {};
+                syllabusWeeks = [];
                 snap.forEach(doc => {
                     const data = doc.data();
-                    const subject = data.subject;
-                    if (!syllabusWeeksMap[subject]) {
-                        syllabusWeeksMap[subject] = [];
-                    }
-                    syllabusWeeksMap[subject].push({
+                    syllabusWeeks.push({
+                        id: doc.id,
+                        subject: data.subject,
                         week: data.week,
-                        topic: data.topic,
-                        id: doc.id
+                        topic: data.topic
                     });
                 });
                 
-                // Sort weeks for each subject
-                for (let subject in syllabusWeeksMap) {
-                    syllabusWeeksMap[subject].sort((a, b) => a.week - b.week);
-                }
-                
-                console.log('Loaded syllabus weeks:', syllabusWeeksMap);
-            } catch (error) {
+                console.log('Loaded syllabus weeks:', syllabusWeeks);
+            } catch(error) {
                 console.error('Error loading syllabus:', error);
             } finally {
                 hideLoading();
             }
         }
-        
-        // Populate Week Dropdown
-        function populateWeekDropdown() {
-            const weekSelect = document.getElementById('weekSelect');
-            weekSelect.innerHTML = '<option value="">-- Select Week --</option>';
-            
-            if (!currentSubject || !syllabusWeeksMap[currentSubject] || syllabusWeeksMap[currentSubject].length === 0) {
-                weekSelect.innerHTML = '<option value="">-- No weeks available. Please create syllabus first --</option>';
-                document.getElementById('topic').value = '';
-                document.getElementById('topicInfoBox').style.display = 'none';
-                return;
-            }
-            
-            const weeks = syllabusWeeksMap[currentSubject];
-            weeks.forEach(weekData => {
-                const option = document.createElement('option');
-                option.value = weekData.week;
-                option.textContent = `Week ${weekData.week}: ${weekData.topic.length > 50 ? weekData.topic.substring(0, 50) + '...' : weekData.topic}`;
-                option.title = weekData.topic;
-                option.dataset.topic = weekData.topic;
-                weekSelect.appendChild(option);
-            });
-            
-            document.getElementById('topicInfoBox').style.display = 'block';
+
+        function getWeeksForSubject(subject) {
+            return syllabusWeeks.filter(w => w.subject === subject).sort((a, b) => a.week - b.week);
         }
-        
-        // Handle week selection change
-        function onWeekChange() {
-            const weekSelect = document.getElementById('weekSelect');
-            const selectedOption = weekSelect.options[weekSelect.selectedIndex];
-            const week = weekSelect.value;
-            
-            if (!week) {
-                document.getElementById('topic').value = '';
-                return;
-            }
-            
-            const topic = selectedOption?.dataset?.topic || '';
-            document.getElementById('topic').value = topic;
-            currentWeekData = {
-                week: parseInt(week),
-                topic: topic
-            };
-        }
-        
-        // Subject Selection
+
         function renderSubjectTabs() {
             const container = document.getElementById('subjectTabs');
             container.innerHTML = '';
             subjects.forEach(sub => {
-                const tab = document.createElement('span');
-                tab.className = 'tab';
+                const tab = document.createElement('span'); 
+                tab.className = 'tab'; 
                 tab.textContent = sub;
-                tab.onclick = () => switchSubject(sub, tab);
+                tab.onclick = (e) => switchSubject(sub, e.target);
                 container.appendChild(tab);
             });
-            if (subjects.length) {
-                switchSubject(subjects[0], container.children[0]);
-            }
+            if (subjects.length) switchSubject(subjects[0], container.children[0]);
         }
-        
+
         function switchSubject(subject, target) {
             document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
             target.classList.add('active');
             currentSubject = subject;
             document.getElementById('subject').value = subject;
             
-            // Reset week and topic
-            document.getElementById('weekSelect').value = '';
-            document.getElementById('topic').value = '';
+            const weeksData = getWeeksForSubject(subject);
+            renderWeekTabs(weeksData);
             
-            // Populate week dropdown
-            populateWeekDropdown();
-        }
-        
-        // Load Lesson Notes for AI Context
-        async function loadLessonNotesForWeek(subject, week) {
-            if (!currentUser) return null;
-            
-            try {
-                const syllabusSnap = await db.collection('syllabus')
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('subject', '==', subject)
-                    .where('week', '==', parseInt(week))
-                    .where('status', '==', 'approved')
-                    .limit(1)
-                    .get();
-                
-                if (syllabusSnap.empty) return null;
-                
-                const syllabusId = syllabusSnap.docs[0].id;
-                
-                const notesSnap = await db.collection('lessonNotes')
-                    .where('syllabusId', '==', syllabusId)
-                    .where('teacherId', '==', currentUser.uid)
-                    .where('status', '==', 'approved')
-                    .orderBy('createdAt', 'desc')
-                    .limit(1)
-                    .get();
-                
-                if (notesSnap.empty) return null;
-                
-                return notesSnap.docs[0].data();
-            } catch (error) {
-                console.error('Error loading lesson notes:', error);
-                return null;
+            if (weeksData.length) {
+                selectWeek(weeksData[0].week, weeksData[0].topic, null);
+            } else {
+                document.getElementById('week').value = '';
+                document.getElementById('topic').value = '';
+                const weekContainer = document.getElementById('weekTabs');
+                weekContainer.innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks found. Please create syllabus first.</div>';
             }
         }
-        
-        // AI Generation
+
+        function renderWeekTabs(weeksData) {
+            const container = document.getElementById('weekTabs');
+            container.innerHTML = '';
+            
+            if (!weeksData.length) {
+                container.innerHTML = '<div class="tab" style="background: var(--warning-bg); color: var(--warning-text);">No weeks available</div>';
+                return;
+            }
+            
+            weeksData.forEach(w => {
+                const tab = document.createElement('span');
+                tab.className = 'tab';
+                tab.textContent = `Week ${w.week}: ${w.topic.length > 35 ? w.topic.substring(0, 35) + '...' : w.topic}`;
+                tab.title = w.topic;
+                tab.onclick = (e) => selectWeek(w.week, w.topic, e.target);
+                container.appendChild(tab);
+            });
+        }
+
+        function selectWeek(week, topic, target) {
+            document.querySelectorAll('#weekTabs .tab').forEach(t => t.classList.remove('active'));
+            if (target) target.classList.add('active');
+            currentWeek = week;
+            document.getElementById('week').value = week;
+            document.getElementById('topic').value = topic || '';
+        }
+
+        // Toggle UI based on assignment type
+        const essayRadio = document.querySelector('input[value="essay"]');
+        const mcqRadio = document.querySelector('input[value="mcq"]');
+        const mcqDiv = document.getElementById('mcqSection');
+        const essayDiv = document.getElementById('essaySection');
+        essayRadio.addEventListener('change', () => { if (essayRadio.checked) { mcqDiv.style.display = 'none'; essayDiv.style.display = 'block'; } });
+        mcqRadio.addEventListener('change', () => { if (mcqRadio.checked) { mcqDiv.style.display = 'block'; essayDiv.style.display = 'none'; } });
+        essayDiv.style.display = 'block';
+        mcqDiv.style.display = 'none';
+
+        quill = new Quill('#essayPromptEditor', { 
+            theme: 'snow', 
+            modules: { 
+                toolbar: [['bold','italic','underline','strike'],['blockquote','code-block'],[{ 'list': 'ordered'},{ 'list': 'bullet' }],['link'],['clean']] 
+            }, 
+            placeholder: 'Enter essay prompt...' 
+        });
+
+        // Question management
+        function renderQuestions() {
+            const container = document.getElementById('questionsList');
+            if (!questions.length) { container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No questions added yet. Click "Add Question" to begin.</p>'; return; }
+            let html = '';
+            questions.forEach((q, idx) => {
+                const opts = q.options.map((opt, oi) => `<div class="question-option"><input type="radio" name="correct_${idx}" value="${String.fromCharCode(65+oi)}" ${q.correct === String.fromCharCode(65+oi) ? 'checked' : ''} onchange="window.setCorrect(${idx},'${String.fromCharCode(65+oi)}')"><span>${String.fromCharCode(65+oi)}. ${opt}</span></div>`).join('');
+                html += `<div class="question-item"><div class="question-header"><span class="question-text">Q${idx+1}: ${q.question || 'Untitled Question'}</span><div><span class="correct-badge">${q.points||1} pts</span><button class="btn btn-sm btn-danger" onclick="window.removeQuestion(${idx})"><i class="fas fa-trash"></i></button><button class="btn btn-sm btn-outline" onclick="window.editQuestion(${idx})"><i class="fas fa-edit"></i></button></div></div><div class="question-options">${opts}</div></div>`;
+            });
+            container.innerHTML = html;
+        }
+        window.addQuestion = () => { questions.push({ question: '', options: ['','','',''], correct: 'A', points: 1 }); renderQuestions(); };
+        window.removeQuestion = (i) => { questions.splice(i,1); renderQuestions(); };
+        window.setCorrect = (i, l) => { questions[i].correct = l; };
+        window.editQuestion = (i) => { 
+            const q = questions[i]; 
+            const newTxt = prompt('Edit question:', q.question); 
+            if (newTxt !== null) q.question = newTxt; 
+            for(let j=0; j<4; j++) {
+                const newOpt = prompt(`Option ${String.fromCharCode(65+j)}:`, q.options[j]);
+                if(newOpt !== null) q.options[j] = newOpt;
+            }
+            const newPts = prompt('Points:', q.points); 
+            if (newPts !== null) q.points = parseInt(newPts) || 1; 
+            renderQuestions(); 
+        };
+
+        // AI generation
         const aiModal = document.getElementById('aiModal');
-        
+        const aiChat = document.getElementById('aiChat');
+        let lastGenerated = [];
         window.openAIModal = () => aiModal.classList.add('active');
         window.closeAIModal = () => aiModal.classList.remove('active');
-        
         document.getElementById('useAIBtn').addEventListener('click', openAIModal);
         
-        let lastGenerated = [];
-        
         window.generateWithAI = async () => {
-            if (!groq) {
-                alert('AI service is not ready. Please check your internet connection and try again.');
-                return;
-            }
-            
-            if (!currentSubject) {
-                alert('Please select a subject first.');
-                return;
-            }
-            
-            const week = document.getElementById('weekSelect').value;
-            if (!week) {
-                alert('Please select a week first. This helps the AI create relevant questions based on your lesson content.');
-                return;
-            }
-            
+            if (!groq) { alert('AI not ready'); return; }
+            if (!currentWeek) { alert('Please select a week first.'); return; }
             const count = document.getElementById('aiQuestionCount').value;
             const difficulty = document.getElementById('aiDifficulty').value;
-            const questionType = document.getElementById('aiQuestionType').value;
             const topic = document.getElementById('topic').value;
-            
-            const chatDiv = document.getElementById('aiChat');
-            chatDiv.innerHTML += `<div class="message user">Generate ${count} ${difficulty} ${questionType} questions about "${topic}" (Week ${week})</div>`;
-            
-            const thinking = document.createElement('div');
-            thinking.className = 'message assistant';
-            thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading your lesson notes and resources...';
-            chatDiv.appendChild(thinking);
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-            
+            const prompt = `Generate ${count} ${difficulty} difficulty multiple-choice questions on "${topic}" (Week ${currentWeek}). Return JSON array: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
+            aiChat.innerHTML += `<div class="message user">${prompt}</div>`;
+            const thinking = document.createElement('div'); thinking.className = 'message assistant'; thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...'; aiChat.appendChild(thinking);
             showLoading();
-            
             try {
-                thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing your lesson notes...';
-                const lessonNote = await loadLessonNotesForWeek(currentSubject, week);
-                
-                thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating questions based on your teaching materials...';
-                
-                let contextText = `Topic: ${topic}\n\n`;
-                
-                if (lessonNote) {
-                    contextText += `Lesson Content:\n${lessonNote.content || lessonNote.notes || ''}\n\n`;
-                    if (lessonNote.objectives) {
-                        contextText += `Learning Objectives:\n${lessonNote.objectives}\n\n`;
-                    }
-                } else {
-                    contextText += `Note: No lesson notes found for this week. Please create lesson notes first for better AI-generated questions. For now, generating general questions about ${topic}.\n\n`;
-                }
-                
-                let prompt = `You are an expert educational content creator. Based on the following teaching materials for ${currentSubject} (Week ${week}):\n\n${contextText}\n\n`;
-                
-                if (questionType === 'mcq') {
-                    prompt += `Generate ${count} ${difficulty} difficulty multiple-choice questions. Each question should have 4 options (A, B, C, D) with one correct answer. Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
-                } else if (questionType === 'truefalse') {
-                    prompt += `Generate ${count} ${difficulty} difficulty True/False questions. Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["True","False"],"correct":"True","points":1}]`;
-                } else if (questionType === 'fillblank') {
-                    prompt += `Generate ${count} ${difficulty} difficulty fill-in-the-blank questions. Use "_____" for the blank. Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["answer"],"correct":"answer","points":1}]`;
-                } else {
-                    prompt += `Generate ${count} ${difficulty} difficulty questions mixing types (MCQ, True/False, Fill in the Blank). Return ONLY a JSON array with no other text. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
-                }
-                
-                const res = await groq.chat.completions.create({
-                    messages: [{ role: 'user', content: prompt }],
-                    model: 'llama-3.3-70b-versatile',
-                    temperature: 0.7,
-                    max_tokens: 4000
-                });
-                
+                const res = await groq.chat.completions.create({ messages: [{ role: 'user', content: prompt }], model: 'llama-3.3-70b-versatile', temperature: 0.7 });
                 const text = res.choices[0].message.content;
                 const match = text.match(/\[[\s\S]*\]/);
-                if (!match) throw new Error('No valid JSON found in response');
-                
+                if (!match) throw new Error('No JSON');
                 lastGenerated = JSON.parse(match[0]);
-                chatDiv.removeChild(thinking);
-                chatDiv.innerHTML += `<div class="message assistant">✅ Generated ${lastGenerated.length} questions successfully based on your lesson content! Click "Insert into Form" to add them.</div>`;
-                chatDiv.scrollTop = chatDiv.scrollHeight;
-            } catch (error) {
-                console.error('AI Error:', error);
-                chatDiv.removeChild(thinking);
-                chatDiv.innerHTML += `<div class="message assistant">❌ Error: ${error.message}. Please make sure you have lesson notes created for this week, or try again.</div>`;
-            } finally {
-                hideLoading();
-            }
+                aiChat.removeChild(thinking);
+                aiChat.innerHTML += `<div class="message assistant">Generated ${lastGenerated.length} questions. Click "Insert".</div>`;
+            } catch(e) { aiChat.removeChild(thinking); aiChat.innerHTML += `<div class="message assistant">Error: ${e.message}</div>`; } finally { hideLoading(); }
         };
-        
-        window.insertAIGenerated = () => {
-            if (lastGenerated && lastGenerated.length) {
-                questions = questions.concat(lastGenerated);
-                renderQuestions();
-                closeAIModal();
-                mcqRadio.click();
-                alert(`Added ${lastGenerated.length} questions!`);
-            } else {
-                alert('No questions generated yet. Click "Generate Questions" first.');
-            }
-        };
-        
-        // Save Assignment
-        document.getElementById('assignmentForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            saveAssignment('draft');
-        });
-        
-        document.getElementById('publishBtn').addEventListener('click', () => {
-            if (confirm('Publish this assignment? Students will be able to see and submit it.')) {
-                saveAssignment('published');
-            }
-        });
-        
-        document.getElementById('refreshAssignmentsBtn').addEventListener('click', () => {
-            loadAssignments();
-        });
-        
-        // Week select change listener
-        document.getElementById('weekSelect').addEventListener('change', onWeekChange);
+        window.insertAIGenerated = () => { if (lastGenerated.length) { questions = questions.concat(lastGenerated); renderQuestions(); closeAIModal(); mcqRadio.click(); } else alert('No questions generated.'); };
+
+        // Save & Publish
+        document.getElementById('assignmentForm').addEventListener('submit', (e) => { e.preventDefault(); saveAssignment('draft'); });
+        document.getElementById('publishBtn').addEventListener('click', () => saveAssignment('published'));
         
         async function saveAssignment(status) {
             const type = document.querySelector('input[name="assignmentType"]:checked').value;
@@ -1710,95 +459,37 @@
             const latePenalty = parseInt(document.getElementById('latePenalty').value);
             const allowResubmission = document.getElementById('allowResubmission').checked;
             const aiGradingSuggestions = document.getElementById('aiGradingSuggestions').checked;
-            const subject = currentSubject;
-            const week = document.getElementById('weekSelect').value;
-            const topic = document.getElementById('topic').value;
+            const subject = currentSubject, week = currentWeek, topic = document.getElementById('topic').value;
             
-            if (!subject) {
-                alert('Please select a subject.');
-                return;
-            }
-            
-            if (!week) {
-                alert('Please select a week.');
-                return;
-            }
-            
-            if (!title) {
-                alert('Please enter an assignment title.');
-                return;
-            }
-            
-            if (!dueDate) {
-                alert('Please set a due date.');
-                return;
-            }
-            
-            if (type === 'mcq' && !questions.length) {
-                alert('Please add at least one question for MCQ assignment.');
-                return;
-            }
-            
-            if (type === 'essay') {
-                const promptHtml = quill.root.innerHTML;
-                if (!promptHtml || promptHtml === '<p><br></p>') {
-                    alert('Please enter an essay prompt.');
-                    return;
-                }
-                essayPrompt = promptHtml;
-            }
+            if (!subject || !week) { alert('Please select a subject and week.'); return; }
+            if (!title) { alert('Please enter an assignment title.'); return; }
+            if (!dueDate) { alert('Please set a due date.'); return; }
+            if (type === 'mcq' && !questions.length) { alert('Add at least one question.'); return; }
+            if (type === 'essay') { const promptHtml = quill.root.innerHTML; if (!promptHtml || promptHtml === '<p><br></p>') { alert('Enter essay prompt.'); return; } essayPrompt = promptHtml; }
             
             const data = {
-                teacherId: currentUser.uid,
-                classId: userData.classTeaching,
-                subject,
-                week: parseInt(week),
-                topic,
-                title,
-                description,
-                dueDate: new Date(dueDate),
-                totalPoints,
-                latePenalty,
-                allowResubmission,
-                aiGradingSuggestions,
-                assignmentType: type,
-                status,
-                attachments: uploadedFiles,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                teacherId: currentUser.uid, classId: userData.classTeaching, subject, week, topic, title, description, 
+                dueDate: new Date(dueDate), totalPoints, latePenalty, allowResubmission, aiGradingSuggestions,
+                assignmentType: type, status, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            
-            if (type === 'mcq') {
-                data.questions = questions;
-            } else {
-                data.essayPrompt = essayPrompt;
-            }
-            
-            if (status === 'published') {
-                data.publishedAt = firebase.firestore.FieldValue.serverTimestamp();
-            }
+            if (type === 'mcq') data.questions = questions;
+            else data.essayPrompt = essayPrompt;
+            if (status === 'published') data.publishedAt = firebase.firestore.FieldValue.serverTimestamp();
             
             showLoading();
-            
             try {
-                if (currentDocId) {
-                    await db.collection('assignments').doc(currentDocId).update(data);
-                    alert(`Assignment updated and ${status === 'published' ? 'published' : 'saved'}!`);
-                } else {
-                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    const docRef = await db.collection('assignments').add(data);
-                    currentDocId = docRef.id;
-                    alert(`Assignment ${status === 'published' ? 'published' : 'saved'} successfully!`);
-                }
-                
-                resetForm();
-                loadAssignments();
-            } catch (error) {
-                console.error('Save error:', error);
-                alert('Error saving assignment: ' + error.message);
-            } finally {
-                hideLoading();
-            }
+                if (currentDocId) await db.collection('assignments').doc(currentDocId).update(data);
+                else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); const ref = await db.collection('assignments').add(data); currentDocId = ref.id; }
+                alert(`Assignment ${status === 'published' ? 'published' : 'saved'}!`);
+                resetForm(); loadAssignments();
+            } catch(e) { alert('Error: '+e.message); } finally { hideLoading(); }
         }
+        
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+            if (!currentDocId || !confirm('Delete?')) return;
+            showLoading();
+            try { await db.collection('assignments').doc(currentDocId).delete(); alert('Deleted.'); resetForm(); loadAssignments(); } catch(e) { alert('Error: '+e.message); } finally { hideLoading(); }
+        });
         
         function resetForm() {
             document.getElementById('docId').value = '';
@@ -1809,229 +500,59 @@
             document.getElementById('latePenalty').value = '0';
             document.getElementById('allowResubmission').checked = false;
             document.getElementById('aiGradingSuggestions').checked = false;
-            document.getElementById('weekSelect').value = '';
-            document.getElementById('topic').value = '';
-            questions = [];
-            uploadedFiles = [];
-            renderQuestions();
-            renderFileList();
-            quill.root.innerHTML = '';
-            currentDocId = null;
-            document.getElementById('deleteBtn').style.display = 'none';
+            questions = []; renderQuestions(); quill.root.innerHTML = ''; currentDocId = null; document.getElementById('deleteBtn').style.display = 'none';
         }
-        
-        document.getElementById('deleteBtn').addEventListener('click', async () => {
-            if (!currentDocId) return;
-            if (!confirm('Are you sure you want to delete this assignment? This action cannot be undone.')) return;
-            
-            showLoading();
-            try {
-                await db.collection('assignments').doc(currentDocId).delete();
-                alert('Assignment deleted successfully.');
-                resetForm();
-                loadAssignments();
-            } catch (error) {
-                alert('Error deleting assignment: ' + error.message);
-            } finally {
-                hideLoading();
-            }
-        });
-        
-        // Load Assignments
+
         async function loadAssignments() {
             if (!currentUser) return;
-            
             const tbody = document.getElementById('assignmentsList');
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading...</td></tr>';
-            
+            tbody.innerHTML = ' <td colspan="7">Loading...<\/td>';
             try {
-                const snap = await db.collection('assignments')
-                    .where('teacherId', '==', currentUser.uid)
-                    .orderBy('updatedAt', 'desc')
-                    .limit(10)
-                    .get();
-                
-                if (snap.empty) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No assignments yet. Create your first assignment above!</td></tr>';
-                    return;
-                }
-                
+                const snap = await db.collection('assignments').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').limit(10).get();
+                if (snap.empty) { tbody.innerHTML = ' <td colspan="7">No assignments yet.<\/td>'; return; }
                 let html = '';
                 snap.forEach(doc => {
                     const a = doc.data();
                     const typeBadge = a.assignmentType === 'mcq' ? '<i class="fas fa-check-circle"></i> MCQ' : '<i class="fas fa-pen-fancy"></i> Essay';
-                    const statusBadge = a.status === 'published' 
-                        ? '<span class="badge published">Published</span>' 
-                        : '<span class="badge draft">Draft</span>';
+                    const statusBadge = a.status === 'published' ? '<span class="badge published">Published</span>' : '<span class="badge draft">Draft</span>';
                     const dueDateFormatted = a.dueDate ? new Date(a.dueDate.toDate()).toLocaleDateString() : 'No date';
-                    
-                    html += `
-                        <tr>
-                            <td>${typeBadge}</td>
-                            <td>${escapeHtml(a.subject)}</td>
-                            <td>Week ${a.week}</td>
-                            <td><strong>${escapeHtml(a.title)}</strong></td>
-                            <td>${dueDateFormatted}</td>
-                            <td>${statusBadge}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline" onclick="window.editAssignment('${doc.id}')">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-outline" onclick="window.viewSubmissions('${doc.id}')">
-                                    <i class="fas fa-users"></i> Grade
-                                </button>
-                            </td>
-                        </tr>
-                    `;
+                    html += `<tr><td>${typeBadge}<\/td><td>${a.subject}<\/td><td>Week ${a.week}<\/td><td><strong>${escapeHtml(a.title)}<\/strong><\/td><td>${dueDateFormatted}<\/td><td>${statusBadge}<\/td><td><button class="btn btn-sm btn-outline" onclick="window.editAssignment('${doc.id}')"><i class="fas fa-edit"></i> Edit</button> <button class="btn btn-sm btn-outline" onclick="window.viewSubmissions('${doc.id}')"><i class="fas fa-users"></i> Grade</button><\/td><\/tr>`;
                 });
                 tbody.innerHTML = html;
-            } catch (error) {
-                console.error('Load error:', error);
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Error loading assignments</td></tr>';
-            }
+            } catch(e) { tbody.innerHTML = ' <td colspan="7">Error loading.<\/td>'; console.error(e); }
         }
         
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         
         window.editAssignment = async (id) => {
             showLoading();
             try {
                 const doc = await db.collection('assignments').doc(id).get();
-                const a = doc.data();
-                currentDocId = id;
-                document.getElementById('docId').value = id;
-                
-                // Set subject
-                if (a.subject !== currentSubject) {
-                    const tabs = document.querySelectorAll('#subjectTabs .tab');
-                    for (let tab of tabs) {
-                        if (tab.textContent === a.subject) {
-                            tab.click();
-                            break;
-                        }
-                    }
+                const a = doc.data(); currentDocId = id; document.getElementById('docId').value = id;
+                if (a.subject !== currentSubject) { 
+                    const tabs = document.querySelectorAll('#subjectTabs .tab'); 
+                    for(let t of tabs) if(t.textContent === a.subject) { t.click(); break; } 
                 }
-                
-                // Wait for week dropdown to populate then set value
-                setTimeout(() => {
-                    const weekSelect = document.getElementById('weekSelect');
-                    for (let i = 0; i < weekSelect.options.length; i++) {
-                        if (weekSelect.options[i].value == a.week) {
-                            weekSelect.selectedIndex = i;
-                            onWeekChange();
-                            break;
-                        }
-                    }
+                setTimeout(() => { 
+                    const wtabs = document.querySelectorAll('#weekTabs .tab'); 
+                    for(let w of wtabs) if(w.textContent.includes(`Week ${a.week}`)) { w.click(); break; } 
                 }, 500);
-                
-                if (a.assignmentType === 'mcq') {
-                    document.querySelector('input[value="mcq"]').checked = true;
-                    mcqDiv.style.display = 'block';
-                    essayDiv.style.display = 'none';
-                    questions = a.questions || [];
-                    renderQuestions();
-                } else {
-                    document.querySelector('input[value="essay"]').checked = true;
-                    mcqDiv.style.display = 'none';
-                    essayDiv.style.display = 'block';
-                    quill.root.innerHTML = a.essayPrompt || '';
-                }
-                
-                document.getElementById('title').value = a.title || '';
-                document.getElementById('description').value = a.description || '';
+                if (a.assignmentType === 'mcq') { document.querySelector('input[value="mcq"]').checked = true; mcqDiv.style.display = 'block'; essayDiv.style.display = 'none'; questions = a.questions || []; renderQuestions(); }
+                else { document.querySelector('input[value="essay"]').checked = true; mcqDiv.style.display = 'none'; essayDiv.style.display = 'block'; quill.root.innerHTML = a.essayPrompt || ''; }
+                document.getElementById('title').value = a.title || ''; document.getElementById('description').value = a.description || '';
                 document.getElementById('dueDate').value = a.dueDate ? new Date(a.dueDate.toDate()).toISOString().slice(0, 16) : '';
                 document.getElementById('totalPoints').value = a.totalPoints || 100;
                 document.getElementById('latePenalty').value = a.latePenalty || 0;
                 document.getElementById('allowResubmission').checked = a.allowResubmission || false;
                 document.getElementById('aiGradingSuggestions').checked = a.aiGradingSuggestions || false;
-                uploadedFiles = a.attachments || [];
-                renderFileList();
                 document.getElementById('deleteBtn').style.display = 'inline-block';
-            } catch (error) {
-                alert('Error loading assignment: ' + error.message);
-            } finally {
-                hideLoading();
-            }
+            } catch(e) { alert('Error: '+e.message); } finally { hideLoading(); }
         };
         
-        window.viewSubmissions = (id) => {
-            window.location.href = `teacher-grade.html?assignmentId=${id}`;
-        };
+        window.viewSubmissions = (id) => { window.location.href = `teacher-grade.html?assignmentId=${id}`; };
         
-        // Authentication
-        auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'teacher-login.html';
-                return;
-            }
-            
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                    await auth.signOut();
-                    window.location.href = 'index.html';
-                    return;
-                }
-                
-                currentUser = user;
-                userData = userDoc.data();
-                subjects = userData.subjects || [];
-                
-                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
-                
-                // Initialize Groq
-                try {
-                    await remoteConfig.fetchAndActivate();
-                    const groqApiKey = remoteConfig.getString('groq_api_key');
-                    if (groqApiKey) {
-                        groq = new Groq({ apiKey: groqApiKey, dangerouslyAllowBrowser: true });
-                    }
-                } catch (e) {
-                    console.warn('Groq not available:', e);
-                }
-                
-                await loadSyllabusWeeks();
-                renderSubjectTabs();
-                loadAssignments();
-            } catch (error) {
-                console.error('Auth error:', error);
-            }
-        });
-        
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            auth.signOut().then(() => window.location.href = 'index.html');
-        });
-        
-        document.getElementById('profileLink').addEventListener('click', () => {
-            window.location.href = 'teacher-profile.html';
-        });
-        
-        function showLoading() {
-            document.getElementById('loadingOverlay').classList.add('active');
-        }
-        
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('active');
-        }
-        
-        // Make functions global
-        window.addQuestion = addQuestion;
-        window.removeQuestion = removeQuestion;
-        window.setCorrect = setCorrect;
-        window.editQuestion = editQuestion;
-        window.removeFile = removeFile;
-        window.editAssignment = editAssignment;
-        window.viewSubmissions = viewSubmissions;
-        window.generateWithAI = generateWithAI;
-        window.insertAIGenerated = insertAIGenerated;
-        window.openAIModal = openAIModal;
-        window.closeAIModal = closeAIModal;
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
     </script>
 </body>
 </html>
