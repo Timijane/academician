@@ -15,7 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
     <style>
-        /* Keep all existing styles */
+        /* Keep all existing styles - same as previous */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -86,10 +86,9 @@
         .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.95rem; transition: all 0.2s; }
         .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
         textarea.form-control { min-height: 100px; resize: vertical; }
-        select.form-control { cursor: pointer; }
 
         .weeks-selector { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-top: 0.5rem; }
-        .weeks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+        .weeks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
         .week-checkbox { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; }
         .week-checkbox:hover { background: var(--hover-bg); border-color: var(--accent); }
         .week-checkbox input { width: 1.2rem; height: 1.2rem; cursor: pointer; accent-color: var(--accent); }
@@ -369,6 +368,7 @@
             console.log(message);
         }
         
+        // FIXED: Load syllabus and read the weeks array
         async function loadSyllabus() {
             if (!subjects.length) return;
             
@@ -385,12 +385,21 @@
                 syllabusWeeks = [];
                 snap.forEach(doc => {
                     const data = doc.data();
-                    updateDebug(`   - Document: subject=${data.subject}, week=${data.week}, topic=${data.topic}`);
-                    syllabusWeeks.push({
-                        subject: data.subject,
-                        week: data.week,
-                        topic: data.topic,
-                        id: doc.id
+                    const subject = data.subject;
+                    const weeksArray = data.weeks || [];
+                    
+                    updateDebug(`   - Subject: ${subject}, weeks array length: ${weeksArray.length}`);
+                    
+                    // Loop through the weeks array and add each week
+                    weeksArray.forEach(weekData => {
+                        updateDebug(`     Week ${weekData.week}: ${weekData.topic}`);
+                        syllabusWeeks.push({
+                            subject: subject,
+                            week: weekData.week,
+                            topic: weekData.topic,
+                            objectives: weekData.objectives || '',
+                            syllabusId: doc.id
+                        });
                     });
                 });
                 
@@ -457,14 +466,11 @@
             
             let html = '';
             weeks.forEach(w => {
-                // Make sure week and topic exist
-                const weekNum = w.week !== undefined ? w.week : '?';
-                const topicText = w.topic || 'No topic';
                 html += `
                     <label class="week-checkbox">
-                        <input type="checkbox" value="${weekNum}" data-week="${weekNum}" data-topic="${escapeHtml(topicText)}" onchange="toggleWeek(this)">
+                        <input type="checkbox" value="${w.week}" data-week="${w.week}" data-topic="${escapeHtml(w.topic)}" onchange="toggleWeek(this)">
                         <span>
-                            <strong>Week ${weekNum}</strong>: ${escapeHtml(topicText)}
+                            <strong>Week ${w.week}</strong>: ${escapeHtml(w.topic)}
                         </span>
                     </label>
                 `;
