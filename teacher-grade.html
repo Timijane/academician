@@ -14,6 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
     <style>
+        /* Same styles as before - keeping them for brevity */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -418,14 +419,41 @@
             const feedback = feedbackArea?.value || '';
             if (score < 0 || score > assignmentData.totalPoints) { alert(`Score must be between 0 and ${assignmentData.totalPoints}`); return; }
             showLoading();
-            const updateData = { graded: true, score, feedback, gradedAt: firebase.firestore.FieldValue.serverTimestamp(), gradedBy: currentUser.uid };
-            if (assignmentData.assignmentType === 'essay' && quills[submissionId]) updateData.corrections = quills[submissionId].root.innerHTML;
+            
+            const updateData = { 
+                graded: true, 
+                score, 
+                feedback, 
+                gradedAt: firebase.firestore.FieldValue.serverTimestamp(), 
+                gradedBy: currentUser.uid 
+            };
+            
+            // FIX: If submission doesn't have teacherId, add it from assignment
+            if (!submission.teacherId && assignmentData.teacherId) {
+                updateData.teacherId = assignmentData.teacherId;
+                console.log('Adding missing teacherId to submission:', assignmentData.teacherId);
+            }
+            
+            if (assignmentData.assignmentType === 'essay' && quills[submissionId]) {
+                updateData.corrections = quills[submissionId].root.innerHTML;
+            }
+            
             try {
                 await db.collection('submissions').doc(submissionId).update(updateData);
-                submission.graded = true; submission.score = score; submission.feedback = feedback;
+                submission.graded = true; 
+                submission.score = score; 
+                submission.feedback = feedback;
+                if (!submission.teacherId && assignmentData.teacherId) {
+                    submission.teacherId = assignmentData.teacherId;
+                }
                 alert('Grade published successfully!');
                 renderGradeInterface();
-            } catch(e) { alert('Error: ' + e.message); } finally { hideLoading(); }
+            } catch(e) { 
+                console.error('Save error:', e);
+                alert('Error: ' + e.message); 
+            } finally { 
+                hideLoading(); 
+            }
         };
         
         window.saveAsDraft = async (submissionId) => {
