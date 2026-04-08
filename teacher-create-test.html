@@ -158,7 +158,6 @@
         <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
         <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Assignment</span></a>
         
-        <!-- ========== RESTORED CBT TESTS NAVIGATION ITEMS ========== -->
         <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
         <a href="teacher-create-test.html" class="nav-item active"><i class="fas fa-plus-square"></i><span>Create CBT Test</span></a>
         <a href="teacher-grade-test.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Tests</span></a>
@@ -183,7 +182,6 @@
             </div>
         </div>
 
-        <!-- Subject Tabs -->
         <div class="subject-tabs" id="subjectTabs"></div>
 
         <div class="card">
@@ -225,10 +223,21 @@
                     <label><i class="fas fa-align-left"></i> Instructions</label>
                     <textarea id="instructions" class="form-control" rows="3" placeholder="Provide instructions for students..."></textarea>
                 </div>
+                
+                <!-- NEW: Grade visibility toggle -->
+                <div class="form-group">
+                    <label><i class="fas fa-eye"></i> Grade Settings</label>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="autoReleaseGrades">
+                        <span>Let students see their grade immediately after submitting</span>
+                    </div>
+                    <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
+                        If unchecked, you will need to manually release grades from the Grade Tests page.
+                    </small>
+                </div>
             </form>
         </div>
 
-        <!-- Test Settings -->
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-sliders-h"></i> Test Settings (JAMB Standard)</h3>
@@ -273,7 +282,6 @@
             </div>
         </div>
 
-        <!-- Questions Section -->
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-question-circle"></i> Questions</h3>
@@ -292,21 +300,18 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
         <div class="btn-group">
             <button type="submit" class="btn btn-primary" id="saveBtn"><i class="fas fa-save"></i> Save as Draft</button>
             <button type="button" class="btn btn-success" id="publishBtn"><i class="fas fa-paper-plane"></i> Publish Test</button>
             <button type="button" class="btn btn-danger" id="deleteBtn" style="display: none;"><i class="fas fa-trash"></i> Delete</button>
         </div>
 
-        <!-- Debug Panel -->
         <div class="debug-panel" id="debugPanel">
             <strong><i class="fas fa-bug"></i> Debug Info:</strong><br>
             <span id="debugInfo">Initializing...</span>
         </div>
     </div>
 
-    <!-- AI Modal -->
     <div class="modal-overlay" id="aiModal">
         <div class="modal-content">
             <div class="modal-header"><h3><i class="fas fa-robot"></i> AI Question Generator</h3><i class="fas fa-times" onclick="closeAIModal()" style="cursor: pointer;"></i></div>
@@ -371,7 +376,6 @@
             console.log(message);
         }
         
-        // FIXED: Load syllabus and read the weeks array
         async function loadSyllabus() {
             if (!subjects.length) return;
             
@@ -493,7 +497,6 @@
             updateDebug(`📌 Selected weeks: [${selectedWeeks.join(', ')}]`);
         };
         
-        // Question Type Selection
         document.getElementById('typeMcqBtn').addEventListener('click', () => {
             currentQuestionType = 'mcq';
             document.getElementById('typeMcqBtn').classList.add('active');
@@ -565,7 +568,7 @@
         };
         
         window.removeQuestion = (i) => { questions.splice(i, 1); renderQuestions(); };
-        window.setCorrect = (i, val) => { questions[i].correct = val; };
+        window.setCorrect = (i, val) => { questions[i].correct = val; updateDebug(`✅ Set correct answer for Q${i+1}: "${val}"`); };
         
         window.editQuestion = (i) => {
             const q = questions[i];
@@ -588,7 +591,7 @@
             renderQuestions();
         };
         
-        // AI Generation
+        // FIXED: AI Generation with proper syllabus context
         const aiModal = document.getElementById('aiModal');
         let lastGenerated = [];
         
@@ -597,31 +600,100 @@
         document.getElementById('useAIBtn').addEventListener('click', openAIModal);
         
         window.generateWithAI = async () => {
-            if (!groq) { alert('AI not ready'); return; }
+            if (!groq) { alert('AI not ready. Please check API key.'); return; }
             if (selectedWeeks.length === 0) { alert('Please select at least one week to generate questions from.'); return; }
             
             const count = document.getElementById('aiCount').value;
             const difficulty = document.getElementById('aiDifficulty').value;
             const type = document.getElementById('aiType').value;
-            const weeksText = selectedWeeks.map(w => `Week ${w}`).join(', ');
             
-            const prompt = `Generate ${count} ${difficulty} difficulty ${type} questions covering topics from ${weeksText}. Return JSON array: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
+            // Get detailed syllabus content for selected weeks
+            const weeksData = syllabusWeeks.filter(w => w.subject === currentSubject && selectedWeeks.includes(w.week));
+            
+            if (weeksData.length === 0) {
+                alert('No syllabus content found for selected weeks.');
+                return;
+            }
+            
+            const syllabusContext = weeksData.map(w => `Week ${w.week}: ${w.topic} - ${w.objectives || 'General objectives'}`).join('\n');
+            
+            // IMPROVED PROMPT with specific instructions to stay on topic
+            const prompt = `You are an expert educational assessment creator. Create ${count} ${difficulty} difficulty ${type} questions based STRICTLY on the following syllabus content:
+
+SYLLABUS CONTENT:
+${syllabusContext}
+
+IMPORTANT RULES:
+1. EVERY question must be directly related to the topics above
+2. Do NOT create questions about topics not listed
+3. Make questions that test understanding of the specific concepts mentioned
+4. Return ONLY a valid JSON array with no extra text
+
+For ${type === 'mcq' ? 'Multiple Choice' : type === 'truefalse' ? 'True/False' : 'Fill in the Blank'} questions:
+
+${type === 'mcq' ? 'Format: [{"question": "exact question text", "options": ["option A", "option B", "option C", "option D"], "correct": "A", "points": 1}]' : 
+  type === 'truefalse' ? 'Format: [{"question": "exact statement", "correct": "True or False", "points": 1}]' : 
+  'Format: [{"question": "Sentence with ______ blank", "correct": "the exact answer", "points": 1}]'}
+
+Generate ${count} questions now:`;
+            
             const chatDiv = document.getElementById('aiChat');
-            chatDiv.innerHTML += `<div class="message user">${prompt}</div>`;
-            const thinking = document.createElement('div'); thinking.className = 'message assistant'; thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...'; chatDiv.appendChild(thinking);
+            chatDiv.innerHTML += `<div class="message user">Generating ${count} ${difficulty} ${type} questions for:<br>${weeksData.map(w => `Week ${w.week}: ${w.topic}`).join('<br>')}</div>`;
+            const thinking = document.createElement('div'); 
+            thinking.className = 'message assistant'; 
+            thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating questions based on your syllabus...'; 
+            chatDiv.appendChild(thinking);
             showLoading();
+            
             try {
-                const res = await groq.chat.completions.create({ messages: [{ role: 'user', content: prompt }], model: 'llama-3.3-70b-versatile', temperature: 0.7 });
+                const res = await groq.chat.completions.create({ 
+                    messages: [{ role: 'user', content: prompt }], 
+                    model: 'llama-3.3-70b-versatile', 
+                    temperature: 0.3  // Lower temperature for more focused, on-topic responses
+                });
                 const text = res.choices[0].message.content;
                 const match = text.match(/\[[\s\S]*\]/);
-                if (!match) throw new Error('No JSON');
-                lastGenerated = JSON.parse(match[0]).map(q => ({ ...q, type: type, difficulty: difficulty }));
+                if (!match) throw new Error('No JSON array found in response');
+                
+                let generatedQuestions = JSON.parse(match[0]);
+                
+                // Validate and fix question format
+                generatedQuestions = generatedQuestions.map(q => {
+                    const fixedQ = { ...q, type: type, difficulty: difficulty };
+                    // Ensure options exist for MCQ
+                    if (type === 'mcq' && (!fixedQ.options || fixedQ.options.length < 4)) {
+                        fixedQ.options = ['Option A', 'Option B', 'Option C', 'Option D'];
+                    }
+                    // Ensure correct answer is properly formatted
+                    if (type === 'truefalse') {
+                        const correctUpper = String(fixedQ.correct).toUpperCase();
+                        fixedQ.correct = correctUpper === 'TRUE' ? 'True' : 'False';
+                    }
+                    return fixedQ;
+                });
+                
+                lastGenerated = generatedQuestions;
                 chatDiv.removeChild(thinking);
-                chatDiv.innerHTML += `<div class="message assistant">Generated ${lastGenerated.length} questions covering ${weeksText}.</div>`;
-            } catch(e) { chatDiv.removeChild(thinking); chatDiv.innerHTML += `<div class="message assistant">Error: ${e.message}</div>`; } finally { hideLoading(); }
+                chatDiv.innerHTML += `<div class="message assistant">✅ Generated ${lastGenerated.length} questions based on your syllabus. Each question is directly related to the selected topics.</div>`;
+                updateDebug(`AI Generated ${lastGenerated.length} questions for weeks: ${selectedWeeks.join(', ')}`);
+                
+            } catch(e) { 
+                chatDiv.removeChild(thinking); 
+                chatDiv.innerHTML += `<div class="message assistant">❌ Error: ${e.message}. Please try again.</div>`; 
+                updateDebug(`AI Error: ${e.message}`);
+            } finally { hideLoading(); }
         };
         
-        window.insertAIGenerated = () => { if (lastGenerated.length) { questions = questions.concat(lastGenerated); renderQuestions(); closeAIModal(); } else alert('No questions generated.'); };
+        window.insertAIGenerated = () => { 
+            if (lastGenerated && lastGenerated.length) { 
+                questions = questions.concat(lastGenerated); 
+                renderQuestions(); 
+                closeAIModal(); 
+                updateDebug(`Inserted ${lastGenerated.length} AI-generated questions`);
+            } else { 
+                alert('No questions generated yet. Click "Generate" first.'); 
+            } 
+        };
         
         document.getElementById('testForm').addEventListener('submit', (e) => { e.preventDefault(); saveTest('draft'); });
         document.getElementById('publishBtn').addEventListener('click', () => saveTest('published'));
@@ -636,6 +708,7 @@
             const randomizeOptions = document.getElementById('randomizeOptions').checked;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            const autoReleaseGrades = document.getElementById('autoReleaseGrades').checked;
             const subject = currentSubject;
             
             if (!subject) { alert('Select subject.'); return; }
@@ -644,7 +717,24 @@
             if (!timeLimit) { alert('Set time limit.'); return; }
             if (!questions.length) { alert('Add at least one question.'); return; }
             
-            updateDebug(`💾 Saving test: ${title}, weeks: [${selectedWeeks.join(', ')}], status: ${status}`);
+            // Validate each question has a correct answer
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                if (!q.correct || q.correct === '') {
+                    alert(`Question ${i+1} is missing a correct answer. Please set the correct answer.`);
+                    return;
+                }
+                if (q.type === 'mcq' && (!q.options || q.options.some(opt => !opt || opt.trim() === ''))) {
+                    alert(`Question ${i+1} has empty options. Please fill all options.`);
+                    return;
+                }
+                if (!q.question || q.question.trim() === '') {
+                    alert(`Question ${i+1} has no question text.`);
+                    return;
+                }
+            }
+            
+            updateDebug(`💾 Saving test: ${title}, weeks: [${selectedWeeks.join(', ')}], status: ${status}, autoReleaseGrades: ${autoReleaseGrades}`);
             
             const data = {
                 teacherId: currentUser.uid,
@@ -664,21 +754,41 @@
                 questions: questions,
                 status: status,
                 type: 'test',
+                autoReleaseGrades: autoReleaseGrades,  // NEW FIELD
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             
             showLoading();
             try {
+                let testId = currentDocId;
                 if (currentDocId) {
                     await db.collection('tests').doc(currentDocId).update(data);
                     updateDebug('✅ Test updated successfully');
                 } else {
                     const ref = await db.collection('tests').add(data);
+                    testId = ref.id;
                     currentDocId = ref.id;
                     updateDebug('✅ Test created successfully with ID: ' + currentDocId);
                 }
-                alert(`Test ${status === 'published' ? 'published' : 'saved'}!`);
+                
+                // NEW: Log to admin audit
+                await db.collection('admin_audit').add({
+                    action: status === 'published' ? 'TEST_PUBLISHED' : 'TEST_SAVED',
+                    teacherId: currentUser.uid,
+                    teacherName: userData.firstName + ' ' + (userData.surname || ''),
+                    testId: testId,
+                    testTitle: title,
+                    subject: subject,
+                    weeksCovered: selectedWeeks,
+                    questionCount: questions.length,
+                    autoReleaseGrades: autoReleaseGrades,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: status
+                });
+                updateDebug('📋 Admin audit log created');
+                
+                alert(`Test ${status === 'published' ? 'published' : 'saved'} successfully!`);
                 window.location.href = 'teacher-tests.html';
             } catch(e) { 
                 updateDebug(`❌ Error saving test: ${e.message}`);
@@ -700,7 +810,19 @@
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
                 subjects = userData.subjects || [];
                 updateDebug(`📚 Teacher subjects: ${JSON.stringify(subjects)}`);
-                try { await remoteConfig.fetchAndActivate(); const key = remoteConfig.getString('groq_api_key'); if (key) groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true }); } catch(e) { console.warn(e); }
+                try { 
+                    await remoteConfig.fetchAndActivate(); 
+                    const key = remoteConfig.getString('groq_api_key'); 
+                    if (key && key !== '') {
+                        groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true });
+                        updateDebug('✅ Groq AI initialized');
+                    } else {
+                        updateDebug('⚠️ Groq API key not configured in Remote Config');
+                    }
+                } catch(e) { 
+                    console.warn(e); 
+                    updateDebug(`⚠️ Remote Config error: ${e.message}`);
+                }
                 await loadSyllabus();
                 renderSubjectTabs();
             } catch(e) { console.error(e); updateDebug(`❌ Auth error: ${e.message}`); }
