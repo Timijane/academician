@@ -112,7 +112,7 @@
         .loading-spinner { text-align: center; padding: 3rem; color: var(--text-secondary); }
         .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
         .error-state { text-align: center; padding: 3rem; color: var(--danger-text); }
-        .debug-panel { background: var(--danger-bg); border: 1px solid var(--danger-text); border-radius: 0.75rem; padding: 0.75rem; margin-top: 1rem; font-family: monospace; font-size: 0.7rem; color: var(--danger-text); overflow-x: auto; display: none; }
+        .debug-panel { background: var(--danger-bg); border: 1px solid var(--danger-text); border-radius: 0.75rem; padding: 0.75rem; margin-top: 1rem; font-family: monospace; font-size: 0.7rem; color: var(--danger-text); overflow-x: auto; }
 
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
@@ -178,7 +178,6 @@
                 <i class="fas fa-file-alt" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
                 <h3>No Test Selected</h3>
                 <p>Please select a test from the dropdown above to view your detailed results.</p>
-                <p style="margin-top: 1rem; font-size: 0.85rem;">If the dropdown is empty, you haven't taken any tests yet.</p>
             </div>
         </div>
 
@@ -238,6 +237,37 @@
             console.log(message);
         }
 
+        // Helper function to safely convert percentage to number
+        function safePercentage(value) {
+            if (value === undefined || value === null) return 0;
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string') {
+                const num = parseFloat(value);
+                return isNaN(num) ? 0 : num;
+            }
+            return 0;
+        }
+
+        // Helper function to safely get grade
+        function getGradeFromPercentage(percentage) {
+            const num = safePercentage(percentage);
+            if (num >= 75) return 'A';
+            if (num >= 65) return 'B';
+            if (num >= 50) return 'C';
+            if (num >= 40) return 'D';
+            return 'F';
+        }
+
+        function getGradeClass(grade) {
+            switch(grade) {
+                case 'A': return 'grade-a';
+                case 'B': return 'grade-b';
+                case 'C': return 'grade-c';
+                case 'D': return 'grade-d';
+                default: return 'grade-f';
+            }
+        }
+
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'student-login.html'; return; }
             try {
@@ -294,6 +324,15 @@
                     updateDebug(`     Test Title: ${data.testTitle || 'Unknown'}`);
                     updateDebug(`     Score: ${data.score}/${data.totalPoints}`);
                     updateDebug(`     Answers count: ${data.answers ? data.answers.length : 0}`);
+                    updateDebug(`     Percentage type: ${typeof data.percentage}, value: ${data.percentage}`);
+                    
+                    // Safely parse percentage
+                    let percentageNum = safePercentage(data.percentage);
+                    // If percentage is 0 but score > 0, calculate it
+                    if (percentageNum === 0 && data.score > 0 && data.totalPoints > 0) {
+                        percentageNum = (data.score / data.totalPoints) * 100;
+                        updateDebug(`     Recalculated percentage: ${percentageNum}%`);
+                    }
                     
                     allSubmissions.push({
                         id: doc.id,
@@ -302,8 +341,8 @@
                         subject: data.subject || 'N/A',
                         score: data.score || 0,
                         totalPoints: data.totalPoints || 100,
-                        percentage: data.percentage || ((data.score / (data.totalPoints || 100)) * 100),
-                        grade: data.grade || getGradeFromPercentage((data.score / (data.totalPoints || 100)) * 100),
+                        percentage: percentageNum,
+                        grade: data.grade || getGradeFromPercentage(percentageNum),
                         duration: data.duration || 30,
                         submittedAt: data.submittedAt ? data.submittedAt.toDate() : new Date(),
                         answers: data.answers || [],
@@ -345,24 +384,6 @@
             }
         }
 
-        function getGradeFromPercentage(percentage) {
-            if (percentage >= 75) return 'A';
-            if (percentage >= 65) return 'B';
-            if (percentage >= 50) return 'C';
-            if (percentage >= 40) return 'D';
-            return 'F';
-        }
-
-        function getGradeClass(grade) {
-            switch(grade) {
-                case 'A': return 'grade-a';
-                case 'B': return 'grade-b';
-                case 'C': return 'grade-c';
-                case 'D': return 'grade-d';
-                default: return 'grade-f';
-            }
-        }
-
         function populateTestSelector() {
             const selector = document.getElementById('testSelector');
             selector.innerHTML = '<option value="">-- Select a test --</option>';
@@ -377,7 +398,8 @@
                 option.value = sub.id;
                 const dateStr = sub.submittedAt.toLocaleDateString();
                 const scoreText = `${sub.score}/${sub.totalPoints}`;
-                option.textContent = `${sub.title} (${sub.subject}) - ${scoreText} - ${dateStr}`;
+                const percentageText = `${Math.round(sub.percentage)}%`;
+                option.textContent = `${sub.title} (${sub.subject}) - ${scoreText} (${percentageText}) - ${dateStr}`;
                 selector.appendChild(option);
             });
             
@@ -408,6 +430,7 @@
         function displayResults(submission) {
             updateDebug(`📊 Displaying results for test: ${submission.title}`);
             updateDebug(`   - Score: ${submission.score}/${submission.totalPoints}`);
+            updateDebug(`   - Percentage: ${submission.percentage}% (type: ${typeof submission.percentage})`);
             updateDebug(`   - Answers: ${submission.answers.length} questions`);
             
             try {
@@ -474,6 +497,7 @@
                         <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
                         <h3>Error Displaying Results</h3>
                         <p>${e.message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1rem;">Retry</button>
                     </div>
                 `;
             }
