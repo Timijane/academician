@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop · Audit Logs</title>
+    <title>EduTop · Audit Logs | Admin Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -29,6 +29,8 @@
             --warning-text: #b45309;
             --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #b91c1c;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #2563eb;
             --input-bg: rgba(255,255,255,0.9);
         }
 
@@ -49,6 +51,8 @@
             --warning-text: #fbbf24;
             --danger-bg: rgba(239,68,68,0.2);
             --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
             --input-bg: rgba(30,41,59,0.8);
         }
 
@@ -142,7 +146,7 @@
             background: var(--card-bg); backdrop-filter: blur(8px); padding: 1rem 1.5rem; border-radius: 3rem; border: 1px solid var(--border);
         }
         .filter-group { display: flex; align-items: center; gap: 0.5rem; }
-        .filter-group label { font-size: 0.85rem; }
+        .filter-group label { font-size: 0.85rem; font-weight: 500; }
         .filter-group input, .filter-group select {
             background: var(--input-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; color: var(--text-primary);
         }
@@ -162,30 +166,47 @@
         .card-header h3 { font-size: 1.3rem; font-weight: 600; }
 
         .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th { background: var(--hover-bg); padding: 1rem 0.8rem; text-align: left; font-weight: 500; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th { background: var(--hover-bg); padding: 1rem 0.8rem; text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
         td { padding: 1rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
-        .user-agent { font-size: 0.7rem; color: var(--text-secondary); font-family: monospace; }
+        .user-agent { font-size: 0.7rem; color: var(--text-secondary); font-family: monospace; max-width: 200px; word-break: break-all; }
         .badge {
-            display: inline-block; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 500;
+            display: inline-block; padding: 0.25rem 0.75rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600;
         }
         .badge-test-published { background: var(--success-bg); color: var(--success-text); }
         .badge-test-saved { background: var(--warning-bg); color: var(--warning-text); }
         .badge-deleted { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-admin { background: var(--info-bg); color: var(--info-text); }
 
+        .details-preview {
+            font-size: 0.75rem; max-width: 300px; white-space: normal; word-break: break-word;
+        }
+        .details-preview strong { color: var(--accent); }
+        
         .modal {
-            display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index:2000;
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index:2000;
         }
         .modal.active { display: flex; }
         .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:2rem; padding:2rem; max-width:500px; width:90%; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:1.5rem; }
         .modal-actions { display: flex; gap:1rem; justify-content: flex-end; margin-top: 1.5rem; }
         
-        .details-preview {
-            font-size: 0.8rem; max-width: 300px; white-space: normal; word-break: break-word;
+        .refresh-btn {
+            background: var(--hover-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        .expand-btn {
-            background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.7rem; margin-top: 0.25rem;
+        .refresh-btn:hover { background: var(--accent); color: white; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .filter-bar { flex-direction: column; align-items: stretch; border-radius: 1rem; }
+            .filter-group { justify-content: space-between; }
         }
     </style>
 </head>
@@ -213,7 +234,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Audit Logs</h1>
-                <p>Complete history of all system actions</p>
+                <p>Complete history of all system actions including test creations</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle">
@@ -234,28 +255,62 @@
 
         <!-- Filter Bar -->
         <div class="filter-bar">
-            <div class="filter-group"><label>From:</label><input type="datetime-local" id="filterFrom"></div>
-            <div class="filter-group"><label>To:</label><input type="datetime-local" id="filterTo"></div>
-            <div class="filter-group"><label>User:</label><input type="text" id="filterUser" placeholder="Name or email"></div>
-            <div class="filter-group"><label>Action:</label><input type="text" id="filterAction" placeholder="e.g., TEST_PUBLISHED"></div>
-            <button class="btn btn-primary" id="applyFilters">Apply</button>
-            <button class="btn btn-outline" id="resetFilters">Reset</button>
-            <button class="btn btn-danger" id="clearAllBtn" style="margin-left:auto;">Delete All Logs (Master Only)</button>
+            <div class="filter-group"><label><i class="fas fa-calendar"></i> From:</label><input type="datetime-local" id="filterFrom"></div>
+            <div class="filter-group"><label><i class="fas fa-calendar"></i> To:</label><input type="datetime-local" id="filterTo"></div>
+            <div class="filter-group"><label><i class="fas fa-user"></i> User:</label><input type="text" id="filterUser" placeholder="Name or email"></div>
+            <div class="filter-group"><label><i class="fas fa-tag"></i> Action:</label>
+                <select id="filterAction">
+                    <option value="">All Actions</option>
+                    <option value="TEST_PUBLISHED">Test Published</option>
+                    <option value="TEST_SAVED">Test Saved</option>
+                    <option value="DELETED">Deleted</option>
+                    <option value="LOGIN">Login</option>
+                    <option value="LOGOUT">Logout</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="applyFilters"><i class="fas fa-search"></i> Apply</button>
+            <button class="btn btn-outline" id="resetFilters"><i class="fas fa-undo"></i> Reset</button>
+            <button class="btn btn-danger" id="clearAllBtn" style="margin-left:auto;"><i class="fas fa-trash-alt"></i> Delete All Logs (Master Only)</button>
+            <button class="refresh-btn" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <!-- Stats Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="card" style="padding: 1rem;">
+                <h4><i class="fas fa-chart-line"></i> Total Logs</h4>
+                <h2 id="totalLogsCount" style="font-size: 2rem;">0</h2>
+            </div>
+            <div class="card" style="padding: 1rem;">
+                <h4><i class="fas fa-file-alt"></i> Tests Published</h4>
+                <h2 id="publishedTestsCount" style="font-size: 2rem; color: var(--success-text);">0</h2>
+            </div>
+            <div class="card" style="padding: 1rem;">
+                <h4><i class="fas fa-save"></i> Tests Saved</h4>
+                <h2 id="savedTestsCount" style="font-size: 2rem; color: var(--warning-text);">0</h2>
+            </div>
         </div>
 
         <!-- Logs Table -->
         <div class="card">
             <div class="card-header">
-                <h3>System Activity Log</h3>
-                <span id="logCount">0 logs</span>
+                <h3><i class="fas fa-list"></i> System Activity Log</h3>
+                <span id="logCount" class="badge" style="background: var(--accent); color: white;">0 logs</span>
             </div>
             <div class="table-responsive">
                 <table id="logsTable">
                     <thead>
-                        <tr><th>Timestamp</th><th>User</th><th>Action</th><th>Details</th><th>User Agent</th><th>Actions</th></tr>
+                        <tr>
+                            <th><i class="fas fa-clock"></i> Timestamp</th>
+                            <th><i class="fas fa-user"></i> User</th>
+                            <th><i class="fas fa-tag"></i> Action</th>
+                            <th><i class="fas fa-info-circle"></i> Details</th>
+                            <th><i class="fas fa-globe"></i> User Agent</th>
+                            <th><i class="fas fa-cog"></i> Actions</th>
+                        </tr>
                     </thead>
-                    <tbody id="logsBody"><tr><td colspan="6">Loading logs...</td></tr>
-                </tbody>
+                    <tbody id="logsBody">
+                        <tr><td colspan="6" style="text-align: center; padding: 3rem;"><i class="fas fa-spinner fa-spin"></i> Loading logs...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -264,11 +319,29 @@
     <!-- Delete Confirmation Modal -->
     <div class="modal" id="deleteModal">
         <div class="modal-content">
-            <div class="modal-header"><h3>Confirm Deletion</h3><i class="fas fa-times" style="cursor:pointer;" onclick="closeDeleteModal()"></i></div>
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeDeleteModal()"></i>
+            </div>
             <p id="deleteMessage">Are you sure you want to delete all audit logs? This action cannot be undone.</p>
             <div class="modal-actions">
                 <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
                 <button class="btn btn-danger" id="confirmDeleteBtn">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Delete Confirmation Modal -->
+    <div class="modal" id="singleDeleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeSingleDeleteModal()"></i>
+            </div>
+            <p>Are you sure you want to delete this log entry?</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeSingleDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirmSingleDeleteBtn">Delete</button>
             </div>
         </div>
     </div>
@@ -304,8 +377,13 @@
         function updateThemeUI(theme) {
             const icon = themeToggle.querySelector('i:first-child');
             const text = themeToggle.querySelector('span');
-            icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            text.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon';
+                text.textContent = 'Dark';
+            } else {
+                icon.className = 'fas fa-sun';
+                text.textContent = 'Light';
+            }
         }
         const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
@@ -322,6 +400,9 @@
         let currentUser = null;
         let userData = null;
         let isMasterAdmin = false;
+        let allLogs = [];
+        let unsubscribeLogs = null;
+        let pendingDeleteId = null;
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'admin-login.html'; return; }
@@ -335,7 +416,10 @@
                 const initial = (userData.firstName?.[0] || 'A') + (userData.surname?.[0] || 'A');
                 document.getElementById('profilePic').textContent = initial;
                 document.getElementById('profileName').textContent = userData.firstName || 'Admin';
-                if (!isMasterAdmin) document.getElementById('clearAllBtn').style.display = 'none';
+                document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Admin'}`;
+                if (!isMasterAdmin) {
+                    document.getElementById('clearAllBtn').style.display = 'none';
+                }
                 setupLogsListener();
             } catch (error) {
                 console.error(error);
@@ -347,10 +431,6 @@
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
         document.getElementById('profileLink').addEventListener('click', () => window.location.href='admin-profile.html');
 
-        // Real-time logs
-        let unsubscribeLogs = null;
-        let allLogs = [];
-
         function setupLogsListener() {
             if (unsubscribeLogs) unsubscribeLogs();
             unsubscribeLogs = db.collection('auditLogs')
@@ -361,55 +441,64 @@
                         const data = doc.data();
                         allLogs.push({ id: doc.id, ...data });
                     });
+                    updateStats();
                     document.getElementById('logCount').textContent = `${allLogs.length} logs`;
                     applyFilters();
-                }, error => console.error('Listener error:', error));
+                }, error => {
+                    console.error('Listener error:', error);
+                    document.getElementById('logsBody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--danger-text);"><i class="fas fa-exclamation-triangle"></i> Error loading logs. Please refresh.</td></tr>';
+                });
         }
 
-        // Helper to extract user name from various possible field names
+        function updateStats() {
+            document.getElementById('totalLogsCount').textContent = allLogs.length;
+            const publishedTests = allLogs.filter(l => l.action === 'TEST_PUBLISHED').length;
+            const savedTests = allLogs.filter(l => l.action === 'TEST_SAVED').length;
+            document.getElementById('publishedTestsCount').textContent = publishedTests;
+            document.getElementById('savedTestsCount').textContent = savedTests;
+        }
+
         function getUserName(log) {
-            return log.userName || log.userEmail || log.teacherName || log.userId || 'System';
+            if (log.userName) return log.userName;
+            if (log.userEmail) return log.userEmail;
+            if (log.teacherName) return log.teacherName;
+            if (log.userId) return log.userId.substring(0, 8) + '...';
+            return 'System';
         }
 
-        // Helper to format details nicely
         function formatDetails(log) {
-            if (log.details) {
-                if (typeof log.details === 'object') {
-                    // For test creation logs
-                    if (log.details.testTitle) {
-                        return `
-                            <div class="details-preview">
-                                <strong>Test:</strong> ${escapeHtml(log.details.testTitle)}<br>
-                                <strong>Subject:</strong> ${escapeHtml(log.details.subject || 'N/A')}<br>
-                                <strong>Questions:</strong> ${log.details.questionCount || 0}<br>
-                                <strong>Auto-release:</strong> ${log.details.autoReleaseGrades ? 'Yes' : 'No'}
-                            </div>
-                        `;
-                    }
-                    return `<div class="details-preview">${escapeHtml(JSON.stringify(log.details, null, 2))}</div>`;
+            if (log.details && typeof log.details === 'object') {
+                if (log.details.testTitle) {
+                    return `
+                        <div class="details-preview">
+                            <strong>📝 Test:</strong> ${escapeHtml(log.details.testTitle)}<br>
+                            <strong>📚 Subject:</strong> ${escapeHtml(log.details.subject || 'N/A')}<br>
+                            <strong>❓ Questions:</strong> ${log.details.questionCount || 0}<br>
+                            <strong>👁️ Auto-release:</strong> ${log.details.autoReleaseGrades ? 'Yes' : 'No'}<br>
+                            <strong>📅 Weeks:</strong> Week ${log.details.weeksCovered ? log.details.weeksCovered.join(', ') : 'N/A'}
+                        </div>
+                    `;
                 }
-                return `<div class="details-preview">${escapeHtml(log.details)}</div>`;
+                return `<div class="details-preview">${escapeHtml(JSON.stringify(log.details, null, 2))}</div>`;
             }
             if (log.description) return `<div class="details-preview">${escapeHtml(log.description)}</div>`;
-            if (log.testTitle) return `<div class="details-preview">Test: ${escapeHtml(log.testTitle)}</div>`;
+            if (log.testTitle) return `<div class="details-preview"><strong>Test:</strong> ${escapeHtml(log.testTitle)}</div>`;
             return '<span class="details-preview">—</span>';
         }
 
         function getActionBadge(action) {
             if (!action) return '<span class="badge">—</span>';
-            const lower = action.toLowerCase();
-            if (lower.includes('publish')) return `<span class="badge badge-test-published">${escapeHtml(action)}</span>`;
-            if (lower.includes('save')) return `<span class="badge badge-test-saved">${escapeHtml(action)}</span>`;
-            if (lower.includes('delete')) return `<span class="badge badge-deleted">${escapeHtml(action)}</span>`;
+            if (action === 'TEST_PUBLISHED') return `<span class="badge badge-test-published"><i class="fas fa-paper-plane"></i> Published</span>`;
+            if (action === 'TEST_SAVED') return `<span class="badge badge-test-saved"><i class="fas fa-save"></i> Saved as Draft</span>`;
+            if (action.includes('DELETE') || action.includes('delete')) return `<span class="badge badge-deleted"><i class="fas fa-trash"></i> ${escapeHtml(action)}</span>`;
             return `<span class="badge">${escapeHtml(action)}</span>`;
         }
 
-        // Filtering
         function applyFilters() {
             const from = document.getElementById('filterFrom').value;
             const to = document.getElementById('filterTo').value;
             const userFilter = document.getElementById('filterUser').value.toLowerCase();
-            const actionFilter = document.getElementById('filterAction').value.toLowerCase();
+            const actionFilter = document.getElementById('filterAction').value;
 
             let filtered = [...allLogs];
 
@@ -429,7 +518,7 @@
                 });
             }
             if (actionFilter) {
-                filtered = filtered.filter(l => (l.action || '').toLowerCase().includes(actionFilter));
+                filtered = filtered.filter(l => l.action === actionFilter);
             }
 
             renderLogs(filtered);
@@ -438,7 +527,7 @@
         function renderLogs(logs) {
             const tbody = document.getElementById('logsBody');
             if (!logs.length) {
-                tbody.innerHTML = '<tr><td colspan="6">No logs found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 3rem;"><i class="fas fa-inbox"></i> No logs found</td></tr>';
                 return;
             }
             let html = '';
@@ -447,17 +536,17 @@
                 const user = getUserName(log);
                 const actionHtml = getActionBadge(log.action);
                 const detailsHtml = formatDetails(log);
-                const userAgent = log.userAgent ? (log.userAgent.substring(0, 50) + (log.userAgent.length > 50 ? '...' : '')) : '';
+                const userAgent = log.userAgent ? (log.userAgent.substring(0, 60) + (log.userAgent.length > 60 ? '...' : '')) : '';
                 
                 html += `
                     <tr>
                         <td style="white-space: nowrap;">${escapeHtml(timestamp)}</td>
-                        <td>${escapeHtml(user)}</td>
+                        <td><strong>${escapeHtml(user)}</strong>${log.userEmail ? `<br><small style="color: var(--text-secondary);">${escapeHtml(log.userEmail)}</small>` : ''}</td>
                         <td>${actionHtml}</td>
                         <td>${detailsHtml}</td>
                         <td><span class="user-agent" title="${escapeHtml(log.userAgent || '')}">${escapeHtml(userAgent)}</span></td>
                         <td>
-                            ${isMasterAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteSingleLog('${log.id}')">Delete</button>` : ''}
+                            ${isMasterAdmin ? `<button class="btn btn-danger btn-sm" onclick="promptDeleteSingle('${log.id}')"><i class="fas fa-trash"></i></button>` : ''}
                         </td>
                     </tr>
                 `;
@@ -473,17 +562,35 @@
             document.getElementById('filterAction').value = '';
             applyFilters();
         });
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            if (unsubscribeLogs) {
+                unsubscribeLogs();
+                setupLogsListener();
+            }
+        });
 
-        window.deleteSingleLog = async (logId) => {
-            if (!isMasterAdmin || !confirm('Delete this log entry?')) return;
+        // Single delete
+        window.promptDeleteSingle = (logId) => {
+            pendingDeleteId = logId;
+            document.getElementById('singleDeleteModal').classList.add('active');
+        };
+        
+        window.closeSingleDeleteModal = () => {
+            pendingDeleteId = null;
+            document.getElementById('singleDeleteModal').classList.remove('active');
+        };
+        
+        document.getElementById('confirmSingleDeleteBtn').addEventListener('click', async () => {
+            if (!isMasterAdmin || !pendingDeleteId) return;
             try {
-                await db.collection('auditLogs').doc(logId).delete();
-                await logAudit(`Deleted audit log ${logId}`);
+                await db.collection('auditLogs').doc(pendingDeleteId).delete();
+                await logAudit(`Deleted audit log ${pendingDeleteId}`);
+                closeSingleDeleteModal();
             } catch(e) {
                 console.error('Delete error:', e);
                 alert('Error deleting log: ' + e.message);
             }
-        };
+        });
 
         // Delete all logs modal
         const deleteModal = document.getElementById('deleteModal');
@@ -502,7 +609,6 @@
                 await batch.commit();
                 await logAudit('Deleted all audit logs');
                 closeDeleteModal();
-                alert('All logs deleted successfully');
             } catch(e) {
                 console.error('Delete all error:', e);
                 alert('Error deleting logs: ' + e.message);
