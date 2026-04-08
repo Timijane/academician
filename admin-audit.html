@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>EduTop · Audit Logs</title>
-    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font: Inter + Space Grotesk -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -145,6 +142,7 @@
             background: var(--card-bg); backdrop-filter: blur(8px); padding: 1rem 1.5rem; border-radius: 3rem; border: 1px solid var(--border);
         }
         .filter-group { display: flex; align-items: center; gap: 0.5rem; }
+        .filter-group label { font-size: 0.85rem; }
         .filter-group input, .filter-group select {
             background: var(--input-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; color: var(--text-primary);
         }
@@ -154,19 +152,26 @@
         .btn-primary { background: var(--accent); color: white; }
         .btn-danger { background: var(--danger-text); color: white; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
 
         .card {
             background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem;
             padding: 1.8rem; box-shadow: var(--shadow); margin-bottom: 2rem;
         }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem; }
         .card-header h3 { font-size: 1.3rem; font-weight: 600; }
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th { background: var(--hover-bg); padding: 1rem 0.8rem; text-align: left; font-weight: 500; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
-        td { padding: 1rem 0.8rem; border-bottom: 1px solid var(--border); }
-        .user-agent { font-size: 0.8rem; color: var(--text-secondary); }
+        td { padding: 1rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .user-agent { font-size: 0.7rem; color: var(--text-secondary); font-family: monospace; }
+        .badge {
+            display: inline-block; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 500;
+        }
+        .badge-test-published { background: var(--success-bg); color: var(--success-text); }
+        .badge-test-saved { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-deleted { background: var(--danger-bg); color: var(--danger-text); }
 
         .modal {
             display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index:2000;
@@ -174,7 +179,14 @@
         .modal.active { display: flex; }
         .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:2rem; padding:2rem; max-width:500px; width:90%; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom:1.5rem; }
-        .modal-actions { display: flex; gap:1rem; justify-content: flex-end; }
+        .modal-actions { display: flex; gap:1rem; justify-content: flex-end; margin-top: 1.5rem; }
+        
+        .details-preview {
+            font-size: 0.8rem; max-width: 300px; white-space: normal; word-break: break-word;
+        }
+        .expand-btn {
+            background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.7rem; margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -225,7 +237,7 @@
             <div class="filter-group"><label>From:</label><input type="datetime-local" id="filterFrom"></div>
             <div class="filter-group"><label>To:</label><input type="datetime-local" id="filterTo"></div>
             <div class="filter-group"><label>User:</label><input type="text" id="filterUser" placeholder="Name or email"></div>
-            <div class="filter-group"><label>Action:</label><input type="text" id="filterAction" placeholder="e.g., approve"></div>
+            <div class="filter-group"><label>Action:</label><input type="text" id="filterAction" placeholder="e.g., TEST_PUBLISHED"></div>
             <button class="btn btn-primary" id="applyFilters">Apply</button>
             <button class="btn btn-outline" id="resetFilters">Reset</button>
             <button class="btn btn-danger" id="clearAllBtn" style="margin-left:auto;">Delete All Logs (Master Only)</button>
@@ -242,7 +254,8 @@
                     <thead>
                         <tr><th>Timestamp</th><th>User</th><th>Action</th><th>Details</th><th>User Agent</th><th>Actions</th></tr>
                     </thead>
-                    <tbody id="logsBody"><tr><td colspan="6">Loading logs...</td></tr></tbody>
+                    <tbody id="logsBody"><tr><td colspan="6">Loading logs...</td></tr>
+                </tbody>
                 </table>
             </div>
         </div>
@@ -267,8 +280,7 @@
             projectId: "triangle-6e6b7",
             storageBucket: "triangle-6e6b7.firebasestorage.app",
             messagingSenderId: "673937760480",
-            appId: "1:673937760480:web:f03c06e1207232213ef085",
-            measurementId: "G-ELBMT8WHQ9"
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -289,20 +301,20 @@
         // Theme toggle
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = themeToggle.querySelector('i:first-child');
-        const themeText = themeToggle.querySelector('span');
         function updateThemeUI(theme) {
-            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            const icon = themeToggle.querySelector('i:first-child');
+            const text = themeToggle.querySelector('span');
+            icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            text.textContent = theme === 'dark' ? 'Dark' : 'Light';
         }
-        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
         themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
-            localStorage.setItem('edutopscholars-theme', next);
+            localStorage.setItem('edutop-theme', next);
             updateThemeUI(next);
         });
 
@@ -320,9 +332,9 @@
                 if (!['master-admin', 'admin'].includes(userData.role)) throw new Error('Not an admin');
                 currentUser = user;
                 isMasterAdmin = userData.role === 'master-admin';
-                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'A') + (userData.surname?.[0] || 'A');
+                const initial = (userData.firstName?.[0] || 'A') + (userData.surname?.[0] || 'A');
+                document.getElementById('profilePic').textContent = initial;
                 document.getElementById('profileName').textContent = userData.firstName || 'Admin';
-                document.querySelector('.page-title p').textContent = `Welcome back, ${userData.firstName || 'Admin'}`;
                 if (!isMasterAdmin) document.getElementById('clearAllBtn').style.display = 'none';
                 setupLogsListener();
             } catch (error) {
@@ -333,6 +345,7 @@
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='admin-profile.html');
 
         // Real-time logs
         let unsubscribeLogs = null;
@@ -344,10 +357,51 @@
                 .orderBy('timestamp', 'desc')
                 .onSnapshot(snapshot => {
                     allLogs = [];
-                    snapshot.forEach(doc => allLogs.push({ id: doc.id, ...doc.data() }));
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        allLogs.push({ id: doc.id, ...data });
+                    });
                     document.getElementById('logCount').textContent = `${allLogs.length} logs`;
                     applyFilters();
                 }, error => console.error('Listener error:', error));
+        }
+
+        // Helper to extract user name from various possible field names
+        function getUserName(log) {
+            return log.userName || log.userEmail || log.teacherName || log.userId || 'System';
+        }
+
+        // Helper to format details nicely
+        function formatDetails(log) {
+            if (log.details) {
+                if (typeof log.details === 'object') {
+                    // For test creation logs
+                    if (log.details.testTitle) {
+                        return `
+                            <div class="details-preview">
+                                <strong>Test:</strong> ${escapeHtml(log.details.testTitle)}<br>
+                                <strong>Subject:</strong> ${escapeHtml(log.details.subject || 'N/A')}<br>
+                                <strong>Questions:</strong> ${log.details.questionCount || 0}<br>
+                                <strong>Auto-release:</strong> ${log.details.autoReleaseGrades ? 'Yes' : 'No'}
+                            </div>
+                        `;
+                    }
+                    return `<div class="details-preview">${escapeHtml(JSON.stringify(log.details, null, 2))}</div>`;
+                }
+                return `<div class="details-preview">${escapeHtml(log.details)}</div>`;
+            }
+            if (log.description) return `<div class="details-preview">${escapeHtml(log.description)}</div>`;
+            if (log.testTitle) return `<div class="details-preview">Test: ${escapeHtml(log.testTitle)}</div>`;
+            return '<span class="details-preview">—</span>';
+        }
+
+        function getActionBadge(action) {
+            if (!action) return '<span class="badge">—</span>';
+            const lower = action.toLowerCase();
+            if (lower.includes('publish')) return `<span class="badge badge-test-published">${escapeHtml(action)}</span>`;
+            if (lower.includes('save')) return `<span class="badge badge-test-saved">${escapeHtml(action)}</span>`;
+            if (lower.includes('delete')) return `<span class="badge badge-deleted">${escapeHtml(action)}</span>`;
+            return `<span class="badge">${escapeHtml(action)}</span>`;
         }
 
         // Filtering
@@ -357,7 +411,7 @@
             const userFilter = document.getElementById('filterUser').value.toLowerCase();
             const actionFilter = document.getElementById('filterAction').value.toLowerCase();
 
-            let filtered = allLogs;
+            let filtered = [...allLogs];
 
             if (from) {
                 const fromDate = new Date(from).getTime();
@@ -368,13 +422,14 @@
                 filtered = filtered.filter(l => l.timestamp && l.timestamp.toDate().getTime() <= toDate);
             }
             if (userFilter) {
-                filtered = filtered.filter(l => 
-                    (l.userName && l.userName.toLowerCase().includes(userFilter)) ||
-                    (l.userEmail && l.userEmail.toLowerCase().includes(userFilter))
-                );
+                filtered = filtered.filter(l => {
+                    const userName = getUserName(l).toLowerCase();
+                    const userEmail = (l.userEmail || '').toLowerCase();
+                    return userName.includes(userFilter) || userEmail.includes(userFilter);
+                });
             }
             if (actionFilter) {
-                filtered = filtered.filter(l => l.action.toLowerCase().includes(actionFilter));
+                filtered = filtered.filter(l => (l.action || '').toLowerCase().includes(actionFilter));
             }
 
             renderLogs(filtered);
@@ -389,17 +444,18 @@
             let html = '';
             logs.forEach(log => {
                 const timestamp = log.timestamp ? log.timestamp.toDate().toLocaleString() : 'N/A';
-                const user = log.userName || log.userEmail || log.userId || 'System';
-                const action = log.action || '—';
-                const details = typeof log.details === 'object' ? JSON.stringify(log.details) : (log.details || '');
-                const userAgent = log.userAgent ? (log.userAgent.substring(0, 30) + '...') : '';
+                const user = getUserName(log);
+                const actionHtml = getActionBadge(log.action);
+                const detailsHtml = formatDetails(log);
+                const userAgent = log.userAgent ? (log.userAgent.substring(0, 50) + (log.userAgent.length > 50 ? '...' : '')) : '';
+                
                 html += `
                     <tr>
-                        <td>${timestamp}</td>
-                        <td>${user}</td>
-                        <td>${action}</td>
-                        <td>${details}</td>
-                        <td><span class="user-agent">${userAgent}</span></td>
+                        <td style="white-space: nowrap;">${escapeHtml(timestamp)}</td>
+                        <td>${escapeHtml(user)}</td>
+                        <td>${actionHtml}</td>
+                        <td>${detailsHtml}</td>
+                        <td><span class="user-agent" title="${escapeHtml(log.userAgent || '')}">${escapeHtml(userAgent)}</span></td>
                         <td>
                             ${isMasterAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteSingleLog('${log.id}')">Delete</button>` : ''}
                         </td>
@@ -420,8 +476,13 @@
 
         window.deleteSingleLog = async (logId) => {
             if (!isMasterAdmin || !confirm('Delete this log entry?')) return;
-            await db.collection('auditLogs').doc(logId).delete();
-            await logAudit(`Deleted audit log ${logId}`);
+            try {
+                await db.collection('auditLogs').doc(logId).delete();
+                await logAudit(`Deleted audit log ${logId}`);
+            } catch(e) {
+                console.error('Delete error:', e);
+                alert('Error deleting log: ' + e.message);
+            }
         };
 
         // Delete all logs modal
@@ -434,24 +495,41 @@
 
         confirmDeleteBtn.addEventListener('click', async () => {
             if (!isMasterAdmin) return;
-            const snapshot = await db.collection('auditLogs').get();
-            const batch = db.batch();
-            snapshot.docs.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-            await logAudit('Deleted all audit logs');
-            closeDeleteModal();
+            try {
+                const snapshot = await db.collection('auditLogs').get();
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                await logAudit('Deleted all audit logs');
+                closeDeleteModal();
+                alert('All logs deleted successfully');
+            } catch(e) {
+                console.error('Delete all error:', e);
+                alert('Error deleting logs: ' + e.message);
+            }
         });
 
         async function logAudit(action) {
             if (!currentUser || !userData) return;
-            await db.collection('auditLogs').add({
-                userId: currentUser.uid,
-                userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Admin',
-                userEmail: userData.email || currentUser.email,
-                action,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                userAgent: navigator.userAgent
-            });
+            try {
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Admin',
+                    userEmail: userData.email || currentUser.email,
+                    action: action,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch(e) {
+                console.error('Audit log error:', e);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         window.addEventListener('beforeunload', () => { if (unsubscribeLogs) unsubscribeLogs(); });
