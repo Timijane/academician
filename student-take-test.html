@@ -237,7 +237,7 @@
                 } else {
                     timeRemaining--;
                     updateTimerDisplay();
-                    if (timeRemaining <= 60 && timeRemaining > 0 && timeRemaining === 60) {
+                    if (timeRemaining === 60) {
                         showWarning(`⚠️ 1 minute remaining!`);
                     }
                 }
@@ -250,13 +250,20 @@
             document.getElementById('timerDisplay').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:00`;
         }
 
-        function autoSubmit() { clearInterval(timerInterval); document.getElementById('autoSubmitModal').classList.add('active'); setTimeout(() => submitTest(), 2000); }
+        function autoSubmit() { 
+            clearInterval(timerInterval); 
+            document.getElementById('autoSubmitModal').classList.add('active'); 
+            setTimeout(() => submitTest(), 2000); 
+        }
 
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && !isSubmitted && testData) {
                 tabSwitchCount++;
                 document.getElementById('tabSwitchModal').classList.add('active');
-                if (tabSwitchCount >= 3) { showWarning('⚠️ Multiple tab switches detected! Auto-submitting...'); setTimeout(() => submitTest(), 3000); }
+                if (tabSwitchCount >= 3) { 
+                    showWarning('⚠️ Multiple tab switches detected! Auto-submitting...'); 
+                    setTimeout(() => submitTest(), 3000); 
+                }
             }
         });
 
@@ -277,7 +284,7 @@
             let optionsHtml = '';
             const letters = ['A', 'B', 'C', 'D'];
             
-            if (currentQuestion.type === 'mcq') {
+            if (currentQuestion.type === 'multiple' || currentQuestion.type === 'mcq') {
                 const options = currentQuestion.options || [];
                 options.forEach((opt, idx) => {
                     const letter = letters[idx];
@@ -286,12 +293,12 @@
                         <div class="option-text">${escapeHtml(opt)}</div>
                     </div>`;
                 });
-            } else if (currentQuestion.type === 'truefalse') {
+            } else if (currentQuestion.type === 'boolean' || currentQuestion.type === 'truefalse') {
                 optionsHtml = `
                     <div class="option-item ${selectedAnswer === 'True' ? 'selected' : ''}" onclick="selectAnswer('True')"><div class="option-letter">T</div><div class="option-text">True</div></div>
                     <div class="option-item ${selectedAnswer === 'False' ? 'selected' : ''}" onclick="selectAnswer('False')"><div class="option-letter">F</div><div class="option-text">False</div></div>
                 `;
-            } else if (currentQuestion.type === 'fillblank') {
+            } else if (currentQuestion.type === 'text' || currentQuestion.type === 'fillblank') {
                 optionsHtml = `<input type="text" class="fill-input" id="fillAnswer" placeholder="Type your answer..." value="${escapeHtml(selectedAnswer || '')}">`;
                 setTimeout(() => {
                     const input = document.getElementById('fillAnswer');
@@ -381,16 +388,36 @@
                 const answer = studentAnswers.find(a => a.questionIndex === idx);
                 if (answer && answer.answer) {
                     let isCorrect = false;
-                    if (q.type === 'mcq') isCorrect = answer.answer === q.correct;
-                    else if (q.type === 'truefalse') isCorrect = answer.answer === q.correct;
-                    else if (q.type === 'fillblank') isCorrect = answer.answer.toLowerCase().trim() === q.correct.toLowerCase().trim();
-                    if (isCorrect) { totalPoints += (q.points || 1); correctCount++; }
-                    else wrongCount++;
-                } else wrongCount++;
+                    // Handle different question types
+                    if (q.type === 'multiple' || q.type === 'mcq') {
+                        // q.correct is index (0,1,2,3) - need to compare with option text
+                        const correctOptionText = q.options[q.correct];
+                        isCorrect = answer.answer === correctOptionText;
+                    } else if (q.type === 'boolean' || q.type === 'truefalse') {
+                        // q.correct is 1 for True, 0 for False
+                        const correctAnswer = q.correct === 1 ? 'True' : 'False';
+                        isCorrect = answer.answer === correctAnswer;
+                    } else if (q.type === 'text' || q.type === 'fillblank') {
+                        isCorrect = answer.answer.toLowerCase().trim() === q.correct.toLowerCase().trim();
+                    }
+                    
+                    if (isCorrect) { 
+                        totalPoints += (q.points || 1); 
+                        correctCount++; 
+                    } else {
+                        wrongCount++;
+                    }
+                } else {
+                    wrongCount++;
+                }
             });
+            
             let finalScore = totalPoints;
-            if (testData.negativeMarking) finalScore = Math.max(0, totalPoints - (wrongCount * 0.25));
-            return { score: finalScore, correctCount, wrongCount, totalPoints: testData.totalPoints };
+            if (testData.negativeMarking) {
+                finalScore = Math.max(0, totalPoints - (wrongCount * 0.25));
+            }
+            
+            return { score: finalScore, correctCount, wrongCount, totalPoints: testData.totalPoints || 100 };
         }
 
         async function submitTest() {
@@ -407,30 +434,50 @@
             else if (percentage >= 50) grade = 'C';
             else if (percentage >= 40) grade = 'D';
 
-            const formattedAnswers = studentAnswers.map(a => ({
-                questionIndex: a.questionIndex,
-                answer: a.answer,
-                question: testData.questions[a.questionIndex]?.question,
-                correctAnswer: testData.questions[a.questionIndex]?.correct,
-                points: testData.questions[a.questionIndex]?.points || 1
-            }));
+            // Format answers for storage
+            const formattedAnswers = studentAnswers.map(a => {
+                const question = testData.questions[a.questionIndex];
+                let correctAnswer = '';
+                
+                if (question.type === 'multiple' || question.type === 'mcq') {
+                    correctAnswer = question.options[question.correct];
+                } else if (question.type === 'boolean' || question.type === 'truefalse') {
+                    correctAnswer = question.correct === 1 ? 'True' : 'False';
+                } else {
+                    correctAnswer = question.correct;
+                }
+                
+                return {
+                    questionIndex: a.questionIndex,
+                    studentAnswer: a.answer,
+                    correctAnswer: correctAnswer,
+                    question: question.question,
+                    points: question.points || 1,
+                    isCorrect: false // Will be calculated on server if needed
+                };
+            });
 
+            // FIXED: Use duration field (not timeLimit) and ensure all fields exist
             const submissionData = {
                 testId: testId,
                 studentId: currentUser.uid,
                 studentName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                studentEmail: userData.email || currentUser.email,
                 testTitle: testData.title,
                 subject: testData.subject,
                 weeksCovered: testData.weeksCovered || [1],
-                timeLimit: testData.timeLimit,
+                duration: testData.duration || testData.timeLimit || 30,  // FIXED: Use duration field
                 teacherId: testData.teacherId,
+                teacherName: testData.teacherName || '',
+                classId: testData.classId,
                 answers: formattedAnswers,
                 score: score,
                 totalPoints: totalPoints,
-                percentage: percentage,
+                percentage: percentage.toFixed(2),
                 grade: grade,
                 correctCount: correctCount,
                 wrongCount: wrongCount,
+                negativeMarking: testData.negativeMarking || false,
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 tabSwitchCount: tabSwitchCount,
                 status: 'submitted'
@@ -438,12 +485,34 @@
 
             try {
                 await db.collection('testSubmissions').add(submissionData);
+                
+                // If auto-release grades is enabled, also create/update testResults
+                if (testData.autoReleaseGrades) {
+                    await db.collection('testResults').add({
+                        testId: testId,
+                        studentId: currentUser.uid,
+                        studentName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                        score: score,
+                        totalPoints: totalPoints,
+                        percentage: percentage,
+                        grade: grade,
+                        gradeReleased: true,
+                        releasedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        teacherId: testData.teacherId,
+                        testTitle: testData.title
+                    });
+                }
+                
                 alert(`Test submitted!\n\nScore: ${score}/${totalPoints} (${percentage.toFixed(1)}%)\nGrade: ${grade}`);
                 window.location.href = 'student-dashboard.html';
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.error('Submit error:', error);
+                alert('Error submitting test: ' + error.message);
                 isSubmitted = false;
-            } finally { hideLoading(); closeSubmitModal(); }
+            } finally { 
+                hideLoading(); 
+                closeSubmitModal(); 
+            }
         }
 
         window.confirmSubmit = () => { closeSubmitModal(); submitTest(); };
@@ -455,47 +524,79 @@
 
             showLoading();
             try {
-                // FIXED: Read from tests collection (where teacher saves tests)
+                // Read from tests collection
                 const testDoc = await db.collection('tests').doc(testId).get();
                 
-                if (!testDoc.exists) { alert('Test not found'); window.location.href = 'student-dashboard.html'; return; }
+                if (!testDoc.exists) { 
+                    alert('Test not found'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
 
                 const testDocData = testDoc.data();
                 
                 // Check if published
-                if (testDocData.status !== 'published') { alert('This test is not available'); window.location.href = 'student-dashboard.html'; return; }
+                if (testDocData.status !== 'published') { 
+                    alert('This test is not available'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
                 
                 // Check class
-                if (testDocData.classId !== userData.class) { alert('You are not enrolled in this test'); window.location.href = 'student-dashboard.html'; return; }
+                if (testDocData.classId !== userData.class) { 
+                    alert('You are not enrolled in this test'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
 
                 testData = { id: testDoc.id, ...testDocData };
 
                 // Check if already taken
-                const existingSub = await db.collection('testSubmissions').where('testId', '==', testId).where('studentId', '==', currentUser.uid).get();
-                if (!existingSub.empty) { alert('You have already taken this test'); window.location.href = 'student-dashboard.html'; return; }
+                const existingSub = await db.collection('testSubmissions')
+                    .where('testId', '==', testId)
+                    .where('studentId', '==', currentUser.uid)
+                    .get();
+                    
+                if (!existingSub.empty) { 
+                    alert('You have already taken this test'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
+
+                // Get teacher name if available
+                if (testData.teacherId) {
+                    const teacherDoc = await db.collection('users').doc(testData.teacherId).get();
+                    if (teacherDoc.exists) {
+                        testData.teacherName = `${teacherDoc.data().firstName || ''} ${teacherDoc.data().surname || ''}`.trim();
+                    }
+                }
 
                 // Display header
                 document.getElementById('testTitle').textContent = testData.title;
                 const weeksText = (testData.weeksCovered || [1]).join(', ');
+                const durationMins = testData.duration || testData.timeLimit || 30;
+                
                 document.getElementById('testMeta').innerHTML = `
                     <div class="meta-item"><i class="fas fa-book"></i> Subject: <strong>${escapeHtml(testData.subject)}</strong></div>
                     <div class="meta-item"><i class="fas fa-calendar-week"></i> Weeks: <strong>${weeksText}</strong></div>
                     <div class="meta-item"><i class="fas fa-star"></i> Points: <strong>${testData.totalPoints || 100}</strong></div>
-                    <div class="meta-item"><i class="fas fa-hourglass-half"></i> Time: <strong>${testData.timeLimit || 30} mins</strong></div>
+                    <div class="meta-item"><i class="fas fa-hourglass-half"></i> Time: <strong>${durationMins} mins</strong></div>
                     ${testData.negativeMarking ? '<div class="meta-item"><i class="fas fa-ban"></i> Negative Marking: <strong>-0.25 per wrong</strong></div>' : ''}
                     <div class="meta-item"><i class="fas fa-question-circle"></i> Questions: <strong>${(testData.questions || []).length}</strong></div>
                 `;
+                document.getElementById('testInfo').innerHTML = `<span><i class="fas fa-user"></i> ${escapeHtml(userData.firstName || 'Student')} ${escapeHtml(userData.surname || '')}</span>`;
 
                 // Randomize if enabled
                 let questions = [...(testData.questions || [])];
                 if (testData.randomizeQuestions) questions = shuffleArray(questions);
                 if (testData.randomizeOptions) {
                     questions = questions.map(q => {
-                        if (q.type === 'mcq' && q.options) {
-                            const shuffled = shuffleArray([...q.options]);
-                            const correctOptionText = q.correct;
-                            const newCorrect = shuffled.find(o => o === correctOptionText) || q.correct;
-                            return { ...q, options: shuffled, correct: newCorrect };
+                        if ((q.type === 'multiple' || q.type === 'mcq') && q.options) {
+                            const originalOptions = [...q.options];
+                            const shuffled = shuffleArray([...originalOptions]);
+                            const correctOptionText = originalOptions[q.correct];
+                            const newCorrectIndex = shuffled.findIndex(opt => opt === correctOptionText);
+                            return { ...q, options: shuffled, correct: newCorrectIndex };
                         }
                         return q;
                     });
@@ -504,14 +605,16 @@
 
                 studentAnswers = [];
                 flaggedQuestions = [];
-                startTimer((testData.timeLimit || 30) * 60);
+                startTimer(durationMins * 60);
                 disableCopyPaste();
                 renderTest();
 
             } catch (error) {
                 console.error('Load error:', error);
                 alert('Error loading test: ' + error.message);
-            } finally { hideLoading(); }
+            } finally { 
+                hideLoading(); 
+            }
         }
 
         const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
@@ -522,10 +625,17 @@
             currentUser = user;
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'student') { await auth.signOut(); window.location.href = 'index.html'; return; }
+                if (!userDoc.exists || userDoc.data().role !== 'student') { 
+                    await auth.signOut(); 
+                    window.location.href = 'index.html'; 
+                    return; 
+                }
                 userData = userDoc.data();
                 await loadTest();
-            } catch (error) { console.error('Auth error:', error); }
+            } catch (error) { 
+                console.error('Auth error:', error);
+                alert('Authentication error: ' + error.message);
+            }
         });
     </script>
 </body>
