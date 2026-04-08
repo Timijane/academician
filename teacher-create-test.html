@@ -6,8 +6,6 @@
     <title>EduTop · Create CBT Test | Teacher Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -15,7 +13,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
     <style>
-        /* Keep all existing styles - same as previous */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -157,12 +154,10 @@
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
         <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
         <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Assignment</span></a>
-        
         <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
         <a href="teacher-create-test.html" class="nav-item active"><i class="fas fa-plus-square"></i><span>Create CBT Test</span></a>
         <a href="teacher-grade-test.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Tests</span></a>
         <a href="teacher-test-analytics.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>Test Analytics</span></a>
-        
         <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Update Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
@@ -224,7 +219,6 @@
                     <textarea id="instructions" class="form-control" rows="3" placeholder="Provide instructions for students..."></textarea>
                 </div>
                 
-                <!-- NEW: Grade visibility toggle -->
                 <div class="form-group">
                     <label><i class="fas fa-eye"></i> Grade Settings</label>
                     <div class="checkbox-item">
@@ -246,7 +240,7 @@
                 <div class="settings-grid">
                     <div class="setting-item">
                         <label><i class="fas fa-hourglass-half"></i> Time Limit (minutes) *</label>
-                        <input type="number" id="timeLimit" class="form-control" value="30" min="1" max="180" required>
+                        <input type="number" id="timeLimit" class="form-control" value="40" min="1" max="180" required>
                     </div>
                     <div class="setting-item">
                         <label><i class="fas fa-star"></i> Total Points</label>
@@ -591,7 +585,6 @@
             renderQuestions();
         };
         
-        // FIXED: AI Generation with proper syllabus context
         const aiModal = document.getElementById('aiModal');
         let lastGenerated = [];
         
@@ -607,7 +600,6 @@
             const difficulty = document.getElementById('aiDifficulty').value;
             const type = document.getElementById('aiType').value;
             
-            // Get detailed syllabus content for selected weeks
             const weeksData = syllabusWeeks.filter(w => w.subject === currentSubject && selectedWeeks.includes(w.week));
             
             if (weeksData.length === 0) {
@@ -617,7 +609,6 @@
             
             const syllabusContext = weeksData.map(w => `Week ${w.week}: ${w.topic} - ${w.objectives || 'General objectives'}`).join('\n');
             
-            // IMPROVED PROMPT with specific instructions to stay on topic
             const prompt = `You are an expert educational assessment creator. Create ${count} ${difficulty} difficulty ${type} questions based STRICTLY on the following syllabus content:
 
 SYLLABUS CONTENT:
@@ -649,7 +640,7 @@ Generate ${count} questions now:`;
                 const res = await groq.chat.completions.create({ 
                     messages: [{ role: 'user', content: prompt }], 
                     model: 'llama-3.3-70b-versatile', 
-                    temperature: 0.3  // Lower temperature for more focused, on-topic responses
+                    temperature: 0.3
                 });
                 const text = res.choices[0].message.content;
                 const match = text.match(/\[[\s\S]*\]/);
@@ -657,14 +648,11 @@ Generate ${count} questions now:`;
                 
                 let generatedQuestions = JSON.parse(match[0]);
                 
-                // Validate and fix question format
                 generatedQuestions = generatedQuestions.map(q => {
                     const fixedQ = { ...q, type: type, difficulty: difficulty };
-                    // Ensure options exist for MCQ
                     if (type === 'mcq' && (!fixedQ.options || fixedQ.options.length < 4)) {
                         fixedQ.options = ['Option A', 'Option B', 'Option C', 'Option D'];
                     }
-                    // Ensure correct answer is properly formatted
                     if (type === 'truefalse') {
                         const correctUpper = String(fixedQ.correct).toUpperCase();
                         fixedQ.correct = correctUpper === 'TRUE' ? 'True' : 'False';
@@ -717,7 +705,6 @@ Generate ${count} questions now:`;
             if (!timeLimit) { alert('Set time limit.'); return; }
             if (!questions.length) { alert('Add at least one question.'); return; }
             
-            // Validate each question has a correct answer
             for (let i = 0; i < questions.length; i++) {
                 const q = questions[i];
                 if (!q.correct || q.correct === '') {
@@ -734,59 +721,90 @@ Generate ${count} questions now:`;
                 }
             }
             
+            const formattedQuestions = questions.map(q => {
+                const formatted = {
+                    question: q.question,
+                    type: q.type === 'mcq' ? 'multiple' : (q.type === 'truefalse' ? 'boolean' : 'text'),
+                    points: q.points || 1,
+                    difficulty: q.difficulty || 'medium'
+                };
+                
+                if (q.type === 'mcq') {
+                    formatted.options = q.options;
+                    const letterToIndex = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+                    formatted.correct = letterToIndex[q.correct] !== undefined ? letterToIndex[q.correct] : 0;
+                } else if (q.type === 'truefalse') {
+                    formatted.correct = q.correct === 'True' ? 1 : 0;
+                } else {
+                    formatted.correct = q.correct;
+                }
+                
+                return formatted;
+            });
+            
             updateDebug(`💾 Saving test: ${title}, weeks: [${selectedWeeks.join(', ')}], status: ${status}, autoReleaseGrades: ${autoReleaseGrades}`);
             
-            const data = {
+            const testData = {
                 teacherId: currentUser.uid,
-                classId: userData.classTeaching,
-                subject,
+                classId: userData.classTeaching || 'jss2',
+                subject: subject,
                 weeksCovered: selectedWeeks,
-                weeksCoveredCount: selectedWeeks.length,
-                title,
-                instructions,
-                timeLimit,
-                totalPoints,
-                negativeMarking,
-                randomizeQuestions,
-                randomizeOptions,
-                startDate: startDate ? new Date(startDate) : null,
-                endDate: endDate ? new Date(endDate) : null,
-                questions: questions,
+                title: title,
+                instructions: instructions || '',
+                duration: timeLimit,
+                totalPoints: totalPoints,
+                negativeMarking: negativeMarking,
+                randomizeQuestions: randomizeQuestions,
+                randomizeOptions: randomizeOptions,
+                questions: formattedQuestions,
                 status: status,
-                type: 'test',
-                autoReleaseGrades: autoReleaseGrades,  // NEW FIELD
+                type: status === 'published' ? 'exam' : 'test',
+                autoReleaseGrades: autoReleaseGrades,
+                publishedAt: status === 'published' ? firebase.firestore.FieldValue.serverTimestamp() : null,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            
+            if (startDate) testData.startDate = new Date(startDate);
+            if (endDate) testData.endDate = new Date(endDate);
             
             showLoading();
             try {
                 let testId = currentDocId;
                 if (currentDocId) {
-                    await db.collection('tests').doc(currentDocId).update(data);
+                    await db.collection('tests').doc(currentDocId).update(testData);
                     updateDebug('✅ Test updated successfully');
                 } else {
-                    const ref = await db.collection('tests').add(data);
+                    const ref = await db.collection('tests').add(testData);
                     testId = ref.id;
                     currentDocId = ref.id;
                     updateDebug('✅ Test created successfully with ID: ' + currentDocId);
                 }
                 
-                // NEW: Log to admin audit
-                await db.collection('admin_audit').add({
-                    action: status === 'published' ? 'TEST_PUBLISHED' : 'TEST_SAVED',
-                    teacherId: currentUser.uid,
-                    teacherName: userData.firstName + ' ' + (userData.surname || ''),
-                    testId: testId,
-                    testTitle: title,
-                    subject: subject,
-                    weeksCovered: selectedWeeks,
-                    questionCount: questions.length,
-                    autoReleaseGrades: autoReleaseGrades,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: status
-                });
-                updateDebug('📋 Admin audit log created');
+                try {
+                    const auditData = {
+                        userId: currentUser.uid,
+                        userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
+                        userEmail: userData.email || currentUser.email,
+                        action: status === 'published' ? 'TEST_PUBLISHED' : 'TEST_SAVED',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        userAgent: navigator.userAgent,
+                        details: {
+                            testId: testId,
+                            testTitle: title,
+                            subject: subject,
+                            weeksCovered: selectedWeeks,
+                            questionCount: questions.length,
+                            autoReleaseGrades: autoReleaseGrades,
+                            status: status
+                        }
+                    };
+                    await db.collection('auditLogs').add(auditData);
+                    updateDebug('📋 Audit log created successfully');
+                } catch (auditError) {
+                    updateDebug(`⚠️ Audit log warning (non-critical): ${auditError.message}`);
+                    console.warn('Audit log error:', auditError);
+                }
                 
                 alert(`Test ${status === 'published' ? 'published' : 'saved'} successfully!`);
                 window.location.href = 'teacher-tests.html';
@@ -810,6 +828,13 @@ Generate ${count} questions now:`;
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
                 subjects = userData.subjects || [];
                 updateDebug(`📚 Teacher subjects: ${JSON.stringify(subjects)}`);
+                
+                // Check if teacher is approved
+                if (!userData.approved && userData.status !== 'approved') {
+                    updateDebug('⚠️ Teacher account not approved yet!');
+                    alert('Your account is pending approval. You cannot create tests until approved.');
+                }
+                
                 try { 
                     await remoteConfig.fetchAndActivate(); 
                     const key = remoteConfig.getString('groq_api_key'); 
