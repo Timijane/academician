@@ -6,6 +6,8 @@
     <title>EduTop · Create CBT Test | Teacher Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -93,6 +95,7 @@
         .week-checkbox strong { color: var(--accent); }
 
         .info-badge { background: var(--info-bg); color: var(--info-text); padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+        .warning-badge { background: var(--warning-bg); color: var(--warning-text); padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
 
         .test-settings { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
         .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
@@ -123,7 +126,7 @@
 
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:1.5rem; padding:1.5rem; max-width:700px; width:90%; max-height:80vh; overflow-y:auto; }
+        .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:1.5rem; padding:1.5rem; max-width:800px; width:90%; max-height:80vh; overflow-y:auto; }
         .ai-chat { height: 300px; overflow-y: auto; padding:1rem; background: var(--hover-bg); border-radius:1rem; margin-bottom:1rem; }
         .message { margin-bottom:1rem; padding:0.75rem; border-radius:1rem; max-width:85%; font-size:0.9rem; }
         .message.user { background: var(--accent); color:white; margin-left:auto; }
@@ -166,7 +169,7 @@
         <div class="top-bar">
             <div class="page-title">
                 <h1>Create CBT Test</h1>
-                <p>Create a test covering multiple topics (Mid-term Assessment)</p>
+                <p>Create a test based on your actual lesson notes</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
@@ -182,12 +185,20 @@
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-info-circle"></i> Test Information</h3>
-                <button class="btn btn-outline" id="useAIBtn"><i class="fas fa-robot"></i> AI Question Generator</button>
+                <div>
+                    <button class="btn btn-outline" id="useAIBtn"><i class="fas fa-robot"></i> AI Generator</button>
+                    <button class="btn btn-primary" id="useLessonNoteBtn" style="margin-left: 0.5rem;"><i class="fas fa-book-open"></i> Generate from Lesson Notes</button>
+                </div>
             </div>
             
             <div class="info-badge">
                 <i class="fas fa-info-circle"></i> 
-                <strong>Note:</strong> Tests can cover MULTIPLE weeks/topics. Select the weeks you want to include from the syllabus below.
+                <strong>Note:</strong> For best results, create lesson notes first, then use "Generate from Lesson Notes" to create questions based on your actual teaching content.
+            </div>
+            
+            <div id="lessonNoteStatus" class="warning-badge" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="lessonNoteStatusText"></span>
             </div>
             
             <form id="testForm">
@@ -234,7 +245,7 @@
 
         <div class="card">
             <div class="card-header">
-                <h3><i class="fas fa-sliders-h"></i> Test Settings (JAMB Standard)</h3>
+                <h3><i class="fas fa-sliders-h"></i> Test Settings</h3>
             </div>
             <div class="test-settings">
                 <div class="settings-grid">
@@ -297,7 +308,6 @@
         <div class="btn-group">
             <button type="submit" class="btn btn-primary" id="saveBtn"><i class="fas fa-save"></i> Save as Draft</button>
             <button type="button" class="btn btn-success" id="publishBtn"><i class="fas fa-paper-plane"></i> Publish Test</button>
-            <button type="button" class="btn btn-danger" id="deleteBtn" style="display: none;"><i class="fas fa-trash"></i> Delete</button>
         </div>
 
         <div class="debug-panel" id="debugPanel">
@@ -306,18 +316,49 @@
         </div>
     </div>
 
+    <!-- AI Modal -->
     <div class="modal-overlay" id="aiModal">
         <div class="modal-content">
-            <div class="modal-header"><h3><i class="fas fa-robot"></i> AI Question Generator</h3><i class="fas fa-times" onclick="closeAIModal()" style="cursor: pointer;"></i></div>
-            <div id="aiChat" class="ai-chat"><div class="message assistant">Select weeks, difficulty, and number of questions to generate.</div></div>
-            <div class="form-group"><label>Number of Questions</label><input type="number" id="aiCount" value="5" min="1" max="30" class="form-control"></div>
-            <div class="form-group"><label>Difficulty Level</label><select id="aiDifficulty" class="form-control"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
-            <div class="form-group"><label>Question Type</label><select id="aiType" class="form-control"><option value="mcq">Multiple Choice</option><option value="truefalse">True/False</option><option value="fillblank">Fill in the Blank</option></select></div>
-            <div class="btn-group"><button class="btn btn-primary" onclick="generateWithAI()">Generate</button><button class="btn btn-outline" onclick="insertAIGenerated()">Insert</button></div>
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3><i class="fas fa-robot"></i> AI Question Generator</h3>
+                <i class="fas fa-times" onclick="closeAIModal()" style="cursor: pointer; font-size: 1.2rem;"></i>
+            </div>
+            <div id="aiChat" class="ai-chat">
+                <div class="message assistant">Select weeks, then click "Generate from Lesson Notes" to create questions based on your actual teaching content.</div>
+            </div>
+            <div class="form-group">
+                <label>Number of Questions</label>
+                <input type="number" id="aiCount" value="5" min="1" max="30" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Difficulty Level</label>
+                <select id="aiDifficulty" class="form-control">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Question Type</label>
+                <select id="aiType" class="form-control">
+                    <option value="mcq">Multiple Choice</option>
+                    <option value="truefalse">True/False</option>
+                    <option value="fillblank">Fill in the Blank</option>
+                </select>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="generateFromLessonNotes()"><i class="fas fa-book-open"></i> Generate from Lesson Notes</button>
+                <button class="btn btn-outline" onclick="insertAIGenerated()"><i class="fas fa-plus"></i> Insert Questions</button>
+            </div>
         </div>
     </div>
 
-    <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <h3 style="margin-top: 1rem;">Processing...</h3>
+        </div>
+    </div>
 
     <script type="module">
         import Groq from "groq-sdk";
@@ -337,11 +378,16 @@
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.settings.minimumFetchIntervalMillis = 0;
         
+        // DOM Elements
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
-        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        toggleBtn.addEventListener('click', () => { 
+            sidebar.classList.toggle('collapsed'); 
+            mainContent.classList.toggle('expanded'); 
+        });
         
+        // Theme
         const themeToggle = document.getElementById('themeToggle');
         const html = document.documentElement;
         const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
@@ -355,9 +401,12 @@
             themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
         });
         
+        // Global variables
         let currentUser = null, userData = null, subjects = [], currentSubject = null, syllabusWeeks = [], groq = null;
         let questions = [], currentDocId = null, currentQuestionType = 'mcq';
         let selectedWeeks = [];
+        let lessonNotesCache = {};
+        let lastGenerated = [];
         
         function updateDebug(message) {
             const debugEl = document.getElementById('debugInfo');
@@ -370,6 +419,7 @@
             console.log(message);
         }
         
+        // Load syllabus
         async function loadSyllabus() {
             if (!subjects.length) return;
             
@@ -389,10 +439,7 @@
                     const subject = data.subject;
                     const weeksArray = data.weeks || [];
                     
-                    updateDebug(`   - Subject: ${subject}, weeks array length: ${weeksArray.length}`);
-                    
                     weeksArray.forEach(weekData => {
-                        updateDebug(`     Week ${weekData.week}: ${weekData.topic}`);
                         syllabusWeeks.push({
                             subject: subject,
                             week: weekData.week,
@@ -407,15 +454,111 @@
                 
             } catch(e) {
                 updateDebug(`❌ Error loading syllabus: ${e.message}`);
-                console.error('Error loading syllabus:', e);
+            }
+        }
+        
+        // NEW: Get lesson note content for selected weeks
+        async function getLessonNoteContent(subject, weeks) {
+            updateDebug(`📖 Fetching lesson notes for ${subject}, weeks: ${weeks.join(', ')}`);
+            
+            try {
+                // First, get the syllabus ID for this subject
+                const syllabusSnap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('subject', '==', subject)
+                    .where('status', '==', 'approved')
+                    .limit(1)
+                    .get();
+                
+                if (syllabusSnap.empty) {
+                    updateDebug('⚠️ No syllabus found for this subject');
+                    return null;
+                }
+                
+                const syllabusId = syllabusSnap.docs[0].id;
+                
+                // Now get lesson notes for the selected weeks
+                const lessonNotesSnap = await db.collection('lessonNotes')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('syllabusId', '==', syllabusId)
+                    .where('week', 'in', weeks)
+                    .where('status', '==', 'approved')
+                    .get();
+                
+                if (lessonNotesSnap.empty) {
+                    updateDebug('⚠️ No lesson notes found for selected weeks');
+                    return null;
+                }
+                
+                const lessonNotes = [];
+                lessonNotesSnap.forEach(doc => {
+                    const data = doc.data();
+                    lessonNotes.push({
+                        id: doc.id,
+                        week: data.week,
+                        topic: data.topic,
+                        content: data.content || data.lessonContent || '',
+                        objectives: data.objectives || '',
+                        keyPoints: data.keyPoints || ''
+                    });
+                    updateDebug(`📚 Found lesson note for Week ${data.week}: ${data.topic}`);
+                });
+                
+                // Check for missing weeks
+                const foundWeeks = lessonNotes.map(n => n.week);
+                const missingWeeks = weeks.filter(w => !foundWeeks.includes(w));
+                if (missingWeeks.length > 0) {
+                    updateDebug(`⚠️ Missing lesson notes for weeks: ${missingWeeks.join(', ')}`);
+                    const statusDiv = document.getElementById('lessonNoteStatus');
+                    const statusText = document.getElementById('lessonNoteStatusText');
+                    statusText.innerHTML = `Missing lesson notes for Weeks ${missingWeeks.join(', ')}. Please create lesson notes first for better question generation.`;
+                    statusDiv.style.display = 'flex';
+                } else {
+                    document.getElementById('lessonNoteStatus').style.display = 'none';
+                }
+                
+                return lessonNotes;
+                
+            } catch(e) {
+                updateDebug(`❌ Error fetching lesson notes: ${e.message}`);
+                return null;
+            }
+        }
+        
+        // Check if lesson notes exist for selected weeks
+        async function checkLessonNotesExist(subject, weeks) {
+            try {
+                const syllabusSnap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('subject', '==', subject)
+                    .where('status', '==', 'approved')
+                    .limit(1)
+                    .get();
+                
+                if (syllabusSnap.empty) return false;
+                
+                const syllabusId = syllabusSnap.docs[0].id;
+                
+                const lessonNotesSnap = await db.collection('lessonNotes')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('syllabusId', '==', syllabusId)
+                    .where('week', 'in', weeks)
+                    .where('status', '==', 'approved')
+                    .get();
+                
+                const foundWeeks = new Set();
+                lessonNotesSnap.forEach(doc => foundWeeks.add(doc.data().week));
+                
+                const allExist = weeks.every(week => foundWeeks.has(week));
+                return allExist;
+                
+            } catch(e) {
+                return false;
             }
         }
         
         function getWeeksForSubject(subject) {
-            const weeks = syllabusWeeks.filter(w => w.subject === subject).sort((a, b) => a.week - b.week);
-            updateDebug(`📚 Weeks for ${subject}: ${weeks.length} weeks found`);
-            weeks.forEach(w => updateDebug(`   - Week ${w.week}: ${w.topic}`));
-            return weeks;
+            return syllabusWeeks.filter(w => w.subject === subject).sort((a, b) => a.week - b.week);
         }
         
         function renderSubjectTabs() {
@@ -424,7 +567,6 @@
             
             if (!subjects.length) {
                 container.innerHTML = '<div class="tab" style="background: var(--warning-bg);">No subjects assigned</div>';
-                updateDebug('⚠️ No subjects found for teacher');
                 return;
             }
             
@@ -468,7 +610,7 @@
             weeks.forEach(w => {
                 html += `
                     <label class="week-checkbox">
-                        <input type="checkbox" value="${w.week}" data-week="${w.week}" data-topic="${escapeHtml(w.topic)}" onchange="toggleWeek(this)">
+                        <input type="checkbox" value="${w.week}" data-week="${w.week}" onchange="toggleWeek(this)">
                         <span>
                             <strong>Week ${w.week}</strong>: ${escapeHtml(w.topic)}
                         </span>
@@ -477,7 +619,6 @@
             });
             container.innerHTML = html;
             selectedWeeks = [];
-            updateDebug(`✅ Rendered ${weeks.length} weeks for ${currentSubject}`);
         }
         
         window.toggleWeek = (checkbox) => {
@@ -489,8 +630,12 @@
             }
             selectedWeeks.sort((a, b) => a - b);
             updateDebug(`📌 Selected weeks: [${selectedWeeks.join(', ')}]`);
+            
+            // Hide lesson note status when weeks change
+            document.getElementById('lessonNoteStatus').style.display = 'none';
         };
         
+        // Question type selection
         document.getElementById('typeMcqBtn').addEventListener('click', () => {
             currentQuestionType = 'mcq';
             document.getElementById('typeMcqBtn').classList.add('active');
@@ -509,12 +654,11 @@
             document.getElementById('typeMcqBtn').classList.remove('active');
             document.getElementById('typeTfBtn').classList.remove('active');
         });
-        document.getElementById('typeMcqBtn').classList.add('active');
         
         function renderQuestions() {
             const container = document.getElementById('questionsList');
             if (!questions.length) {
-                container.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--text-secondary);">No questions added. Click "Add Question" to begin.</p>';
+                container.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--text-secondary);">No questions added. Click "Add Question" or use AI to generate.</p>';
                 return;
             }
             let html = '';
@@ -562,7 +706,10 @@
         };
         
         window.removeQuestion = (i) => { questions.splice(i, 1); renderQuestions(); };
-        window.setCorrect = (i, val) => { questions[i].correct = val; updateDebug(`✅ Set correct answer for Q${i+1}: "${val}"`); };
+        window.setCorrect = (i, val) => { 
+            questions[i].correct = val; 
+            updateDebug(`✅ Set correct answer for Q${i+1}: "${val}"`);
+        };
         
         window.editQuestion = (i) => {
             const q = questions[i];
@@ -585,14 +732,22 @@
             renderQuestions();
         };
         
+        // AI Modal
         const aiModal = document.getElementById('aiModal');
-        let lastGenerated = [];
         
         window.openAIModal = () => { aiModal.classList.add('active'); };
         window.closeAIModal = () => { aiModal.classList.remove('active'); };
         document.getElementById('useAIBtn').addEventListener('click', openAIModal);
+        document.getElementById('useLessonNoteBtn').addEventListener('click', () => {
+            if (selectedWeeks.length === 0) {
+                alert('Please select weeks first');
+                return;
+            }
+            openAIModal();
+        });
         
-        window.generateWithAI = async () => {
+        // NEW: Generate from actual lesson notes
+        window.generateFromLessonNotes = async () => {
             if (!groq) { alert('AI not ready. Please check API key.'); return; }
             if (selectedWeeks.length === 0) { alert('Please select at least one week to generate questions from.'); return; }
             
@@ -600,51 +755,71 @@
             const difficulty = document.getElementById('aiDifficulty').value;
             const type = document.getElementById('aiType').value;
             
-            const weeksData = syllabusWeeks.filter(w => w.subject === currentSubject && selectedWeeks.includes(w.week));
+            showLoading();
+            const chatDiv = document.getElementById('aiChat');
             
-            if (weeksData.length === 0) {
-                alert('No syllabus content found for selected weeks.');
-                return;
-            }
-            
-            const syllabusContext = weeksData.map(w => `Week ${w.week}: ${w.topic} - ${w.objectives || 'General objectives'}`).join('\n');
-            
-            const prompt = `You are an expert educational assessment creator. Create ${count} ${difficulty} difficulty ${type} questions based STRICTLY on the following syllabus content:
+            try {
+                updateDebug(`📖 Fetching lesson notes for weeks: ${selectedWeeks.join(', ')}`);
+                chatDiv.innerHTML += `<div class="message assistant"><i class="fas fa-spinner fa-spin"></i> Fetching your lesson notes for Weeks ${selectedWeeks.join(', ')}...</div>`;
+                
+                const lessonNotes = await getLessonNoteContent(currentSubject, selectedWeeks);
+                
+                if (!lessonNotes || lessonNotes.length === 0) {
+                    chatDiv.innerHTML += `<div class="message assistant">❌ No approved lesson notes found for the selected weeks. Please create and approve lesson notes first using the Lesson Note page.</div>`;
+                    hideLoading();
+                    return;
+                }
+                
+                // Build lesson note context
+                let lessonContext = '';
+                for (const note of lessonNotes) {
+                    lessonContext += `
+=== WEEK ${note.week}: ${note.topic} ===
+TOPIC: ${note.topic}
+${note.content ? `LESSON CONTENT:\n${note.content.substring(0, 4000)}` : ''}
+${note.objectives ? `LEARNING OBJECTIVES:\n${note.objectives}` : ''}
+${note.keyPoints ? `KEY POINTS:\n${note.keyPoints}` : ''}
+--- END OF WEEK ${note.week} ---
+`;
+                }
+                
+                updateDebug(`📚 Loaded ${lessonNotes.length} lesson notes, context length: ${lessonContext.length} chars`);
+                
+                const prompt = `You are an expert educational assessment creator. Create ${count} ${difficulty} difficulty ${type} questions based STRICTLY on the following LESSON NOTES content.
 
-SYLLABUS CONTENT:
-${syllabusContext}
+=== LESSON NOTES (What the teacher actually taught) ===
+${lessonContext}
 
 IMPORTANT RULES:
-1. EVERY question must be directly related to the topics above
-2. Do NOT create questions about topics not listed
-3. Make questions that test understanding of the specific concepts mentioned
-4. Return ONLY a valid JSON array with no extra text
+1. EVERY question MUST be directly based on the content above
+2. Use specific examples, definitions, and concepts from the lesson notes
+3. Questions should test UNDERSTANDING, not just memorization
+4. Do NOT create questions about topics not covered
+5. Return ONLY a valid JSON array
 
 For ${type === 'mcq' ? 'Multiple Choice' : type === 'truefalse' ? 'True/False' : 'Fill in the Blank'} questions:
 
-${type === 'mcq' ? 'Format: [{"question": "exact question text", "options": ["option A", "option B", "option C", "option D"], "correct": "A", "points": 1}]' : 
-  type === 'truefalse' ? 'Format: [{"question": "exact statement", "correct": "True or False", "points": 1}]' : 
-  'Format: [{"question": "Sentence with ______ blank", "correct": "the exact answer", "points": 1}]'}
+${type === 'mcq' ? 'Format: [{"question": "question text", "options": ["A", "B", "C", "D"], "correct": "A", "points": 1}]' : 
+  type === 'truefalse' ? 'Format: [{"question": "statement", "correct": "True", "points": 1}]' : 
+  'Format: [{"question": "Sentence with ______", "correct": "answer", "points": 1}]'}
 
 Generate ${count} questions now:`;
-            
-            const chatDiv = document.getElementById('aiChat');
-            chatDiv.innerHTML += `<div class="message user">Generating ${count} ${difficulty} ${type} questions for:<br>${weeksData.map(w => `Week ${w.week}: ${w.topic}`).join('<br>')}</div>`;
-            const thinking = document.createElement('div'); 
-            thinking.className = 'message assistant'; 
-            thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating questions based on your syllabus...'; 
-            chatDiv.appendChild(thinking);
-            showLoading();
-            
-            try {
+                
+                chatDiv.innerHTML += `<div class="message user">Generating ${count} ${difficulty} ${type} questions from your lesson notes...</div>`;
+                const thinking = document.createElement('div'); 
+                thinking.className = 'message assistant'; 
+                thinking.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating questions based on your teaching content...'; 
+                chatDiv.appendChild(thinking);
+                
                 const res = await groq.chat.completions.create({ 
                     messages: [{ role: 'user', content: prompt }], 
                     model: 'llama-3.3-70b-versatile', 
-                    temperature: 0.3
+                    temperature: 0.4
                 });
+                
                 const text = res.choices[0].message.content;
                 const match = text.match(/\[[\s\S]*\]/);
-                if (!match) throw new Error('No JSON array found in response');
+                if (!match) throw new Error('No JSON array found');
                 
                 let generatedQuestions = JSON.parse(match[0]);
                 
@@ -662,14 +837,16 @@ Generate ${count} questions now:`;
                 
                 lastGenerated = generatedQuestions;
                 chatDiv.removeChild(thinking);
-                chatDiv.innerHTML += `<div class="message assistant">✅ Generated ${lastGenerated.length} questions based on your syllabus. Each question is directly related to the selected topics.</div>`;
-                updateDebug(`AI Generated ${lastGenerated.length} questions for weeks: ${selectedWeeks.join(', ')}`);
+                chatDiv.innerHTML += `<div class="message assistant">✅ Generated ${lastGenerated.length} questions based on your lesson notes from Weeks ${selectedWeeks.join(', ')}. Click "Insert Questions" to add them to your test.</div>`;
+                updateDebug(`✅ Generated ${lastGenerated.length} questions from lesson notes`);
                 
             } catch(e) { 
-                chatDiv.removeChild(thinking); 
-                chatDiv.innerHTML += `<div class="message assistant">❌ Error: ${e.message}. Please try again.</div>`; 
-                updateDebug(`AI Error: ${e.message}`);
-            } finally { hideLoading(); }
+                const chatDiv = document.getElementById('aiChat');
+                chatDiv.innerHTML += `<div class="message assistant">❌ Error: ${e.message}</div>`; 
+                updateDebug(`❌ Error: ${e.message}`);
+            } finally { 
+                hideLoading(); 
+            }
         };
         
         window.insertAIGenerated = () => { 
@@ -679,10 +856,11 @@ Generate ${count} questions now:`;
                 closeAIModal(); 
                 updateDebug(`Inserted ${lastGenerated.length} AI-generated questions`);
             } else { 
-                alert('No questions generated yet. Click "Generate" first.'); 
+                alert('No questions generated yet. Click "Generate from Lesson Notes" first.'); 
             } 
         };
         
+        // Save test
         document.getElementById('testForm').addEventListener('submit', (e) => { e.preventDefault(); saveTest('draft'); });
         document.getElementById('publishBtn').addEventListener('click', () => saveTest('published'));
         
@@ -705,14 +883,15 @@ Generate ${count} questions now:`;
             if (!timeLimit) { alert('Set time limit.'); return; }
             if (!questions.length) { alert('Add at least one question.'); return; }
             
+            // Validate questions
             for (let i = 0; i < questions.length; i++) {
                 const q = questions[i];
                 if (!q.correct || q.correct === '') {
-                    alert(`Question ${i+1} is missing a correct answer. Please set the correct answer.`);
+                    alert(`Question ${i+1} is missing a correct answer.`);
                     return;
                 }
                 if (q.type === 'mcq' && (!q.options || q.options.some(opt => !opt || opt.trim() === ''))) {
-                    alert(`Question ${i+1} has empty options. Please fill all options.`);
+                    alert(`Question ${i+1} has empty options.`);
                     return;
                 }
                 if (!q.question || q.question.trim() === '') {
@@ -721,6 +900,7 @@ Generate ${count} questions now:`;
                 }
             }
             
+            // Format questions for Firestore
             const formattedQuestions = questions.map(q => {
                 const formatted = {
                     question: q.question,
@@ -742,7 +922,7 @@ Generate ${count} questions now:`;
                 return formatted;
             });
             
-            updateDebug(`💾 Saving test: ${title}, weeks: [${selectedWeeks.join(', ')}], status: ${status}, autoReleaseGrades: ${autoReleaseGrades}`);
+            updateDebug(`💾 Saving test: ${title}, status: ${status}, autoReleaseGrades: ${autoReleaseGrades}`);
             
             const testData = {
                 teacherId: currentUser.uid,
@@ -758,7 +938,6 @@ Generate ${count} questions now:`;
                 randomizeOptions: randomizeOptions,
                 questions: formattedQuestions,
                 status: status,
-                type: status === 'published' ? 'exam' : 'test',
                 autoReleaseGrades: autoReleaseGrades,
                 publishedAt: status === 'published' ? firebase.firestore.FieldValue.serverTimestamp() : null,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -773,16 +952,17 @@ Generate ${count} questions now:`;
                 let testId = currentDocId;
                 if (currentDocId) {
                     await db.collection('tests').doc(currentDocId).update(testData);
-                    updateDebug('✅ Test updated successfully');
+                    updateDebug('✅ Test updated');
                 } else {
                     const ref = await db.collection('tests').add(testData);
                     testId = ref.id;
                     currentDocId = ref.id;
-                    updateDebug('✅ Test created successfully with ID: ' + currentDocId);
+                    updateDebug('✅ Test created with ID: ' + currentDocId);
                 }
                 
+                // Audit log
                 try {
-                    const auditData = {
+                    await db.collection('auditLogs').add({
                         userId: currentUser.uid,
                         userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
                         userEmail: userData.email || currentUser.email,
@@ -795,21 +975,18 @@ Generate ${count} questions now:`;
                             subject: subject,
                             weeksCovered: selectedWeeks,
                             questionCount: questions.length,
-                            autoReleaseGrades: autoReleaseGrades,
-                            status: status
+                            autoReleaseGrades: autoReleaseGrades
                         }
-                    };
-                    await db.collection('auditLogs').add(auditData);
-                    updateDebug('📋 Audit log created successfully');
+                    });
+                    updateDebug('📋 Audit log created');
                 } catch (auditError) {
-                    updateDebug(`⚠️ Audit log warning (non-critical): ${auditError.message}`);
-                    console.warn('Audit log error:', auditError);
+                    updateDebug(`⚠️ Audit warning: ${auditError.message}`);
                 }
                 
                 alert(`Test ${status === 'published' ? 'published' : 'saved'} successfully!`);
                 window.location.href = 'teacher-tests.html';
             } catch(e) { 
-                updateDebug(`❌ Error saving test: ${e.message}`);
+                updateDebug(`❌ Error: ${e.message}`);
                 alert('Error: ' + e.message); 
             } finally { hideLoading(); }
         }
@@ -818,21 +995,25 @@ Generate ${count} questions now:`;
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         
+        // Auth
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
-                currentUser = user; userData = userDoc.data();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { 
+                    auth.signOut(); 
+                    window.location.href = 'index.html'; 
+                    return; 
+                }
+                currentUser = user;
+                userData = userDoc.data();
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
                 subjects = userData.subjects || [];
-                updateDebug(`📚 Teacher subjects: ${JSON.stringify(subjects)}`);
+                updateDebug(`📚 Subjects: ${JSON.stringify(subjects)}`);
                 
-                // Check if teacher is approved
                 if (!userData.approved && userData.status !== 'approved') {
-                    updateDebug('⚠️ Teacher account not approved yet!');
-                    alert('Your account is pending approval. You cannot create tests until approved.');
+                    updateDebug('⚠️ Account pending approval');
                 }
                 
                 try { 
@@ -840,24 +1021,31 @@ Generate ${count} questions now:`;
                     const key = remoteConfig.getString('groq_api_key'); 
                     if (key && key !== '') {
                         groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true });
-                        updateDebug('✅ Groq AI initialized');
-                    } else {
-                        updateDebug('⚠️ Groq API key not configured in Remote Config');
+                        updateDebug('✅ Groq AI ready');
                     }
                 } catch(e) { 
-                    console.warn(e); 
-                    updateDebug(`⚠️ Remote Config error: ${e.message}`);
+                    updateDebug(`⚠️ AI not available: ${e.message}`);
                 }
+                
                 await loadSyllabus();
                 renderSubjectTabs();
-            } catch(e) { console.error(e); updateDebug(`❌ Auth error: ${e.message}`); }
+            } catch(e) { 
+                updateDebug(`❌ Auth error: ${e.message}`);
+            }
         });
         
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
         document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
         
-        window.addQuestion = addQuestion; window.removeQuestion = removeQuestion; window.setCorrect = setCorrect; window.editQuestion = editQuestion;
-        window.generateWithAI = generateWithAI; window.insertAIGenerated = insertAIGenerated; window.openAIModal = openAIModal; window.closeAIModal = closeAIModal;
+        // Expose globals
+        window.addQuestion = addQuestion;
+        window.removeQuestion = removeQuestion;
+        window.setCorrect = setCorrect;
+        window.editQuestion = editQuestion;
+        window.generateFromLessonNotes = generateFromLessonNotes;
+        window.insertAIGenerated = insertAIGenerated;
+        window.openAIModal = openAIModal;
+        window.closeAIModal = closeAIModal;
         window.toggleWeek = toggleWeek;
     </script>
 </body>
