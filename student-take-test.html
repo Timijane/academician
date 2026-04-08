@@ -237,9 +237,7 @@
                 } else {
                     timeRemaining--;
                     updateTimerDisplay();
-                    if (timeRemaining === 60) {
-                        showWarning(`⚠️ 1 minute remaining!`);
-                    }
+                    if (timeRemaining === 60) showWarning(`⚠️ 1 minute remaining!`);
                 }
             }, 1000);
         }
@@ -382,31 +380,44 @@
         window.closeAutoSubmitModal = () => { document.getElementById('autoSubmitModal').classList.remove('active'); };
         window.closeTabSwitchModal = () => { document.getElementById('tabSwitchModal').classList.remove('active'); };
 
+        // FIXED: Calculate score correctly
         function calculateScore() {
             let totalPoints = 0, correctCount = 0, wrongCount = 0;
+            
+            console.log('=== SCORE CALCULATION DEBUG ===');
+            
             testData.questions.forEach((q, idx) => {
-                const answer = studentAnswers.find(a => a.questionIndex === idx);
-                if (answer && answer.answer) {
-                    let isCorrect = false;
-                    // Handle different question types
-                    if (q.type === 'multiple' || q.type === 'mcq') {
-                        // q.correct is index (0,1,2,3) - need to compare with option text
-                        const correctOptionText = q.options[q.correct];
-                        isCorrect = answer.answer === correctOptionText;
-                    } else if (q.type === 'boolean' || q.type === 'truefalse') {
-                        // q.correct is 1 for True, 0 for False
-                        const correctAnswer = q.correct === 1 ? 'True' : 'False';
-                        isCorrect = answer.answer === correctAnswer;
-                    } else if (q.type === 'text' || q.type === 'fillblank') {
-                        isCorrect = answer.answer.toLowerCase().trim() === q.correct.toLowerCase().trim();
+                const studentAnswerObj = studentAnswers.find(a => a.questionIndex === idx);
+                const studentAnswer = studentAnswerObj ? studentAnswerObj.answer : null;
+                
+                let isCorrect = false;
+                let correctAnswerText = '';
+                
+                if (q.type === 'multiple' || q.type === 'mcq') {
+                    // q.correct is the INDEX (0,1,2,3) of the correct option
+                    correctAnswerText = q.options[q.correct];
+                    if (studentAnswer) {
+                        isCorrect = studentAnswer === correctAnswerText;
                     }
-                    
-                    if (isCorrect) { 
-                        totalPoints += (q.points || 1); 
-                        correctCount++; 
-                    } else {
-                        wrongCount++;
+                } else if (q.type === 'boolean' || q.type === 'truefalse') {
+                    // q.correct is 1 for True, 0 for False
+                    correctAnswerText = q.correct === 1 ? 'True' : 'False';
+                    if (studentAnswer) {
+                        isCorrect = studentAnswer === correctAnswerText;
                     }
+                } else if (q.type === 'text' || q.type === 'fillblank') {
+                    correctAnswerText = q.correct;
+                    if (studentAnswer) {
+                        isCorrect = studentAnswer.toLowerCase().trim() === correctAnswerText.toLowerCase().trim();
+                    }
+                }
+                
+                if (isCorrect) {
+                    const points = q.points || 1;
+                    totalPoints += points;
+                    correctCount++;
+                } else if (studentAnswer) {
+                    wrongCount++;
                 } else {
                     wrongCount++;
                 }
@@ -414,10 +425,16 @@
             
             let finalScore = totalPoints;
             if (testData.negativeMarking) {
-                finalScore = Math.max(0, totalPoints - (wrongCount * 0.25));
+                const penalty = wrongCount * 0.25;
+                finalScore = Math.max(0, totalPoints - penalty);
             }
             
-            return { score: finalScore, correctCount, wrongCount, totalPoints: testData.totalPoints || 100 };
+            return { 
+                score: finalScore, 
+                correctCount, 
+                wrongCount, 
+                totalPoints: testData.totalPoints || 100 
+            };
         }
 
         async function submitTest() {
@@ -453,11 +470,10 @@
                     correctAnswer: correctAnswer,
                     question: question.question,
                     points: question.points || 1,
-                    isCorrect: false // Will be calculated on server if needed
+                    isCorrect: a.answer === correctAnswer
                 };
             });
 
-            // FIXED: Use duration field (not timeLimit) and ensure all fields exist
             const submissionData = {
                 testId: testId,
                 studentId: currentUser.uid,
@@ -466,9 +482,8 @@
                 testTitle: testData.title,
                 subject: testData.subject,
                 weeksCovered: testData.weeksCovered || [1],
-                duration: testData.duration || testData.timeLimit || 30,  // FIXED: Use duration field
+                duration: testData.duration || 30,
                 teacherId: testData.teacherId,
-                teacherName: testData.teacherName || '',
                 classId: testData.classId,
                 answers: formattedAnswers,
                 score: score,
@@ -486,7 +501,7 @@
             try {
                 await db.collection('testSubmissions').add(submissionData);
                 
-                // If auto-release grades is enabled, also create/update testResults
+                // If auto-release grades is enabled, also create testResults
                 if (testData.autoReleaseGrades) {
                     await db.collection('testResults').add({
                         testId: testId,
@@ -524,7 +539,6 @@
 
             showLoading();
             try {
-                // Read from tests collection
                 const testDoc = await db.collection('tests').doc(testId).get();
                 
                 if (!testDoc.exists) { 
@@ -535,14 +549,12 @@
 
                 const testDocData = testDoc.data();
                 
-                // Check if published
                 if (testDocData.status !== 'published') { 
                     alert('This test is not available'); 
                     window.location.href = 'student-dashboard.html'; 
                     return; 
                 }
                 
-                // Check class
                 if (testDocData.classId !== userData.class) { 
                     alert('You are not enrolled in this test'); 
                     window.location.href = 'student-dashboard.html'; 
@@ -563,18 +575,10 @@
                     return; 
                 }
 
-                // Get teacher name if available
-                if (testData.teacherId) {
-                    const teacherDoc = await db.collection('users').doc(testData.teacherId).get();
-                    if (teacherDoc.exists) {
-                        testData.teacherName = `${teacherDoc.data().firstName || ''} ${teacherDoc.data().surname || ''}`.trim();
-                    }
-                }
-
                 // Display header
                 document.getElementById('testTitle').textContent = testData.title;
                 const weeksText = (testData.weeksCovered || [1]).join(', ');
-                const durationMins = testData.duration || testData.timeLimit || 30;
+                const durationMins = testData.duration || 30;
                 
                 document.getElementById('testMeta').innerHTML = `
                     <div class="meta-item"><i class="fas fa-book"></i> Subject: <strong>${escapeHtml(testData.subject)}</strong></div>
@@ -584,7 +588,6 @@
                     ${testData.negativeMarking ? '<div class="meta-item"><i class="fas fa-ban"></i> Negative Marking: <strong>-0.25 per wrong</strong></div>' : ''}
                     <div class="meta-item"><i class="fas fa-question-circle"></i> Questions: <strong>${(testData.questions || []).length}</strong></div>
                 `;
-                document.getElementById('testInfo').innerHTML = `<span><i class="fas fa-user"></i> ${escapeHtml(userData.firstName || 'Student')} ${escapeHtml(userData.surname || '')}</span>`;
 
                 // Randomize if enabled
                 let questions = [...(testData.questions || [])];
