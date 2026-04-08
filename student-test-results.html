@@ -111,6 +111,7 @@
 
         .loading-spinner { text-align: center; padding: 3rem; color: var(--text-secondary); }
         .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .error-state { text-align: center; padding: 3rem; color: var(--danger-text); }
         .debug-panel { background: var(--danger-bg); border: 1px solid var(--danger-text); border-radius: 0.75rem; padding: 0.75rem; margin-top: 1rem; font-family: monospace; font-size: 0.7rem; color: var(--danger-text); overflow-x: auto; display: none; }
 
         @media (max-width: 768px) {
@@ -181,10 +182,11 @@
             </div>
         </div>
 
-        <!-- Debug Panel (hidden by default) -->
-        <div class="debug-panel" id="debugPanel">
+        <!-- Debug Panel -->
+        <div class="debug-panel" id="debugPanel" style="display: block;">
             <strong><i class="fas fa-bug"></i> Debug Info:</strong><br>
-            <span id="debugInfo">Loading...</span>
+            <span id="debugInfo">Initializing...</span>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('debugPanel').style.display='none'" style="margin-top: 0.5rem;">Hide Debug</button>
         </div>
     </div>
 
@@ -227,9 +229,10 @@
         function updateDebug(message) {
             const debugEl = document.getElementById('debugInfo');
             if (debugEl) {
-                debugEl.innerHTML = message + '<br>' + debugEl.innerHTML;
-                if (debugEl.innerHTML.split('<br>').length > 20) {
-                    debugEl.innerHTML = debugEl.innerHTML.split('<br>').slice(0, 20).join('<br>');
+                const timestamp = new Date().toLocaleTimeString();
+                debugEl.innerHTML = `[${timestamp}] ${message}<br>` + debugEl.innerHTML;
+                if (debugEl.innerHTML.split('<br>').length > 30) {
+                    debugEl.innerHTML = debugEl.innerHTML.split('<br>').slice(0, 30).join('<br>');
                 }
             }
             console.log(message);
@@ -272,10 +275,26 @@
                 
                 updateDebug(`📊 Found ${snap.size} test submissions`);
                 
+                if (snap.size === 0) {
+                    updateDebug('⚠️ No test submissions found!');
+                    document.getElementById('resultsContainer').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-info-circle" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                            <h3>No Tests Taken Yet</h3>
+                            <p>You haven't taken any tests. Go to <a href="student-tests.html" style="color: var(--accent);">CBT Tests</a> to take your first test.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
                 allSubmissions = [];
                 for (const doc of snap.docs) {
                     const data = doc.data();
-                    updateDebug(`   - Submission ID: ${doc.id}, Test: ${data.testTitle || 'Unknown'}, Score: ${data.score}/${data.totalPoints}`);
+                    updateDebug(`   - Found submission: ${doc.id}`);
+                    updateDebug(`     Test Title: ${data.testTitle || 'Unknown'}`);
+                    updateDebug(`     Score: ${data.score}/${data.totalPoints}`);
+                    updateDebug(`     Answers count: ${data.answers ? data.answers.length : 0}`);
+                    
                     allSubmissions.push({
                         id: doc.id,
                         testId: data.testId,
@@ -294,39 +313,30 @@
                     });
                 }
                 
-                if (allSubmissions.length === 0) {
-                    updateDebug('⚠️ No test submissions found! Students need to take tests first.');
-                }
-                
+                updateDebug(`✅ Loaded ${allSubmissions.length} submissions into memory`);
                 populateTestSelector();
                 
                 // Check URL for testId parameter
                 const urlParams = new URLSearchParams(window.location.search);
                 const testId = urlParams.get('id');
                 if (testId) {
-                    const submission = allSubmissions.find(s => s.testId === testId);
+                    updateDebug(`🔍 Looking for test with ID: ${testId}`);
+                    const submission = allSubmissions.find(s => s.testId === testId || s.id === testId);
                     if (submission) {
+                        updateDebug(`✅ Found matching submission: ${submission.title}`);
                         document.getElementById('testSelector').value = submission.id;
                         displayResults(submission);
                     } else {
-                        updateDebug('⚠️ Test ID from URL not found: ' + testId);
+                        updateDebug(`⚠️ No submission found with ID: ${testId}`);
                     }
-                }
-                
-                // Show debug panel temporarily if no submissions
-                if (allSubmissions.length === 0) {
-                    document.getElementById('debugPanel').style.display = 'block';
-                    setTimeout(() => {
-                        document.getElementById('debugPanel').style.display = 'none';
-                    }, 10000);
                 }
                 
             } catch(e) {
                 updateDebug('❌ Error loading submissions: ' + e.message);
                 console.error('Error loading submissions:', e);
                 document.getElementById('resultsContainer').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--danger-text);"></i>
+                    <div class="error-state">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
                         <h3>Error Loading Results</h3>
                         <p>${e.message}</p>
                         <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1rem;">Retry</button>
@@ -366,14 +376,23 @@
                 const option = document.createElement('option');
                 option.value = sub.id;
                 const dateStr = sub.submittedAt.toLocaleDateString();
-                option.textContent = `${sub.title} (${sub.subject}) - ${sub.score}/${sub.totalPoints} - ${dateStr}`;
+                const scoreText = `${sub.score}/${sub.totalPoints}`;
+                option.textContent = `${sub.title} (${sub.subject}) - ${scoreText} - ${dateStr}`;
                 selector.appendChild(option);
             });
             
+            updateDebug(`✅ Populated selector with ${allSubmissions.length} options`);
+            
             selector.addEventListener('change', (e) => {
                 if (e.target.value) {
+                    updateDebug(`📌 Test selected: ${e.target.value}`);
                     const submission = allSubmissions.find(s => s.id === e.target.value);
-                    if (submission) displayResults(submission);
+                    if (submission) {
+                        updateDebug(`✅ Found submission data for: ${submission.title}`);
+                        displayResults(submission);
+                    } else {
+                        updateDebug(`❌ Could not find submission with ID: ${e.target.value}`);
+                    }
                 } else {
                     document.getElementById('resultsContainer').innerHTML = `
                         <div class="empty-state">
@@ -388,73 +407,104 @@
 
         function displayResults(submission) {
             updateDebug(`📊 Displaying results for test: ${submission.title}`);
+            updateDebug(`   - Score: ${submission.score}/${submission.totalPoints}`);
+            updateDebug(`   - Answers: ${submission.answers.length} questions`);
             
-            const percentage = submission.percentage;
-            const grade = submission.grade;
-            const gradeClass = getGradeClass(grade);
-            
-            let performanceLevel = '';
-            let performanceIcon = '';
-            if (percentage >= 75) { performanceLevel = 'Excellent!'; performanceIcon = '🎉'; }
-            else if (percentage >= 65) { performanceLevel = 'Good Job!'; performanceIcon = '👍'; }
-            else if (percentage >= 50) { performanceLevel = 'Fair'; performanceIcon = '📚'; }
-            else if (percentage >= 40) { performanceLevel = 'Needs Improvement'; performanceIcon = '⚠️'; }
-            else { performanceLevel = 'Needs Serious Work'; performanceIcon = '📖'; }
-            
-            const html = `
-                <div class="result-summary">
-                    <div class="summary-card"><div class="summary-value ${gradeClass}">${submission.score}/${submission.totalPoints}</div><div class="summary-label">Total Score</div></div>
-                    <div class="summary-card"><div class="summary-value ${gradeClass}">${percentage.toFixed(1)}%</div><div class="summary-label">Percentage</div></div>
-                    <div class="summary-card"><div class="summary-value ${gradeClass}">${grade}</div><div class="summary-label">Grade</div></div>
-                    <div class="summary-card"><div class="summary-value">${submission.correctCount}</div><div class="summary-label">Correct Answers</div></div>
-                    <div class="summary-card"><div class="summary-value">${submission.wrongCount}</div><div class="summary-label">Wrong Answers</div></div>
-                    <div class="summary-card"><div class="summary-value">${Math.floor(submission.duration)} min</div><div class="summary-label">Time Taken</div></div>
-                </div>
+            try {
+                const percentage = submission.percentage;
+                const grade = submission.grade;
+                const gradeClass = getGradeClass(grade);
                 
-                <div class="test-info-card">
-                    <h2><i class="fas fa-laptop"></i> ${escapeHtml(submission.title)}</h2>
-                    <div class="test-meta">
-                        <span><i class="fas fa-book"></i> Subject: ${escapeHtml(submission.subject)}</span>
-                        <span><i class="fas fa-calendar"></i> Taken: ${submission.submittedAt.toLocaleString()}</span>
-                        <span><i class="fas fa-ban"></i> ${submission.negativeMarking ? 'Negative Marking Enabled' : 'No Negative Marking'}</span>
-                    </div>
-                    <div style="margin-top: 1rem; font-size: 1.2rem;">${performanceIcon} ${performanceLevel}</div>
-                </div>
+                let performanceLevel = '';
+                let performanceIcon = '';
+                if (percentage >= 75) { performanceLevel = 'Excellent!'; performanceIcon = '🎉'; }
+                else if (percentage >= 65) { performanceLevel = 'Good Job!'; performanceIcon = '👍'; }
+                else if (percentage >= 50) { performanceLevel = 'Fair'; performanceIcon = '📚'; }
+                else if (percentage >= 40) { performanceLevel = 'Needs Improvement'; performanceIcon = '⚠️'; }
+                else { performanceLevel = 'Needs Serious Work'; performanceIcon = '📖'; }
                 
-                <div class="section-card">
-                    <div class="section-header">
-                        <h3><i class="fas fa-chart-pie"></i> Performance Analysis</h3>
+                const html = `
+                    <div class="result-summary">
+                        <div class="summary-card"><div class="summary-value ${gradeClass}">${submission.score}/${submission.totalPoints}</div><div class="summary-label">Total Score</div></div>
+                        <div class="summary-card"><div class="summary-value ${gradeClass}">${percentage.toFixed(1)}%</div><div class="summary-label">Percentage</div></div>
+                        <div class="summary-card"><div class="summary-value ${gradeClass}">${grade}</div><div class="summary-label">Grade</div></div>
+                        <div class="summary-card"><div class="summary-value">${submission.correctCount}</div><div class="summary-label">Correct Answers</div></div>
+                        <div class="summary-card"><div class="summary-value">${submission.wrongCount}</div><div class="summary-label">Wrong Answers</div></div>
+                        <div class="summary-card"><div class="summary-value">${Math.floor(submission.duration)} min</div><div class="summary-label">Time Taken</div></div>
                     </div>
-                    <div class="chart-container">
-                        <canvas id="performanceChart"></canvas>
+                    
+                    <div class="test-info-card">
+                        <h2><i class="fas fa-laptop"></i> ${escapeHtml(submission.title)}</h2>
+                        <div class="test-meta">
+                            <span><i class="fas fa-book"></i> Subject: ${escapeHtml(submission.subject)}</span>
+                            <span><i class="fas fa-calendar"></i> Taken: ${submission.submittedAt.toLocaleString()}</span>
+                            <span><i class="fas fa-ban"></i> ${submission.negativeMarking ? 'Negative Marking Enabled' : 'No Negative Marking'}</span>
+                        </div>
+                        <div style="margin-top: 1rem; font-size: 1.2rem;">${performanceIcon} ${performanceLevel}</div>
                     </div>
-                </div>
+                    
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3><i class="fas fa-chart-pie"></i> Performance Analysis</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3><i class="fas fa-question-circle"></i> Question Review</h3>
+                            <button class="btn btn-outline" onclick="toggleAllQuestions()"><i class="fas fa-expand-alt"></i> Expand All</button>
+                        </div>
+                        <div id="questionsContainer"></div>
+                    </div>
+                `;
                 
-                <div class="section-card">
-                    <div class="section-header">
-                        <h3><i class="fas fa-question-circle"></i> Question Review</h3>
-                        <button class="btn btn-outline" onclick="toggleAllQuestions()"><i class="fas fa-expand-alt"></i> Expand All</button>
+                document.getElementById('resultsContainer').innerHTML = html;
+                
+                renderQuestions(submission);
+                renderChart(submission);
+                
+                updateDebug('✅ Results displayed successfully');
+            } catch(e) {
+                updateDebug('❌ Error displaying results: ' + e.message);
+                document.getElementById('resultsContainer').innerHTML = `
+                    <div class="error-state">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                        <h3>Error Displaying Results</h3>
+                        <p>${e.message}</p>
                     </div>
-                    <div id="questionsContainer"></div>
-                </div>
-            `;
-            
-            document.getElementById('resultsContainer').innerHTML = html;
-            
-            renderQuestions(submission);
-            renderChart(submission);
+                `;
+            }
         }
         
         function renderQuestions(submission) {
             const container = document.getElementById('questionsContainer');
+            
             if (!submission.answers || submission.answers.length === 0) {
-                container.innerHTML = '<div class="empty-state">No detailed answers available for this test.</div>';
+                updateDebug('⚠️ No answers found in submission');
+                container.innerHTML = '<div class="empty-state">No detailed answers available for this test. The test may have been submitted without saving individual answers.</div>';
                 return;
             }
             
+            updateDebug(`📝 Rendering ${submission.answers.length} questions`);
+            
             let html = '';
             submission.answers.forEach((answer, idx) => {
-                const isCorrect = answer.isCorrect || (answer.studentAnswer === answer.correctAnswer);
+                // Handle different answer formats
+                let studentAnswer = answer.studentAnswer || answer.answer || answer.userAnswer || 'No answer';
+                let correctAnswer = answer.correctAnswer || answer.correct || 'N/A';
+                let questionText = answer.question || `Question ${idx + 1}`;
+                
+                // Determine if correct
+                let isCorrect = false;
+                if (answer.isCorrect !== undefined) {
+                    isCorrect = answer.isCorrect;
+                } else if (studentAnswer && correctAnswer) {
+                    isCorrect = studentAnswer.toString().toLowerCase().trim() === correctAnswer.toString().toLowerCase().trim();
+                }
+                
                 const statusClass = isCorrect ? 'status-correct' : 'status-wrong';
                 const statusText = isCorrect ? '✓ Correct' : '✗ Wrong';
                 const studentAnswerClass = isCorrect ? 'correct' : '';
@@ -469,15 +519,15 @@
                             </div>
                         </div>
                         <div class="question-body" id="questionBody${idx}">
-                            <div class="question-text"><strong>Question:</strong> ${escapeHtml(answer.question || 'N/A')}</div>
+                            <div class="question-text"><strong>Question:</strong> ${escapeHtml(questionText)}</div>
                             <div class="answer-comparison">
                                 <div class="student-answer ${studentAnswerClass}">
                                     <span class="answer-label"><i class="fas fa-user"></i> Your Answer:</span>
-                                    ${escapeHtml(answer.studentAnswer || 'No answer provided')}
+                                    ${escapeHtml(studentAnswer)}
                                 </div>
                                 <div class="correct-answer">
                                     <span class="answer-label"><i class="fas fa-check-circle"></i> Correct Answer:</span>
-                                    ${escapeHtml(answer.correctAnswer || 'N/A')}
+                                    ${escapeHtml(correctAnswer)}
                                 </div>
                             </div>
                             ${answer.points ? `<div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-star"></i> Points: ${answer.points}</div>` : ''}
@@ -486,36 +536,54 @@
                 `;
             });
             container.innerHTML = html;
+            updateDebug('✅ Questions rendered successfully');
         }
         
         function renderChart(submission) {
-            if (performanceChart) performanceChart.destroy();
-            const ctx = document.getElementById('performanceChart').getContext('2d');
-            const totalQuestions = submission.correctCount + submission.wrongCount;
-            performanceChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: [`Correct (${submission.correctCount})`, `Wrong (${submission.wrongCount})`],
-                    datasets: [{
-                        data: [submission.correctCount, submission.wrongCount],
-                        backgroundColor: ['#4ade80', '#f87171'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'bottom' },
-                        tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw} questions (${((ctx.raw / totalQuestions) * 100).toFixed(1)}%)` } }
-                    }
+            try {
+                if (performanceChart) performanceChart.destroy();
+                const ctx = document.getElementById('performanceChart').getContext('2d');
+                const totalQuestions = submission.correctCount + submission.wrongCount;
+                
+                if (totalQuestions === 0) {
+                    document.getElementById('performanceChart').parentElement.innerHTML = '<div class="empty-state">No performance data available</div>';
+                    return;
                 }
-            });
+                
+                performanceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [`Correct (${submission.correctCount})`, `Wrong (${submission.wrongCount})`],
+                        datasets: [{
+                            data: [submission.correctCount, submission.wrongCount],
+                            backgroundColor: ['#4ade80', '#f87171'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: { 
+                                callbacks: { 
+                                    label: (ctx) => `${ctx.label}: ${ctx.raw} questions (${((ctx.raw / totalQuestions) * 100).toFixed(1)}%)` 
+                                } 
+                            }
+                        }
+                    }
+                });
+                updateDebug('✅ Chart rendered successfully');
+            } catch(e) {
+                updateDebug('❌ Error rendering chart: ' + e.message);
+            }
         }
         
         window.toggleQuestion = (idx) => {
             const body = document.getElementById(`questionBody${idx}`);
-            body.classList.toggle('show');
+            if (body) {
+                body.classList.toggle('show');
+            }
         };
         
         window.toggleAllQuestions = () => {
