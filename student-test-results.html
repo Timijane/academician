@@ -68,7 +68,6 @@
         .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
         .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
 
-        /* Result Summary Cards */
         .result-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
         .summary-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; text-align: center; transition: all 0.3s; }
         .summary-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
@@ -76,12 +75,14 @@
         .summary-label { color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem; }
         .grade-a { color: var(--success-text); } .grade-b { color: #3b82f6; } .grade-c { color: #f59e0b; } .grade-d { color: #f59e0b; } .grade-f { color: var(--danger-text); }
 
-        /* Test Info Header */
         .test-info-card { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; color: white; }
         .test-info-card h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
         .test-meta { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem; font-size: 0.85rem; opacity: 0.9; }
 
-        /* Question Review */
+        .section-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+        .section-header h3 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
         .question-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; margin-bottom: 1rem; overflow: hidden; transition: all 0.2s; }
         .question-header { padding: 1rem; background: var(--hover-bg); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; cursor: pointer; }
         .question-num { font-weight: 700; color: var(--accent); }
@@ -89,7 +90,6 @@
         .status-badge { padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; }
         .status-correct { background: var(--success-bg); color: var(--success-text); }
         .status-wrong { background: var(--danger-bg); color: var(--danger-text); }
-        .status-partial { background: var(--warning-bg); color: var(--warning-text); }
         .question-body { padding: 1rem; border-top: 1px solid var(--border); display: none; }
         .question-body.show { display: block; }
         .question-text { font-size: 1rem; margin-bottom: 1rem; line-height: 1.5; }
@@ -100,7 +100,6 @@
         .correct-answer { background: var(--success-bg); border-left: 3px solid var(--success-text); }
         .answer-label { font-size: 0.7rem; font-weight: 600; margin-bottom: 0.25rem; display: block; }
 
-        /* Performance Chart */
         .chart-container { height: 250px; margin: 1rem 0; }
 
         .btn { padding: 0.5rem 1rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; font-size: 0.85rem; }
@@ -108,8 +107,11 @@
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
 
+        .filter-select { padding: 0.6rem 1rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.85rem; min-width: 250px; }
+
         .loading-spinner { text-align: center; padding: 3rem; color: var(--text-secondary); }
         .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .debug-panel { background: var(--danger-bg); border: 1px solid var(--danger-text); border-radius: 0.75rem; padding: 0.75rem; margin-top: 1rem; font-family: monospace; font-size: 0.7rem; color: var(--danger-text); overflow-x: auto; display: none; }
 
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
@@ -165,6 +167,7 @@
                     <option value="">-- Select a test --</option>
                 </select>
                 <a href="student-results.html" class="btn btn-outline"><i class="fas fa-chart-simple"></i> View All Results</a>
+                <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
         </div>
 
@@ -174,7 +177,14 @@
                 <i class="fas fa-file-alt" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
                 <h3>No Test Selected</h3>
                 <p>Please select a test from the dropdown above to view your detailed results.</p>
+                <p style="margin-top: 1rem; font-size: 0.85rem;">If the dropdown is empty, you haven't taken any tests yet.</p>
             </div>
+        </div>
+
+        <!-- Debug Panel (hidden by default) -->
+        <div class="debug-panel" id="debugPanel">
+            <strong><i class="fas fa-bug"></i> Debug Info:</strong><br>
+            <span id="debugInfo">Loading...</span>
         </div>
     </div>
 
@@ -214,32 +224,58 @@
         let allSubmissions = [];
         let performanceChart = null;
 
+        function updateDebug(message) {
+            const debugEl = document.getElementById('debugInfo');
+            if (debugEl) {
+                debugEl.innerHTML = message + '<br>' + debugEl.innerHTML;
+                if (debugEl.innerHTML.split('<br>').length > 20) {
+                    debugEl.innerHTML = debugEl.innerHTML.split('<br>').slice(0, 20).join('<br>');
+                }
+            }
+            console.log(message);
+        }
+
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'student-login.html'; return; }
             try {
+                updateDebug('✅ User authenticated: ' + user.uid);
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'student') { auth.signOut(); window.location.href = 'index.html'; return; }
+                if (!userDoc.exists || userDoc.data().role !== 'student') { 
+                    auth.signOut(); 
+                    window.location.href = 'index.html'; 
+                    return; 
+                }
                 userData = userDoc.data();
                 currentUser = user;
                 document.getElementById('profileName').textContent = userData.firstName || 'Student';
                 const initials = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
                 document.getElementById('profilePic').textContent = initials;
+                updateDebug('✅ User data loaded: ' + userData.firstName);
                 await loadTestSubmissions();
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                updateDebug('❌ Auth error: ' + e.message);
+                console.error(e); 
+            }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('refreshBtn').addEventListener('click', () => loadTestSubmissions());
 
         async function loadTestSubmissions() {
+            updateDebug('📊 Loading test submissions for student: ' + currentUser.uid);
+            
             try {
                 const snap = await db.collection('testSubmissions')
                     .where('studentId', '==', currentUser.uid)
                     .orderBy('submittedAt', 'desc')
                     .get();
                 
+                updateDebug(`📊 Found ${snap.size} test submissions`);
+                
                 allSubmissions = [];
                 for (const doc of snap.docs) {
                     const data = doc.data();
+                    updateDebug(`   - Submission ID: ${doc.id}, Test: ${data.testTitle || 'Unknown'}, Score: ${data.score}/${data.totalPoints}`);
                     allSubmissions.push({
                         id: doc.id,
                         testId: data.testId,
@@ -258,6 +294,10 @@
                     });
                 }
                 
+                if (allSubmissions.length === 0) {
+                    updateDebug('⚠️ No test submissions found! Students need to take tests first.');
+                }
+                
                 populateTestSelector();
                 
                 // Check URL for testId parameter
@@ -268,10 +308,30 @@
                     if (submission) {
                         document.getElementById('testSelector').value = submission.id;
                         displayResults(submission);
+                    } else {
+                        updateDebug('⚠️ Test ID from URL not found: ' + testId);
                     }
                 }
+                
+                // Show debug panel temporarily if no submissions
+                if (allSubmissions.length === 0) {
+                    document.getElementById('debugPanel').style.display = 'block';
+                    setTimeout(() => {
+                        document.getElementById('debugPanel').style.display = 'none';
+                    }, 10000);
+                }
+                
             } catch(e) {
+                updateDebug('❌ Error loading submissions: ' + e.message);
                 console.error('Error loading submissions:', e);
+                document.getElementById('resultsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--danger-text);"></i>
+                        <h3>Error Loading Results</h3>
+                        <p>${e.message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 1rem;">Retry</button>
+                    </div>
+                `;
             }
         }
 
@@ -296,6 +356,11 @@
         function populateTestSelector() {
             const selector = document.getElementById('testSelector');
             selector.innerHTML = '<option value="">-- Select a test --</option>';
+            
+            if (allSubmissions.length === 0) {
+                selector.innerHTML = '<option value="">-- No tests taken yet --</option>';
+                return;
+            }
             
             allSubmissions.forEach(sub => {
                 const option = document.createElement('option');
@@ -322,6 +387,8 @@
         }
 
         function displayResults(submission) {
+            updateDebug(`📊 Displaying results for test: ${submission.title}`);
+            
             const percentage = submission.percentage;
             const grade = submission.grade;
             const gradeClass = getGradeClass(grade);
@@ -374,10 +441,7 @@
             
             document.getElementById('resultsContainer').innerHTML = html;
             
-            // Render questions
             renderQuestions(submission);
-            
-            // Render chart
             renderChart(submission);
         }
         
