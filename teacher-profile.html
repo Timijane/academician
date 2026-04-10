@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Teacher Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Teacher Profile</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -261,13 +261,14 @@
         <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
         <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
-        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Daily Report</span></a>
         <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
+        <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-square"></i><span>Create Test</span></a>
+        <a href="teacher-grade-test.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Tests</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
         <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
         <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
         <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-        <a href="teacher-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
-        <a href="teacher-teach.html" class="nav-item"><i class="fas fa-chalkboard"></i><span>Teach</span></a>
         <a href="teacher-profile.html" class="nav-item active"><i class="fas fa-user"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
@@ -380,15 +381,16 @@
     </div>
 
     <script>
+        // ==================== CORRECT FIREBASE CONFIG (FROM OUR PROJECT) ====================
         const firebaseConfig = {
-            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
-            authDomain: "edutopscholars-be54a.firebaseapp.com",
-            projectId: "edutopscholars-be54a",
-            storageBucket: "edutopscholars-be54a.firebasestorage.app",
-            messagingSenderId: "713866508372",
-            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
-            measurementId: "G-CCCDYZQ6LE"
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
+        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -415,34 +417,40 @@
             themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
             themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
         }
-        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
         themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
-            localStorage.setItem('edutopscholars-theme', next);
+            localStorage.setItem('edutop-theme', next);
             updateThemeUI(next);
         });
 
         // Auth check
         let currentUser = null;
         let userData = null;
+        
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'teacher-login.html';
                 return;
             }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                auth.signOut();
-                window.location.href = 'index.html';
-                return;
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+                currentUser = user;
+                userData = userDoc.data();
+                populateProfile();
+            } catch (error) {
+                console.error('Auth error:', error);
+                window.location.href = 'teacher-login.html';
             }
-            currentUser = user;
-            userData = userDoc.data();
-            populateProfile();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -460,9 +468,9 @@
             document.getElementById('address').value = userData.address || '';
 
             // Professional info
-            document.getElementById('employeeId').textContent = userData.employeeId || userData.id || '—';
+            document.getElementById('employeeId').textContent = userData.employeeId || userData.id || userData.admissionNo || '—';
             if (userData.createdAt) {
-                const joined = userData.createdAt.toDate();
+                const joined = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
                 document.getElementById('dateJoined').textContent = joined.toLocaleDateString();
                 const now = new Date();
                 const years = now.getFullYear() - joined.getFullYear();
@@ -475,7 +483,7 @@
             document.getElementById('post').textContent = userData.post || (userData.isCoAdmin ? 'Co-Admin' : 'Teacher');
             document.getElementById('postDetail').textContent = userData.post || (userData.isCoAdmin ? 'Co-Admin' : 'Teacher');
             document.getElementById('classAssigned').textContent = userData.classTeaching || 'Not assigned';
-            document.getElementById('classTeaching').textContent = `Class: ${userData.classTeaching || 'Not assigned'}`;
+            document.getElementById('classTeaching').innerHTML = `Class: ${userData.classTeaching || 'Not assigned'}`;
             document.getElementById('subjects').textContent = userData.subjects ? userData.subjects.join(', ') : '—';
             document.getElementById('qualifications').textContent = userData.qualifications || '—';
             if (userData.schoolsAttended && userData.schoolsAttended.length) {
@@ -489,7 +497,7 @@
             if (userData.photoURL) {
                 document.getElementById('profileImage').src = userData.photoURL;
             }
-            const initials = (userData.firstName?.[0] || '') + (userData.surname?.[0] || '') || 'T';
+            const initials = ((userData.firstName?.[0] || '') + (userData.surname?.[0] || '') || 'T').toUpperCase();
             document.getElementById('profileInitials').textContent = initials;
         }
 
@@ -501,11 +509,14 @@
                 surname: document.getElementById('surname').value,
                 phone: document.getElementById('phone').value,
                 dob: document.getElementById('dob').value,
-                address: document.getElementById('address').value
+                address: document.getElementById('address').value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            
+            showLoading();
             try {
                 await db.collection('users').doc(currentUser.uid).update(updates);
-                alert('Profile updated.');
+                alert('Profile updated successfully!');
                 // Refresh data
                 const userDoc = await db.collection('users').doc(currentUser.uid).get();
                 userData = userDoc.data();
@@ -513,6 +524,8 @@
             } catch (error) {
                 console.error('Error updating profile:', error);
                 alert('Error: ' + error.message);
+            } finally {
+                hideLoading();
             }
         });
 
@@ -523,18 +536,39 @@
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            
+            showLoading();
             try {
                 const storageRef = storage.ref(`profilePics/${currentUser.uid}`);
                 await storageRef.put(file);
                 const photoURL = await storageRef.getDownloadURL();
                 await db.collection('users').doc(currentUser.uid).update({ photoURL });
                 document.getElementById('profileImage').src = photoURL;
-                alert('Profile picture updated.');
+                alert('Profile picture updated successfully!');
             } catch (error) {
                 console.error('Error uploading image:', error);
                 alert('Error: ' + error.message);
+            } finally {
+                hideLoading();
             }
         });
+
+        function showLoading() {
+            // Simple loading indicator
+            const btn = document.querySelector('.btn-primary');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            }
+        }
+
+        function hideLoading() {
+            const btn = document.querySelector('.btn-primary');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Update Personal Info';
+            }
+        }
     </script>
 </body>
 </html>
