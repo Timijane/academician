@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop · Automated Report Card System | Teacher</title>
+    <title>EduTop · Professional Report Card System | Teacher</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -98,7 +98,6 @@
         .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
         .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
         .badge-info { background: var(--info-bg); color: var(--info-text); }
-        .badge-not-ready { background: var(--danger-bg); color: var(--danger-text); }
 
         .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
         .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
@@ -109,6 +108,12 @@
 
         .progress-bar { background: var(--border); border-radius: 1rem; height: 8px; overflow: hidden; }
         .progress-fill { background: var(--accent); height: 100%; border-radius: 1rem; transition: width 0.3s; }
+
+        .rating-select { width: 100%; padding: 0.5rem; border-radius: 0.75rem; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-primary); }
+
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:1.5rem; padding:1.5rem; max-width:800px; width:90%; max-height:80vh; overflow-y:auto; }
 
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
@@ -143,8 +148,8 @@
     <div class="main-content" id="mainContent">
         <div class="top-bar">
             <div class="page-title">
-                <h1>Automated Report Card System</h1>
-                <p>Auto-fetches attendance, test scores, exam scores, and assignment scores</p>
+                <h1>Professional Report Card System</h1>
+                <p>Standards-Based Grading | Multiple Assessments | Automated Calculations</p>
             </div>
             <div class="profile-area">
                 <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
@@ -159,23 +164,21 @@
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-sliders-h"></i> Report Card Configuration</h3>
+                <button class="btn btn-outline btn-sm" id="applyGlobalWeightsBtn"><i class="fas fa-globe"></i> Apply to All Subjects</button>
             </div>
             <div class="grid-4">
                 <div class="form-group"><label>Session</label><select id="session" class="form-control"><option>2023/2024</option><option selected>2024/2025</option><option>2025/2026</option></select></div>
                 <div class="form-group"><label>Term</label><select id="term" class="form-control"><option value="first">First Term</option><option value="second">Second Term</option><option value="third">Third Term (Cumulative)</option></select></div>
                 <div class="form-group"><label>Class</label><select id="classSelect" class="form-control"><option value="">Select Class</option></select></div>
-                <div class="form-group"><label>Include Assignments?</label><select id="useAssignments" class="form-control"><option value="yes">Yes (10% weight)</option><option value="no">No (0% weight)</option></select></div>
+                <div class="form-group"><label>Grading Scale</label><select id="gradingScale" class="form-control"><option value="nigeria">Nigeria Standard (A=70+, B=60+, C=50+, D=45+, E=40+, F=<40)</option><option value="uk">UK Standard (A=80+, B=70+, C=60+, D=50+, E=40+, F=<40)</option><option value="us">US Standard (A=90+, B=80+, C=70+, D=60+, F=<60)</option></select></div>
             </div>
             <div class="grid-3" style="margin-top: 1rem;">
-                <div class="form-group"><label>Exam Weight (%)</label><input type="number" id="examWeight" class="form-control" value="70" min="0" max="100" readonly disabled></div>
-                <div class="form-group"><label>Test Weight (%)</label><input type="number" id="testWeight" class="form-control" value="20" min="0" max="100" readonly disabled></div>
-                <div class="form-group"><label>Assignment Weight (%)</label><input type="number" id="assignmentWeight" class="form-control" value="10" min="0" max="100" readonly disabled></div>
+                <div class="form-group"><label>Exam Weight (%)</label><input type="number" id="examWeight" class="form-control" value="70" min="0" max="100"></div>
+                <div class="form-group"><label>Test/CA Weight (%)</label><input type="number" id="testWeight" class="form-control" value="30" min="0" max="100"></div>
+                <div class="form-group"><label>Assignment Weight (%)</label><input type="number" id="assignmentWeight" class="form-control" value="0" min="0" max="100"></div>
             </div>
-            <div class="btn-group" style="margin-top: 1rem;">
-                <button class="btn btn-primary" id="fetchDataBtn"><i class="fas fa-database"></i> Fetch All Data</button>
-                <button class="btn btn-success" id="calculateAllBtn"><i class="fas fa-calculator"></i> Calculate All & Rank</button>
-                <button class="btn btn-warning" id="saveReportBtn"><i class="fas fa-save"></i> Save Report Card</button>
-                <button class="btn btn-outline" id="submitApprovalBtn"><i class="fas fa-paper-plane"></i> Submit for Approval</button>
+            <div class="info-badge" style="margin-top: 1rem; padding: 0.5rem; background: var(--info-bg); border-radius: 0.5rem; font-size: 0.8rem;">
+                <i class="fas fa-info-circle"></i> Note: Exam + Test + Assignment must equal 100%. If using assignments, reduce test weight accordingly.
             </div>
         </div>
 
@@ -204,6 +207,28 @@
             </div>
         </div>
 
+        <!-- Action Buttons -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-actions"></i> Actions</h3>
+            </div>
+            <div class="grid-4">
+                <button class="btn btn-primary" id="fetchSubjectsBtn"><i class="fas fa-book"></i> Fetch Subjects</button>
+                <button class="btn btn-primary" id="fetchDataBtn"><i class="fas fa-database"></i> Fetch Scores</button>
+                <button class="btn btn-success" id="calculateAllBtn"><i class="fas fa-calculator"></i> Calculate & Rank</button>
+                <button class="btn btn-warning" id="saveReportBtn"><i class="fas fa-save"></i> Save Report Card</button>
+            </div>
+        </div>
+
+        <!-- Subjects Configuration Card -->
+        <div class="card" id="subjectsConfigCard" style="display: none;">
+            <div class="card-header">
+                <h3><i class="fas fa-cog"></i> Subjects Configuration</h3>
+                <button class="btn btn-outline btn-sm" id="configureSubjectsBtn"><i class="fas fa-edit"></i> Configure Subjects</button>
+            </div>
+            <div id="subjectsList"></div>
+        </div>
+
         <!-- Students List and Scores Section -->
         <div class="grid-2">
             <!-- Left: Students List -->
@@ -217,49 +242,66 @@
                 </div>
             </div>
 
-            <!-- Right: Student Scores -->
-            <div class="card" id="scoresCard" style="display: none;">
+            <!-- Right: Student Full Report Card -->
+            <div class="card" id="reportCardCard" style="display: none;">
                 <div class="card-header">
-                    <h3><i class="fas fa-user-graduate"></i> Student: <span id="selectedStudentName">-</span></h3>
+                    <h3><i class="fas fa-graduation-cap"></i> Student Report Card: <span id="selectedStudentName">-</span></h3>
                     <div>
                         <button class="btn btn-outline btn-sm" id="prevStudentBtn"><i class="fas fa-chevron-left"></i> Prev</button>
                         <button class="btn btn-outline btn-sm" id="nextStudentBtn">Next <i class="fas fa-chevron-right"></i></button>
                     </div>
                 </div>
                 
-                <!-- Subject Scores Table -->
+                <!-- Academic Performance Table -->
+                <div class="form-group"><label><i class="fas fa-chart-line"></i> Academic Performance</label></div>
                 <div class="table-responsive">
-                    <table id="scoresTable">
+                    <table id="academicTable">
                         <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Test Score</th>
-                                <th>Exam Score</th>
-                                <th>Assignment Score</th>
-                                <th>Total Score</th>
-                                <th>Grade</th>
-                                <th>Status</th>
-                            </thead>
-                            <tbody id="scoresBody"></tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Attendance Summary -->
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <label><i class="fas fa-calendar-check"></i> Attendance Summary</label>
-                        <div id="attendanceSummary"></div>
-                    </div>
-                    
-                    <!-- Teacher Remark -->
-                    <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Teacher's Remark</label>
-                        <textarea id="teacherRemark" class="form-control" rows="3" placeholder="Enter personalized remark for this student..."></textarea>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-primary" id="saveStudentRemarkBtn"><i class="fas fa-save"></i> Save Remark</button>
-                        <button class="btn btn-outline" id="generateAIRemarkBtn"><i class="fas fa-robot"></i> AI Generate Remark</button>
-                    </div>
+                            <tr><th>Subject</th><th>Tests<br><small>(Avg of Tests)</small></th><th>Exam<br><small>(100%)</small></th><th>Assignment<br><small>(Avg of Assignments)</small></th><th>Total<br><small>(Weighted)</small></th><th>Grade</th><th>Remark</th></thead>
+                        <tbody id="academicBody"></tbody>
+                    </table>
                 </div>
+                
+                <!-- Extra-Curricular Activities -->
+                <div class="form-group" style="margin-top: 1rem;"><label><i class="fas fa-futbol"></i> Extra-Curricular Activities</label></div>
+                <div class="grid-3" id="extraCurricularGrid"></div>
+                
+                <!-- Character / Soft Skills -->
+                <div class="form-group" style="margin-top: 1rem;"><label><i class="fas fa-heart"></i> Character & Soft Skills</label></div>
+                <div class="grid-3" id="characterGrid"></div>
+                
+                <!-- Attendance Summary -->
+                <div class="form-group" style="margin-top: 1rem;"><label><i class="fas fa-calendar-check"></i> Attendance Summary</label></div>
+                <div id="attendanceSummary"></div>
+                
+                <!-- Summary Stats -->
+                <div class="grid-3" style="margin-top: 1rem; background: var(--hover-bg); padding: 1rem; border-radius: 1rem;">
+                    <div><strong>Total Score:</strong> <span id="totalScoreSpan">0</span></div>
+                    <div><strong>Average:</strong> <span id="averageSpan">0%</span></div>
+                    <div><strong>Position:</strong> <span id="positionSpan">-</span></div>
+                </div>
+                
+                <!-- Teacher Remark -->
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label><i class="fas fa-comment"></i> Teacher's Remark</label>
+                    <textarea id="teacherRemark" class="form-control" rows="3" placeholder="Enter personalized remark for this student..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="saveRemarkBtn"><i class="fas fa-save"></i> Save Remark</button>
+                    <button class="btn btn-outline" id="generateAIRemarkBtn"><i class="fas fa-robot"></i> AI Generate Remark</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects Configuration Modal -->
+    <div class="modal-overlay" id="subjectsModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3><i class="fas fa-cog"></i> Configure Subjects</h3><i class="fas fa-times" style="cursor: pointer;" onclick="closeSubjectsModal()"></i></div>
+            <div id="subjectsConfigList"></div>
+            <div class="btn-group" style="margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="saveSubjectsConfig()">Save Configuration</button>
+                <button class="btn btn-outline" onclick="closeSubjectsModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -299,16 +341,58 @@
 
         let currentUser = null, userData = null;
         let students = [];
-        let subjects = [];
+        let subjectsData = {};
         let studentScores = {};
         let studentAttendance = {};
         let studentRemarks = {};
-        let currentStudentIndex = 0;
         let classRankings = [];
+        let currentStudentIndex = 0;
+        let allSubjects = [];
+
+        const ratingOptions = ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'];
+        const extraCurricularActivities = ['Football/Soccer', 'Basketball', 'Athletics/Running', 'Swimming', 'Chess Club', 'Debate Club', 'Literature Club', 'Drama Club', 'Music Club', 'Art Club', 'Science Club', 'Fellowship', 'Volunteering', 'Leadership'];
+        const characterSkills = ['Neatness', 'Punctuality', 'Listening Skill', 'Speaking Skill', 'Reading Skill', 'Writing Skill', 'Teamwork', 'Leadership', 'Honesty', 'Respect', 'Responsibility', 'Self-Control', 'Confidence', 'Creativity'];
 
         function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        function getGrade(score, gradingScale = 'nigeria') {
+            if (gradingScale === 'nigeria') {
+                if (score >= 70) return 'A';
+                if (score >= 60) return 'B';
+                if (score >= 50) return 'C';
+                if (score >= 45) return 'D';
+                if (score >= 40) return 'E';
+                return 'F';
+            } else if (gradingScale === 'uk') {
+                if (score >= 80) return 'A*';
+                if (score >= 70) return 'A';
+                if (score >= 60) return 'B';
+                if (score >= 50) return 'C';
+                if (score >= 40) return 'D';
+                return 'F';
+            } else {
+                if (score >= 90) return 'A';
+                if (score >= 80) return 'B';
+                if (score >= 70) return 'C';
+                if (score >= 60) return 'D';
+                return 'F';
+            }
+        }
+
+        function getGradeRemark(grade) {
+            const remarks = {
+                'A': 'Excellent',
+                'A*': 'Outstanding',
+                'B': 'Very Good',
+                'C': 'Good',
+                'D': 'Fair',
+                'E': 'Pass',
+                'F': 'Fail'
+            };
+            return remarks[grade] || 'Fair';
+        }
 
         async function loadTeacherClasses() {
             const teacherClass = userData.classTeaching;
@@ -328,7 +412,6 @@
             if (!classId) return;
             showLoading();
             try {
-                // Load students
                 const studentsSnap = await db.collection('users')
                     .where('class', '==', classId)
                     .where('role', '==', 'student')
@@ -350,12 +433,9 @@
                 document.getElementById('totalMales').textContent = maleCount;
                 document.getElementById('totalFemales').textContent = femaleCount;
                 
-                // Load subjects from syllabus
-                await loadSubjects(classId);
-                
                 renderStudentList();
-                document.getElementById('scoresCard').style.display = 'block';
-                if (students.length > 0) { selectStudent(0); }
+                document.getElementById('reportCardCard').style.display = 'block';
+                if (students.length > 0) selectStudent(0);
             } catch(e) { 
                 console.error('Error loading class data:', e); 
                 alert('Error loading class: ' + e.message);
@@ -364,7 +444,11 @@
             }
         }
 
-        async function loadSubjects(classId) {
+        async function fetchSubjects() {
+            const classId = document.getElementById('classSelect').value;
+            if (!classId) { alert('Please select a class first'); return; }
+            
+            showLoading();
             try {
                 const syllabusSnap = await db.collection('syllabus')
                     .where('classId', '==', classId)
@@ -374,25 +458,108 @@
                 const subjectsSet = new Set();
                 syllabusSnap.forEach(doc => {
                     const data = doc.data();
+                    if (data.subject) {
+                        subjectsSet.add(data.subject);
+                    }
                     if (data.weeks) {
                         data.weeks.forEach(week => {
-                            if (week.topic) subjectsSet.add(week.topic);
+                            if (week.subject) subjectsSet.add(week.subject);
                         });
                     }
                 });
                 
-                subjects = subjectsSet.size > 0 ? Array.from(subjectsSet) : ['Mathematics', 'English', 'Science', 'Social Studies'];
+                if (subjectsSet.size === 0) {
+                    subjectsSet.add('Mathematics');
+                    subjectsSet.add('English');
+                    subjectsSet.add('Science');
+                    subjectsSet.add('Social Studies');
+                }
+                
+                allSubjects = Array.from(subjectsSet);
+                
+                subjectsData = {};
+                allSubjects.forEach(sub => {
+                    subjectsData[sub] = {
+                        testCount: 0,
+                        testTotalWeight: 30,
+                        assignmentCount: 0,
+                        assignmentTotalWeight: 0,
+                        testScores: {},
+                        assignmentScores: {}
+                    };
+                });
+                
+                renderSubjectsConfig();
+                document.getElementById('subjectsConfigCard').style.display = 'block';
+                alert(`Found ${allSubjects.length} subjects. Configure test/assignment counts in the modal.`);
             } catch(e) {
-                console.error('Error loading subjects:', e);
-                subjects = ['Mathematics', 'English', 'Science', 'Social Studies'];
+                console.error('Error fetching subjects:', e);
+                alert('Error fetching subjects: ' + e.message);
+            } finally {
+                hideLoading();
             }
         }
 
-        async function fetchAllData() {
+        function renderSubjectsConfig() {
+            const container = document.getElementById('subjectsConfigList');
+            let html = '<div class="grid-2">';
+            allSubjects.forEach(sub => {
+                const config = subjectsData[sub];
+                html += `
+                    <div class="card" style="padding: 1rem;">
+                        <h4>${escapeHtml(sub)}</h4>
+                        <div class="form-group">
+                            <label>Number of Tests Conducted</label>
+                            <input type="number" id="testCount_${sub.replace(/\s/g, '_')}" class="form-control" value="${config.testCount || 0}" min="0" max="10" onchange="updateSubjectTestCount('${sub}', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Test Weight (%)</label>
+                            <input type="number" id="testWeight_${sub.replace(/\s/g, '_')}" class="form-control" value="${config.testTotalWeight || 30}" min="0" max="100" step="5" onchange="updateSubjectTestWeight('${sub}', this.value)">
+                            <small>Distributed across ${config.testCount || 0} test(s)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Assignments Conducted</label>
+                            <input type="number" id="assignCount_${sub.replace(/\s/g, '_')}" class="form-control" value="${config.assignmentCount || 0}" min="0" max="10" onchange="updateSubjectAssignCount('${sub}', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Assignment Weight (%)</label>
+                            <input type="number" id="assignWeight_${sub.replace(/\s/g, '_')}" class="form-control" value="${config.assignmentTotalWeight || 0}" min="0" max="100" step="5" onchange="updateSubjectAssignWeight('${sub}', this.value)">
+                            <small>Distributed across ${config.assignmentCount || 0} assignment(s)</small>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            document.getElementById('subjectsModal').classList.add('active');
+        }
+
+        window.updateSubjectTestCount = (subject, value) => {
+            if (subjectsData[subject]) subjectsData[subject].testCount = parseInt(value) || 0;
+        };
+        window.updateSubjectTestWeight = (subject, value) => {
+            if (subjectsData[subject]) subjectsData[subject].testTotalWeight = parseInt(value) || 0;
+        };
+        window.updateSubjectAssignCount = (subject, value) => {
+            if (subjectsData[subject]) subjectsData[subject].assignmentCount = parseInt(value) || 0;
+        };
+        window.updateSubjectAssignWeight = (subject, value) => {
+            if (subjectsData[subject]) subjectsData[subject].assignmentTotalWeight = parseInt(value) || 0;
+        };
+
+        function saveSubjectsConfig() {
+            closeSubjectsModal();
+            alert('Subject configuration saved. Click "Fetch Scores" to load student data.');
+        }
+
+        window.closeSubjectsModal = () => {
+            document.getElementById('subjectsModal').classList.remove('active');
+        };
+
+        async function fetchScores() {
             const classId = document.getElementById('classSelect').value;
             const session = document.getElementById('session').value;
             const term = document.getElementById('term').value;
-            const useAssignments = document.getElementById('useAssignments').value === 'yes';
             
             if (!classId || !students.length) {
                 alert('Please select a class first');
@@ -401,11 +568,12 @@
             
             showLoading();
             try {
-                // Fetch attendance for all students
+                // Fetch attendance
                 const attendanceSnap = await db.collection('attendance')
                     .where('classId', '==', classId)
                     .get();
                 
+                studentAttendance = {};
                 attendanceSnap.forEach(doc => {
                     const data = doc.data();
                     if (!studentAttendance[data.studentId]) {
@@ -419,11 +587,36 @@
                     studentAttendance[data.studentId].total++;
                 });
                 
+                // Initialize student scores
+                students.forEach(student => {
+                    studentScores[student.id] = {};
+                    allSubjects.forEach(subject => {
+                        studentScores[student.id][subject] = {
+                            tests: [],
+                            exam: null,
+                            assignments: [],
+                            testAverage: 0,
+                            assignmentAverage: 0,
+                            totalScore: 0,
+                            grade: 'N/A',
+                            remark: 'N/A'
+                        };
+                    });
+                });
+                
                 // Fetch test submissions
                 const testSubmissionsSnap = await db.collection('testSubmissions')
                     .where('classId', '==', classId)
                     .where('session', '==', session)
                     .get();
+                
+                testSubmissionsSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (studentScores[data.studentId] && data.subject && allSubjects.includes(data.subject)) {
+                        const percentage = (data.score / data.totalPoints) * 100;
+                        studentScores[data.studentId][data.subject].tests.push(percentage);
+                    }
+                });
                 
                 // Fetch exam submissions
                 const examSubmissionsSnap = await db.collection('examSubmissions')
@@ -431,59 +624,25 @@
                     .where('session', '==', session)
                     .get();
                 
-                // Fetch assignment submissions
-                let assignmentSubmissionsSnap = { docs: [] };
-                if (useAssignments) {
-                    assignmentSubmissionsSnap = await db.collection('submissions')
-                        .where('classId', '==', classId)
-                        .get();
-                }
-                
-                // Initialize scores for each student
-                students.forEach(student => {
-                    studentScores[student.id] = {};
-                    subjects.forEach(subject => {
-                        studentScores[student.id][subject] = { test: null, exam: null, assignment: null, total: 0, grade: 'N/A' };
-                    });
-                });
-                
-                // Populate test scores
-                testSubmissionsSnap.forEach(doc => {
-                    const data = doc.data();
-                    if (studentScores[data.studentId] && data.subject) {
-                        const score = (data.score / data.totalPoints) * 100;
-                        if (!studentScores[data.studentId][data.subject]) {
-                            studentScores[data.studentId][data.subject] = { test: null, exam: null, assignment: null, total: 0, grade: 'N/A' };
-                        }
-                        studentScores[data.studentId][data.subject].test = Math.round(score);
-                    }
-                });
-                
-                // Populate exam scores
                 examSubmissionsSnap.forEach(doc => {
                     const data = doc.data();
-                    if (studentScores[data.studentId] && data.subject) {
-                        const score = (data.score / data.totalPoints) * 100;
-                        if (!studentScores[data.studentId][data.subject]) {
-                            studentScores[data.studentId][data.subject] = { test: null, exam: null, assignment: null, total: 0, grade: 'N/A' };
-                        }
-                        studentScores[data.studentId][data.subject].exam = Math.round(score);
+                    if (studentScores[data.studentId] && data.subject && allSubjects.includes(data.subject)) {
+                        studentScores[data.studentId][data.subject].exam = (data.score / data.totalPoints) * 100;
                     }
                 });
                 
-                // Populate assignment scores
-                if (useAssignments) {
-                    assignmentSubmissionsSnap.forEach(doc => {
-                        const data = doc.data();
-                        if (studentScores[data.studentId] && data.subject) {
-                            const score = (data.score / data.totalPoints) * 100;
-                            if (!studentScores[data.studentId][data.subject]) {
-                                studentScores[data.studentId][data.subject] = { test: null, exam: null, assignment: null, total: 0, grade: 'N/A' };
-                            }
-                            studentScores[data.studentId][data.subject].assignment = Math.round(score);
-                        }
-                    });
-                }
+                // Fetch assignment submissions
+                const assignmentSubmissionsSnap = await db.collection('submissions')
+                    .where('classId', '==', classId)
+                    .get();
+                
+                assignmentSubmissionsSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (studentScores[data.studentId] && data.subject && allSubjects.includes(data.subject)) {
+                        const percentage = (data.score / data.totalPoints) * 100;
+                        studentScores[data.studentId][data.subject].assignments.push(percentage);
+                    }
+                });
                 
                 // Load saved remarks
                 const reportSnap = await db.collection('reportCards')
@@ -495,16 +654,32 @@
                 
                 if (!reportSnap.empty) {
                     const reportData = reportSnap.docs[0].data();
-                    reportData.studentResults.forEach(result => {
+                    reportData.studentResults?.forEach(result => {
                         studentRemarks[result.studentId] = result.teacherRemark;
                     });
                 }
                 
-                alert('Data fetched successfully! Click "Calculate All & Rank" to compute scores.');
+                // Initialize extra-curricular and character data
+                students.forEach(student => {
+                    if (!studentScores[student.id].extraCurricular) {
+                        studentScores[student.id].extraCurricular = {};
+                        extraCurricularActivities.forEach(act => {
+                            studentScores[student.id].extraCurricular[act] = 'Good';
+                        });
+                    }
+                    if (!studentScores[student.id].character) {
+                        studentScores[student.id].character = {};
+                        characterSkills.forEach(skill => {
+                            studentScores[student.id].character[skill] = 'Good';
+                        });
+                    }
+                });
+                
+                alert('Scores fetched successfully! Click "Calculate & Rank" to compute results.');
                 if (students.length > 0) selectStudent(0);
             } catch(e) {
-                console.error('Error fetching data:', e);
-                alert('Error fetching data: ' + e.message);
+                console.error('Error fetching scores:', e);
+                alert('Error fetching scores: ' + e.message);
             } finally {
                 hideLoading();
             }
@@ -512,38 +687,57 @@
 
         function calculateAndRank() {
             const examWeight = parseInt(document.getElementById('examWeight').value) || 70;
-            const testWeight = parseInt(document.getElementById('testWeight').value) || 20;
-            const assignmentWeight = parseInt(document.getElementById('assignmentWeight').value) || 10;
-            const useAssignments = document.getElementById('useAssignments').value === 'yes';
-            const effectiveAssignWeight = useAssignments ? assignmentWeight : 0;
-            const effectiveTotal = examWeight + testWeight + effectiveAssignWeight;
+            const gradingScale = document.getElementById('gradingScale').value;
             
-            // Calculate totals for each student
             const studentTotals = [];
             
             students.forEach(student => {
                 let totalScore = 0;
                 let subjectCount = 0;
                 
-                subjects.forEach(subject => {
-                    const scores = studentScores[student.id]?.[subject] || {};
-                    let examScore = scores.exam !== null ? scores.exam : 0;
-                    let testScore = scores.test !== null ? scores.test : 0;
-                    let assignScore = (useAssignments && scores.assignment !== null) ? scores.assignment : 0;
+                allSubjects.forEach(subject => {
+                    const config = subjectsData[subject];
+                    const scores = studentScores[student.id]?.[subject];
+                    if (!scores) return;
                     
-                    let subjectTotal = 0;
-                    if (examScore > 0 || testScore > 0 || assignScore > 0) {
-                        subjectTotal = Math.round((examScore * examWeight / 100) + (testScore * testWeight / 100) + (assignScore * effectiveAssignWeight / 100));
-                        if (subjectTotal > 0) subjectCount++;
+                    // Calculate test average
+                    let testAvg = 0;
+                    if (scores.tests.length > 0 && config?.testTotalWeight > 0) {
+                        const sum = scores.tests.reduce((a, b) => a + b, 0);
+                        testAvg = (sum / scores.tests.length);
+                        const testWeight = config.testTotalWeight;
+                        scores.testAverage = (testAvg * testWeight / 100);
+                    } else {
+                        scores.testAverage = 0;
                     }
                     
-                    if (studentScores[student.id] && studentScores[student.id][subject]) {
-                        studentScores[student.id][subject].total = subjectTotal;
-                        studentScores[student.id][subject].grade = getGrade(subjectTotal);
-                        studentScores[student.id][subject].status = getStatus(scores.exam, scores.test, scores.assignment);
+                    // Calculate assignment average
+                    let assignAvg = 0;
+                    if (scores.assignments.length > 0 && config?.assignmentTotalWeight > 0) {
+                        const sum = scores.assignments.reduce((a, b) => a + b, 0);
+                        assignAvg = (sum / scores.assignments.length);
+                        const assignWeight = config.assignmentTotalWeight;
+                        scores.assignmentAverage = (assignAvg * assignWeight / 100);
+                    } else {
+                        scores.assignmentAverage = 0;
                     }
                     
-                    totalScore += subjectTotal;
+                    // Calculate exam score
+                    let examScore = scores.exam || 0;
+                    let examContribution = (examScore * examWeight / 100);
+                    
+                    // Total for subject
+                    let subjectTotal = scores.testAverage + examContribution + scores.assignmentAverage;
+                    subjectTotal = Math.round(subjectTotal);
+                    
+                    scores.totalScore = subjectTotal;
+                    scores.grade = getGrade(subjectTotal, gradingScale);
+                    scores.remark = getGradeRemark(scores.grade);
+                    
+                    if (subjectTotal > 0) {
+                        totalScore += subjectTotal;
+                        subjectCount++;
+                    }
                 });
                 
                 const averageScore = subjectCount > 0 ? (totalScore / subjectCount).toFixed(1) : 0;
@@ -570,26 +764,11 @@
             
             // Update UI
             if (students.length > 0 && currentStudentIndex < students.length) {
-                renderStudentScores(students[currentStudentIndex].id);
+                renderStudentReportCard(students[currentStudentIndex].id);
             }
             
+            renderStudentList();
             alert('Calculations complete! Rankings have been updated.');
-        }
-
-        function getGrade(score) {
-            if (score >= 75) return 'A';
-            if (score >= 65) return 'B';
-            if (score >= 50) return 'C';
-            if (score >= 40) return 'D';
-            if (score >= 30) return 'E';
-            return 'F';
-        }
-
-        function getStatus(exam, test, assignment) {
-            if (exam === null && test === null && assignment === null) return 'No Data';
-            if (exam === null && test !== null) return 'Exam Not Ready';
-            if (exam !== null && test === null) return 'Test Not Ready';
-            return 'Complete';
         }
 
         function renderStudentList() {
@@ -601,13 +780,13 @@
                 const originalIndex = students.findIndex(st => st.id === s.id);
                 const rankInfo = classRankings.find(r => r.id === s.id);
                 const position = rankInfo ? rankInfo.position : '-';
+                const percentage = rankInfo ? rankInfo.averageScore : 0;
                 return `
                 <div class="student-item" onclick="selectStudent(${originalIndex})">
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <div class="student-avatar">${(s.firstName?.[0] || 'S')}${(s.surname?.[0] || 'T')}</div>
-                        <div><strong>${escapeHtml(s.firstName || '')} ${escapeHtml(s.surname || '')}</strong><br><small>Pos: ${position}</small></div>
+                        <div><strong>${escapeHtml(s.firstName || '')} ${escapeHtml(s.surname || '')}</strong><br><small>Pos: ${position} | ${percentage}%</small></div>
                     </div>
-                    <div id="status_${s.id}" class="badge badge-info">${rankInfo ? `${rankInfo.averageScore}%` : 'Pending'}</div>
                 </div>`;
             }).join('');
         }
@@ -617,7 +796,9 @@
             const student = students[currentStudentIndex];
             if (!student) return;
             document.getElementById('selectedStudentName').textContent = `${student.firstName || ''} ${student.surname || ''}`;
-            renderStudentScores(student.id);
+            renderStudentReportCard(student.id);
+            renderExtraCurricularGrid(student.id);
+            renderCharacterGrid(student.id);
             renderAttendanceSummary(student.id);
             document.getElementById('teacherRemark').value = studentRemarks[student.id] || '';
             document.querySelectorAll('.student-item').forEach((el, i) => { 
@@ -627,17 +808,21 @@
             });
         }
 
-        function renderStudentScores(studentId) {
-            const tbody = document.getElementById('scoresBody');
+        function renderStudentReportCard(studentId) {
+            const tbody = document.getElementById('academicBody');
             let html = '';
+            let totalScoreSum = 0;
+            let subjectCount = 0;
             
-            subjects.forEach(subject => {
-                const scores = studentScores[studentId]?.[subject] || { test: null, exam: null, assignment: null, total: 0, grade: 'N/A', status: 'No Data' };
-                const testDisplay = scores.test !== null ? `${scores.test}%` : '<span class="badge badge-not-ready">Not Ready</span>';
-                const examDisplay = scores.exam !== null ? `${scores.exam}%` : '<span class="badge badge-not-ready">Not Ready</span>';
-                const assignDisplay = scores.assignment !== null ? `${scores.assignment}%` : '<span class="badge badge-not-ready">Not Ready</span>';
-                const totalDisplay = scores.total > 0 ? `${scores.total}%` : '—';
-                const gradeClass = scores.grade === 'A' || scores.grade === 'B' ? 'badge-success' : (scores.grade === 'C' || scores.grade === 'D' ? 'badge-warning' : 'badge-danger');
+            allSubjects.forEach(subject => {
+                const scores = studentScores[studentId]?.[subject];
+                if (!scores) return;
+                
+                const testDisplay = scores.tests.length > 0 ? `${scores.tests.map(t => t.toFixed(1)).join(', ')}<br><small>Avg: ${(scores.testAverage * 100 / (subjectsData[subject]?.testTotalWeight || 1)).toFixed(1)}%</small>` : 'No tests';
+                const examDisplay = scores.exam !== null ? `${scores.exam.toFixed(1)}%` : 'Not taken';
+                const assignDisplay = scores.assignments.length > 0 ? `${scores.assignments.map(a => a.toFixed(1)).join(', ')}<br><small>Avg: ${(scores.assignmentAverage * 100 / (subjectsData[subject]?.assignmentTotalWeight || 1)).toFixed(1)}%</small>` : 'No assignments';
+                const totalDisplay = scores.totalScore > 0 ? `${scores.totalScore}%` : '—';
+                const gradeClass = scores.grade === 'A' || scores.grade === 'A*' ? 'badge-success' : (scores.grade === 'B' || scores.grade === 'C' ? 'badge-warning' : 'badge-danger');
                 
                 html += `<tr>
                     <td><strong>${escapeHtml(subject)}</strong></td>
@@ -646,22 +831,50 @@
                     <td>${assignDisplay}</td>
                     <td><strong>${totalDisplay}</strong></td>
                     <td><span class="badge ${gradeClass}">${scores.grade}</span></td>
-                    <td><span class="badge badge-info">${scores.status}</span></td>
+                    <td>${scores.remark}</td>
                 </tr>`;
+                
+                if (scores.totalScore > 0) {
+                    totalScoreSum += scores.totalScore;
+                    subjectCount++;
+                }
             });
             
-            // Add total row
+            const averageScore = subjectCount > 0 ? (totalScoreSum / subjectCount).toFixed(1) : 0;
             const rankInfo = classRankings.find(r => r.id === studentId);
-            if (rankInfo) {
-                html += `<tr style="background: var(--hover-bg); font-weight: bold;">
-                    <td><strong>TOTAL / POSITION</strong></td>
-                    <td colspan="4"><strong>Total Score: ${rankInfo.totalScore}</strong> | Average: ${rankInfo.averageScore}%</td>
-                    <td><strong>Position: ${rankInfo.position}</strong></td>
-                    <td><strong>Percentage: ${rankInfo.averageScore}%</strong></td>
-                </tr>`;
-            }
+            
+            html += `<tr style="background: var(--hover-bg); font-weight: bold;">
+                <td colspan="4"><strong>TOTAL / POSITION</strong></td>
+                <td><strong>${totalScoreSum}</strong></td>
+                <td colspan="2"><strong>Average: ${averageScore}% | Position: ${rankInfo?.position || '-'}</strong></td>
+            </tr>`;
             
             tbody.innerHTML = html;
+            document.getElementById('totalScoreSpan').textContent = totalScoreSum;
+            document.getElementById('averageSpan').textContent = `${averageScore}%`;
+            document.getElementById('positionSpan').textContent = rankInfo?.position || '-';
+        }
+
+        function renderExtraCurricularGrid(studentId) {
+            const extra = studentScores[studentId]?.extraCurricular || {};
+            let html = '<div class="grid-3">';
+            extraCurricularActivities.forEach(act => {
+                const value = extra[act] || 'Good';
+                html += `<div class="form-group"><label>${act}</label><select class="rating-select" onchange="updateExtraCurricular('${studentId}', '${act}', this.value)">${ratingOptions.map(r => `<option ${r === value ? 'selected' : ''}>${r}</option>`).join('')}</select></div>`;
+            });
+            html += '</div>';
+            document.getElementById('extraCurricularGrid').innerHTML = html;
+        }
+
+        function renderCharacterGrid(studentId) {
+            const character = studentScores[studentId]?.character || {};
+            let html = '<div class="grid-3">';
+            characterSkills.forEach(skill => {
+                const value = character[skill] || 'Good';
+                html += `<div class="form-group"><label>${skill}</label><select class="rating-select" onchange="updateCharacter('${studentId}', '${skill}', this.value)">${ratingOptions.map(r => `<option ${r === value ? 'selected' : ''}>${r}</option>`).join('')}</select></div>`;
+            });
+            html += '</div>';
+            document.getElementById('characterGrid').innerHTML = html;
         }
 
         function renderAttendanceSummary(studentId) {
@@ -678,27 +891,64 @@
             `;
         }
 
+        window.updateExtraCurricular = (studentId, activity, value) => {
+            if (!studentScores[studentId].extraCurricular) studentScores[studentId].extraCurricular = {};
+            studentScores[studentId].extraCurricular[activity] = value;
+        };
+        
+        window.updateCharacter = (studentId, skill, value) => {
+            if (!studentScores[studentId].character) studentScores[studentId].character = {};
+            studentScores[studentId].character[skill] = value;
+        };
+
+        window.saveRemark = () => {
+            const student = students[currentStudentIndex];
+            if (student) {
+                studentRemarks[student.id] = document.getElementById('teacherRemark').value;
+                alert(`Remark saved for ${student.firstName} ${student.surname}`);
+            }
+        };
+
+        window.generateAIRemark = () => {
+            const student = students[currentStudentIndex];
+            const rankInfo = classRankings.find(r => r.id === student.id);
+            const percentage = rankInfo ? rankInfo.averageScore : 0;
+            const grade = getGrade(percentage, document.getElementById('gradingScale').value);
+            const remarkMap = {
+                'A': 'Excellent performance! You have demonstrated outstanding understanding of the subject matter. Keep up the great work!',
+                'A*': 'Outstanding! Exceptional performance. You are a role model for your peers.',
+                'B': 'Very good performance. You have shown good understanding. With more effort, excellence is within reach.',
+                'C': 'Good performance. You have a solid foundation. Consistent effort will lead to better results.',
+                'D': 'Fair performance. More dedication and focus are needed to improve your grades.',
+                'E': 'Passing grade but needs improvement. Please pay more attention in class and complete all assignments.',
+                'F': 'Below average performance. Significant improvement needed. Please seek help from your teachers.'
+            };
+            document.getElementById('teacherRemark').value = `${student.firstName} ${student.surname}: ${remarkMap[grade] || 'Keep working hard!'} (${percentage}%)`;
+        };
+
         async function saveReportCard() {
             const classId = document.getElementById('classSelect').value;
             const session = document.getElementById('session').value;
             const term = document.getElementById('term').value;
-            const useAssignments = document.getElementById('useAssignments').value === 'yes';
+            const gradingScale = document.getElementById('gradingScale').value;
             
             if (!classId || !students.length) { alert('Please fetch data first'); return; }
             
             showLoading();
             try {
                 const studentResults = students.map(student => {
-                    const subjectsResults = subjects.map(subject => {
+                    const subjectsResults = allSubjects.map(subject => {
                         const scores = studentScores[student.id]?.[subject] || {};
                         return {
                             name: subject,
-                            testScore: scores.test !== null ? scores.test : 0,
-                            examScore: scores.exam !== null ? scores.exam : 0,
-                            assignmentScore: (useAssignments && scores.assignment !== null) ? scores.assignment : 0,
-                            totalScore: scores.total || 0,
+                            testScores: scores.tests || [],
+                            testAverage: scores.testAverage || 0,
+                            examScore: scores.exam || 0,
+                            assignmentScores: scores.assignments || [],
+                            assignmentAverage: scores.assignmentAverage || 0,
+                            totalScore: scores.totalScore || 0,
                             grade: scores.grade || 'N/A',
-                            status: scores.status || 'No Data'
+                            remark: scores.remark || 'N/A'
                         };
                     });
                     
@@ -717,6 +967,8 @@
                         position: rankInfo?.position || 0,
                         percentage: rankInfo?.averageScore || 0,
                         attendance: studentAttendance[student.id] || { present: 0, absent: 0, total: 0 },
+                        extraCurricular: studentScores[student.id]?.extraCurricular || {},
+                        character: studentScores[student.id]?.character || {},
                         teacherRemark: studentRemarks[student.id] || ''
                     };
                 });
@@ -725,14 +977,15 @@
                     session, term, classId, className: classId.toUpperCase(),
                     teacherId: currentUser.uid, teacherName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
                     schoolName: userData.schoolName || 'Triangle International School',
+                    gradingScale: gradingScale,
                     totalStudents: students.length,
                     maleStudents: students.filter(s => s.gender === 'Male').length,
                     femaleStudents: students.filter(s => s.gender === 'Female').length,
+                    subjectsData: subjectsData,
                     gradingConfig: {
                         examWeight: parseInt(document.getElementById('examWeight').value),
                         testWeight: parseInt(document.getElementById('testWeight').value),
-                        assignmentWeight: useAssignments ? 10 : 0,
-                        useAssignments: useAssignments
+                        assignmentWeight: parseInt(document.getElementById('assignmentWeight').value)
                     },
                     studentResults: studentResults,
                     classRankings: classRankings,
@@ -762,85 +1015,33 @@
             }
         }
 
-        async function submitForApproval() {
-            const classId = document.getElementById('classSelect').value;
-            const session = document.getElementById('session').value;
-            const term = document.getElementById('term').value;
-            
-            if (!classId || !students.length) { alert('Please fetch data first'); return; }
-            
-            showLoading();
-            try {
-                const existingSnap = await db.collection('reportCards')
-                    .where('classId', '==', classId)
-                    .where('session', '==', session)
-                    .where('term', '==', term)
-                    .get();
-                
-                if (existingSnap.empty) {
-                    alert('Please save the report card first');
-                    return;
-                }
-                
-                await db.collection('reportCards').doc(existingSnap.docs[0].id).update({
-                    status: 'pending_approval',
-                    submittedForApprovalAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                await db.collection('auditLogs').add({
-                    action: 'REPORT_CARD_SUBMITTED',
-                    userId: currentUser.uid,
-                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
-                    classId: classId,
-                    session: session,
-                    term: term,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                alert('Report card submitted for approval!');
-            } catch(e) {
-                console.error('Error submitting:', e);
-                alert('Error submitting: ' + e.message);
-            } finally {
-                hideLoading();
-            }
-        }
-
-        window.saveStudentRemark = () => {
-            const student = students[currentStudentIndex];
-            if (student) {
-                studentRemarks[student.id] = document.getElementById('teacherRemark').value;
-                alert(`Remark saved for ${student.firstName} ${student.surname}`);
-            }
-        };
-
-        window.generateAIRemark = () => {
-            const student = students[currentStudentIndex];
-            const rankInfo = classRankings.find(r => r.id === student.id);
-            const percentage = rankInfo ? rankInfo.averageScore : 0;
-            const grade = getGrade(percentage);
-            const remark = grade === 'A' ? 'Excellent performance! Keep up the great work.' :
-                          grade === 'B' ? 'Very good performance. Continue putting in effort.' :
-                          grade === 'C' ? 'Good performance. More dedication will improve results.' :
-                          grade === 'D' ? 'Fair performance. Needs more focus and study.' :
-                          'Needs significant improvement. Please pay more attention in class.';
-            document.getElementById('teacherRemark').value = `${student.firstName} ${student.surname}: ${remark} (${percentage}%)`;
-        };
-
         window.prevStudent = () => { if (currentStudentIndex > 0) selectStudent(currentStudentIndex - 1); };
         window.nextStudent = () => { if (currentStudentIndex < students.length - 1) selectStudent(currentStudentIndex + 1); };
         window.selectStudent = selectStudent;
 
         document.getElementById('classSelect').addEventListener('change', loadClassData);
         document.getElementById('studentSearch').addEventListener('input', renderStudentList);
-        document.getElementById('fetchDataBtn').addEventListener('click', fetchAllData);
+        document.getElementById('fetchSubjectsBtn').addEventListener('click', fetchSubjects);
+        document.getElementById('fetchDataBtn').addEventListener('click', fetchScores);
         document.getElementById('calculateAllBtn').addEventListener('click', calculateAndRank);
         document.getElementById('saveReportBtn').addEventListener('click', saveReportCard);
-        document.getElementById('submitApprovalBtn').addEventListener('click', submitForApproval);
         document.getElementById('prevStudentBtn').addEventListener('click', prevStudent);
         document.getElementById('nextStudentBtn').addEventListener('click', nextStudent);
-        document.getElementById('saveStudentRemarkBtn').addEventListener('click', saveStudentRemark);
+        document.getElementById('saveRemarkBtn').addEventListener('click', saveRemark);
         document.getElementById('generateAIRemarkBtn').addEventListener('click', generateAIRemark);
+        document.getElementById('configureSubjectsBtn').addEventListener('click', () => renderSubjectsConfig());
+        document.getElementById('applyGlobalWeightsBtn').addEventListener('click', () => {
+            const examW = document.getElementById('examWeight').value;
+            const testW = document.getElementById('testWeight').value;
+            const assignW = document.getElementById('assignmentWeight').value;
+            allSubjects.forEach(sub => {
+                if (subjectsData[sub]) {
+                    subjectsData[sub].testTotalWeight = parseInt(testW);
+                    subjectsData[sub].assignmentTotalWeight = parseInt(assignW);
+                }
+            });
+            alert('Global weights applied to all subjects. Re-fetch scores to apply changes.');
+        });
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
