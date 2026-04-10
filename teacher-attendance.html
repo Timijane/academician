@@ -471,6 +471,24 @@
             text-align: center;
         }
 
+        .debug-panel {
+            background: var(--danger-bg);
+            border: 2px solid var(--danger-text);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: var(--danger-text);
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .debug-panel pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
@@ -508,7 +526,7 @@
     <div class="main-content" id="mainContent">
         <div class="top-bar">
             <div class="page-title">
-                <h1>Attendance Management</h1>
+                <h1>Attendance Management (Debug Mode)</h1>
                 <p>Record and track student attendance - Morning & Afternoon Sessions</p>
             </div>
             <div class="profile-area">
@@ -548,6 +566,7 @@
             </div>
             <button class="btn btn-primary" id="loadAttendanceBtn"><i class="fas fa-calendar-check"></i> Load Attendance</button>
             <button class="btn btn-success" id="saveAttendanceBtn"><i class="fas fa-save"></i> Save Attendance</button>
+            <button class="btn btn-outline" id="testPermissionBtn"><i class="fas fa-vial"></i> Test Permission</button>
         </div>
 
         <div class="stats-grid" id="statsGrid" style="display: none;">
@@ -574,6 +593,14 @@
                 <i class="fas fa-calendar-check fa-3x" style="margin-bottom: 1rem;"></i>
                 <h3>Select class, date, and session</h3>
                 <p>Choose the class, date, and session to record attendance</p>
+            </div>
+        </div>
+
+        <!-- Debug Panel -->
+        <div class="debug-panel">
+            <strong><i class="fas fa-bug"></i> DEBUG INFORMATION:</strong>
+            <div id="debugOutput">
+                <div>Initializing...</div>
             </div>
         </div>
     </div>
@@ -628,6 +655,14 @@
         let students = [];
         let currentAttendance = {};
         
+        function addDebug(message, isError = false) {
+            const debugDiv = document.getElementById('debugOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = isError ? 'red' : '#888';
+            debugDiv.innerHTML = `<div style="color: ${color}; border-bottom: 1px solid #333; padding: 4px 0;">[${timestamp}] ${message}</div>` + debugDiv.innerHTML;
+            console.log(message);
+        }
+        
         function showLoading() {
             document.getElementById('loadingOverlay').classList.add('active');
         }
@@ -647,30 +682,104 @@
         document.getElementById('attendanceDate').value = today;
         
         async function loadClasses() {
+            addDebug('=== LOADING CLASSES ===');
             const teacherClass = userData.classTeaching;
+            addDebug(`Teacher's class from userData: ${teacherClass}`);
+            
             if (teacherClass) {
                 const classSelect = document.getElementById('classSelect');
                 classSelect.innerHTML = `<option value="${teacherClass}">${teacherClass.toUpperCase()}</option>`;
                 classSelect.value = teacherClass;
                 
-                const studentsSnap = await db.collection('users')
-                    .where('role', '==', 'student')
-                    .where('class', '==', teacherClass)
-                    .get();
+                addDebug(`Attempting to load students for class: ${teacherClass}`);
                 
-                students = [];
-                studentsSnap.forEach(doc => {
-                    const data = doc.data();
-                    if (data.approved === true || data.status === 'approved') {
-                        students.push({ id: doc.id, ...data });
-                    }
+                try {
+                    const studentsSnap = await db.collection('users')
+                        .where('role', '==', 'student')
+                        .where('class', '==', teacherClass)
+                        .get();
+                    
+                    addDebug(`Found ${studentsSnap.size} students`);
+                    
+                    students = [];
+                    studentsSnap.forEach(doc => {
+                        const data = doc.data();
+                        if (data.approved === true || data.status === 'approved') {
+                            students.push({ id: doc.id, ...data });
+                        }
+                    });
+                    
+                    addDebug(`Loaded ${students.length} approved students`);
+                    students.sort((a, b) => {
+                        const nameA = `${a.firstName || ''} ${a.surname || ''}`.trim();
+                        const nameB = `${b.firstName || ''} ${b.surname || ''}`.trim();
+                        return nameA.localeCompare(nameB);
+                    });
+                } catch(e) {
+                    addDebug(`ERROR loading students: ${e.message}`, true);
+                }
+            } else {
+                addDebug('WARNING: No class assigned to this teacher!', true);
+                document.getElementById('classSelect').innerHTML = '<option value="">No class assigned</option>';
+            }
+        }
+        
+        async function testPermissions() {
+            addDebug('=== TESTING PERMISSIONS ===');
+            
+            // Test 1: Check user authentication
+            addDebug(`Test 1: User authenticated: ${!!currentUser}`);
+            if (currentUser) {
+                addDebug(`  User UID: ${currentUser.uid}`);
+            }
+            
+            // Test 2: Check user data
+            addDebug(`Test 2: User data exists: ${!!userData}`);
+            if (userData) {
+                addDebug(`  Role: ${userData.role}`);
+                addDebug(`  Approved: ${userData.approved}`);
+                addDebug(`  Status: ${userData.status}`);
+                addDebug(`  classTeaching: ${userData.classTeaching}`);
+            }
+            
+            // Test 3: Try to read from attendance collection
+            try {
+                addDebug(`Test 3: Attempting to read attendance collection...`);
+                const testSnap = await db.collection('attendance').limit(1).get();
+                addDebug(`  SUCCESS: Read ${testSnap.size} records from attendance`);
+            } catch(e) {
+                addDebug(`  FAILED: ${e.message}`, true);
+            }
+            
+            // Test 4: Try to read attendance by classId
+            if (userData && userData.classTeaching) {
+                try {
+                    addDebug(`Test 4: Attempting to read attendance for class ${userData.classTeaching}...`);
+                    const classSnap = await db.collection('attendance')
+                        .where('classId', '==', userData.classTeaching)
+                        .limit(1)
+                        .get();
+                    addDebug(`  SUCCESS: Found ${classSnap.size} records for class`);
+                } catch(e) {
+                    addDebug(`  FAILED: ${e.message}`, true);
+                }
+            }
+            
+            // Test 5: Try to write to attendance
+            try {
+                addDebug(`Test 5: Attempting to write test record to attendance...`);
+                const testRef = db.collection('attendance').doc();
+                await testRef.set({
+                    test: true,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    teacherId: currentUser?.uid
                 });
-                
-                students.sort((a, b) => {
-                    const nameA = `${a.firstName || ''} ${a.surname || ''}`.trim();
-                    const nameB = `${b.firstName || ''} ${b.surname || ''}`.trim();
-                    return nameA.localeCompare(nameB);
-                });
+                addDebug(`  SUCCESS: Wrote test record`);
+                // Clean up
+                await testRef.delete();
+                addDebug(`  Cleaned up test record`);
+            } catch(e) {
+                addDebug(`  FAILED: ${e.message}`, true);
             }
         }
         
@@ -679,34 +788,45 @@
             const date = document.getElementById('attendanceDate').value;
             const session = document.getElementById('sessionSelect').value;
             
+            addDebug(`=== LOAD ATTENDANCE ===`);
+            addDebug(`Class: ${className}, Date: ${date}, Session: ${session}`);
+            
             if (!className || !date) {
+                addDebug('ERROR: Missing class or date', true);
                 alert('Please select class and date');
                 return;
             }
             
             showLoading();
             try {
-                // Get attendance records for this class only
+                addDebug(`Querying attendance where classId == "${className}"`);
                 const attendanceSnap = await db.collection('attendance')
                     .where('classId', '==', className)
                     .get();
                 
-                currentAttendance = {};
+                addDebug(`Query returned ${attendanceSnap.size} total records for this class`);
                 
-                // Filter in JavaScript
+                currentAttendance = {};
+                let matchedCount = 0;
+                
                 attendanceSnap.forEach(doc => {
                     const data = doc.data();
                     if (data.date === date && data.session === session && data.studentId) {
+                        matchedCount++;
                         currentAttendance[data.studentId] = data.status;
                         if (data.remark) currentAttendance[data.studentId + '_remark'] = data.remark;
                     }
                 });
                 
+                addDebug(`Found ${matchedCount} records matching date and session`);
+                
                 renderAttendanceTable();
                 updateStats();
                 
             } catch(e) {
-                console.error('Error loading attendance:', e);
+                addDebug(`ERROR: ${e.message}`, true);
+                addDebug(`Error code: ${e.code || 'N/A'}`, true);
+                addDebug(`Error details: ${JSON.stringify(e)}`, true);
                 alert('Error loading attendance: ' + e.message);
             } finally {
                 hideLoading();
@@ -717,7 +837,6 @@
             const container = document.getElementById('attendanceContent');
             const session = document.getElementById('sessionSelect').value;
             const sessionName = session === 'morning' ? 'Morning Session' : 'Afternoon Session';
-            const sessionIcon = session === 'morning' ? '🌅' : '🌇';
             
             if (students.length === 0) {
                 container.innerHTML = `<div class="empty-state"><i class="fas fa-users"></i><h3>No Students Found</h3><p>No students registered in this class</p></div>`;
@@ -728,7 +847,7 @@
             container.innerHTML = `
                 <div class="attendance-table">
                     <div class="table-header">
-                        <h3><i class="fas fa-users"></i> Student Attendance - ${sessionName} ${sessionIcon}</h3>
+                        <h3><i class="fas fa-users"></i> Student Attendance - ${sessionName}</h3>
                     </div>
                     <div style="overflow-x: auto;">
                         <table>
@@ -813,29 +932,38 @@
             const date = document.getElementById('attendanceDate').value;
             const session = document.getElementById('sessionSelect').value;
             
+            addDebug(`=== SAVE ATTENDANCE ===`);
+            addDebug(`Class: ${className}, Date: ${date}, Session: ${session}`);
+            
             if (!className || !date) {
+                addDebug('ERROR: Missing class or date', true);
                 alert('Please select class and date');
                 return;
             }
             
             showLoading();
             try {
-                // Get existing records for this class
+                addDebug(`Getting existing records for class ${className}`);
                 const existingSnap = await db.collection('attendance')
                     .where('classId', '==', className)
                     .get();
                 
-                const batch = db.batch();
+                addDebug(`Found ${existingSnap.size} existing records for this class`);
                 
-                // Delete only records that match date and session
+                const batch = db.batch();
+                let deleteCount = 0;
+                
                 existingSnap.forEach(doc => {
                     const data = doc.data();
                     if (data.date === date && data.session === session) {
                         batch.delete(doc.ref);
+                        deleteCount++;
                     }
                 });
                 
-                // Add new attendance records
+                addDebug(`Deleting ${deleteCount} records matching date and session`);
+                
+                let addCount = 0;
                 for (const student of students) {
                     const status = currentAttendance[student.id] || 'present';
                     const remarkInput = document.getElementById(`remark_${student.id}`);
@@ -857,9 +985,12 @@
                     
                     const newRef = db.collection('attendance').doc();
                     batch.set(newRef, attendanceData);
+                    addCount++;
                 }
                 
+                addDebug(`Adding ${addCount} new attendance records`);
                 await batch.commit();
+                addDebug(`SUCCESS: Batch commit completed`);
                 
                 await db.collection('auditLogs').add({
                     action: 'ATTENDANCE_SAVED',
@@ -872,11 +1003,13 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
+                addDebug(`Audit log created`);
                 alert('Attendance saved successfully!');
                 await loadAttendance();
                 
             } catch(e) {
-                console.error('Error saving attendance:', e);
+                addDebug(`ERROR saving attendance: ${e.message}`, true);
+                addDebug(`Error code: ${e.code || 'N/A'}`, true);
                 alert('Error saving attendance: ' + e.message);
             } finally {
                 hideLoading();
@@ -885,6 +1018,7 @@
         
         document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendance);
         document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
+        document.getElementById('testPermissionBtn').addEventListener('click', testPermissions);
         
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
@@ -892,25 +1026,54 @@
                 return;
             }
             try {
+                addDebug(`=== AUTHENTICATION ===`);
+                addDebug(`User UID: ${user.uid}`);
+                
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
-                    await auth.signOut();
+                if (!userDoc.exists) {
+                    addDebug(`ERROR: User document not found!`, true);
+                    auth.signOut();
                     window.location.href = 'index.html';
                     return;
                 }
+                
+                if (userDoc.data().role !== 'teacher') {
+                    addDebug(`ERROR: User role is ${userDoc.data().role}, not teacher`, true);
+                    auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
                 currentUser = user;
                 userData = userDoc.data();
+                
+                addDebug(`User data loaded:`);
+                addDebug(`  Name: ${userData.firstName} ${userData.surname}`);
+                addDebug(`  Role: ${userData.role}`);
+                addDebug(`  Approved: ${userData.approved}`);
+                addDebug(`  Status: ${userData.status}`);
+                addDebug(`  classTeaching: ${userData.classTeaching}`);
+                
+                if (!userData.approved && userData.status !== 'approved') {
+                    addDebug(`WARNING: Teacher account not approved!`, true);
+                }
+                
+                if (!userData.classTeaching) {
+                    addDebug(`WARNING: No class assigned to this teacher!`, true);
+                }
+                
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
                 
-                // Debug: Log user data
-                console.log('Teacher User Data:', userData);
-                console.log('classTeaching:', userData.classTeaching);
-                console.log('approved:', userData.approved);
-                console.log('status:', userData.status);
-                
                 await loadClasses();
+                
+                // Auto-run permission test
+                setTimeout(() => {
+                    testPermissions();
+                }, 2000);
+                
             } catch(e) {
+                addDebug(`ERROR in auth: ${e.message}`, true);
                 console.error(e);
             }
         });
