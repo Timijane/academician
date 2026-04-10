@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · My Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · My Profile | Student Panel</title>
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Font: Inter -->
@@ -13,29 +13,50 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* Same base styles – simplified for profile page */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
             --text-primary: #0f172a;
             --text-secondary: #475569;
-            --accent: #2563eb;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
             --border: #e2e8f0;
             --card-bg: #ffffff;
             --hover-bg: #f1f5f9;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #dcfce7;
+            --success-text: #16a34a;
+            --warning-bg: #fef9c3;
+            --warning-text: #ca8a04;
+            --danger-bg: #fee2e2;
+            --danger-text: #dc2626;
+            --info-bg: #dbeafe;
+            --info-text: #2563eb;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
         }
 
         :root[data-theme="dark"] {
             --bg-primary: #0f172a;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
-            --accent: #38bdf8;
-            --border: #334155;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --border: #1e293b;
             --card-bg: #1e293b;
-            --hover-bg: #2d3a4f;
+            --hover-bg: #334155;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
         }
 
         body {
@@ -57,7 +78,14 @@
             align-items: center;
             margin-bottom: 2rem;
         }
-        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title h1 { 
+            font-size: 2rem; 
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
         .page-title p { color: var(--text-secondary); }
         .theme-toggle {
             background: var(--card-bg);
@@ -69,6 +97,11 @@
             gap: 0.5rem;
             cursor: pointer;
             color: var(--text-secondary);
+            transition: 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
         }
 
         .card {
@@ -84,18 +117,20 @@
             align-items: center;
             gap: 1.5rem;
             margin-bottom: 2rem;
+            flex-wrap: wrap;
         }
         .avatar {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 600;
             font-size: 2rem;
+            box-shadow: 0 4px 15px var(--accent);
         }
         .name h2 {
             font-size: 1.8rem;
@@ -113,6 +148,7 @@
         .info-label {
             width: 120px;
             color: var(--text-secondary);
+            font-weight: 500;
         }
         .info-value {
             flex: 1;
@@ -123,24 +159,61 @@
             display: inline-block;
             padding: 0.3rem 1rem;
             border-radius: 2rem;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge-active {
             background: var(--success-bg);
             color: var(--success-text);
         }
+        .badge-suspended {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+        }
 
         .btn {
-            padding: 0.5rem 1.2rem;
+            padding: 0.6rem 1.5rem;
             border: none;
             border-radius: 2rem;
             font-weight: 500;
             cursor: pointer;
             transition: 0.2s;
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
             color: white;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .btn:hover { background: var(--accent-hover); }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px -5px var(--accent);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .btn-outline:hover {
+            background: var(--hover-bg);
+            transform: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .profile-header { flex-direction: column; text-align: center; }
+            .info-row { flex-direction: column; gap: 0.3rem; }
+            .info-label { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -165,12 +238,28 @@
             </div>
 
             <div class="info-row">
+                <span class="info-label">Admission No</span>
+                <span class="info-value" id="admissionNo">—</span>
+            </div>
+            <div class="info-row">
                 <span class="info-label">Email</span>
                 <span class="info-value" id="email">—</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Phone</span>
                 <span class="info-value" id="phone">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Date of Birth</span>
+                <span class="info-value" id="dob">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Address</span>
+                <span class="info-value" id="address">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Gender</span>
+                <span class="info-value" id="gender">—</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Prefect Role</span>
@@ -180,23 +269,29 @@
                 <span class="info-label">Status</span>
                 <span class="info-value" id="status">Active</span>
             </div>
+            <div class="info-row">
+                <span class="info-label">Date Joined</span>
+                <span class="info-value" id="dateJoined">—</span>
+            </div>
 
-            <div style="margin-top: 2rem; text-align: center;">
-                <a href="student-dashboard.html" class="btn">Back to Dashboard</a>
+            <div class="action-buttons">
+                <a href="student-dashboard.html" class="btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+                <a href="student-edit-profile.html" class="btn btn-outline"><i class="fas fa-edit"></i> Edit Profile</a>
             </div>
         </div>
     </div>
 
     <script>
+        // ==================== CORRECT FIREBASE CONFIG (FROM OUR PROJECT) ====================
         const firebaseConfig = {
-            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
-            authDomain: "edutopscholars-be54a.firebaseapp.com",
-            projectId: "edutopscholars-be54a",
-            storageBucket: "edutopscholars-be54a.firebasestorage.app",
-            messagingSenderId: "713866508372",
-            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
-            measurementId: "G-CCCDYZQ6LE"
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
+        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -210,39 +305,77 @@
             themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
             themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
         }
-        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
         themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
-            localStorage.setItem('edutopscholars-theme', next);
+            localStorage.setItem('edutop-theme', next);
             updateThemeUI(next);
         });
 
         // Auth check
+        let currentUser = null;
+        let userData = null;
+        
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'student-login.html';
                 return;
             }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'student') {
-                auth.signOut();
-                window.location.href = 'index.html';
-                return;
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'student') {
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+                currentUser = user;
+                userData = userDoc.data();
+                populateProfile();
+            } catch (error) {
+                console.error('Auth error:', error);
+                window.location.href = 'student-login.html';
             }
-            const data = userDoc.data();
-            const fullName = `${data.firstName || ''} ${data.surname || ''}`.trim() || 'Student';
-            document.getElementById('fullName').textContent = fullName;
-            document.getElementById('studentClass').textContent = `Class: ${data.class || 'Not assigned'}`;
-            document.getElementById('email').textContent = data.email || '—';
-            document.getElementById('phone').textContent = data.phone || '—';
-            document.getElementById('prefect').textContent = data.prefect || 'None';
-            document.getElementById('status').textContent = data.suspended ? 'Suspended' : 'Active';
-            document.getElementById('avatar').textContent = (data.firstName?.[0] || 'S') + (data.surname?.[0] || '');
         });
+
+        function populateProfile() {
+            const firstName = userData.firstName || '';
+            const surname = userData.surname || '';
+            const fullName = `${firstName} ${surname}`.trim() || 'Student';
+            
+            document.getElementById('fullName').textContent = fullName;
+            document.getElementById('studentClass').innerHTML = `Class: ${userData.class || 'Not assigned'}`;
+            document.getElementById('admissionNo').textContent = userData.admissionNo || userData.id?.slice(-6) || '—';
+            document.getElementById('email').textContent = userData.email || '—';
+            document.getElementById('phone').textContent = userData.phone || '—';
+            document.getElementById('dob').textContent = userData.dob || '—';
+            document.getElementById('address').textContent = userData.address || '—';
+            document.getElementById('gender').textContent = userData.gender || '—';
+            document.getElementById('prefect').textContent = userData.prefect || 'None';
+            
+            // Status
+            const statusSpan = document.getElementById('status');
+            if (userData.suspended) {
+                statusSpan.innerHTML = '<span class="badge badge-suspended">Suspended</span>';
+            } else {
+                statusSpan.innerHTML = '<span class="badge badge-active">Active</span>';
+            }
+            
+            // Date joined
+            if (userData.createdAt) {
+                const joined = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+                document.getElementById('dateJoined').textContent = joined.toLocaleDateString();
+            } else {
+                document.getElementById('dateJoined').textContent = '—';
+            }
+            
+            // Avatar initials
+            const initials = ((firstName?.[0] || '') + (surname?.[0] || '') || 'S').toUpperCase();
+            document.getElementById('avatar').textContent = initials;
+        }
     </script>
 </body>
 </html>
