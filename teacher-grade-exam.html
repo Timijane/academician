@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Grade Exams | Teacher Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc; --bg-sidebar: rgba(255,255,255,0.95); --text-primary: #0f172a; --text-secondary: #475569;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: #e2e8f0; --card-bg: #ffffff; --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05); --success-bg: #dcfce7; --success-text: #16a34a;
+            --warning-bg: #fef9c3; --warning-text: #ca8a04; --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a; --bg-sidebar: rgba(15,23,42,0.95); --text-primary: #f1f5f9; --text-secondary: #94a3b8;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: #1e293b; --card-bg: #1e293b; --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2); --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; transition: all 0.3s; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%); filter: blur(100px); z-index: 0; animation: float 20s infinite alternate; pointer-events: none; }
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px, 40px) scale(1.1); } }
+
+        .sidebar { width: 280px; background: var(--bg-sidebar); backdrop-filter: blur(20px); border-right: 1px solid var(--border); padding: 2rem 1rem; display: flex; flex-direction: column; transition: width 0.3s; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; box-shadow: var(--shadow); }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1.2rem; border-radius: 1rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.5rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); transform: translateX(5px); border-color: var(--border); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; box-shadow: 0 5px 15px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+
+        .main-content { flex: 1; margin-left: 280px; padding: 2rem; transition: margin-left 0.3s; position: relative; z-index: 5; }
+        .main-content.expanded { margin-left: 90px; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 10px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Selectors */
+        .selectors { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+        .selector-group { flex: 1; min-width: 200px; }
+        .selector-group label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .selector-group select { width: 100%; padding: 0.75rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 0.75rem; color: var(--text-primary); cursor: pointer; }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; text-align: center; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+        .stat-label { color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem; }
+
+        /* Submissions List */
+        .submissions-list { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; margin-bottom: 1.5rem; }
+        .list-header { padding: 1rem 1.5rem; background: var(--hover-bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .list-header h3 { font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+
+        .submission-item { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .submission-item:hover { background: var(--hover-bg); }
+        .submission-item.selected { background: var(--info-bg); border-left: 3px solid var(--accent); }
+        .student-info { display: flex; align-items: center; gap: 1rem; }
+        .student-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .submission-status { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+
+        /* Grading Panel */
+        .grading-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .grading-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .grading-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        .question-card { background: var(--hover-bg); border-radius: 1rem; margin-bottom: 1rem; overflow: hidden; }
+        .question-header { padding: 1rem; background: var(--card-bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .question-type { padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
+        .type-mcq { background: var(--success-bg); color: var(--success-text); }
+        .type-theory { background: var(--info-bg); color: var(--info-text); }
+        .question-text { font-weight: 600; margin-bottom: 0.5rem; }
+        .student-answer { background: var(--card-bg); padding: 1rem; border-radius: 0.75rem; margin: 0.5rem 0; }
+        .correct-answer { background: var(--success-bg); padding: 1rem; border-radius: 0.75rem; margin: 0.5rem 0; color: var(--success-text); }
+        .score-input { width: 100px; padding: 0.5rem; border-radius: 0.5rem; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-primary); }
+        .feedback-input { width: 100%; padding: 0.5rem; border-radius: 0.5rem; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-primary); margin-top: 0.5rem; }
+
+        .badge { padding: 0.25rem 0.75rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge-graded { background: var(--success-bg); color: var(--success-text); }
+        .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-auto { background: var(--info-bg); color: var(--info-text); }
+
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding:2rem; border-radius:1.5rem; text-align:center; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .selectors { flex-direction: column; }
+            .submission-item { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-chalkboard-teacher"></i><h2>Teacher Panel</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Assignment</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
+        <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-square"></i><span>Create CBT Test</span></a>
+        <a href="teacher-grade-test.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Tests</span></a>
+        <a href="teacher-exams.html" class="nav-item"><i class="fas fa-pen-fancy"></i><span>Exams</span></a>
+        <a href="teacher-create-exam.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Exam</span></a>
+        <a href="teacher-grade-exam.html" class="nav-item active"><i class="fas fa-check-double"></i><span>Grade Exams</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Grade Exams</h1>
+                <p>Grade theory/essay questions and release exam results</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user-edit"></i> Update Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selectors -->
+        <div class="selectors">
+            <div class="selector-group">
+                <label><i class="fas fa-file-alt"></i> Select Exam</label>
+                <select id="examSelect">
+                    <option value="">-- Select Exam --</option>
+                </select>
+            </div>
+            <div class="selector-group">
+                <label><i class="fas fa-filter"></i> Filter by Status</label>
+                <select id="statusFilter">
+                    <option value="all">All Submissions</option>
+                    <option value="pending">Pending Grading</option>
+                    <option value="graded">Graded</option>
+                    <option value="released">Grades Released</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="loadSubmissionsBtn"><i class="fas fa-sync-alt"></i> Load Submissions</button>
+            <button class="btn btn-success" id="releaseGradesBtn" style="display: none;"><i class="fas fa-globe"></i> Release Grades to Students</button>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card"><div class="stat-value" id="totalSubmissions">0</div><div class="stat-label">Total Submissions</div></div>
+            <div class="stat-card"><div class="stat-value" id="gradedCount">0</div><div class="stat-label">Graded</div></div>
+            <div class="stat-card"><div class="stat-value" id="pendingCount">0</div><div class="stat-label">Pending Grading</div></div>
+            <div class="stat-card"><div class="stat-value" id="avgScore">0%</div><div class="stat-label">Average Score</div></div>
+        </div>
+
+        <!-- Submissions List -->
+        <div class="submissions-list" id="submissionsList" style="display: none;">
+            <div class="list-header">
+                <h3><i class="fas fa-users"></i> Student Submissions</h3>
+                <span id="submissionsCount" class="badge badge-info">0 submissions</span>
+            </div>
+            <div id="submissionsContainer"></div>
+        </div>
+
+        <!-- Grading Panel -->
+        <div class="grading-panel" id="gradingPanel" style="display: none;">
+            <div class="grading-header">
+                <h3><i class="fas fa-check-double"></i> Grade Student: <span id="gradingStudentName">-</span></h3>
+                <div>
+                    <button class="btn btn-outline btn-sm" id="prevSubmissionBtn"><i class="fas fa-chevron-left"></i> Prev</button>
+                    <button class="btn btn-outline btn-sm" id="nextSubmissionBtn">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div id="gradingContent"></div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-outline" id="saveGradeBtn"><i class="fas fa-save"></i> Save Grade</button>
+                <button class="btn btn-success" id="gradeAndReleaseBtn"><i class="fas fa-check-double"></i> Save & Release Grade</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+        
+        let currentUser = null, userData = null;
+        let exams = [];
+        let currentSubmissions = [];
+        let currentSubmissionIndex = 0;
+        let currentExam = null;
+        let examQuestions = [];
+        
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        
+        async function loadExams() {
+            try {
+                const snap = await db.collection('exams')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+                
+                exams = [];
+                snap.forEach(doc => {
+                    exams.push({ id: doc.id, ...doc.data() });
+                });
+                
+                const examSelect = document.getElementById('examSelect');
+                examSelect.innerHTML = '<option value="">-- Select Exam --</option>';
+                exams.forEach(exam => {
+                    examSelect.innerHTML += `<option value="${exam.id}">${escapeHtml(exam.title)} (${escapeHtml(exam.subject)})</option>`;
+                });
+            } catch(e) {
+                console.error('Error loading exams:', e);
+            }
+        }
+        
+        async function loadSubmissions() {
+            const examId = document.getElementById('examSelect').value;
+            if (!examId) { alert('Please select an exam'); return; }
+            
+            showLoading();
+            try {
+                const examDoc = await db.collection('exams').doc(examId).get();
+                currentExam = { id: examDoc.id, ...examDoc.data() };
+                examQuestions = currentExam.questions || [];
+                
+                const submissionsSnap = await db.collection('examSubmissions')
+                    .where('examId', '==', examId)
+                    .orderBy('submittedAt', 'desc')
+                    .get();
+                
+                currentSubmissions = [];
+                submissionsSnap.forEach(doc => {
+                    currentSubmissions.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderSubmissionsList();
+                updateStats();
+                
+                document.getElementById('submissionsList').style.display = 'block';
+                document.getElementById('statsGrid').style.display = 'grid';
+                
+                if (currentSubmissions.length > 0) {
+                    selectSubmission(0);
+                }
+                
+                // Show release button if exam has auto-release disabled
+                document.getElementById('releaseGradesBtn').style.display = currentExam.autoReleaseGrades ? 'none' : 'inline-flex';
+                
+            } catch(e) {
+                console.error('Error loading submissions:', e);
+                alert('Error loading submissions: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function renderSubmissionsList() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            let filtered = [...currentSubmissions];
+            
+            if (statusFilter === 'pending') {
+                filtered = filtered.filter(s => !s.gradeReleased && (!s.graded || s.graded === false));
+            } else if (statusFilter === 'graded') {
+                filtered = filtered.filter(s => s.graded === true && !s.gradeReleased);
+            } else if (statusFilter === 'released') {
+                filtered = filtered.filter(s => s.gradeReleased === true);
+            }
+            
+            const container = document.getElementById('submissionsContainer');
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 3rem;">No submissions found</div>';
+                document.getElementById('submissionsCount').textContent = '0 submissions';
+                return;
+            }
+            
+            document.getElementById('submissionsCount').textContent = `${filtered.length} submissions`;
+            
+            container.innerHTML = filtered.map((sub, idx) => {
+                const originalIndex = currentSubmissions.findIndex(s => s.id === sub.id);
+                const studentName = sub.studentName || 'Unknown';
+                const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const isGraded = sub.graded === true;
+                const isReleased = sub.gradeReleased === true;
+                const statusClass = isReleased ? 'badge-success' : (isGraded ? 'badge-info' : 'badge-warning');
+                const statusText = isReleased ? 'Released' : (isGraded ? 'Graded' : 'Pending');
+                const scoreText = sub.score !== undefined ? `${sub.score}/${sub.totalPoints}` : 'Not graded';
+                
+                return `
+                    <div class="submission-item" onclick="selectSubmission(${originalIndex})" data-index="${originalIndex}">
+                        <div class="student-info">
+                            <div class="student-avatar">${initials}</div>
+                            <div>
+                                <strong>${escapeHtml(studentName)}</strong><br>
+                                <small>${sub.admissionNo || ''}</small>
+                            </div>
+                        </div>
+                        <div class="submission-status">
+                            <span class="badge ${statusClass}">${statusText}</span>
+                            <span class="badge badge-info">Score: ${scoreText}</span>
+                            <span>Submitted: ${sub.submittedAt ? new Date(sub.submittedAt.toDate()).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateStats() {
+            const total = currentSubmissions.length;
+            const graded = currentSubmissions.filter(s => s.graded === true).length;
+            const pending = total - graded;
+            let totalScore = 0;
+            let scoreCount = 0;
+            currentSubmissions.forEach(s => {
+                if (s.score !== undefined && s.score !== null) {
+                    totalScore += s.score;
+                    scoreCount++;
+                }
+            });
+            const avgScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
+            
+            document.getElementById('totalSubmissions').textContent = total;
+            document.getElementById('gradedCount').textContent = graded;
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('avgScore').textContent = `${avgScore}%`;
+        }
+        
+        function selectSubmission(index) {
+            currentSubmissionIndex = index;
+            const submission = currentSubmissions[currentSubmissionIndex];
+            if (!submission) return;
+            
+            document.getElementById('gradingStudentName').textContent = submission.studentName || 'Unknown';
+            document.getElementById('gradingPanel').style.display = 'block';
+            
+            renderGradingContent(submission);
+            
+            // Highlight selected submission
+            document.querySelectorAll('.submission-item').forEach((el, i) => {
+                if (i === currentSubmissionIndex) el.classList.add('selected');
+                else el.classList.remove('selected');
+            });
+        }
+        
+        function renderGradingContent(submission) {
+            const container = document.getElementById('gradingContent');
+            const answers = submission.answers || [];
+            
+            let html = '';
+            let objectiveTotal = 0;
+            let theoryQuestionsToGrade = [];
+            
+            examQuestions.forEach((question, qIdx) => {
+                const answer = answers.find(a => a.questionIndex === qIdx);
+                const studentAnswer = answer ? answer.studentAnswer : 'No answer provided';
+                const isTheory = question.type === 'theory';
+                const points = question.points || 1;
+                const isAutoGraded = answer?.isCorrect !== undefined;
+                
+                let answerStatus = '';
+                let earnedPoints = 0;
+                
+                if (!isTheory && isAutoGraded) {
+                    earnedPoints = answer.isCorrect ? points : 0;
+                    objectiveTotal += earnedPoints;
+                    answerStatus = answer.isCorrect ? 
+                        '<span class="badge badge-success">✓ Correct</span>' : 
+                        '<span class="badge badge-danger">✗ Incorrect</span>';
+                }
+                
+                html += `
+                    <div class="question-card">
+                        <div class="question-header">
+                            <div>
+                                <span class="question-type ${isTheory ? 'type-theory' : 'type-mcq'}">${isTheory ? 'Theory/Essay' : (question.type === 'multiple' ? 'Multiple Choice' : 'True/False')}</span>
+                                <span class="badge badge-info">${points} pts</span>
+                            </div>
+                            ${!isTheory ? `<div>${answerStatus}</div>` : ''}
+                        </div>
+                        <div class="question-header" style="background: none; padding: 1rem;">
+                            <div class="question-text"><strong>Question ${qIdx + 1}:</strong> ${escapeHtml(question.question)}</div>
+                        </div>
+                        <div class="student-answer">
+                            <strong><i class="fas fa-user"></i> Student's Answer:</strong>
+                            <div style="margin-top: 0.5rem; white-space: pre-wrap;">${escapeHtml(studentAnswer)}</div>
+                        </div>
+                        ${!isTheory ? `
+                            <div class="correct-answer">
+                                <strong><i class="fas fa-check-circle"></i> Correct Answer:</strong>
+                                <div style="margin-top: 0.5rem;">${escapeHtml(answer?.correctAnswer || 'N/A')}</div>
+                            </div>
+                        ` : `
+                            <div style="margin-top: 1rem; padding: 1rem; background: var(--card-bg); border-radius: 0.75rem;">
+                                <div class="form-group">
+                                    <label><strong><i class="fas fa-star"></i> Score (max ${points} points)</strong></label>
+                                    <input type="number" class="score-input" id="theory_score_${qIdx}" min="0" max="${points}" value="${answer?.earnedPoints || 0}" step="0.5">
+                                </div>
+                                <div class="form-group">
+                                    <label><strong><i class="fas fa-comment"></i> Feedback to Student</strong></label>
+                                    <textarea class="feedback-input" id="theory_feedback_${qIdx}" rows="2" placeholder="Provide feedback on this answer...">${answer?.feedback || ''}</textarea>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                `;
+                
+                if (isTheory) {
+                    theoryQuestionsToGrade.push(qIdx);
+                }
+            });
+            
+            // Add total score section
+            html += `
+                <div style="margin-top: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 1rem;">
+                    <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <strong>Auto-graded Score:</strong>
+                            <input type="number" id="autoScore" class="form-control" value="${objectiveTotal}" readonly style="background: var(--card-bg);">
+                        </div>
+                        <div>
+                            <strong>Theory Score:</strong>
+                            <input type="number" id="theoryScoreTotal" class="form-control" value="0" readonly style="background: var(--card-bg);">
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <strong>Total Score:</strong>
+                        <input type="number" id="totalScore" class="form-control" value="${submission.score || 0}" readonly style="background: var(--card-bg); font-size: 1.2rem; font-weight: bold;">
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Add event listeners for theory score inputs
+            theoryQuestionsToGrade.forEach(qIdx => {
+                const scoreInput = document.getElementById(`theory_score_${qIdx}`);
+                if (scoreInput) {
+                    scoreInput.addEventListener('input', () => calculateTheoryTotal());
+                }
+            });
+            
+            calculateTheoryTotal();
+        }
+        
+        function calculateTheoryTotal() {
+            let theoryTotal = 0;
+            examQuestions.forEach((question, qIdx) => {
+                if (question.type === 'theory') {
+                    const scoreInput = document.getElementById(`theory_score_${qIdx}`);
+                    if (scoreInput) {
+                        theoryTotal += parseFloat(scoreInput.value) || 0;
+                    }
+                }
+            });
+            
+            const autoScore = parseFloat(document.getElementById('autoScore')?.value) || 0;
+            const totalScore = autoScore + theoryTotal;
+            
+            document.getElementById('theoryScoreTotal').value = theoryTotal;
+            document.getElementById('totalScore').value = totalScore;
+        }
+        
+        async function saveGrade(releaseAfterSave = false) {
+            const submission = currentSubmissions[currentSubmissionIndex];
+            if (!submission) return;
+            
+            showLoading();
+            try {
+                let theoryTotal = 0;
+                const theoryScores = [];
+                const feedbacks = [];
+                
+                examQuestions.forEach((question, qIdx) => {
+                    if (question.type === 'theory') {
+                        const scoreInput = document.getElementById(`theory_score_${qIdx}`);
+                        const feedbackInput = document.getElementById(`theory_feedback_${qIdx}`);
+                        const score = parseFloat(scoreInput?.value) || 0;
+                        theoryTotal += score;
+                        theoryScores.push({ questionIndex: qIdx, score: score, maxPoints: question.points || 1 });
+                        if (feedbackInput?.value) {
+                            feedbacks.push({ questionIndex: qIdx, feedback: feedbackInput.value });
+                        }
+                    }
+                });
+                
+                const autoScore = parseFloat(document.getElementById('autoScore')?.value) || 0;
+                const totalScore = autoScore + theoryTotal;
+                const totalPoints = submission.totalPoints || 100;
+                const percentage = (totalScore / totalPoints) * 100;
+                let grade = 'F';
+                if (percentage >= 75) grade = 'A';
+                else if (percentage >= 65) grade = 'B';
+                else if (percentage >= 50) grade = 'C';
+                else if (percentage >= 40) grade = 'D';
+                
+                const updateData = {
+                    score: totalScore,
+                    percentage: percentage,
+                    grade: grade,
+                    graded: true,
+                    gradedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    theoryScores: theoryScores,
+                    feedback: feedbacks
+                };
+                
+                if (releaseAfterSave) {
+                    updateData.gradeReleased = true;
+                    updateData.releasedAt = firebase.firestore.FieldValue.serverTimestamp();
+                }
+                
+                await db.collection('examSubmissions').doc(submission.id).update(updateData);
+                
+                // Update local submission data
+                currentSubmissions[currentSubmissionIndex].score = totalScore;
+                currentSubmissions[currentSubmissionIndex].percentage = percentage;
+                currentSubmissions[currentSubmissionIndex].grade = grade;
+                currentSubmissions[currentSubmissionIndex].graded = true;
+                if (releaseAfterSave) {
+                    currentSubmissions[currentSubmissionIndex].gradeReleased = true;
+                }
+                
+                await db.collection('auditLogs').add({
+                    action: releaseAfterSave ? 'EXAM_GRADE_RELEASED' : 'EXAM_GRADE_SAVED',
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                    examId: currentExam.id,
+                    studentId: submission.studentId,
+                    score: totalScore,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Grade ${releaseAfterSave ? 'saved and released' : 'saved'} successfully!`);
+                renderSubmissionsList();
+                updateStats();
+                selectSubmission(currentSubmissionIndex);
+                
+            } catch(e) {
+                console.error('Error saving grade:', e);
+                alert('Error saving grade: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function releaseAllGrades() {
+            if (!confirm('Release grades for all students? Students will be able to see their results immediately.')) return;
+            
+            showLoading();
+            try {
+                const batch = db.batch();
+                for (const submission of currentSubmissions) {
+                    const submissionRef = db.collection('examSubmissions').doc(submission.id);
+                    batch.update(submissionRef, {
+                        gradeReleased: true,
+                        releasedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                await batch.commit();
+                
+                await db.collection('auditLogs').add({
+                    action: 'EXAM_ALL_GRADES_RELEASED',
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                    examId: currentExam.id,
+                    studentCount: currentSubmissions.length,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Released grades for ${currentSubmissions.length} students!`);
+                loadSubmissions();
+            } catch(e) {
+                alert('Error releasing grades: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        document.getElementById('examSelect').addEventListener('change', () => {
+            document.getElementById('submissionsList').style.display = 'none';
+            document.getElementById('gradingPanel').style.display = 'none';
+            document.getElementById('statsGrid').style.display = 'none';
+        });
+        document.getElementById('loadSubmissionsBtn').addEventListener('click', loadSubmissions);
+        document.getElementById('statusFilter').addEventListener('change', renderSubmissionsList);
+        document.getElementById('saveGradeBtn').addEventListener('click', () => saveGrade(false));
+        document.getElementById('gradeAndReleaseBtn').addEventListener('click', () => saveGrade(true));
+        document.getElementById('releaseGradesBtn').addEventListener('click', releaseAllGrades);
+        document.getElementById('prevSubmissionBtn').addEventListener('click', () => {
+            if (currentSubmissionIndex > 0) selectSubmission(currentSubmissionIndex - 1);
+        });
+        document.getElementById('nextSubmissionBtn').addEventListener('click', () => {
+            if (currentSubmissionIndex < currentSubmissions.length - 1) selectSubmission(currentSubmissionIndex + 1);
+        });
+        
+        window.selectSubmission = selectSubmission;
+        
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                await loadExams();
+            } catch(e) { console.error(e); }
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+    </script>
+</body>
+</html>
