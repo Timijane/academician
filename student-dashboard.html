@@ -470,6 +470,7 @@
         <a href="student-results.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>My Results</span></a>
         <a href="student-graded-assignment.html" class="nav-item"><i class="fas fa-check-double"></i><span>Graded Work</span></a>
         <a href="student-test-results.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Test Results</span></a>
+        <a href="student-exam-results.html" class="nav-item"><i class="fas fa-pen-fancy"></i><span>Exam Results</span></a>
         <a href="student-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
         
         <!-- PERSONAL SECTION -->
@@ -508,6 +509,7 @@
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-value" id="pendingAssignments">0</div><div class="stat-label">Pending Assignments</div></div>
             <div class="stat-card"><div class="stat-value" id="pendingTests">0</div><div class="stat-label">Pending Tests</div></div>
+            <div class="stat-card"><div class="stat-value" id="pendingExams">0</div><div class="stat-label">Pending Exams</div></div>
             <div class="stat-card"><div class="stat-value" id="completedAssignments">0</div><div class="stat-label">Completed Assignments</div></div>
             <div class="stat-card"><div class="stat-value" id="completedTests">0</div><div class="stat-label">Completed Tests</div></div>
             <div class="stat-card"><div class="stat-value" id="averageScore">0%</div><div class="stat-label">Average Score</div></div>
@@ -535,7 +537,7 @@
                     <div class="table-responsive">
                         <table>
                             <thead><tr><th>Subject</th><th>Title</th><th>Due Date</th><th>Status</th><th>Action</th></tr></thead>
-                            <tbody id="recentAssignmentsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                            <tbody id="recentAssignmentsBody"><td><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                         </table>
                     </div>
                 </div>
@@ -548,7 +550,7 @@
                     <div class="table-responsive">
                         <table>
                             <thead><tr><th>Subject</th><th>Test Title</th><th>Duration</th><th>Status</th><th>Action</th></tr></thead>
-                            <tbody id="availableTestsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                            <tbody id="availableTestsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                         </table>
                     </div>
                 </div>
@@ -561,9 +563,9 @@
                         <a href="student-results.html">View All <i class="fas fa-arrow-right"></i></a>
                     </div>
                     <div class="table-responsive">
-                        <table>
+                        <tr>
                             <thead><tr><th>Assessment</th><th>Subject</th><th>Score</th><th>Grade</th><th>Date</th></tr></thead>
-                            <tbody id="recentResultsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                            <tbody id="recentResultsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                         </table>
                     </div>
                 </div>
@@ -593,7 +595,7 @@
             <div class="table-responsive">
                 <table>
                     <thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Score</th><th>Status</th></tr></thead>
-                    <tbody id="recentActivityBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                    <tbody id="recentActivityBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                 </table>
             </div>
         </div>
@@ -659,8 +661,10 @@
             const studentClass = userData.class;
             db.collection('assignments').where('classId', '==', studentClass).where('status', '==', 'published').onSnapshot(() => loadDashboardData());
             db.collection('tests').where('classId', '==', studentClass).where('status', '==', 'published').onSnapshot(() => loadDashboardData());
+            db.collection('exams').where('classId', '==', studentClass).where('status', '==', 'published').onSnapshot(() => loadDashboardData());
             db.collection('submissions').where('studentId', '==', currentUser.uid).onSnapshot(() => loadDashboardData());
             db.collection('testSubmissions').where('studentId', '==', currentUser.uid).onSnapshot(() => loadDashboardData());
+            db.collection('examSubmissions').where('studentId', '==', currentUser.uid).onSnapshot(() => loadDashboardData());
             db.collection('attendance').where('studentId', '==', currentUser.uid).onSnapshot(() => loadDashboardData());
         }
 
@@ -671,11 +675,13 @@
                 const studentClass = userData.class;
                 const now = new Date();
                 
-                const [assignmentsSnap, submissionsSnap, testsSnap, testSubmissionsSnap, attSnap] = await Promise.all([
+                const [assignmentsSnap, submissionsSnap, testsSnap, testSubmissionsSnap, examsSnap, examSubmissionsSnap, attSnap] = await Promise.all([
                     db.collection('assignments').where('classId', '==', studentClass).where('status', '==', 'published').get(),
                     db.collection('submissions').where('studentId', '==', currentUser.uid).get(),
                     db.collection('tests').where('classId', '==', studentClass).where('status', '==', 'published').get(),
                     db.collection('testSubmissions').where('studentId', '==', currentUser.uid).get(),
+                    db.collection('exams').where('classId', '==', studentClass).where('status', '==', 'published').get(),
+                    db.collection('examSubmissions').where('studentId', '==', currentUser.uid).get(),
                     db.collection('attendance').where('studentId', '==', currentUser.uid).get()
                 ]);
 
@@ -713,21 +719,25 @@
                         else if (dueDate && dueDate < now) { status = 'overdue'; badgeClass = 'badge-danger'; }
                         
                         recentAssignments.push(`
-                            <tr><td>${escapeHtml(a.subject || 'N/A')}</td><td>${escapeHtml(a.title || 'Untitled')}</td>
-                            <td>${a.dueDate || 'No date'}</td><td><span class="badge ${badgeClass}">${status}</span></td>
-                            <td><a href="student-take-assignment.html?id=${doc.id}" class="btn btn-primary btn-sm">${isSubmitted ? 'View' : 'Start'}</a></td>
-                        </tr>`);
+                            <tr>
+                                <td>${escapeHtml(a.subject || 'N/A')}</td>
+                                <td>${escapeHtml(a.title || 'Untitled')}</td>
+                                <td>${a.dueDate || 'No date'}</td>
+                                <td><span class="badge ${badgeClass}">${status}</span></td>
+                                <td><a href="student-take-assignment.html?id=${doc.id}" class="btn btn-primary btn-sm">${isSubmitted ? 'View' : 'Start'}</a></td>
+                            </tr>`);
                     }
                 }
                 
                 document.getElementById('pendingAssignments').textContent = pendingAssignments;
                 document.getElementById('completedAssignments').textContent = completedAssignments;
-                document.getElementById('recentAssignmentsBody').innerHTML = recentAssignments.length ? recentAssignments.join('') : '<tr><td colspan="5">No assignments found</td></tr>';
+                document.getElementById('recentAssignmentsBody').innerHTML = recentAssignments.length ? recentAssignments.join('') : '<td><td colspan="5">No assignments found<\/td><\/tr>';
 
                 // Process Tests
                 const submittedTestIds = new Set();
                 let testScores = [];
                 let completedTests = 0;
+                let pendingTests = 0;
                 
                 testSubmissionsSnap.forEach(doc => {
                     const data = doc.data();
@@ -738,9 +748,7 @@
                     }
                 });
 
-                let pendingTests = 0;
                 const availableTests = [];
-                
                 for (const doc of testsSnap.docs) {
                     const t = doc.data();
                     const isTaken = submittedTestIds.has(doc.id);
@@ -753,19 +761,55 @@
                             <tr>
                                 <td>${escapeHtml(t.subject || 'N/A')}</td>
                                 <td>${escapeHtml(t.title || 'Untitled')}</td>
-                                <td>${t.duration || t.timeLimit || 30} min</td>
+                                <td>${t.duration || t.timeLimit || 30} min</div></td>
                                 <td><span class="badge ${badgeClass}">${status}</span></td>
-                                <td>${!isTaken ? `<a href="student-take-test.html?id=${doc.id}" class="btn btn-primary btn-sm">Start</a>` : `<a href="student-test-results.html?id=${doc.id}" class="btn btn-outline btn-sm">Results</a>`}</td>
+                                <td>${!isTaken ? `<a href="student-take-test.html?id=${doc.id}" class="btn btn-primary btn-sm">Start</a>` : `<a href="student-test-results.html?id=${doc.id}" class="btn btn-outline btn-sm">Results</a>`}</div></td>
+                            </tr>`);
+                    }
+                }
+                
+                // Process Exams
+                const submittedExamIds = new Set();
+                let examScores = [];
+                let completedExams = 0;
+                let pendingExams = 0;
+                
+                examSubmissionsSnap.forEach(doc => {
+                    const data = doc.data();
+                    submittedExamIds.add(data.examId);
+                    if (data.score !== undefined && data.gradeReleased === true) {
+                        completedExams++;
+                        examScores.push(data.score);
+                    }
+                });
+
+                const availableExams = [];
+                for (const doc of examsSnap.docs) {
+                    const e = doc.data();
+                    const isTaken = submittedExamIds.has(doc.id);
+                    if (!isTaken && e.status === 'published') pendingExams++;
+                    
+                    if (availableExams.length < 5 && e.status === 'published') {
+                        const status = isTaken ? (examSubmissionsSnap.docs.find(s => s.data().gradeReleased === true && s.data().examId === doc.id) ? 'Completed' : 'Pending Grade') : 'Available';
+                        const badgeClass = status === 'Completed' ? 'badge-success' : (status === 'Pending Grade' ? 'badge-warning' : 'badge-info');
+                        availableExams.push(`
+                            <tr>
+                                <td>${escapeHtml(e.subject || 'N/A')}</td>
+                                <td>${escapeHtml(e.title || 'Untitled')}</td>
+                                <td>${e.duration || 120} min</div></td>
+                                <td><span class="badge ${badgeClass}">${status}</span></td>
+                                <td>${!isTaken ? `<a href="student-take-exam.html?id=${doc.id}" class="btn btn-primary btn-sm">Start</a>` : `<a href="student-exam-results.html?id=${doc.id}" class="btn btn-outline btn-sm">View Results</a>`}</div></td>
                             </tr>`);
                     }
                 }
                 
                 document.getElementById('pendingTests').textContent = pendingTests;
+                document.getElementById('pendingExams').textContent = pendingExams;
                 document.getElementById('completedTests').textContent = completedTests;
-                document.getElementById('availableTestsBody').innerHTML = availableTests.length ? availableTests.join('') : '<tr><td colspan="5">No tests available</td></tr>';
+                document.getElementById('availableTestsBody').innerHTML = availableTests.length ? availableTests.join('') : '<td><td colspan="5">No tests available<\/td><\/tr>';
 
                 // Calculate average score
-                const allScores = [...assignmentScores, ...testScores];
+                const allScores = [...assignmentScores, ...testScores, ...examScores];
                 const avgScore = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
                 document.getElementById('averageScore').textContent = avgScore + '%';
 
@@ -779,27 +823,41 @@
                     results.push(`<tr>
                         <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</td>
                         <td>${escapeHtml(s.subject || 'N/A')}</td>
-                        <td>${s.score}/${total} (${percentage.toFixed(1)}%)</td>
+                        <td>${s.score}/${total} (${percentage.toFixed(1)}%)</div></td>
                         <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
-                        <td>${s.gradedAt ? new Date(s.gradedAt.toDate()).toLocaleDateString() : '—'}</td>
+                        <td>${s.gradedAt ? new Date(s.gradedAt.toDate()).toLocaleDateString() : '—'}</div></td>
                     </tr>`);
                 }
                 
-                for (const doc of testSubmissionsSnap.docs.filter(d => d.data().score !== undefined).slice(0, 5)) {
+                for (const doc of testSubmissionsSnap.docs.filter(d => d.data().score !== undefined && d.data().gradeReleased === true).slice(0, 5)) {
                     const t = doc.data();
                     const total = t.totalPoints || 100;
                     const percentage = (t.score / total) * 100;
                     const grade = percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
                     results.push(`<tr>
-                        <td>Test: ${escapeHtml(t.testTitle || 'CBT Test')}</td>
-                        <td>${escapeHtml(t.subject || 'N/A')}</td>
-                        <td>${t.score}/${total} (${percentage.toFixed(1)}%)</td>
-                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
-                        <td>${t.submittedAt ? new Date(t.submittedAt.toDate()).toLocaleDateString() : '—'}</td>
+                        <td>Test: ${escapeHtml(t.testTitle || 'CBT Test')}</div></td>
+                        <td>${escapeHtml(t.subject || 'N/A')}</div></td>
+                        <td>${t.score}/${total} (${percentage.toFixed(1)}%)</div></td>
+                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></div></td>
+                        <td>${t.submittedAt ? new Date(t.submittedAt.toDate()).toLocaleDateString() : '—'}</div></td>
                     </tr>`);
                 }
                 
-                document.getElementById('recentResultsBody').innerHTML = results.length ? results.slice(0, 5).join('') : '<tr><td colspan="5">No results yet</td></tr>';
+                for (const doc of examSubmissionsSnap.docs.filter(d => d.data().gradeReleased === true).slice(0, 5)) {
+                    const e = doc.data();
+                    const total = e.totalPoints || 100;
+                    const percentage = e.percentage || ((e.score / total) * 100);
+                    const grade = e.grade || (percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F');
+                    results.push(`<tr>
+                        <td>Exam: ${escapeHtml(e.examTitle || 'Exam')}</div></td>
+                        <td>${escapeHtml(e.subject || 'N/A')}</div></td>
+                        <td>${e.score}/${total} (${percentage.toFixed(1)}%)</div></td>
+                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></div></td>
+                        <td>${e.submittedAt ? new Date(e.submittedAt.toDate()).toLocaleDateString() : '—'}</div></td>
+                    </tr>`);
+                }
+                
+                document.getElementById('recentResultsBody').innerHTML = results.length ? results.slice(0, 5).join('') : '<td><td colspan="5">No results yet<\/td><\/tr>';
 
                 // Process Attendance
                 let attendancePresent = 0;
@@ -839,24 +897,33 @@
                     }
                 });
                 
+                examSubmissionsSnap.forEach(doc => {
+                    const e = doc.data();
+                    if (e.submittedAt) {
+                        const status = e.gradeReleased ? 'Graded' : 'Pending Grade';
+                        const badgeClass = e.gradeReleased ? 'badge-success' : 'badge-warning';
+                        activities.push({ date: e.submittedAt, type: 'Exam', title: e.examTitle || 'Exam', score: e.gradeReleased ? `<span class="badge badge-success">Score: ${e.score}/${e.totalPoints || 100}</span>` : '<span class="badge badge-warning">Pending Grade</span>', status: status });
+                    }
+                });
+                
                 activities.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
                 
                 const activityHtml = activities.slice(0, 10).map(act => `
                     <tr>
-                        <td>${act.date ? new Date(act.date.toDate()).toLocaleDateString() : '—'}</td>
-                        <td>${act.type}</td>
-                        <td>${escapeHtml(act.title)}</td>
-                        <td>${act.score}</td>
-                        <td><span class="badge badge-success">${act.status}</span></td>
+                        <td>${act.date ? new Date(act.date.toDate()).toLocaleDateString() : '—'}</div></td>
+                        <td>${act.type}</div></td>
+                        <td>${escapeHtml(act.title)}</div></td>
+                        <td>${act.score}</div></td>
+                        <td><span class="badge badge-success">${act.status}</span></div></td>
                     </tr>`).join('');
                 
-                document.getElementById('recentActivityBody').innerHTML = activityHtml || '<tr><td colspan="5">No recent activity</td></tr>';
+                document.getElementById('recentActivityBody').innerHTML = activityHtml || '<tr><td colspan="5">No recent activity<\/td><\/tr>';
 
                 // Pending tasks total
-                document.getElementById('pendingTasks').textContent = pendingAssignments + pendingTests;
+                document.getElementById('pendingTasks').textContent = pendingAssignments + pendingTests + pendingExams;
 
                 // Performance Chart
-                const chartScores = [...assignmentScores, ...testScores].slice(-10);
+                const chartScores = [...assignmentScores, ...testScores, ...examScores].slice(-10);
                 if (performanceChart) performanceChart.destroy();
                 const ctx = document.getElementById('performanceChart').getContext('2d');
                 performanceChart = new Chart(ctx, {
@@ -867,7 +934,7 @@
 
             } catch(e) {
                 console.error('Error loading dashboard:', e);
-                const errorMsg = '<tr><td colspan="5" style="text-align: center; color: var(--danger-text);">Error loading data. Please refresh.</td></tr>';
+                const errorMsg = '<tr><td colspan="5" style="text-align: center; color: var(--danger-text);">Error loading data. Please refresh.<\/td><\/tr>';
                 document.getElementById('recentAssignmentsBody').innerHTML = errorMsg;
                 document.getElementById('availableTestsBody').innerHTML = errorMsg;
                 document.getElementById('recentResultsBody').innerHTML = errorMsg;
