@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Exam Analytics | Teacher Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc; --bg-sidebar: rgba(255,255,255,0.95); --text-primary: #0f172a; --text-secondary: #475569;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: #e2e8f0; --card-bg: #ffffff; --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05); --success-bg: #dcfce7; --success-text: #16a34a;
+            --warning-bg: #fef9c3; --warning-text: #ca8a04; --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a; --bg-sidebar: rgba(15,23,42,0.95); --text-primary: #f1f5f9; --text-secondary: #94a3b8;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: #1e293b; --card-bg: #1e293b; --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2); --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; transition: all 0.3s; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%); filter: blur(100px); z-index: 0; animation: float 20s infinite alternate; pointer-events: none; }
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px, 40px) scale(1.1); } }
+
+        .sidebar { width: 280px; background: var(--bg-sidebar); backdrop-filter: blur(20px); border-right: 1px solid var(--border); padding: 2rem 1rem; display: flex; flex-direction: column; transition: width 0.3s; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; box-shadow: var(--shadow); }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1.2rem; border-radius: 1rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.5rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); transform: translateX(5px); border-color: var(--border); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; box-shadow: 0 5px 15px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+
+        .main-content { flex: 1; margin-left: 280px; padding: 2rem; transition: margin-left 0.3s; position: relative; z-index: 5; }
+        .main-content.expanded { margin-left: 90px; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 10px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Selectors */
+        .selectors { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+        .selector-group { flex: 1; min-width: 200px; }
+        .selector-group label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .selector-group select { width: 100%; padding: 0.75rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 0.75rem; color: var(--text-primary); cursor: pointer; }
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; text-align: center; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+        .stat-label { color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem; }
+
+        /* Section Cards */
+        .section-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+        .section-header h3 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+        td { padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: top; }
+
+        .badge { padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+        .badge-success { background: var(--success-bg); color: var(--success-text); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-info { background: var(--info-bg); color: var(--info-text); }
+
+        .progress-bar { background: var(--border); border-radius: 1rem; height: 6px; overflow: hidden; }
+        .progress-fill { background: var(--accent); height: 100%; border-radius: 1rem; }
+
+        .chart-container { height: 300px; margin: 1rem 0; }
+
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding:2rem; border-radius:1.5rem; text-align:center; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .selectors { flex-direction: column; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-chalkboard-teacher"></i><h2>Teacher Panel</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Assignment</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
+        <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-square"></i><span>Create CBT Test</span></a>
+        <a href="teacher-grade-test.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Tests</span></a>
+        <a href="teacher-test-analytics.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>Test Analytics</span></a>
+        <a href="teacher-exams.html" class="nav-item"><i class="fas fa-pen-fancy"></i><span>Exams</span></a>
+        <a href="teacher-create-exam.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Exam</span></a>
+        <a href="teacher-grade-exam.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Exams</span></a>
+        <a href="teacher-exam-analytics.html" class="nav-item active"><i class="fas fa-chart-simple"></i><span>Exam Analytics</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Exam Analytics</h1>
+                <p>Analyze student performance, question difficulty, and class trends</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user-edit"></i> Update Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selectors -->
+        <div class="selectors">
+            <div class="selector-group">
+                <label><i class="fas fa-file-alt"></i> Select Exam</label>
+                <select id="examSelect">
+                    <option value="">-- Select Exam --</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="loadAnalyticsBtn"><i class="fas fa-chart-line"></i> Load Analytics</button>
+            <button class="btn btn-outline" id="exportBtn"><i class="fas fa-download"></i> Export Report</button>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card"><div class="stat-value" id="totalStudents">0</div><div class="stat-label">Total Students</div></div>
+            <div class="stat-card"><div class="stat-value" id="avgScore">0%</div><div class="stat-label">Average Score</div></div>
+            <div class="stat-card"><div class="stat-value" id="highestScore">0%</div><div class="stat-label">Highest Score</div></div>
+            <div class="stat-card"><div class="stat-value" id="lowestScore">0%</div><div class="stat-label">Lowest Score</div></div>
+            <div class="stat-card"><div class="stat-value" id="passRate">0%</div><div class="stat-label">Pass Rate</div></div>
+            <div class="stat-card"><div class="stat-value" id="theoryPending">0</div><div class="stat-label">Theory Pending</div></div>
+        </div>
+
+        <!-- Performance Chart -->
+        <div class="section-card" id="chartCard" style="display: none;">
+            <div class="section-header">
+                <h3><i class="fas fa-chart-line"></i> Score Distribution</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Question Analysis -->
+        <div class="section-card" id="questionCard" style="display: none;">
+            <div class="section-header">
+                <h3><i class="fas fa-question-circle"></i> Question Performance Analysis</h3>
+            </div>
+            <div class="table-responsive">
+                <table id="questionTable">
+                    <thead>
+                        <tr>
+                            <th>Q#</th>
+                            <th>Question</th>
+                            <th>Type</th>
+                            <th>Points</th>
+                            <th>Avg Score</th>
+                            <th>Difficulty</th>
+                            <th>Correct %</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="questionBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Student Performance Table -->
+        <div class="section-card" id="studentCard" style="display: none;">
+            <div class="section-header">
+                <h3><i class="fas fa-users"></i> Student Performance</h3>
+            </div>
+            <div class="table-responsive">
+                <table id="studentTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Student Name</th>
+                            <th>Score</th>
+                            <th>Percentage</th>
+                            <th>Grade</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Grade Distribution -->
+        <div class="section-card" id="gradeCard" style="display: none;">
+            <div class="section-header">
+                <h3><i class="fas fa-chart-pie"></i> Grade Distribution</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="gradeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Loading Analytics...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        let currentUser = null, userData = null;
+        let exams = [];
+        let currentSubmissions = [];
+        let currentExamData = null;
+        let scoreChart = null;
+        let gradeChart = null;
+
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        function getGrade(percentage) {
+            if (percentage >= 75) return 'A';
+            if (percentage >= 65) return 'B';
+            if (percentage >= 50) return 'C';
+            if (percentage >= 40) return 'D';
+            return 'F';
+        }
+
+        function getGradeClass(grade) {
+            switch(grade) {
+                case 'A': return 'badge-success';
+                case 'B': return 'badge-info';
+                case 'C': return 'badge-warning';
+                case 'D': return 'badge-warning';
+                default: return 'badge-danger';
+            }
+        }
+
+        async function loadExams() {
+            try {
+                const snap = await db.collection('exams')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+                
+                exams = [];
+                snap.forEach(doc => {
+                    exams.push({ id: doc.id, ...doc.data() });
+                });
+                
+                const examSelect = document.getElementById('examSelect');
+                examSelect.innerHTML = '<option value="">-- Select Exam --</option>';
+                exams.forEach(exam => {
+                    examSelect.innerHTML += `<option value="${exam.id}">${escapeHtml(exam.title)} (${escapeHtml(exam.subject)}) - ${exam.examType || 'Standard'}</option>`;
+                });
+            } catch(e) {
+                console.error('Error loading exams:', e);
+            }
+        }
+
+        async function loadAnalytics() {
+            const examId = document.getElementById('examSelect').value;
+            if (!examId) { alert('Please select an exam'); return; }
+            
+            showLoading();
+            try {
+                const examDoc = await db.collection('exams').doc(examId).get();
+                currentExamData = { id: examDoc.id, ...examDoc.data() };
+                
+                const submissionsSnap = await db.collection('examSubmissions')
+                    .where('examId', '==', examId)
+                    .get();
+                
+                currentSubmissions = [];
+                submissionsSnap.forEach(doc => {
+                    currentSubmissions.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderAnalytics();
+                document.getElementById('statsGrid').style.display = 'grid';
+                document.getElementById('chartCard').style.display = 'block';
+                document.getElementById('questionCard').style.display = 'block';
+                document.getElementById('studentCard').style.display = 'block';
+                document.getElementById('gradeCard').style.display = 'block';
+                
+            } catch(e) {
+                console.error('Error loading analytics:', e);
+                alert('Error loading analytics: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderAnalytics() {
+            // Calculate statistics
+            const totalStudents = currentSubmissions.length;
+            let totalScore = 0;
+            let highest = 0;
+            let lowest = 100;
+            let passed = 0;
+            let theoryPending = 0;
+            const gradeCount = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+            const scoreDistribution = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 0-9, 10-19, etc.
+            
+            currentSubmissions.forEach(sub => {
+                const percentage = sub.percentage || ((sub.score / sub.totalPoints) * 100);
+                totalScore += percentage;
+                if (percentage > highest) highest = percentage;
+                if (percentage < lowest) lowest = percentage;
+                if (percentage >= 50) passed++;
+                
+                const grade = getGrade(percentage);
+                gradeCount[grade]++;
+                
+                // Score distribution
+                const bucket = Math.floor(percentage / 10);
+                if (bucket >= 0 && bucket <= 9) scoreDistribution[bucket]++;
+                
+                if (sub.theoryCount > 0 && !sub.graded) theoryPending++;
+            });
+            
+            const avgScore = totalStudents > 0 ? (totalScore / totalStudents).toFixed(1) : 0;
+            const passRate = totalStudents > 0 ? ((passed / totalStudents) * 100).toFixed(1) : 0;
+            
+            document.getElementById('totalStudents').textContent = totalStudents;
+            document.getElementById('avgScore').textContent = `${avgScore}%`;
+            document.getElementById('highestScore').textContent = `${highest.toFixed(1)}%`;
+            document.getElementById('lowestScore').textContent = `${lowest.toFixed(1)}%`;
+            document.getElementById('passRate').textContent = `${passRate}%`;
+            document.getElementById('theoryPending').textContent = theoryPending;
+            
+            renderScoreChart(scoreDistribution);
+            renderGradeChart(gradeCount);
+            renderQuestionAnalysis();
+            renderStudentTable();
+        }
+
+        function renderScoreChart(distribution) {
+            if (scoreChart) scoreChart.destroy();
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            scoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['0-9%', '10-19%', '20-29%', '30-39%', '40-49%', '50-59%', '60-69%', '70-79%', '80-89%', '90-100%'],
+                    datasets: [{
+                        label: 'Number of Students',
+                        data: distribution,
+                        backgroundColor: 'rgba(59,130,246,0.7)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { callbacks: { label: (ctx) => `${ctx.raw} students` } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Number of Students' } },
+                        x: { title: { display: true, text: 'Score Range' } }
+                    }
+                }
+            });
+        }
+
+        function renderGradeChart(gradeCount) {
+            if (gradeChart) gradeChart.destroy();
+            const ctx = document.getElementById('gradeChart').getContext('2d');
+            gradeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['A (75-100%)', 'B (65-74%)', 'C (50-64%)', 'D (40-49%)', 'F (Below 40%)'],
+                    datasets: [{
+                        data: [gradeCount.A, gradeCount.B, gradeCount.C, gradeCount.D, gradeCount.F],
+                        backgroundColor: ['#4ade80', '#3b82f6', '#f59e0b', '#f59e0b', '#f87171'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw} students (${((ctx.raw / currentSubmissions.length) * 100).toFixed(1)}%)` } }
+                    }
+                }
+            });
+        }
+
+        function renderQuestionAnalysis() {
+            const questions = currentExamData?.questions || [];
+            if (questions.length === 0) {
+                document.getElementById('questionBody').innerHTML = '<tr><td colspan="8">No question data available</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            questions.forEach((question, idx) => {
+                let totalPoints = 0;
+                let earnedPoints = 0;
+                let correctCount = 0;
+                let studentCount = 0;
+                
+                currentSubmissions.forEach(sub => {
+                    const answer = sub.answers?.find(a => a.questionIndex === idx);
+                    if (answer) {
+                        studentCount++;
+                        const points = question.points || 1;
+                        totalPoints += points;
+                        
+                        if (question.type === 'theory') {
+                            const theoryScore = sub.theoryScores?.find(ts => ts.questionIndex === idx);
+                            earnedPoints += theoryScore?.score || 0;
+                        } else {
+                            const isCorrect = answer.isCorrect || false;
+                            if (isCorrect) {
+                                earnedPoints += points;
+                                correctCount++;
+                            }
+                        }
+                    }
+                });
+                
+                const avgScore = studentCount > 0 ? (earnedPoints / totalPoints) * 100 : 0;
+                const correctPercent = studentCount > 0 ? (correctCount / studentCount) * 100 : 0;
+                const difficulty = avgScore >= 70 ? 'Easy' : avgScore >= 40 ? 'Medium' : 'Hard';
+                const difficultyClass = difficulty === 'Easy' ? 'badge-success' : (difficulty === 'Medium' ? 'badge-warning' : 'badge-danger');
+                
+                html += `<tr>
+                    <td>${idx + 1}</div></td>
+                    <td><small>${escapeHtml(question.question.substring(0, 50))}${question.question.length > 50 ? '...' : ''}</small></div></td>
+                    <td>${question.type === 'theory' ? 'Theory' : (question.type === 'multiple' ? 'MCQ' : 'True/False')}</div></div></div>
+                    <td>${question.points || 1}</div></div>
+                    <td>${avgScore.toFixed(1)}%</div></div>
+                    <td><span class="badge ${difficultyClass}">${difficulty}</span></div></div>
+                    <td>${correctPercent.toFixed(1)}%</div></div>
+                    <td><span class="badge ${avgScore >= 70 ? 'badge-success' : avgScore >= 50 ? 'badge-warning' : 'badge-danger'}">
+                        ${avgScore >= 70 ? '✅ Strong' : avgScore >= 50 ? '⚠️ Needs Review' : '❌ Weak'}
+                    </span></div>
+                </tr>`;
+            });
+            document.getElementById('questionBody').innerHTML = html;
+        }
+
+        function renderStudentTable() {
+            const studentScores = currentSubmissions.map(sub => {
+                const percentage = sub.percentage || ((sub.score / sub.totalPoints) * 100);
+                return {
+                    id: sub.id,
+                    studentId: sub.studentId,
+                    name: sub.studentName || 'Unknown',
+                    score: sub.score,
+                    totalPoints: sub.totalPoints,
+                    percentage: percentage,
+                    grade: getGrade(percentage),
+                    graded: sub.graded,
+                    gradeReleased: sub.gradeReleased,
+                    hasTheory: (sub.theoryCount || 0) > 0
+                };
+            });
+            
+            studentScores.sort((a, b) => b.percentage - a.percentage);
+            
+            let html = '';
+            studentScores.forEach((student, idx) => {
+                const gradeClass = getGradeClass(student.grade);
+                const status = student.gradeReleased ? 'Released' : (student.graded ? 'Graded' : 'Pending');
+                const statusClass = student.gradeReleased ? 'badge-success' : (student.graded ? 'badge-info' : 'badge-warning');
+                
+                html += `<tr>
+                    <td>${idx + 1}</div></td>
+                    <td><strong>${escapeHtml(student.name)}</strong></div></td>
+                    <td>${student.score}/${student.totalPoints}</div></div>
+                    <td>${student.percentage.toFixed(1)}%</div></div>
+                    <td><span class="badge ${gradeClass}">${student.grade}</span></div></div>
+                    <td><span class="badge ${statusClass}">${status}</span></div></div>
+                    <td>
+                        <a href="student-exam-results.html?id=${student.studentId}" class="btn btn-outline btn-sm" target="_blank">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        ${!student.gradeReleased ? `<button class="btn btn-primary btn-sm" onclick="releaseGrade('${student.id}')"><i class="fas fa-globe"></i> Release</button>` : ''}
+                    </div>
+                </tr>`;
+            });
+            document.getElementById('studentBody').innerHTML = html;
+        }
+
+        window.releaseGrade = async (submissionId) => {
+            if (!confirm('Release this student\'s grade? They will be able to see their results immediately.')) return;
+            
+            showLoading();
+            try {
+                await db.collection('examSubmissions').doc(submissionId).update({
+                    gradeReleased: true,
+                    releasedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await loadAnalytics();
+                alert('Grade released successfully!');
+            } catch(e) {
+                alert('Error: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        };
+
+        window.exportReport = () => {
+            if (!currentExamData) {
+                alert('Please load an exam first');
+                return;
+            }
+            
+            let csv = 'Student Name,Score,Total Points,Percentage,Grade,Status\n';
+            currentSubmissions.forEach(sub => {
+                const percentage = sub.percentage || ((sub.score / sub.totalPoints) * 100);
+                const grade = getGrade(percentage);
+                const status = sub.gradeReleased ? 'Released' : (sub.graded ? 'Graded' : 'Pending');
+                csv += `"${sub.studentName || 'Unknown'}",${sub.score},${sub.totalPoints},${percentage.toFixed(1)}%,${grade},${status}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${currentExamData.title}_analytics.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        };
+
+        document.getElementById('loadAnalyticsBtn').addEventListener('click', loadAnalytics);
+        document.getElementById('exportBtn').addEventListener('click', exportReport);
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                await loadExams();
+            } catch(e) { console.error(e); }
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+    </script>
+</body>
+</html>
