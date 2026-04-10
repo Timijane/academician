@@ -48,8 +48,6 @@
         }
 
         .exam-info { display: flex; gap: 1.5rem; font-size: 0.85rem; flex-wrap: wrap; }
-        .exam-info span { color: var(--text-secondary); }
-        .exam-info strong { color: var(--text-primary); margin-left: 0.5rem; }
 
         .main-container { max-width: 1400px; margin: 0 auto; padding: 6rem 2rem 2rem; }
 
@@ -125,17 +123,6 @@
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
 
-        .debug-panel {
-            background: var(--danger-bg);
-            border: 1px solid var(--danger-text);
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-top: 1rem;
-            font-family: monospace;
-            font-size: 0.7rem;
-            overflow-x: auto;
-        }
-
         @media (max-width: 768px) {
             .timer-bar { flex-direction: column; padding: 0.5rem 1rem; }
             .main-container { padding: 8rem 1rem 1rem; }
@@ -162,10 +149,6 @@
         </div>
         <div class="warning-banner" id="warningBanner"><i class="fas fa-exclamation-triangle"></i><span id="warningMessage"></span></div>
         <div id="contentArea"></div>
-        <div class="debug-panel" id="debugPanel">
-            <strong><i class="fas fa-bug"></i> Debug Info:</strong><br>
-            <span id="debugInfo">Initializing...</span>
-        </div>
     </div>
 
     <div class="modal-overlay" id="submitModal">
@@ -219,20 +202,6 @@
         let tabSwitchCount = 0;
         let examId = null;
 
-        function updateDebug(message, isError = false) {
-            const debugEl = document.getElementById('debugInfo');
-            if (debugEl) {
-                const timestamp = new Date().toLocaleTimeString();
-                const color = isError ? 'red' : '#888';
-                debugEl.innerHTML = `<div style="color: ${color};">[${timestamp}] ${message}</div>` + debugEl.innerHTML;
-                if (debugEl.innerHTML.split('<div').length > 30) {
-                    const lines = debugEl.innerHTML.split('<div');
-                    debugEl.innerHTML = lines.slice(0, 30).join('<div');
-                }
-            }
-            console.log(message);
-        }
-
         function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
         function showWarning(message) { 
@@ -276,7 +245,6 @@
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && !isSubmitted && examData) {
                 tabSwitchCount++;
-                document.getElementById('tabSwitchModal').classList.add('active');
                 if (tabSwitchCount >= 3) { 
                     showWarning('⚠️ Multiple tab switches detected! Auto-submitting...'); 
                     setTimeout(() => submitExam(), 3000); 
@@ -405,7 +373,6 @@
         window.openSubmitModal = () => { document.getElementById('submitModal').classList.add('active'); };
         window.closeSubmitModal = () => { document.getElementById('submitModal').classList.remove('active'); };
         window.closeAutoSubmitModal = () => { document.getElementById('autoSubmitModal').classList.remove('active'); };
-        window.closeTabSwitchModal = () => { document.getElementById('tabSwitchModal').classList.remove('active'); };
 
         function calculateScore() {
             let totalPoints = 0, correctCount = 0, wrongCount = 0, theoryCount = 0;
@@ -543,49 +510,33 @@
             const urlParams = new URLSearchParams(window.location.search);
             examId = urlParams.get('id');
             
-            updateDebug(`=== LOADING EXAM ===`);
-            updateDebug(`Full URL: ${window.location.href}`);
-            updateDebug(`Exam ID from URL parameter 'id': ${examId}`);
+            console.log('Exam ID from URL:', examId);
             
             if (!examId) { 
-                updateDebug('❌ No exam ID found in URL!', true);
-                alert('No exam specified. Please use the link provided by your teacher.'); 
+                alert('No exam specified. Please use the link provided by your teacher.\n\nExample: student-take-exam.html?id=EXAM_ID'); 
                 window.location.href = 'student-dashboard.html'; 
                 return; 
             }
 
             showLoading();
             try {
-                updateDebug(`Attempting to fetch exam from Firestore with ID: ${examId}`);
                 const examDoc = await db.collection('exams').doc(examId).get();
                 
-                updateDebug(`Exam document exists: ${examDoc.exists}`);
-                
                 if (!examDoc.exists) { 
-                    updateDebug(`❌ Exam document not found for ID: ${examId}`, true);
-                    alert(`Exam not found. ID: ${examId}\n\nPlease check with your teacher for the correct link.`); 
+                    alert(`Exam not found.\n\nExam ID: ${examId}\n\nPlease check with your teacher for the correct exam link.`); 
                     window.location.href = 'student-dashboard.html'; 
                     return; 
                 }
 
                 const examDocData = examDoc.data();
-                updateDebug(`Exam data retrieved:`);
-                updateDebug(`  - Title: ${examDocData.title}`);
-                updateDebug(`  - Status: ${examDocData.status}`);
-                updateDebug(`  - Class: ${examDocData.classId}`);
-                updateDebug(`  - Subject: ${examDocData.subject}`);
-                updateDebug(`  - Questions: ${examDocData.questions?.length || 0}`);
                 
                 if (examDocData.status !== 'published') { 
-                    updateDebug(`❌ Exam status is '${examDocData.status}', not 'published'`, true);
-                    alert('This exam is not available yet. Please check with your teacher.'); 
+                    alert(`This exam is not available yet.\n\nStatus: ${examDocData.status}\n\nPlease check with your teacher.`); 
                     window.location.href = 'student-dashboard.html'; 
                     return; 
                 }
                 
-                updateDebug(`Student class: ${userData.class}`);
                 if (examDocData.classId !== userData.class) { 
-                    updateDebug(`❌ Class mismatch! Exam class: ${examDocData.classId}, Student class: ${userData.class}`, true);
                     alert(`You are not enrolled in this exam.\n\nYour class: ${userData.class}\nExam class: ${examDocData.classId}`); 
                     window.location.href = 'student-dashboard.html'; 
                     return; 
@@ -594,14 +545,12 @@
                 examData = { id: examDoc.id, ...examDocData };
 
                 // Check if already taken
-                updateDebug(`Checking if student has already taken this exam...`);
                 const existingSub = await db.collection('examSubmissions')
                     .where('examId', '==', examId)
                     .where('studentId', '==', currentUser.uid)
                     .get();
                     
                 if (!existingSub.empty) { 
-                    updateDebug(`❌ Student has already taken this exam`, true);
                     alert('You have already taken this exam'); 
                     window.location.href = 'student-dashboard.html'; 
                     return; 
@@ -622,8 +571,6 @@
                     <div class="meta-item"><i class="fas fa-question-circle"></i> Questions: <strong>${(examData.questions || []).length}</strong></div>
                 `;
                 document.getElementById('examInfo').innerHTML = `<span><i class="fas fa-user"></i> ${escapeHtml(userData.firstName || 'Student')} ${escapeHtml(userData.surname || '')}</span>`;
-
-                updateDebug(`✅ Exam loaded successfully!`);
 
                 // Randomize questions if enabled
                 let questions = [...(examData.questions || [])];
@@ -649,7 +596,6 @@
                 renderExam();
 
             } catch (error) {
-                updateDebug(`❌ ERROR loading exam: ${error.message}`, true);
                 console.error('Load error:', error);
                 alert('Error loading exam: ' + error.message);
             } finally { 
@@ -661,30 +607,18 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
 
         auth.onAuthStateChanged(async (user) => {
-            updateDebug(`=== AUTHENTICATION ===`);
-            if (!user) { 
-                updateDebug(`No user logged in, redirecting to login...`, true);
-                window.location.href = 'student-login.html'; 
-                return; 
-            }
-            updateDebug(`User logged in: ${user.uid}`);
+            if (!user) { window.location.href = 'student-login.html'; return; }
             currentUser = user;
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists || userDoc.data().role !== 'student') { 
-                    updateDebug(`User is not a student! Role: ${userDoc.data()?.role}`, true);
                     await auth.signOut(); 
                     window.location.href = 'index.html'; 
                     return; 
                 }
                 userData = userDoc.data();
-                updateDebug(`Student data loaded:`);
-                updateDebug(`  - Name: ${userData.firstName} ${userData.surname}`);
-                updateDebug(`  - Class: ${userData.class}`);
-                updateDebug(`  - Approved: ${userData.approved}`);
                 await loadExam();
             } catch (error) { 
-                updateDebug(`❌ Auth error: ${error.message}`, true);
                 console.error('Auth error:', error);
                 alert('Authentication error: ' + error.message);
             }
