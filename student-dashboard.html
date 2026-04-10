@@ -452,19 +452,31 @@
     <div class="orb orb-2"></div>
 
     <div class="sidebar" id="sidebar">
-        <div class="logo-area"><i class="fas fa-user-graduate"></i><h2>Student Panel</h2></div>
+        <div class="logo-area"><i class="fas fa-user-graduate"></i><h2>EduTop</h2></div>
+        
+        <!-- MAIN NAVIGATION -->
         <a href="student-dashboard.html" class="nav-item active"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        
+        <!-- ACADEMIC SECTION -->
+        <div style="margin: 0.5rem 0; padding-left: 1rem; font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 1px;">ACADEMIC</div>
         <a href="student-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
         <a href="student-tests.html" class="nav-item"><i class="fas fa-laptop"></i><span>CBT Tests</span></a>
         <a href="student-exams.html" class="nav-item"><i class="fas fa-pen-fancy"></i><span>Exams</span></a>
-        <a href="student-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="student-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="student-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        
+        <!-- RESULTS SECTION -->
+        <div style="margin: 0.5rem 0; padding-left: 1rem; font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 1px;">RESULTS</div>
         <a href="student-results.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>My Results</span></a>
         <a href="student-graded-assignment.html" class="nav-item"><i class="fas fa-check-double"></i><span>Graded Work</span></a>
         <a href="student-test-results.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Test Results</span></a>
-        <a href="student-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
         <a href="student-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
+        
+        <!-- PERSONAL SECTION -->
+        <div style="margin: 0.5rem 0; padding-left: 1rem; font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 1px;">PERSONAL</div>
+        <a href="student-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
         <a href="student-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Update Profile</span></a>
+        
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
@@ -636,7 +648,6 @@
                 const initials = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
                 document.getElementById('profilePic').textContent = initials;
                 loadDashboardData();
-                // Set up real-time listeners
                 setupRealtimeListeners();
             } catch(e) { console.error(e); }
         });
@@ -645,28 +656,12 @@
 
         function setupRealtimeListeners() {
             if (!currentUser || !userData) return;
-            
             const studentClass = userData.class;
-            
-            // Listen for new assignments
-            db.collection('assignments').where('classId', '==', studentClass).where('status', '==', 'published')
-                .onSnapshot(() => loadDashboardData());
-            
-            // Listen for new tests
-            db.collection('tests').where('classId', '==', studentClass).where('status', '==', 'published')
-                .onSnapshot(() => loadDashboardData());
-            
-            // Listen for submissions
-            db.collection('submissions').where('studentId', '==', currentUser.uid)
-                .onSnapshot(() => loadDashboardData());
-            
-            // Listen for test submissions
-            db.collection('testSubmissions').where('studentId', '==', currentUser.uid)
-                .onSnapshot(() => loadDashboardData());
-            
-            // Listen for attendance
-            db.collection('attendance').where('studentId', '==', currentUser.uid)
-                .onSnapshot(() => loadDashboardData());
+            db.collection('assignments').where('classId', '==', studentClass).where('status', '==', 'published').onSnapshot(() => loadDashboardData());
+            db.collection('tests').where('classId', '==', studentClass).where('status', '==', 'published').onSnapshot(() => loadDashboardData());
+            db.collection('submissions').where('studentId', '==', currentUser.uid).onSnapshot(() => loadDashboardData());
+            db.collection('testSubmissions').where('studentId', '==', currentUser.uid).onSnapshot(() => loadDashboardData());
+            db.collection('attendance').where('studentId', '==', currentUser.uid).onSnapshot(() => loadDashboardData());
         }
 
         async function loadDashboardData() {
@@ -676,7 +671,6 @@
                 const studentClass = userData.class;
                 const now = new Date();
                 
-                // Get all data in parallel for better performance
                 const [assignmentsSnap, submissionsSnap, testsSnap, testSubmissionsSnap, attSnap] = await Promise.all([
                     db.collection('assignments').where('classId', '==', studentClass).where('status', '==', 'published').get(),
                     db.collection('submissions').where('studentId', '==', currentUser.uid).get(),
@@ -709,29 +703,20 @@
                     const isSubmitted = submittedAssignmentIds.has(doc.id);
                     const isGraded = gradedAssignmentIds.has(doc.id);
                     
-                    if (!isSubmitted && dueDate && dueDate >= now) {
-                        pendingAssignments++;
-                    }
-                    if (isSubmitted || isGraded) {
-                        completedAssignments++;
-                    }
+                    if (!isSubmitted && dueDate && dueDate >= now) pendingAssignments++;
+                    if (isSubmitted || isGraded) completedAssignments++;
                     
                     if (recentAssignments.length < 5) {
-                        let status = 'pending';
-                        let badgeClass = 'badge-warning';
+                        let status = 'pending', badgeClass = 'badge-warning';
                         if (isGraded) { status = 'graded'; badgeClass = 'badge-success'; }
                         else if (isSubmitted) { status = 'submitted'; badgeClass = 'badge-info'; }
                         else if (dueDate && dueDate < now) { status = 'overdue'; badgeClass = 'badge-danger'; }
                         
                         recentAssignments.push(`
-                            <tr>
-                                <td>${escapeHtml(a.subject || 'N/A')}</td>
-                                <td>${escapeHtml(a.title || 'Untitled')}</td>
-                                <td>${a.dueDate || 'No date'}</td>
-                                <td><span class="badge ${badgeClass}">${status}</span></td>
-                                <td><a href="student-take-assignment.html?id=${doc.id}" class="btn btn-primary btn-sm">${isSubmitted ? 'View' : 'Start'}</a></td>
-                            </tr>
-                        `);
+                            <tr><td>${escapeHtml(a.subject || 'N/A')}</td><td>${escapeHtml(a.title || 'Untitled')}</td>
+                            <td>${a.dueDate || 'No date'}</td><td><span class="badge ${badgeClass}">${status}</span></td>
+                            <td><a href="student-take-assignment.html?id=${doc.id}" class="btn btn-primary btn-sm">${isSubmitted ? 'View' : 'Start'}</a></td>
+                        </tr>`);
                     }
                 }
                 
@@ -759,10 +744,7 @@
                 for (const doc of testsSnap.docs) {
                     const t = doc.data();
                     const isTaken = submittedTestIds.has(doc.id);
-                    
-                    if (!isTaken) {
-                        pendingTests++;
-                    }
+                    if (!isTaken) pendingTests++;
                     
                     if (availableTests.length < 5) {
                         const status = isTaken ? 'Completed' : 'Available';
@@ -774,8 +756,7 @@
                                 <td>${t.duration || t.timeLimit || 30} min</td>
                                 <td><span class="badge ${badgeClass}">${status}</span></td>
                                 <td>${!isTaken ? `<a href="student-take-test.html?id=${doc.id}" class="btn btn-primary btn-sm">Start</a>` : `<a href="student-test-results.html?id=${doc.id}" class="btn btn-outline btn-sm">Results</a>`}</td>
-                            </tr>
-                        `);
+                            </tr>`);
                     }
                 }
                 
@@ -795,15 +776,13 @@
                     const total = s.totalPoints || 100;
                     const percentage = (s.score / total) * 100;
                     const grade = percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
-                    results.push(`
-                        <tr>
-                            <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</td>
-                            <td>${escapeHtml(s.subject || 'N/A')}</td>
-                            <td>${s.score}/${total} ({percentage.toFixed(1)}%)</td>
-                            <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
-                            <td>${s.gradedAt ? new Date(s.gradedAt.toDate()).toLocaleDateString() : '—'}</td>
-                        </tr>
-                    `);
+                    results.push(`<tr>
+                        <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</td>
+                        <td>${escapeHtml(s.subject || 'N/A')}</td>
+                        <td>${s.score}/${total} (${percentage.toFixed(1)}%)</td>
+                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
+                        <td>${s.gradedAt ? new Date(s.gradedAt.toDate()).toLocaleDateString() : '—'}</td>
+                    </tr>`);
                 }
                 
                 for (const doc of testSubmissionsSnap.docs.filter(d => d.data().score !== undefined).slice(0, 5)) {
@@ -811,15 +790,13 @@
                     const total = t.totalPoints || 100;
                     const percentage = (t.score / total) * 100;
                     const grade = percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
-                    results.push(`
-                        <tr>
-                            <td>Test: ${escapeHtml(t.testTitle || 'CBT Test')}</td>
-                            <td>${escapeHtml(t.subject || 'N/A')}</td>
-                            <td>${t.score}/${total} (${percentage.toFixed(1)}%)</td>
-                            <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
-                            <td>${t.submittedAt ? new Date(t.submittedAt.toDate()).toLocaleDateString() : '—'}</td>
-                        </tr>
-                    `);
+                    results.push(`<tr>
+                        <td>Test: ${escapeHtml(t.testTitle || 'CBT Test')}</td>
+                        <td>${escapeHtml(t.subject || 'N/A')}</td>
+                        <td>${t.score}/${total} (${percentage.toFixed(1)}%)</td>
+                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
+                        <td>${t.submittedAt ? new Date(t.submittedAt.toDate()).toLocaleDateString() : '—'}</td>
+                    </tr>`);
                 }
                 
                 document.getElementById('recentResultsBody').innerHTML = results.length ? results.slice(0, 5).join('') : '<tr><td colspan="5">No results yet</td></tr>';
@@ -848,33 +825,17 @@
                     const s = doc.data();
                     if (s.submittedAt) {
                         let scoreText = '';
-                        if (s.graded && s.score !== undefined) {
-                            scoreText = `<span class="badge badge-success">Score: ${s.score}/${s.totalPoints || 100}</span>`;
-                        } else if (s.graded === false) {
-                            scoreText = '<span class="badge badge-warning">Pending Grade</span>';
-                        } else {
-                            scoreText = '<span class="badge badge-info">Submitted</span>';
-                        }
-                        activities.push({
-                            date: s.submittedAt,
-                            type: 'Assignment',
-                            title: s.assignmentTitle || 'Assignment',
-                            score: scoreText,
-                            status: s.graded ? 'Graded' : 'Submitted'
-                        });
+                        if (s.graded && s.score !== undefined) scoreText = `<span class="badge badge-success">Score: ${s.score}/${s.totalPoints || 100}</span>`;
+                        else if (s.graded === false) scoreText = '<span class="badge badge-warning">Pending Grade</span>';
+                        else scoreText = '<span class="badge badge-info">Submitted</span>';
+                        activities.push({ date: s.submittedAt, type: 'Assignment', title: s.assignmentTitle || 'Assignment', score: scoreText, status: s.graded ? 'Graded' : 'Submitted' });
                     }
                 });
                 
                 testSubmissionsSnap.forEach(doc => {
                     const t = doc.data();
                     if (t.submittedAt) {
-                        activities.push({
-                            date: t.submittedAt,
-                            type: 'CBT Test',
-                            title: t.testTitle || 'Test',
-                            score: `<span class="badge badge-success">Score: ${t.score}/${t.totalPoints || 100}</span>`,
-                            status: 'Completed'
-                        });
+                        activities.push({ date: t.submittedAt, type: 'CBT Test', title: t.testTitle || 'Test', score: `<span class="badge badge-success">Score: ${t.score}/${t.totalPoints || 100}</span>`, status: 'Completed' });
                     }
                 });
                 
@@ -887,8 +848,7 @@
                         <td>${escapeHtml(act.title)}</td>
                         <td>${act.score}</td>
                         <td><span class="badge badge-success">${act.status}</span></td>
-                    </tr>
-                `).join('');
+                    </tr>`).join('');
                 
                 document.getElementById('recentActivityBody').innerHTML = activityHtml || '<tr><td colspan="5">No recent activity</td></tr>';
 
@@ -901,31 +861,12 @@
                 const ctx = document.getElementById('performanceChart').getContext('2d');
                 performanceChart = new Chart(ctx, {
                     type: 'line',
-                    data: {
-                        labels: chartScores.map((_, i) => `#${i+1}`),
-                        datasets: [{
-                            label: 'Score (%)',
-                            data: chartScores,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59,130,246,0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: { position: 'top' },
-                            tooltip: { callbacks: { label: (ctx) => `${ctx.raw}%` } }
-                        },
-                        scales: { y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } } }
-                    }
+                    data: { labels: chartScores.map((_, i) => `#${i+1}`), datasets: [{ label: 'Score (%)', data: chartScores, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 }] },
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw}%` } } }, scales: { y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } } } }
                 });
 
             } catch(e) {
                 console.error('Error loading dashboard:', e);
-                // Show error state but don't crash
                 const errorMsg = '<tr><td colspan="5" style="text-align: center; color: var(--danger-text);">Error loading data. Please refresh.</td></tr>';
                 document.getElementById('recentAssignmentsBody').innerHTML = errorMsg;
                 document.getElementById('availableTestsBody').innerHTML = errorMsg;
