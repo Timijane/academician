@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Exam Management | Teacher Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: rgba(255,255,255,0.95);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05);
+            --success-bg: #dcfce7;
+            --success-text: #16a34a;
+            --warning-bg: #fef9c3;
+            --warning-text: #ca8a04;
+            --danger-bg: #fee2e2;
+            --danger-text: #dc2626;
+            --info-bg: #dbeafe;
+            --info-text: #2563eb;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: rgba(15,23,42,0.95);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #1e293b;
+            --card-bg: #1e293b;
+            --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; transition: all 0.3s; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%); filter: blur(100px); z-index: 0; animation: float 20s infinite alternate; pointer-events: none; }
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px, 40px) scale(1.1); } }
+
+        .sidebar { width: 280px; background: var(--bg-sidebar); backdrop-filter: blur(20px); border-right: 1px solid var(--border); padding: 2rem 1rem; display: flex; flex-direction: column; transition: width 0.3s; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; box-shadow: var(--shadow); }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1.2rem; border-radius: 1rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.5rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); transform: translateX(5px); border-color: var(--border); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; box-shadow: 0 5px 15px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+
+        .main-content { flex: 1; margin-left: 280px; padding: 2rem; transition: margin-left 0.3s; position: relative; z-index: 5; }
+        .main-content.expanded { margin-left: 90px; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 10px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; display: flex; align-items: center; gap: 1rem; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 1rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; }
+        .stat-info h3 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .stat-info p { color: var(--text-secondary); font-size: 0.8rem; }
+
+        .filters-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+        .search-box { flex: 1; min-width: 200px; position: relative; }
+        .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); }
+        .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .filter-btn { padding: 0.75rem 1.25rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-secondary); cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .filter-btn:hover:not(.active) { background: var(--hover-bg); }
+
+        .exams-table { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 1rem 1rem; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border); background: var(--hover-bg); }
+        td { padding: 1rem 1rem; border-bottom: 1px solid var(--border); }
+
+        .badge { padding: 0.25rem 0.75rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge-draft { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-published { background: var(--success-bg); color: var(--success-text); }
+        .badge-midterm { background: var(--info-bg); color: var(--info-text); }
+        .badge-endterm { background: var(--success-bg); color: var(--success-text); }
+        .badge-mock { background: var(--warning-bg); color: var(--warning-text); }
+
+        .btn { padding: 0.5rem 1rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; text-decoration: none; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+        .btn-success { background: var(--success-text); color: white; }
+
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .filters-bar { flex-direction: column; }
+            th, td { font-size: 0.8rem; padding: 0.75rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-chalkboard-teacher"></i><h2>Teacher Panel</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Assignment</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
+        <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-square"></i><span>Create CBT Test</span></a>
+        <a href="teacher-grade-test.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Tests</span></a>
+        <a href="teacher-exams.html" class="nav-item active"><i class="fas fa-pen-fancy"></i><span>Exams</span></a>
+        <a href="teacher-create-exam.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Exam</span></a>
+        <a href="teacher-grade-exam.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Exams</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Exam Management</h1>
+                <p>Create, manage, and grade end-of-term examinations</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user-edit"></i> Update Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-file-alt"></i></div><div class="stat-info"><h3 id="totalExams">0</h3><p>Total Exams</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="publishedExams">0</h3><p>Published Exams</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><h3 id="draftExams">0</h3><p>Draft Exams</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="submissionsCount">0</h3><p>Total Submissions</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-info"><h3 id="avgScore">0%</h3><p>Average Score</p></div></div>
+            <div class="stat-card"><div class="stat-icon"><i class="fas fa-chalkboard"></i></div><div class="stat-info"><h3 id="pendingGrading">0</h3><p>Pending Grading</p></div></div>
+        </div>
+
+        <div class="filters-bar">
+            <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Search exams by title or subject..."></div>
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All Exams</button>
+                <button class="filter-btn" data-filter="published">Published</button>
+                <button class="filter-btn" data-filter="draft">Drafts</button>
+            </div>
+            <div class="filter-group">
+                <select id="examTypeFilter" class="filter-select" style="padding: 0.75rem 1rem;">
+                    <option value="all">All Types</option>
+                    <option value="midterm">Mid-Term</option>
+                    <option value="endterm">End of Term</option>
+                    <option value="mock">Mock</option>
+                    <option value="promotion">Promotion</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="window.location.href='teacher-create-exam.html'"><i class="fas fa-plus"></i> Create New Exam</button>
+            <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <div class="exams-table">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Exam Title</th>
+                            <th>Subject</th>
+                            <th>Type</th>
+                            <th>Weeks</th>
+                            <th>Duration</th>
+                            <th>Questions</th>
+                            <th>Submissions</th>
+                            <th>Avg Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="examsList">
+                        <tr><td colspan="10" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Loading...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+        
+        let currentUser = null, userData = null;
+        let allExams = [];
+        let submissionsData = {};
+        let examScores = {};
+        let pendingGradingCount = 0;
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let examTypeFilter = 'all';
+        
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function formatTime(minutes) { if (!minutes) return 'No limit'; const hours = Math.floor(minutes / 60); const mins = minutes % 60; if (hours > 0) return `${hours}h ${mins}m`; return `${mins} min`; }
+        
+        function getStatusBadge(exam) {
+            if (exam.status === 'published') return '<span class="badge badge-published"><i class="fas fa-check-circle"></i> Published</span>';
+            return '<span class="badge badge-draft"><i class="fas fa-edit"></i> Draft</span>';
+        }
+        
+        function getExamTypeBadge(type) {
+            const types = {
+                midterm: '<span class="badge badge-midterm"><i class="fas fa-chalkboard"></i> Mid-Term</span>',
+                endterm: '<span class="badge badge-endterm"><i class="fas fa-graduation-cap"></i> End of Term</span>',
+                mock: '<span class="badge badge-mock"><i class="fas fa-flask"></i> Mock</span>',
+                promotion: '<span class="badge badge-success"><i class="fas fa-star"></i> Promotion</span>'
+            };
+            return types[type] || '<span class="badge badge-info">Standard</span>';
+        }
+        
+        async function loadSubmissionsData() {
+            try {
+                const snap = await db.collection('examSubmissions')
+                    .where('teacherId', '==', currentUser.uid)
+                    .get();
+                
+                submissionsData = {};
+                examScores = {};
+                pendingGradingCount = 0;
+                
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const examId = data.examId;
+                    
+                    if (!submissionsData[examId]) {
+                        submissionsData[examId] = [];
+                        examScores[examId] = [];
+                    }
+                    
+                    submissionsData[examId].push(data);
+                    
+                    if (data.score !== undefined && data.score !== null) {
+                        examScores[examId].push(data.score);
+                    }
+                    
+                    // Count pending grading (theory questions not graded)
+                    if (data.theoryCount > 0 && !data.gradeReleased) {
+                        pendingGradingCount++;
+                    }
+                });
+                
+                document.getElementById('pendingGrading').textContent = pendingGradingCount;
+                
+            } catch(e) {
+                console.warn('Could not load submissions:', e.message);
+            }
+        }
+        
+        async function loadExams() {
+            showLoading();
+            try {
+                const snap = await db.collection('exams')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+                
+                allExams = [];
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    allExams.push({ 
+                        id: doc.id, 
+                        ...data,
+                        createdAt: data.createdAt?.toDate() || new Date()
+                    });
+                });
+                
+                await loadSubmissionsData();
+                updateStats();
+                renderExams();
+                
+            } catch(e) {
+                console.error('Error loading exams:', e);
+                document.getElementById('examsList').innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 3rem; color: var(--danger-text);">
+                    <i class="fas fa-exclamation-triangle"></i> Error loading exams: ${e.message}
+                </td></tr>`;
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function calculateAverageScore(scores) {
+            if (!scores || scores.length === 0) return 0;
+            const sum = scores.reduce((a, b) => a + b, 0);
+            return Math.round(sum / scores.length);
+        }
+        
+        function updateStats() {
+            const published = allExams.filter(e => e.status === 'published').length;
+            const drafts = allExams.filter(e => e.status === 'draft').length;
+            const totalSubmissions = Object.values(submissionsData).reduce((a, b) => a + b.length, 0);
+            
+            let allScores = [];
+            Object.values(examScores).forEach(scores => {
+                allScores = allScores.concat(scores);
+            });
+            const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
+            
+            document.getElementById('totalExams').textContent = allExams.length;
+            document.getElementById('publishedExams').textContent = published;
+            document.getElementById('draftExams').textContent = drafts;
+            document.getElementById('submissionsCount').textContent = totalSubmissions;
+            document.getElementById('avgScore').textContent = `${avgScore}%`;
+        }
+        
+        function renderExams() {
+            let filtered = allExams.filter(exam => {
+                if (currentFilter !== 'all' && exam.status !== currentFilter) return false;
+                if (examTypeFilter !== 'all' && exam.examType !== examTypeFilter) return false;
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    return (exam.title?.toLowerCase().includes(q) || exam.subject?.toLowerCase().includes(q));
+                }
+                return true;
+            });
+            
+            if (filtered.length === 0) {
+                document.getElementById('examsList').innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                    <h3>No exams found</h3>
+                    <p>${allExams.length === 0 ? 'You haven\'t created any exams yet.' : 'Try changing your filters.'}</p>
+                    <a href="teacher-create-exam.html" class="btn btn-primary" style="margin-top: 1rem; display: inline-flex;">
+                        <i class="fas fa-plus"></i> Create Your First Exam
+                    </a>
+                </td></tr>`;
+                return;
+            }
+            
+            document.getElementById('examsList').innerHTML = filtered.map(exam => {
+                const statusBadge = getStatusBadge(exam);
+                const typeBadge = getExamTypeBadge(exam.examType);
+                const questionCount = exam.questions?.length || 0;
+                const subCount = submissionsData[exam.id]?.length || 0;
+                const hasSubmissions = subCount > 0;
+                const avgScore = examScores[exam.id] ? calculateAverageScore(examScores[exam.id]) : 0;
+                const weeksCovered = exam.weeksCovered ? exam.weeksCovered.join(', ') : 'All weeks';
+                const duration = formatTime(exam.duration || 120);
+                const autoRelease = exam.autoReleaseGrades ? '<span class="badge" style="background: var(--success-bg); color: var(--success-text);"><i class="fas fa-eye"></i> Auto-grade</span>' : '';
+                const shareLink = `${window.location.origin}/student-take-exam.html?id=${exam.id}`;
+                const hasTheory = exam.questions?.some(q => q.type === 'theory') || false;
+                
+                return `<tr>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <strong>${escapeHtml(exam.title)}</strong>
+                        <br>
+                        <small style="color: var(--text-secondary);">${autoRelease}</small>
+                     </div></td>
+                    <td>${escapeHtml(exam.subject)}</div></td>
+                    <td>${typeBadge}</div></td>
+                    <td><small>Weeks: ${escapeHtml(weeksCovered)}</small></div></td>
+                    <td><i class="fas fa-hourglass-half"></i> ${duration}</div></td>
+                    <td><i class="fas fa-question-circle"></i> ${questionCount}</div></td>
+                    <td>
+                        <span class="badge" style="background: var(--info-bg); color: var(--info-text);">
+                            ${subCount} student${subCount !== 1 ? 's' : ''}
+                        </span>
+                        ${hasTheory && subCount > 0 ? '<br><small class="badge badge-warning">Has Theory Questions</small>' : ''}
+                     </div></td>
+                    <td>
+                        ${hasSubmissions ? `
+                            <span class="badge" style="background: ${avgScore >= 70 ? 'var(--success-bg)' : avgScore >= 50 ? 'var(--warning-bg)' : 'var(--danger-bg)'}; 
+                                color: ${avgScore >= 70 ? 'var(--success-text)' : avgScore >= 50 ? 'var(--warning-text)' : 'var(--danger-text)'};">
+                                ${avgScore}%
+                            </span>
+                        ` : '<span class="badge">—</span>'}
+                     </div></td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a href="teacher-edit-exam.html?id=${exam.id}" class="btn btn-outline btn-sm" title="Edit Exam">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            ${hasSubmissions ? 
+                                `<a href="teacher-grade-exam.html?examId=${exam.id}" class="btn btn-primary btn-sm" title="Grade Submissions (${subCount})">
+                                    <i class="fas fa-check-double"></i> Grade
+                                </a>` : 
+                                `<button class="btn btn-outline btn-sm" disabled style="opacity: 0.5;" title="No submissions yet">
+                                    <i class="fas fa-clock"></i> No Subs
+                                </button>`
+                            }
+                            <a href="teacher-exam-analytics.html?examId=${exam.id}" class="btn btn-outline btn-sm" title="View Analytics">
+                                <i class="fas fa-chart-line"></i>
+                            </a>
+                            <button class="btn btn-outline btn-sm" onclick="copyShareLink('${shareLink}')" title="Share Link">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            ${exam.status === 'draft' ? 
+                                `<button class="btn btn-success btn-sm" onclick="publishExam('${exam.id}')" title="Publish Exam">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>` : ''
+                            }
+                        </div>
+                     </div>
+                </tr>`;
+            }).join('');
+        }
+        
+        window.copyShareLink = (link) => { navigator.clipboard.writeText(link); alert('Exam link copied to clipboard!'); };
+        
+        window.publishExam = async (examId) => {
+            if (!confirm('Are you sure you want to publish this exam? Students will be able to take it once published.')) return;
+            
+            showLoading();
+            try {
+                await db.collection('exams').doc(examId).update({
+                    status: 'published',
+                    publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim() || 'Teacher',
+                    userEmail: userData.email || currentUser.email,
+                    action: 'EXAM_PUBLISHED',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent,
+                    details: { examId: examId, action: 'published_from_management' }
+                });
+                
+                alert('Exam published successfully!');
+                await loadExams();
+            } catch(e) {
+                alert('Error publishing exam: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        document.getElementById('searchInput').addEventListener('input', (e) => { 
+            searchQuery = e.target.value; 
+            renderExams(); 
+        });
+        
+        document.getElementById('examTypeFilter').addEventListener('change', (e) => {
+            examTypeFilter = e.target.value;
+            renderExams();
+        });
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderExams();
+            });
+        });
+        
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            loadExams();
+        });
+        
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { 
+                window.location.href = 'teacher-login.html'; 
+                return; 
+            }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') { 
+                    auth.signOut(); 
+                    window.location.href = 'index.html'; 
+                    return; 
+                }
+                currentUser = user;
+                userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                await loadExams();
+            } catch(e) { 
+                console.error(e);
+                document.getElementById('examsList').innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--danger-text);">Authentication error: ${e.message}</div></tr>`;
+            }
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+    </script>
+</body>
+</html>
