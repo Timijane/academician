@@ -10,11 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
             --bg-primary: #f8fafc;
@@ -511,6 +507,11 @@
             border-color: var(--accent);
         }
 
+        .btn-warning {
+            background: var(--warning-text);
+            color: white;
+        }
+
         .empty-state {
             text-align: center;
             padding: 4rem;
@@ -554,16 +555,19 @@
     <div class="orb orb-2"></div>
 
     <div class="sidebar" id="sidebar">
-        <div class="logo-area"><i class="fas fa-graduation-cap"></i><h2>EduTop</h2></div>
+        <div class="logo-area"><i class="fas fa-chalkboard-teacher"></i><h2>EduTop</h2></div>
         <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
         <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
         <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
         <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
-        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Tests</span></a>
-        <a href="teacher-question-bank.html" class="nav-item"><i class="fas fa-database"></i><span>Question Bank</span></a>
-        <a href="teacher-results-dashboard.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>Results</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
+        <a href="teacher-create-test.html" class="nav-item"><i class="fas fa-plus-square"></i><span>Create Test</span></a>
+        <a href="teacher-grade-test.html" class="nav-item"><i class="fas fa-check-double"></i><span>Grade Tests</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
         <a href="teacher-attendance.html" class="nav-item active"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
-        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Profile</span></a>
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
@@ -577,7 +581,7 @@
                 <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
                 <div class="profile-dropdown">
                     <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
-                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user-edit"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
                 </div>
             </div>
         </div>
@@ -602,6 +606,7 @@
             </div>
             <button class="btn btn-primary" id="loadAttendanceBtn"><i class="fas fa-calendar-check"></i> Load Attendance</button>
             <button class="btn btn-success" id="saveAttendanceBtn"><i class="fas fa-save"></i> Save Attendance</button>
+            <button class="btn btn-warning" id="submitWeeklyBtn"><i class="fas fa-paper-plane"></i> Submit Weekly Report</button>
         </div>
 
         <!-- Stats Cards -->
@@ -614,9 +619,35 @@
 
         <div id="attendanceContent">
             <div class="empty-state">
-                <i class="fas fa-calendar-check"></i>
+                <i class="fas fa-calendar-check fa-3x" style="margin-bottom: 1rem;"></i>
                 <h3>Select class, date, and session</h3>
                 <p>Choose the class, date, and session to record attendance</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Submission Modal -->
+    <div class="modal-overlay" id="weeklyModal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 2000;">
+        <div class="modal-content" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 2rem; max-width: 500px; width: 90%;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3><i class="fas fa-calendar-week"></i> Submit Weekly Attendance</h3>
+                <i class="fas fa-times" style="cursor: pointer;" onclick="closeWeeklyModal()"></i>
+            </div>
+            <div class="form-group">
+                <label>Week Starting Date</label>
+                <input type="date" id="weekStartDate" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Week Ending Date</label>
+                <input type="date" id="weekEndDate" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Additional Comments</label>
+                <textarea id="weeklyComments" class="form-control" rows="3" placeholder="Any remarks about this week's attendance..."></textarea>
+            </div>
+            <div class="modal-actions" style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="closeWeeklyModal()">Cancel</button>
+                <button class="btn btn-primary" id="confirmSubmitBtn">Submit to Admin</button>
             </div>
         </div>
     </div>
@@ -624,6 +655,7 @@
     <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div></div>
 
     <script>
+        // ==================== CORRECT FIREBASE CONFIG ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -669,11 +701,24 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('attendanceDate').value = today;
         
+        // Set week start/end defaults (Monday to Friday)
+        function setWeekDefaults() {
+            const now = new Date();
+            const day = now.getDay();
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+            const friday = new Date(monday);
+            friday.setDate(monday.getDate() + 4);
+            document.getElementById('weekStartDate').value = monday.toISOString().split('T')[0];
+            document.getElementById('weekEndDate').value = friday.toISOString().split('T')[0];
+        }
+        setWeekDefaults();
+        
         async function loadClasses() {
             const teacherClass = userData.classTeaching;
             if (teacherClass) {
                 const classSelect = document.getElementById('classSelect');
-                classSelect.innerHTML = `<option value="${teacherClass}">${teacherClass}</option>`;
+                classSelect.innerHTML = `<option value="${teacherClass}">${teacherClass.toUpperCase()}</option>`;
                 classSelect.value = teacherClass;
                 
                 const studentsSnap = await db.collection('users')
@@ -726,6 +771,7 @@
                 attendanceRecords.forEach(record => {
                     if (record.studentId) {
                         currentAttendance[record.studentId] = record.status;
+                        if (record.remark) currentAttendance[record.studentId + '_remark'] = record.remark;
                     }
                 });
                 
@@ -778,6 +824,7 @@
                                     const status = currentAttendance[student.id] || 'present';
                                     const studentName = `${student.firstName || ''} ${student.surname || ''}`.trim() || 'Unknown';
                                     const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                                    const remark = currentAttendance[student.id + '_remark'] || '';
                                     
                                     return `
                                         <tr>
@@ -788,7 +835,7 @@
                                                     ${escapeHtml(studentName)}
                                                 </div>
                                             </td>
-                                            <td>${student.id.substring(0, 8).toUpperCase()}</td>
+                                            <td>${student.admissionNo || student.id.substring(0, 8).toUpperCase()}</td>
                                             <td style="text-align: center;">
                                                 <input type="radio" name="status_${student.id}" value="present" ${status === 'present' ? 'checked' : ''} class="attendance-checkbox" onchange="updateAttendanceStatus('${student.id}', 'present')">
                                             </td>
@@ -799,7 +846,7 @@
                                                 <span class="status-badge status-${status}">${status === 'present' ? '✓ Present' : '✗ Absent'}</span>
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control" style="width: 100%; padding: 0.4rem; font-size: 0.75rem;" placeholder="Remarks" id="remark_${student.id}" value="${currentAttendance[student.id + '_remark'] || ''}">
+                                                <input type="text" class="form-control" style="width: 100%; padding: 0.4rem; font-size: 0.75rem;" placeholder="Reason for absence" id="remark_${student.id}" value="${escapeHtml(remark)}">
                                             </td>
                                         </tr>
                                     `;
@@ -815,6 +862,13 @@
         window.updateAttendanceStatus = (studentId, status) => {
             currentAttendance[studentId] = status;
             updateStats();
+            
+            // Update the status badge
+            const statusSpan = document.querySelector(`tr:has(input[value="${status}"][name="status_${studentId}"]) .status-badge`);
+            if (statusSpan) {
+                statusSpan.className = `status-badge status-${status}`;
+                statusSpan.textContent = status === 'present' ? '✓ Present' : '✗ Absent';
+            }
         };
         
         function updateStats() {
@@ -860,19 +914,23 @@
                 // Add new attendance records
                 for (const student of students) {
                     const status = currentAttendance[student.id] || 'present';
-                    const remark = document.getElementById(`remark_${student.id}`)?.value || '';
+                    const remarkInput = document.getElementById(`remark_${student.id}`);
+                    const remark = remarkInput ? remarkInput.value : '';
                     
                     const attendanceData = {
                         studentId: student.id,
                         studentName: `${student.firstName || ''} ${student.surname || ''}`.trim(),
+                        admissionNo: student.admissionNo || '',
                         classId: className,
                         date: date,
                         session: session,
                         status: status,
                         remark: remark,
                         teacherId: currentUser.uid,
+                        teacherName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
                         recordedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        recordedBy: userData.firstName || 'Teacher'
+                        recordedBy: userData.firstName || 'Teacher',
+                        weekEnding: getWeekEndingDate(date)
                     };
                     
                     const newRef = db.collection('attendance').doc();
@@ -880,6 +938,19 @@
                 }
                 
                 await batch.commit();
+                
+                // Log to audit
+                await db.collection('auditLogs').add({
+                    action: 'ATTENDANCE_SAVED',
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                    classId: className,
+                    date: date,
+                    session: session,
+                    studentCount: students.length,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
                 alert('Attendance saved successfully!');
                 await loadAttendance();
                 
@@ -891,8 +962,122 @@
             }
         }
         
+        function getWeekEndingDate(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const friday = new Date(d);
+            friday.setDate(d.getDate() + (5 - day));
+            return friday.toISOString().split('T')[0];
+        }
+        
+        async function submitWeeklyReport() {
+            const className = document.getElementById('classSelect').value;
+            const weekStart = document.getElementById('weekStartDate').value;
+            const weekEnd = document.getElementById('weekEndDate').value;
+            const comments = document.getElementById('weeklyComments').value;
+            
+            if (!className) {
+                alert('Please select a class');
+                return;
+            }
+            
+            if (!weekStart || !weekEnd) {
+                alert('Please select week start and end dates');
+                return;
+            }
+            
+            showLoading();
+            try {
+                // Get all attendance records for the week
+                const attendanceSnap = await db.collection('attendance')
+                    .where('classId', '==', className)
+                    .where('date', '>=', weekStart)
+                    .where('date', '<=', weekEnd)
+                    .get();
+                
+                const weeklyRecords = [];
+                attendanceSnap.forEach(doc => {
+                    weeklyRecords.push(doc.data());
+                });
+                
+                // Calculate weekly summary
+                const studentSummary = {};
+                students.forEach(student => {
+                    studentSummary[student.id] = {
+                        name: `${student.firstName || ''} ${student.surname || ''}`.trim(),
+                        present: 0,
+                        absent: 0,
+                        total: 0,
+                        records: []
+                    };
+                });
+                
+                weeklyRecords.forEach(record => {
+                    if (studentSummary[record.studentId]) {
+                        studentSummary[record.studentId].total++;
+                        if (record.status === 'present') {
+                            studentSummary[record.studentId].present++;
+                        } else {
+                            studentSummary[record.studentId].absent++;
+                        }
+                        studentSummary[record.studentId].records.push(record);
+                    }
+                });
+                
+                const weeklyReportData = {
+                    classId: className,
+                    className: className.toUpperCase(),
+                    weekStart: weekStart,
+                    weekEnd: weekEnd,
+                    teacherId: currentUser.uid,
+                    teacherName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                    studentSummary: Object.values(studentSummary),
+                    totalStudents: students.length,
+                    totalAttendanceRecords: weeklyRecords.length,
+                    comments: comments,
+                    status: 'pending',
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    submittedBy: currentUser.uid,
+                    submittedByName: `${userData.firstName || ''} ${userData.surname || ''}`.trim()
+                };
+                
+                await db.collection('weeklyAttendanceReports').add(weeklyReportData);
+                
+                // Log to audit
+                await db.collection('auditLogs').add({
+                    action: 'WEEKLY_ATTENDANCE_SUBMITTED',
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                    classId: className,
+                    weekStart: weekStart,
+                    weekEnd: weekEnd,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Weekly attendance report submitted to admin for review!\n\nWeek: ${weekStart} to ${weekEnd}\nTotal Records: ${weeklyRecords.length}`);
+                closeWeeklyModal();
+                
+            } catch(e) {
+                console.error('Error submitting weekly report:', e);
+                alert('Error submitting report: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function openWeeklyModal() {
+            setWeekDefaults();
+            document.getElementById('weeklyModal').style.display = 'flex';
+        }
+        
+        function closeWeeklyModal() {
+            document.getElementById('weeklyModal').style.display = 'none';
+        }
+        
         document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendance);
         document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
+        document.getElementById('submitWeeklyBtn').addEventListener('click', openWeeklyModal);
+        document.getElementById('confirmSubmitBtn').addEventListener('click', submitWeeklyReport);
         
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
@@ -910,6 +1095,7 @@
         document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
         
         window.updateAttendanceStatus = updateAttendanceStatus;
+        window.closeWeeklyModal = closeWeeklyModal;
     </script>
 </body>
 </html>
