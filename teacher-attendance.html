@@ -471,19 +471,19 @@
             text-align: center;
         }
 
-        .index-links {
+        .index-instructions {
             background: var(--info-bg);
             border-radius: 1rem;
             padding: 1rem;
             margin-bottom: 1rem;
             font-size: 0.8rem;
+            border-left: 4px solid var(--accent);
         }
-        .index-links a {
-            color: var(--info-text);
-            text-decoration: none;
-        }
-        .index-links a:hover {
-            text-decoration: underline;
+        .index-instructions code {
+            background: var(--hover-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
         }
 
         @media (max-width: 768px) {
@@ -543,11 +543,17 @@
             </div>
         </div>
 
-        <!-- Index Creation Links -->
-        <div class="index-links">
-            <i class="fas fa-database"></i> <strong>Required Indexes:</strong> Click to create required indexes for attendance:
-            <a href="https://console.firebase.google.com/project/triangle-6e6b7/firestore/indexes?createComposite=ClRwcm9qZWN0cy90cmlhbmdsZS02ZTZiNy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvYXR0ZW5kYW5jZS9pbmRleGVzL18QARoKCgpjbGFzc0lkEAEaBgoEZGF0ZRABGgcKB3Nlc3Npb24QAQ" target="_blank">Create Attendance Index</a> |
-            <a href="https://console.firebase.google.com/project/triangle-6e6b7/firestore/indexes?createComposite=ClRwcm9qZWN0cy90cmlhbmdsZS02ZTZiNy9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvYXR0ZW5kYW5jZS9pbmRleGVzL18QARoKCgp0ZWFjaGVySWQQARoGCgRkYXRlEAE" target="_blank">Create Teacher Index</a>
+        <!-- Index Creation Instructions -->
+        <div class="index-instructions">
+            <i class="fas fa-database"></i> <strong>Required Firestore Indexes:</strong><br>
+            To use this page, you need to create the following composite indexes in Firebase Console:
+            <ol style="margin: 0.5rem 0 0 1.5rem;">
+                <li><strong>Index 1:</strong> Collection: <code>attendance</code> → Fields: <code>classId</code> (Ascending), <code>date</code> (Ascending), <code>session</code> (Ascending)</li>
+                <li><strong>Index 2:</strong> Collection: <code>attendance</code> → Fields: <code>teacherId</code> (Ascending), <code>date</code> (Ascending)</li>
+            </ol>
+            <div style="margin-top: 0.5rem;">
+                <a href="https://console.firebase.google.com/project/triangle-6e6b7/firestore/indexes" target="_blank" style="color: var(--accent);">→ Click here to open Firebase Console → Indexes</a>
+            </div>
         </div>
 
         <div class="selectors">
@@ -609,7 +615,6 @@
     </div>
 
     <script>
-        // ==================== CORRECT FIREBASE CONFIG ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -623,7 +628,6 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         
-        // Sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
@@ -635,24 +639,17 @@
             icon.classList.toggle('fa-chevron-right');
         });
         
-        // Theme toggle
-        const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
-        function updateThemeUI(theme) {
-            const icon = themeToggle.querySelector('i:first-child');
-            const text = themeToggle.querySelector('span');
-            icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            text.textContent = theme === 'dark' ? 'Dark' : 'Light';
-        }
+        const html = document.documentElement;
         const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
-        updateThemeUI(savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
         themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
             localStorage.setItem('edutop-theme', next);
-            updateThemeUI(next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
         });
         
         let currentUser = null;
@@ -675,7 +672,6 @@
             return div.innerHTML;
         }
         
-        // Set today's date as default
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('attendanceDate').value = today;
         
@@ -699,7 +695,6 @@
                     }
                 });
                 
-                // Sort students alphabetically
                 students.sort((a, b) => {
                     const nameA = `${a.firstName || ''} ${a.surname || ''}`.trim();
                     const nameB = `${b.firstName || ''} ${b.surname || ''}`.trim();
@@ -741,7 +736,7 @@
             } catch(e) {
                 console.error('Error loading attendance:', e);
                 if (e.message.includes('index')) {
-                    alert('Please create the required indexes. Click the links at the top of the page.');
+                    alert('Please create the required indexes. Follow the instructions at the top of the page to create composite indexes for the attendance collection.');
                 } else {
                     alert('Error loading attendance: ' + e.message);
                 }
@@ -766,9 +761,6 @@
                 <div class="attendance-table">
                     <div class="table-header">
                         <h3><i class="fas fa-users"></i> Student Attendance - ${sessionName} ${sessionIcon}</h3>
-                        <div class="session-info">
-                            <span class="session-badge session-${session}">${session === 'morning' ? 'Morning 8AM-12PM' : 'Afternoon 1PM-4PM'}</span>
-                        </div>
                     </div>
                     <div style="overflow-x: auto;">
                         <table>
@@ -826,7 +818,6 @@
             currentAttendance[studentId] = status;
             updateStats();
             
-            // Update the status badge
             const statusSpan = document.querySelector(`tr:has(input[value="${status}"][name="status_${studentId}"]) .status-badge`);
             if (statusSpan) {
                 statusSpan.className = `status-badge status-${status}`;
@@ -861,20 +852,18 @@
             
             showLoading();
             try {
-                const batch = db.batch();
-                
-                // Delete existing records for this date/session/class
                 const existingSnap = await db.collection('attendance')
                     .where('classId', '==', className)
                     .where('date', '==', date)
                     .where('session', '==', session)
                     .get();
                 
+                const batch = db.batch();
+                
                 existingSnap.forEach(doc => {
                     batch.delete(doc.ref);
                 });
                 
-                // Add new attendance records
                 for (const student of students) {
                     const status = currentAttendance[student.id] || 'present';
                     const remarkInput = document.getElementById(`remark_${student.id}`);
@@ -900,7 +889,6 @@
                 
                 await batch.commit();
                 
-                // Log to audit
                 await db.collection('auditLogs').add({
                     action: 'ATTENDANCE_SAVED',
                     userId: currentUser.uid,
@@ -923,11 +911,9 @@
             }
         }
         
-        // Event Listeners
         document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendance);
         document.getElementById('saveAttendanceBtn').addEventListener('click', saveAttendance);
         
-        // Authentication
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'teacher-login.html';
@@ -958,7 +944,6 @@
             window.location.href = 'teacher-profile.html';
         });
         
-        // Expose functions globally
         window.updateAttendance = updateAttendance;
     </script>
 </body>
