@@ -471,21 +471,6 @@
             text-align: center;
         }
 
-        .index-instructions {
-            background: var(--info-bg);
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            font-size: 0.8rem;
-            border-left: 4px solid var(--accent);
-        }
-        .index-instructions code {
-            background: var(--hover-bg);
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
-            font-family: monospace;
-        }
-
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
@@ -543,19 +528,6 @@
             </div>
         </div>
 
-        <!-- Index Creation Instructions -->
-        <div class="index-instructions">
-            <i class="fas fa-database"></i> <strong>Required Firestore Indexes:</strong><br>
-            To use this page, you need to create the following composite indexes in Firebase Console:
-            <ol style="margin: 0.5rem 0 0 1.5rem;">
-                <li><strong>Index 1:</strong> Collection: <code>attendance</code> → Fields: <code>classId</code> (Ascending), <code>date</code> (Ascending), <code>session</code> (Ascending)</li>
-                <li><strong>Index 2:</strong> Collection: <code>attendance</code> → Fields: <code>teacherId</code> (Ascending), <code>date</code> (Ascending)</li>
-            </ol>
-            <div style="margin-top: 0.5rem;">
-                <a href="https://console.firebase.google.com/project/triangle-6e6b7/firestore/indexes" target="_blank" style="color: var(--accent);">→ Click here to open Firebase Console → Indexes</a>
-            </div>
-        </div>
-
         <div class="selectors">
             <div class="selector-group">
                 <label><i class="fas fa-users"></i> Select Class</label>
@@ -578,7 +550,6 @@
             <button class="btn btn-success" id="saveAttendanceBtn"><i class="fas fa-save"></i> Save Attendance</button>
         </div>
 
-        <!-- Stats Cards -->
         <div class="stats-grid" id="statsGrid" style="display: none;">
             <div class="stat-card">
                 <div class="stat-value" id="totalStudents">0</div>
@@ -715,16 +686,17 @@
             
             showLoading();
             try {
+                // Get attendance records for this class only
                 const attendanceSnap = await db.collection('attendance')
                     .where('classId', '==', className)
-                    .where('date', '==', date)
-                    .where('session', '==', session)
                     .get();
                 
                 currentAttendance = {};
+                
+                // Filter in JavaScript
                 attendanceSnap.forEach(doc => {
                     const data = doc.data();
-                    if (data.studentId) {
+                    if (data.date === date && data.session === session && data.studentId) {
                         currentAttendance[data.studentId] = data.status;
                         if (data.remark) currentAttendance[data.studentId + '_remark'] = data.remark;
                     }
@@ -735,11 +707,7 @@
                 
             } catch(e) {
                 console.error('Error loading attendance:', e);
-                if (e.message.includes('index')) {
-                    alert('Please create the required indexes. Follow the instructions at the top of the page to create composite indexes for the attendance collection.');
-                } else {
-                    alert('Error loading attendance: ' + e.message);
-                }
+                alert('Error loading attendance: ' + e.message);
             } finally {
                 hideLoading();
             }
@@ -792,10 +760,10 @@
                                             </td>
                                             <td>${student.admissionNo || student.id.substring(0, 8).toUpperCase()}</td>
                                             <td style="text-align: center;">
-                                                <input type="radio" name="status_${student.id}" value="present" ${status === 'present' ? 'checked' : ''} class="attendance-checkbox" onchange="updateAttendance('${student.id}', 'present')">
+                                                <input type="radio" name="status_${student.id}" value="present" ${status === 'present' ? 'checked' : ''} onchange="updateAttendance('${student.id}', 'present')">
                                             </td>
                                             <td style="text-align: center;">
-                                                <input type="radio" name="status_${student.id}" value="absent" ${status === 'absent' ? 'checked' : ''} class="attendance-checkbox" onchange="updateAttendance('${student.id}', 'absent')">
+                                                <input type="radio" name="status_${student.id}" value="absent" ${status === 'absent' ? 'checked' : ''} onchange="updateAttendance('${student.id}', 'absent')">
                                             </td>
                                             <td>
                                                 <span class="status-badge status-${status}">${status === 'present' ? '✓ Present' : '✗ Absent'}</span>
@@ -852,18 +820,22 @@
             
             showLoading();
             try {
+                // Get existing records for this class
                 const existingSnap = await db.collection('attendance')
                     .where('classId', '==', className)
-                    .where('date', '==', date)
-                    .where('session', '==', session)
                     .get();
                 
                 const batch = db.batch();
                 
+                // Delete only records that match date and session
                 existingSnap.forEach(doc => {
-                    batch.delete(doc.ref);
+                    const data = doc.data();
+                    if (data.date === date && data.session === session) {
+                        batch.delete(doc.ref);
+                    }
                 });
                 
+                // Add new attendance records
                 for (const student of students) {
                     const status = currentAttendance[student.id] || 'present';
                     const remarkInput = document.getElementById(`remark_${student.id}`);
@@ -930,6 +902,13 @@
                 userData = userDoc.data();
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                
+                // Debug: Log user data
+                console.log('Teacher User Data:', userData);
+                console.log('classTeaching:', userData.classTeaching);
+                console.log('approved:', userData.approved);
+                console.log('status:', userData.status);
+                
                 await loadClasses();
             } catch(e) {
                 console.error(e);
