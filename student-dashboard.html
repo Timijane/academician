@@ -538,7 +538,7 @@
                     <div class="table-responsive">
                         <table>
                             <thead><tr><th>Subject</th><th>Title</th><th>Due Date</th><th>Status</th><th>Action</th></tr></thead>
-                            <tbody id="recentAssignmentsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                            <tbody id="recentAssignmentsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                         </table>
                     </div>
                 </div>
@@ -549,9 +549,9 @@
                         <a href="student-tests.html">View All <i class="fas fa-arrow-right"></i></a>
                     </div>
                     <div class="table-responsive">
-                        <tr>
+                        <table>
                             <thead><tr><th>Subject</th><th>Test Title</th><th>Duration</th><th>Status</th><th>Action</th></tr></thead>
-                            <tbody id="availableTestsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                            <tbody id="availableTestsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                         </table>
                     </div>
                 </div>
@@ -564,9 +564,9 @@
                         <a href="student-results.html">View All <i class="fas fa-arrow-right"></i></a>
                     </div>
                     <div class="table-responsive">
-                        </table>
+                        <table>
                             <thead><tr><th>Assessment</th><th>Subject</th><th>Score</th><th>Grade</th><th>Date</th></tr></thead>
-                            <tbody id="recentResultsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                            <tbody id="recentResultsBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                         </table>
                     </div>
                 </div>
@@ -594,9 +594,9 @@
                 <a href="student-results.html">View History <i class="fas fa-arrow-right"></i></a>
             </div>
             <div class="table-responsive">
-                </table>
+                <table>
                     <thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Score</th><th>Status</th></tr></thead>
-                    <tbody id="recentActivityBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+                    <tbody id="recentActivityBody"><tr><td colspan="5" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr><\/tbody>
                 </table>
             </div>
         </div>
@@ -678,25 +678,21 @@
                 const studentClass = userData.class;
                 const now = new Date();
                 
-                // Initialize all data containers
                 let pendingAssignments = 0;
                 let pendingTests = 0;
                 let pendingExams = 0;
                 let completedAssignments = 0;
-                let completedTests = 0;
                 let assignmentScores = [];
                 let testScores = [];
                 let examScores = [];
                 const recentAssignments = [];
                 const availableTests = [];
-                const availableExams = [];
                 const results = [];
                 const activities = [];
                 
                 let attendancePresent = 0;
                 let attendanceTotal = 0;
                 
-                // Get all data in parallel with error handling for each
                 let assignmentsSnap = { docs: [] };
                 let submissionsSnap = { docs: [] };
                 let testsSnap = { docs: [] };
@@ -761,7 +757,7 @@
                 
                 document.getElementById('pendingAssignments').textContent = pendingAssignments;
                 document.getElementById('completedAssignments').textContent = completedAssignments;
-                document.getElementById('recentAssignmentsBody').innerHTML = recentAssignments.length ? recentAssignments.join('') : '<tr><td colspan="5">No assignments found</td></tr>';
+                document.getElementById('recentAssignmentsBody').innerHTML = recentAssignments.length ? recentAssignments.join('') : '<tr><td colspan="5">No assignments found<\/td><\/tr>';
 
                 // Process Tests
                 const submittedTestIds = new Set();
@@ -769,7 +765,6 @@
                     const data = doc.data();
                     submittedTestIds.add(data.testId);
                     if (data.score !== undefined) {
-                        completedTests++;
                         testScores.push(data.score);
                     }
                 });
@@ -786,9 +781,9 @@
                             <tr>
                                 <td>${escapeHtml(t.subject || 'N/A')}</td>
                                 <td>${escapeHtml(t.title || 'Untitled')}</td>
-                                <td>${t.duration || t.timeLimit || 30} min</td>
+                                <td>${t.duration || t.timeLimit || 30} min</div></td>
                                 <td><span class="badge ${badgeClass}">${status}</span></td>
-                                <td>${!isTaken ? `<a href="student-take-test.html?id=${doc.id}" class="btn btn-primary btn-sm">Start</a>` : `<a href="student-test-results.html?id=${doc.id}" class="btn btn-outline btn-sm">Results</a>`}</td>
+                                <td>${!isTaken ? `<a href="student-take-test.html?id=${doc.id}" class="btn btn-primary btn-sm">Start</a>` : `<a href="student-test-results.html?id=${doc.id}" class="btn btn-outline btn-sm">Results</a>`}</div></td>
                             </tr>
                         `);
                     }
@@ -808,25 +803,11 @@
                     const e = doc.data();
                     const isTaken = submittedExamIds.has(doc.id);
                     if (!isTaken && e.status === 'published') pendingExams++;
-                    
-                    if (availableExams.length < 5 && e.status === 'published') {
-                        const status = isTaken ? (examSubmissionsSnap.docs.find(s => s.data().gradeReleased === true && s.data().examId === doc.id) ? 'Completed' : 'Pending Grade') : 'Available';
-                        const badgeClass = status === 'Completed' ? 'badge-success' : (status === 'Pending Grade' ? 'badge-warning' : 'badge-info');
-                        availableExams.push(`
-                            <tr>
-                                <td>${escapeHtml(e.subject || 'N/A')}</td>
-                                <td>${escapeHtml(e.title || 'Untitled')}</td>
-                                <td>${e.duration || 120} min</td>
-                                <td><span class="badge ${badgeClass}">${status}</span></td>
-                                <td>${!isTaken ? `<a href="student-take-exam.html?id=${doc.id}" class="btn btn-primary btn-sm">Start</a>` : `<a href="student-exam-results.html?id=${doc.id}" class="btn btn-outline btn-sm">View Results</a>`}</td>
-                            </tr>
-                        `);
-                    }
                 }
                 
                 document.getElementById('pendingTests').textContent = pendingTests;
                 document.getElementById('pendingExams').textContent = pendingExams;
-                document.getElementById('availableTestsBody').innerHTML = availableTests.length ? availableTests.join('') : '<tr><td colspan="5">No tests available</td></tr>';
+                document.getElementById('availableTestsBody').innerHTML = availableTests.length ? availableTests.join('') : '<tr><td colspan="5">No tests available<\/td><\/tr>';
 
                 // Calculate average score
                 const allScores = [...assignmentScores, ...testScores, ...examScores];
@@ -839,15 +820,13 @@
                     const total = s.totalPoints || 100;
                     const percentage = (s.score / total) * 100;
                     const grade = percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
-                    results.push(`
-                        <tr>
-                            <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</td>
-                            <td>${escapeHtml(s.subject || 'N/A')}</td>
-                            <td>${s.score}/${total} (${percentage.toFixed(1)}%)</td>
-                            <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
-                            <td>${s.gradedAt ? new Date(s.gradedAt.toDate()).toLocaleDateString() : '—'}</td>
-                        </tr>
-                    `);
+                    results.push(`<tr>
+                        <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</div></td>
+                        <td>${escapeHtml(s.subject || 'N/A')}</div></td>
+                        <td>${s.score}/${total} (${percentage.toFixed(1)}%)</div></td>
+                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></div></td>
+                        <td>${s.gradedAt ? new Date(s.gradedAt.toDate()).toLocaleDateString() : '—'}</div></td>
+                    </tr>`);
                 }
                 
                 for (const doc of testSubmissionsSnap.docs.filter(d => d.data().score !== undefined && d.data().gradeReleased === true).slice(0, 5)) {
@@ -855,15 +834,13 @@
                     const total = t.totalPoints || 100;
                     const percentage = (t.score / total) * 100;
                     const grade = percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
-                    results.push(`
-                        <tr>
-                            <td>Test: ${escapeHtml(t.testTitle || 'CBT Test')}</td>
-                            <td>${escapeHtml(t.subject || 'N/A')}</td>
-                            <td>${t.score}/${total} (${percentage.toFixed(1)}%)</td>
-                            <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
-                            <td>${t.submittedAt ? new Date(t.submittedAt.toDate()).toLocaleDateString() : '—'}</td>
-                        </tr>
-                    `);
+                    results.push(`<tr>
+                        <td>Test: ${escapeHtml(t.testTitle || 'CBT Test')}</div></td>
+                        <td>${escapeHtml(t.subject || 'N/A')}</div></td>
+                        <td>${t.score}/${total} (${percentage.toFixed(1)}%)</div></td>
+                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></div></td>
+                        <td>${t.submittedAt ? new Date(t.submittedAt.toDate()).toLocaleDateString() : '—'}</div></td>
+                    </tr>`);
                 }
                 
                 for (const doc of examSubmissionsSnap.docs.filter(d => d.data().gradeReleased === true).slice(0, 5)) {
@@ -871,18 +848,16 @@
                     const total = e.totalPoints || 100;
                     const percentage = e.percentage || ((e.score / total) * 100);
                     const grade = e.grade || (percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F');
-                    results.push(`
-                        <tr>
-                            <td>Exam: ${escapeHtml(e.examTitle || 'Exam')}</td>
-                            <td>${escapeHtml(e.subject || 'N/A')}</td>
-                            <td>${e.score}/${total} (${percentage.toFixed(1)}%)</td>
-                            <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></td>
-                            <td>${e.submittedAt ? new Date(e.submittedAt.toDate()).toLocaleDateString() : '—'}</td>
-                        </tr>
-                    `);
+                    results.push(`<tr>
+                        <td>Exam: ${escapeHtml(e.examTitle || 'Exam')}</div></td>
+                        <td>${escapeHtml(e.subject || 'N/A')}</div></td>
+                        <td>${e.score}/${total} (${percentage.toFixed(1)}%)</div></td>
+                        <td><span class="badge ${grade === 'F' ? 'badge-danger' : 'badge-info'}">${grade}</span></div></td>
+                        <td>${e.submittedAt ? new Date(e.submittedAt.toDate()).toLocaleDateString() : '—'}</div></td>
+                    </tr>`);
                 }
                 
-                document.getElementById('recentResultsBody').innerHTML = results.length ? results.slice(0, 5).join('') : '<tr><td colspan="5">No results yet</td></tr>';
+                document.getElementById('recentResultsBody').innerHTML = results.length ? results.slice(0, 5).join('') : '<tr><td colspan="5">No results yet<\/td><\/tr>';
 
                 // Process Attendance
                 attSnap.forEach(doc => { if (doc.data().status === 'present') attendancePresent++; });
@@ -932,15 +907,14 @@
                 
                 const activityHtml = activities.slice(0, 10).map(act => `
                     <tr>
-                        <td>${act.date ? new Date(act.date.toDate()).toLocaleDateString() : '—'}</td>
-                        <td>${act.type}</td>
-                        <td>${escapeHtml(act.title)}</td>
-                        <td>${act.score}</td>
-                        <td><span class="badge badge-success">${act.status}</span></td>
-                    </tr>
-                `).join('');
+                        <td>${act.date ? new Date(act.date.toDate()).toLocaleDateString() : '—'}</div></td>
+                        <td>${act.type}</div></td>
+                        <td>${escapeHtml(act.title)}</div></td>
+                        <td>${act.score}</div></td>
+                        <td><span class="badge badge-success">${act.status}</span></div></td>
+                    </tr>`).join('');
                 
-                document.getElementById('recentActivityBody').innerHTML = activityHtml || '<tr><td colspan="5">No recent activity</td></tr>';
+                document.getElementById('recentActivityBody').innerHTML = activityHtml || '<tr><td colspan="5">No recent activity<\/td><\/tr>';
 
                 // Pending tasks total
                 document.getElementById('pendingTasks').textContent = pendingAssignments + pendingTests + pendingExams;
@@ -949,30 +923,38 @@
                 const chartScores = [...assignmentScores, ...testScores, ...examScores].slice(-10);
                 if (performanceChart) performanceChart.destroy();
                 const ctx = document.getElementById('performanceChart').getContext('2d');
-                performanceChart = new Chart(ctx, {
-                    type: 'line',
-                    data: { 
-                        labels: chartScores.map((_, i) => `#${i+1}`), 
-                        datasets: [{ 
-                            label: 'Score (%)', 
-                            data: chartScores, 
-                            borderColor: '#3b82f6', 
-                            backgroundColor: 'rgba(59,130,246,0.1)', 
-                            fill: true, 
-                            tension: 0.4 
-                        }] 
-                    },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: true, 
-                        plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw}%` } } }, 
-                        scales: { y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } } } 
-                    }
-                });
+                if (chartScores.length > 0) {
+                    performanceChart = new Chart(ctx, {
+                        type: 'line',
+                        data: { 
+                            labels: chartScores.map((_, i) => `#${i+1}`), 
+                            datasets: [{ 
+                                label: 'Score (%)', 
+                                data: chartScores, 
+                                borderColor: '#3b82f6', 
+                                backgroundColor: 'rgba(59,130,246,0.1)', 
+                                fill: true, 
+                                tension: 0.4 
+                            }] 
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: true, 
+                            plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw}%` } } }, 
+                            scales: { y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } } } 
+                        }
+                    });
+                } else {
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                    ctx.fillStyle = '#1e293b';
+                    ctx.font = '12px Inter';
+                    ctx.fillText('No performance data available', 20, 100);
+                }
 
             } catch(e) {
                 console.error('Error loading dashboard:', e);
-                const errorMsg = '<tr><td colspan="5" style="text-align: center; color: var(--danger-text);">Error loading data. Please refresh.</td></tr>';
+                const errorMsg = '<tr><td colspan="5" style="text-align: center; color: var(--danger-text);">Error loading data. Please refresh.<\/td><\/tr>';
                 document.getElementById('recentAssignmentsBody').innerHTML = errorMsg;
                 document.getElementById('availableTestsBody').innerHTML = errorMsg;
                 document.getElementById('recentResultsBody').innerHTML = errorMsg;
