@@ -13,7 +13,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
-            --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.95); --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --bg-primary: #f0f5fa; --bg-sidebar: rgba(255,255,255,0.75); --text-primary: #0b1e33; --text-secondary: #2c3e50;
             --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7);
             --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
             --success-bg: #dcfce7; --success-text: #16a34a; --warning-bg: #fef9c3; --warning-text: #ca8a04;
@@ -72,6 +72,11 @@
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
         .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
 
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; }
+        .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.95rem; }
+        .form-control:focus { outline: none; border-color: var(--accent); }
+
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
         .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem; text-align: center; }
         .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); }
@@ -92,25 +97,28 @@
         .badge-unused { background: var(--success-bg); color: var(--success-text); }
         .badge-expired { background: var(--warning-bg); color: var(--warning-text); }
 
-        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
         .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
         .btn-success { background: var(--success-text); color: white; }
         .btn-danger { background: var(--danger-text); color: white; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
 
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:1.5rem; padding:1.5rem; max-width:500px; width:90%; }
+        .modal-content { background: var(--card-bg); border:1px solid var(--border); border-radius:1.5rem; padding:1.5rem; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
         .loading-content { background: var(--card-bg); padding:2rem; border-radius:1.5rem; text-align:center; }
 
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
             .main-content { margin-left: 80px; padding: 1rem; }
+            .grid-3 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -119,7 +127,7 @@
     <div class="orb orb-2"></div>
 
     <div class="sidebar" id="sidebar">
-        <div class="logo-area"><i class="fas fa-shield-alt"></i><h2>Admin Panel</h2></div>
+        <div class="logo-area"><i class="fas fa-shield-alt"></i><h2>EduTop</h2></div>
         <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
         <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
         <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
@@ -146,12 +154,12 @@
                 <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
                 <div class="profile-dropdown">
                     <div class="profile-trigger"><span class="profile-name" id="profileName">Admin</span><div class="profile-pic" id="profilePic">A</div></div>
-                    <div class="dropdown-menu"><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
                 </div>
             </div>
         </div>
 
-        <!-- Stats -->
+        <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-value" id="totalPins">0</div><div>Total PINs Generated</div></div>
             <div class="stat-card"><div class="stat-value" id="usedPins">0</div><div>Used PINs</div></div>
@@ -160,47 +168,29 @@
             <div class="stat-card"><div class="stat-value" id="revenue">₦0</div><div>Total Revenue</div></div>
         </div>
 
-        <!-- Actions -->
+        <!-- Generate PINs Section -->
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-plus-circle"></i> Generate New PINs</h3>
             </div>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Number of PINs</label>
-                    <input type="number" id="pinCount" class="form-control" value="10" min="1" max="500">
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>PIN Value (₦)</label>
-                    <input type="number" id="pinPrice" class="form-control" value="500" min="100">
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Class</label>
-                    <select id="pinClass" class="form-control">
-                        <option value="">All Classes</option>
-                    </select>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Session</label>
-                    <select id="pinSession" class="form-control">
-                        <option>2023/2024</option>
-                        <option selected>2024/2025</option>
-                        <option>2025/2026</option>
-                    </select>
-                </div>
+            <div class="grid-3">
+                <div class="form-group"><label>Number of PINs</label><input type="number" id="pinCount" class="form-control" value="10" min="1" max="500"></div>
+                <div class="form-group"><label>PIN Value (₦)</label><input type="number" id="pinPrice" class="form-control" value="500" min="100"></div>
+                <div class="form-group"><label>Class (Optional)</label><select id="pinClass" class="form-control"><option value="">All Classes</option></select></div>
+                <div class="form-group"><label>Session</label><select id="pinSession" class="form-control"><option>2023/2024</option><option selected>2024/2025</option><option>2025/2026</option></select></div>
+                <div class="form-group"><label>Term (Optional)</label><select id="pinTerm" class="form-control"><option value="">All Terms</option><option value="first">First Term</option><option value="second">Second Term</option><option value="third">Third Term</option></select></div>
+                <div class="form-group"><label>Student (Optional)</label><select id="pinStudent" class="form-control"><option value="">All Students</option></select></div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                 <button class="btn btn-primary" id="generatePinsBtn"><i class="fas fa-qrcode"></i> Generate PINs</button>
+                <button class="btn btn-outline" id="bulkUploadBtn"><i class="fas fa-upload"></i> Bulk Upload CSV</button>
             </div>
         </div>
 
         <!-- Filters -->
         <div class="filter-bar">
             <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Search by student name or PIN..."></div>
-            <select id="statusFilter" class="filter-select">
-                <option value="all">All Status</option>
-                <option value="unused">Unused</option>
-                <option value="used">Used</option>
-                <option value="expired">Expired</option>
-            </select>
+            <select id="statusFilter" class="filter-select"><option value="all">All Status</option><option value="unused">Unused</option><option value="used">Used</option><option value="expired">Expired</option></select>
             <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
             <button class="btn btn-outline" id="exportBtn"><i class="fas fa-file-excel"></i> Export CSV</button>
         </div>
@@ -209,16 +199,30 @@
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-list"></i> Generated PINs</h3>
+                <span id="pinsCount" class="badge badge-info">0 pins</span>
             </div>
             <div class="table-responsive">
                 <table id="pinsTable">
                     <thead>
                         <tr>
-                            <th>PIN Code</th><th>Student Name</th><th>Class</th><th>Session/Term</th><th>Value</th><th>Status</th><th>Used Date</th><th>Actions</th>
+                            <th>PIN Code</th><th>Student Name</th><th>Class</th><th>Session/Term</th><th>Value</th><th>Status</th><th>Generated By</th><th>Used Date</th><th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="pinsBody"><tr><td colspan="8" style="text-align: center;">Loading...</td></tr></tbody>
+                    <tbody id="pinsBody"><tr><td colspan="9" style="text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN Generation Result Modal -->
+    <div class="modal-overlay" id="pinResultModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3><i class="fas fa-check-circle"></i> PINs Generated</h3><i class="fas fa-times" style="cursor: pointer;" onclick="closePinResultModal()"></i></div>
+            <div id="pinResultList"></div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="copyPins()"><i class="fas fa-copy"></i> Copy All</button>
+                <button class="btn btn-primary" onclick="downloadPinsCSV()"><i class="fas fa-download"></i> Download CSV</button>
+                <button class="btn btn-outline" onclick="closePinResultModal()">Close</button>
             </div>
         </div>
     </div>
@@ -226,23 +230,20 @@
     <!-- Bulk Upload Modal -->
     <div class="modal-overlay" id="bulkModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-upload"></i> Bulk Upload PINs</h3>
-                <i class="fas fa-times" style="cursor: pointer;" onclick="closeBulkModal()"></i>
-            </div>
-            <p>Upload a CSV file with student IDs to generate PINs in bulk.</p>
-            <p style="font-size: 0.8rem;">CSV format: student_id, student_name, class</p>
+            <div class="modal-header"><h3><i class="fas fa-upload"></i> Bulk Upload Students</h3><i class="fas fa-times" style="cursor: pointer;" onclick="closeBulkModal()"></i></div>
+            <p>Upload a CSV file with student details to generate PINs in bulk.</p>
+            <p style="font-size: 0.8rem; margin-top: 0.5rem;">CSV format: <code>student_id,student_name,class,admission_no</code></p>
             <input type="file" id="csvFile" accept=".csv" class="form-control" style="margin: 1rem 0;">
+            <div class="form-group"><label>PIN Value (₦)</label><input type="number" id="bulkPinPrice" class="form-control" value="500"></div>
+            <div class="form-group"><label>Session</label><select id="bulkSession" class="form-control"><option>2024/2025</option></select></div>
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                 <button class="btn btn-outline" onclick="closeBulkModal()">Cancel</button>
-                <button class="btn btn-primary" id="uploadCsvBtn">Upload & Generate</button>
+                <button class="btn btn-primary" id="processBulkBtn">Process & Generate</button>
             </div>
         </div>
     </div>
 
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div>
-    </div>
+    <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div></div>
 
     <script>
         const firebaseConfig = {
@@ -277,25 +278,30 @@
 
         let currentUser = null, userData = null;
         let allPins = [];
+        let lastGeneratedPins = [];
 
         function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        function generateUniquePin() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+            let pin = '';
+            for (let i = 0; i < 10; i++) { pin += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            return pin;
+        }
 
         async function loadPins() {
             showLoading();
             try {
                 const snap = await db.collection('reportPins').orderBy('createdAt', 'desc').get();
                 allPins = [];
-                snap.forEach(doc => {
-                    allPins.push({ id: doc.id, ...doc.data() });
-                });
+                snap.forEach(doc => { allPins.push({ id: doc.id, ...doc.data() }); });
                 updateStats();
                 renderPins();
-            } catch(e) {
-                console.error('Error loading pins:', e);
-            } finally {
-                hideLoading();
-            }
+                document.getElementById('pinsCount').textContent = `${allPins.length} pins`;
+            } catch(e) { console.error('Error loading pins:', e); alert('Error loading pins: ' + e.message); }
+            finally { hideLoading(); }
         }
 
         function updateStats() {
@@ -304,7 +310,6 @@
             const unused = allPins.filter(p => p.isUsed === false && (!p.expiresAt || p.expiresAt.toDate() > new Date())).length;
             const expired = allPins.filter(p => p.expiresAt && p.expiresAt.toDate() < new Date() && !p.isUsed).length;
             const revenue = allPins.filter(p => p.isUsed === true).reduce((sum, p) => sum + (p.price || 500), 0);
-            
             document.getElementById('totalPins').textContent = total;
             document.getElementById('usedPins').textContent = used;
             document.getElementById('unusedPins').textContent = unused;
@@ -315,89 +320,58 @@
         function renderPins() {
             const statusFilter = document.getElementById('statusFilter').value;
             const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            
             let filtered = allPins.filter(p => {
                 if (statusFilter !== 'all') {
                     if (statusFilter === 'unused' && (p.isUsed === true || (p.expiresAt && p.expiresAt.toDate() < new Date()))) return false;
                     if (statusFilter === 'used' && p.isUsed !== true) return false;
                     if (statusFilter === 'expired' && (!p.expiresAt || p.expiresAt.toDate() > new Date() || p.isUsed)) return false;
                 }
-                if (searchQuery && !`${p.pin} ${p.studentName} ${p.classId}`.toLowerCase().includes(searchQuery)) return false;
+                if (searchQuery && !`${p.pin} ${p.studentName || ''} ${p.classId || ''}`.toLowerCase().includes(searchQuery)) return false;
                 return true;
             });
-            
             const tbody = document.getElementById('pinsBody');
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No PINs found</td></tr>';
-                return;
-            }
-            
+            if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No PINs found</td></tr>'; return; }
             const termNames = { first: '1st', second: '2nd', third: '3rd' };
-            
             tbody.innerHTML = filtered.map(p => {
-                let statusBadge = '';
-                let statusText = '';
-                if (p.isUsed) {
-                    statusBadge = 'badge-used';
-                    statusText = 'Used';
-                } else if (p.expiresAt && p.expiresAt.toDate() < new Date()) {
-                    statusBadge = 'badge-expired';
-                    statusText = 'Expired';
-                } else {
-                    statusBadge = 'badge-unused';
-                    statusText = 'Available';
-                }
-                
-                return `
-                    <tr>
-                        <td><code>${p.pin}</code></td>
-                        <td>${p.studentName || 'Not assigned'}</td>
-                        <td>${p.classId || 'All classes'}</td>
-                        <td>${p.session || 'N/A'} ${p.term ? `(${termNames[p.term]} Term)` : ''}</td>
-                        <td>₦${p.price || 500}</td>
-                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
-                        <td>${p.usedAt ? new Date(p.usedAt.toDate()).toLocaleDateString() : '-'}</td>
-                        <td>
-                            <button class="btn btn-outline btn-sm" onclick="copyPin('${p.pin}')"><i class="fas fa-copy"></i></button>
-                            ${!p.isUsed ? `<button class="btn btn-danger btn-sm" onclick="deletePin('${p.id}')"><i class="fas fa-trash"></i></button>` : ''}
-                         </td>
-                     </tr>
-                `;
+                let statusBadge = '', statusText = '';
+                if (p.isUsed) { statusBadge = 'badge-used'; statusText = 'Used'; }
+                else if (p.expiresAt && p.expiresAt.toDate() < new Date()) { statusBadge = 'badge-expired'; statusText = 'Expired'; }
+                else { statusBadge = 'badge-unused'; statusText = 'Available'; }
+                return `<tr>
+                    <td><code>${escapeHtml(p.pin)}</code></td>
+                    <td>${escapeHtml(p.studentName || 'Not assigned')}</td>
+                    <td>${escapeHtml(p.classId || 'All classes')}</td>
+                    <td>${p.session || 'N/A'} ${p.term ? `(${termNames[p.term]} Term)` : ''}</td>
+                    <td>₦${p.price || 500}</td>
+                    <td><span class="badge ${statusBadge}">${statusText}</span></td>
+                    <td><small>${escapeHtml(p.generatedByName || 'Admin')}</small><br><small>${p.createdAt ? new Date(p.createdAt.toDate()).toLocaleDateString() : 'N/A'}</small></td>
+                    <td>${p.usedAt ? new Date(p.usedAt.toDate()).toLocaleDateString() : '-'}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="copyPin('${p.pin}')"><i class="fas fa-copy"></i></button> ${!p.isUsed ? `<button class="btn btn-danger btn-sm" onclick="deletePin('${p.id}')"><i class="fas fa-trash"></i></button>` : ''}</td>
+                </tr>`;
             }).join('');
         }
 
-        window.copyPin = (pin) => {
-            navigator.clipboard.writeText(pin);
-            alert('PIN copied to clipboard!');
-        };
+        window.copyPin = (pin) => { navigator.clipboard.writeText(pin); alert('PIN copied to clipboard!'); };
+        window.deletePin = async (pinId) => { if (!confirm('Delete this PIN? This action cannot be undone.')) return; showLoading(); try { await db.collection('reportPins').doc(pinId).delete(); await logAudit('PIN_DELETED', { pinId }); loadPins(); } catch(e) { alert('Error: ' + e.message); } finally { hideLoading(); } };
 
-        window.deletePin = async (pinId) => {
-            if (!confirm('Delete this PIN? This action cannot be undone.')) return;
-            showLoading();
-            try {
-                await db.collection('reportPins').doc(pinId).delete();
-                loadPins();
-            } catch(e) {
-                alert('Error: ' + e.message);
-            } finally {
-                hideLoading();
-            }
-        };
-
-        document.getElementById('generatePinsBtn').addEventListener('click', async () => {
+        async function generatePins() {
             const count = parseInt(document.getElementById('pinCount').value);
             const price = parseInt(document.getElementById('pinPrice').value);
             const classId = document.getElementById('pinClass').value;
             const session = document.getElementById('pinSession').value;
-            
+            const term = document.getElementById('pinTerm').value;
+            const studentId = document.getElementById('pinStudent').value;
+            let studentName = '';
+            if (studentId) {
+                const studentDoc = await db.collection('users').doc(studentId).get();
+                if (studentDoc.exists) studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim();
+            }
             if (!count || count < 1) { alert('Please enter valid number of PINs'); return; }
             if (!confirm(`Generate ${count} PINs worth ₦${(price * count).toLocaleString()}?`)) return;
-            
             showLoading();
             try {
                 const batch = db.batch();
                 const pins = [];
-                
                 for (let i = 0; i < count; i++) {
                     const pin = generateUniquePin();
                     const pinRef = db.collection('reportPins').doc(pin);
@@ -405,44 +379,69 @@
                     batch.set(pinRef, {
                         pin: pin,
                         classId: classId || null,
+                        studentId: studentId || null,
+                        studentName: studentName || null,
                         session: session,
+                        term: term || null,
                         price: price,
                         isUsed: false,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 90 days
+                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+                        generatedBy: currentUser.uid,
+                        generatedByName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                        generationType: 'admin_bulk'
                     });
                 }
-                
                 await batch.commit();
-                alert(`Generated ${count} PINs successfully!\n\nPINs: ${pins.join(', ')}`);
+                await logAudit('PINS_GENERATED', { count, totalValue: price * count, session, term });
+                lastGeneratedPins = pins;
+                document.getElementById('pinResultList').innerHTML = `<h4>Generated ${pins.length} PINs</h4><div style="display: grid; gap: 0.5rem; max-height: 300px; overflow-y: auto;">${pins.map(p => `<code style="padding: 0.5rem; background: var(--hover-bg); border-radius: 0.5rem; display: block;">${p}</code>`).join('')}</div>`;
+                document.getElementById('pinResultModal').classList.add('active');
                 loadPins();
-            } catch(e) {
-                alert('Error: ' + e.message);
-            } finally {
-                hideLoading();
-            }
-        });
-        
-        function generateUniquePin() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
-            let pin = '';
-            for (let i = 0; i < 10; i++) {
-                pin += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return pin;
+            } catch(e) { alert('Error: ' + e.message); } finally { hideLoading(); }
         }
-        
+
+        async function logAudit(action, details = {}) {
+            try {
+                await db.collection('auditLogs').add({
+                    action: action,
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                    userEmail: userData.email || currentUser.email,
+                    details: details,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch(e) { console.error('Audit log error:', e); }
+        }
+
+        window.copyPins = () => { navigator.clipboard.writeText(lastGeneratedPins.join('\n')); alert('PINs copied to clipboard!'); };
+        window.downloadPinsCSV = () => { const csv = 'PIN Code\n' + lastGeneratedPins.join('\n'); const blob = new Blob([csv], { type: 'text/csv' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `pins_${new Date().toISOString().split('T')[0]}.csv`; link.click(); URL.revokeObjectURL(link.href); };
+        window.closePinResultModal = () => document.getElementById('pinResultModal').classList.remove('active');
+        window.closeBulkModal = () => document.getElementById('bulkModal').classList.remove('active');
+
+        async function loadClassesAndStudents() {
+            try {
+                const classesSnap = await db.collection('users').where('role', '==', 'teacher').get();
+                const classes = new Set();
+                classesSnap.forEach(doc => { const cls = doc.data().classTeaching; if (cls) classes.add(cls); });
+                const classSelect = document.getElementById('pinClass');
+                classes.forEach(cls => { classSelect.innerHTML += `<option value="${cls}">${cls.toUpperCase()}</option>`; });
+                const studentsSnap = await db.collection('users').where('role', '==', 'student').get();
+                const studentSelect = document.getElementById('pinStudent');
+                studentSelect.innerHTML = '<option value="">All Students</option>';
+                studentsSnap.forEach(doc => { const data = doc.data(); studentSelect.innerHTML += `<option value="${doc.id}">${data.firstName || ''} ${data.surname || ''} (${data.admissionNo || 'N/A'})</option>`; });
+            } catch(e) { console.error('Error loading data:', e); }
+        }
+
+        document.getElementById('generatePinsBtn').addEventListener('click', generatePins);
+        document.getElementById('bulkUploadBtn').addEventListener('click', () => document.getElementById('bulkModal').classList.add('active'));
         document.getElementById('statusFilter').addEventListener('change', renderPins);
         document.getElementById('searchInput').addEventListener('input', renderPins);
         document.getElementById('refreshBtn').addEventListener('click', loadPins);
-        
         document.getElementById('exportBtn').addEventListener('click', () => {
-            const headers = ['PIN Code', 'Student Name', 'Class', 'Session', 'Term', 'Value (₦)', 'Status', 'Used Date'];
-            const rows = allPins.map(p => [
-                p.pin, p.studentName || 'Not assigned', p.classId || 'All', p.session || 'N/A', 
-                p.term || 'N/A', p.price || 500, p.isUsed ? 'Used' : (p.expiresAt && p.expiresAt.toDate() < new Date() ? 'Expired' : 'Available'),
-                p.usedAt ? new Date(p.usedAt.toDate()).toLocaleDateString() : ''
-            ]);
+            const headers = ['PIN Code', 'Student Name', 'Class', 'Session', 'Term', 'Value (₦)', 'Status', 'Generated By', 'Used Date'];
+            const rows = allPins.map(p => [p.pin, p.studentName || 'Not assigned', p.classId || 'All', p.session || 'N/A', p.term || 'N/A', p.price || 500, p.isUsed ? 'Used' : (p.expiresAt && p.expiresAt.toDate() < new Date() ? 'Expired' : 'Available'), p.generatedByName || 'Admin', p.usedAt ? new Date(p.usedAt.toDate()).toLocaleDateString() : '']);
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const link = document.createElement('a');
@@ -451,34 +450,57 @@
             link.click();
             URL.revokeObjectURL(link.href);
         });
-        
+
+        document.getElementById('processBulkBtn').addEventListener('click', async () => {
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) { alert('Please select a CSV file'); return; }
+            const price = parseInt(document.getElementById('bulkPinPrice').value);
+            const session = document.getElementById('bulkSession').value;
+            showLoading();
+            try {
+                const text = await file.text();
+                const lines = text.split('\n').slice(1);
+                const batch = db.batch();
+                const pins = [];
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    const parts = line.split(',');
+                    const studentId = parts[0]?.trim();
+                    const studentName = parts[1]?.trim();
+                    const className = parts[2]?.trim();
+                    if (!studentId) continue;
+                    const pin = generateUniquePin();
+                    pins.push(pin);
+                    batch.set(db.collection('reportPins').doc(pin), {
+                        pin: pin, studentId: studentId, studentName: studentName, classId: className, session: session, price: price,
+                        isUsed: false, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+                        generatedBy: currentUser.uid, generatedByName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                        generationType: 'bulk_upload'
+                    });
+                }
+                await batch.commit();
+                await logAudit('BULK_PINS_GENERATED', { count: pins.length, totalValue: price * pins.length });
+                alert(`Generated ${pins.length} PINs successfully!`);
+                closeBulkModal();
+                loadPins();
+            } catch(e) { alert('Error processing CSV: ' + e.message); } finally { hideLoading(); }
+        });
+
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'admin-login.html'; return; }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists || !['master-admin', 'admin'].includes(userDoc.data().role)) { auth.signOut(); window.location.href = 'index.html'; return; }
-                currentUser = user;
-                userData = userDoc.data();
+                currentUser = user; userData = userDoc.data();
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'A') + (userData.surname?.[0] || 'A');
                 document.getElementById('profileName').textContent = userData.firstName || 'Admin';
-                
-                // Load classes for filter
-                const classesSnap = await db.collection('users').where('role', '==', 'teacher').get();
-                const classes = new Set();
-                classesSnap.forEach(doc => {
-                    const cls = doc.data().classTeaching;
-                    if (cls) classes.add(cls);
-                });
-                const classSelect = document.getElementById('pinClass');
-                classes.forEach(cls => {
-                    classSelect.innerHTML += `<option value="${cls}">${cls.toUpperCase()}</option>`;
-                });
-                
-                loadPins();
+                await loadClassesAndStudents();
+                await loadPins();
             } catch(e) { console.error(e); }
         });
-        
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='admin-profile.html');
     </script>
 </body>
 </html>
