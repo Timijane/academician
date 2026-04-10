@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Timetable Approvals | Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa;
+            --bg-sidebar: rgba(255,255,255,0.75);
+            --text-primary: #0b1e33;
+            --text-secondary: #2c3e50;
+            --accent: #1e3c72;
+            --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7);
+            --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: #dcfce7;
+            --success-text: #16a34a;
+            --warning-bg: #fef9c3;
+            --warning-text: #ca8a04;
+            --danger-bg: #fee2e2;
+            --danger-text: #dc2626;
+            --info-bg: #dbeafe;
+            --info-text: #2563eb;
+            --gradient-start: #1e3c72;
+            --gradient-end: #2a5298;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e;
+            --bg-sidebar: rgba(15,23,42,0.8);
+            --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9;
+            --accent: #3b82f6;
+            --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15,23,42,0.6);
+            --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            transition: all 0.3s;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .orb {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            animation: float 25s infinite alternate ease-in-out;
+        }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.2); }
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; padding: 0 0.5rem; }
+        .sidebar .logo-area i { font-size: 2.4rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.2rem; border-radius: 1.2rem; color: var(--text-secondary); transition: all 0.2s; cursor: pointer; margin-bottom: 0.4rem; text-decoration: none; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); transform: translateX(5px); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 8px 20px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.3rem; width: 1.8rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            transition: margin-left 0.3s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+            z-index: 5;
+        }
+        .main-content.expanded { margin-left: 90px; }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem; box-shadow: 0 2px 10px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--bg-sidebar); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+        .stat-label { color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem; }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;
+            background: var(--card-bg); backdrop-filter: blur(8px); padding: 1rem 1.5rem; border-radius: 3rem; border: 1px solid var(--border);
+        }
+        .search-box { flex: 1; min-width: 200px; position: relative; }
+        .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); }
+        .filter-select { padding: 0.75rem 1rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-approved { background: var(--success-bg); color: var(--success-text); }
+        .badge-rejected { background: var(--danger-bg); color: var(--danger-text); }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .section-header h3 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+        td { padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: top; }
+
+        .timetable-preview {
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+        }
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .timetable-day {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+        }
+        .timetable-day h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        .timetable-period {
+            font-size: 0.7rem;
+            padding: 0.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.3rem; color: var(--text-secondary); font-weight: 500; font-size: 0.85rem; }
+        .form-control {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+        }
+        textarea.form-control { resize: vertical; }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .filter-bar { flex-direction: column; }
+            .timetable-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-shield-alt"></i><h2>Admin Panel</h2></div>
+        <a href="admin-dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+        <a href="admin-users.html" class="nav-item"><i class="fas fa-users"></i><span>Users</span></a>
+        <a href="admin-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approvals</span></a>
+        <a href="admin-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="admin-timetable-approval.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable Approvals</span></a>
+        <a href="admin-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="admin-payments.html" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
+        <a href="admin-report-approval.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Cards</span></a>
+        <a href="admin-pins.html" class="nav-item"><i class="fas fa-qrcode"></i><span>PIN Management</span></a>
+        <a href="admin-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="admin-calendar.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Calendar</span></a>
+        <a href="admin-audit.html" class="nav-item"><i class="fas fa-history"></i><span>Audit Logs</span></a>
+        <a href="admin-settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Timetable Approvals</h1>
+                <p>Review, approve, or reject timetables submitted by teachers</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Admin</span><div class="profile-pic" id="profilePic">A</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value" id="pendingCount">0</div><div class="stat-label">Pending</div></div>
+            <div class="stat-card"><div class="stat-value" id="approvedCount">0</div><div class="stat-label">Approved</div></div>
+            <div class="stat-card"><div class="stat-value" id="rejectedCount">0</div><div class="stat-label">Rejected</div></div>
+            <div class="stat-card"><div class="stat-value" id="totalCount">0</div><div class="stat-label">Total Submissions</div></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+            <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Search by teacher or class..."></div>
+            <select id="statusFilter" class="filter-select">
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+            <select id="classFilter" class="filter-select">
+                <option value="all">All Classes</option>
+            </select>
+            <button class="btn btn-outline" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <!-- Timetable Submissions List -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-list"></i> Timetable Submissions</h3>
+                <span id="submissionsCount" class="badge badge-info">0 submissions</span>
+            </div>
+            <div class="table-responsive">
+                <table id="submissionsTable">
+                    <thead>
+                        <tr>
+                            <th>Submitted Date</th>
+                            <th>Teacher</th>
+                            <th>Class</th>
+                            <th>Academic Session</th>
+                            <th>Term</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submissionsBody">
+                        <tr><td colspan="7" style="text-align: center; padding: 3rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div class="modal-overlay" id="reviewModal">
+        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> Review Timetable</h3>
+                <i class="fas fa-times" style="cursor: pointer;" onclick="closeReviewModal()"></i>
+            </div>
+            <div id="reviewContent"></div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Admin Remark</label>
+                <textarea id="adminRemark" class="form-control" rows="3" placeholder="Enter remarks for the teacher..."></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <button class="btn btn-outline" onclick="closeReviewModal()">Cancel</button>
+                <button class="btn btn-danger" id="rejectBtn">Reject</button>
+                <button class="btn btn-success" id="approveBtn">Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div>
+    </div>
+
+    <script>
+        // ==================== CORRECT FIREBASE CONFIG ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        let currentUser = null, userData = null;
+        let allSubmissions = [];
+        let currentSubmission = null;
+
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+        async function loadSubmissions() {
+            showLoading();
+            try {
+                const snap = await db.collection('timetableProposals')
+                    .orderBy('submittedAt', 'desc')
+                    .get();
+                
+                allSubmissions = [];
+                const classesSet = new Set();
+                
+                for (const doc of snap.docs) {
+                    const data = doc.data();
+                    allSubmissions.push({ id: doc.id, ...data });
+                    if (data.classId) classesSet.add(data.classId);
+                }
+                
+                // Populate class filter
+                const classFilter = document.getElementById('classFilter');
+                classFilter.innerHTML = '<option value="all">All Classes</option>';
+                Array.from(classesSet).sort().forEach(cls => {
+                    classFilter.innerHTML += `<option value="${cls}">${cls.toUpperCase()}</option>`;
+                });
+                
+                updateStats();
+                renderSubmissions();
+            } catch(e) {
+                console.error('Error loading submissions:', e);
+                document.getElementById('submissionsBody').innerHTML = `<td><td colspan="7" style="text-align: center; color: var(--danger-text);">Error loading: ${e.message}</td></tr>`;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function updateStats() {
+            const pending = allSubmissions.filter(s => s.status === 'pending').length;
+            const approved = allSubmissions.filter(s => s.status === 'approved').length;
+            const rejected = allSubmissions.filter(s => s.status === 'rejected').length;
+            
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('approvedCount').textContent = approved;
+            document.getElementById('rejectedCount').textContent = rejected;
+            document.getElementById('totalCount').textContent = allSubmissions.length;
+            document.getElementById('submissionsCount').textContent = `${allSubmissions.length} submissions`;
+        }
+
+        function renderSubmissions() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const classFilter = document.getElementById('classFilter').value;
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = allSubmissions.filter(s => {
+                if (statusFilter !== 'all' && s.status !== statusFilter) return false;
+                if (classFilter !== 'all' && s.classId !== classFilter) return false;
+                if (searchQuery && !`${s.teacherName} ${s.classId}`.toLowerCase().includes(searchQuery)) return false;
+                return true;
+            });
+            
+            const tbody = document.getElementById('submissionsBody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No submissions found</td></tr>';
+                return;
+            }
+            
+            const statusBadges = {
+                pending: '<span class="badge badge-pending"><i class="fas fa-clock"></i> Pending</span>',
+                approved: '<span class="badge badge-approved"><i class="fas fa-check-circle"></i> Approved</span>',
+                rejected: '<span class="badge badge-rejected"><i class="fas fa-times-circle"></i> Rejected</span>'
+            };
+            
+            tbody.innerHTML = filtered.map(sub => `
+                <tr>
+                    <td>${sub.submittedAt ? new Date(sub.submittedAt.toDate()).toLocaleDateString() : 'N/A'}</td>
+                    <td><strong>${escapeHtml(sub.teacherName || 'Unknown')}</strong></td>
+                    <td>${escapeHtml(sub.classId?.toUpperCase() || 'N/A')}</td>
+                    <td>${escapeHtml(sub.session || 'N/A')}</td>
+                    <td>${escapeHtml(sub.term || 'N/A')}</td>
+                    <td>${statusBadges[sub.status] || statusBadges.pending}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="viewSubmission('${sub.id}')"><i class="fas fa-eye"></i> Review</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.viewSubmission = async (submissionId) => {
+            currentSubmission = allSubmissions.find(s => s.id === submissionId);
+            if (!currentSubmission) return;
+            
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+            const periods = currentSubmission.periods || ['8:00 - 9:00', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '12:00 - 1:00', '1:00 - 2:00', '2:00 - 3:00'];
+            const timetable = currentSubmission.timetable || {};
+            
+            let timetableHtml = `
+                <div class="timetable-preview">
+                    <p><strong>Teacher:</strong> ${escapeHtml(currentSubmission.teacherName)}</p>
+                    <p><strong>Class:</strong> ${escapeHtml(currentSubmission.classId?.toUpperCase())}</p>
+                    <p><strong>Session:</strong> ${escapeHtml(currentSubmission.session)} | <strong>Term:</strong> ${escapeHtml(currentSubmission.term)}</p>
+                    <p><strong>Submitted:</strong> ${currentSubmission.submittedAt ? new Date(currentSubmission.submittedAt.toDate()).toLocaleString() : 'N/A'}</p>
+                    ${currentSubmission.teacherRemark ? `<p><strong>Teacher's Remark:</strong> ${escapeHtml(currentSubmission.teacherRemark)}</p>` : ''}
+                    
+                    <div style="margin-top: 1rem;">
+                        <h4>Timetable Schedule</h4>
+                        <div class="timetable-grid">
+                            <div class="timetable-day"><h4>Time</h4></div>
+                            ${days.map(day => `<div class="timetable-day"><h4>${day}</h4></div>`).join('')}
+                            
+                            ${periods.map((period, periodIdx) => `
+                                <div class="timetable-day" style="background: var(--hover-bg);"><strong>${period}</strong></div>
+                                ${days.map(day => {
+                                    const subject = timetable[day]?.[periodIdx] || '';
+                                    return `<div class="timetable-period">${subject || '—'}</div>`;
+                                }).join('')}
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('reviewContent').innerHTML = timetableHtml;
+            document.getElementById('adminRemark').value = currentSubmission.adminRemark || '';
+            document.getElementById('reviewModal').classList.add('active');
+            
+            document.getElementById('approveBtn').onclick = () => approveSubmission(submissionId);
+            document.getElementById('rejectBtn').onclick = () => rejectSubmission(submissionId);
+        };
+
+        async function approveSubmission(submissionId) {
+            const adminRemark = document.getElementById('adminRemark').value;
+            if (!confirm('Approve this timetable? It will be published for students to view.')) return;
+            
+            showLoading();
+            try {
+                await db.collection('timetableProposals').doc(submissionId).update({
+                    status: 'approved',
+                    adminRemark: adminRemark,
+                    approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    approvedBy: currentUser.uid,
+                    approvedByName: `${userData?.firstName || ''} ${userData?.surname || ''}`.trim()
+                });
+                
+                // Also save to published timetables collection
+                const submission = allSubmissions.find(s => s.id === submissionId);
+                if (submission) {
+                    await db.collection('timetables').doc(submissionId).set({
+                        ...submission,
+                        status: 'published',
+                        publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        publishedBy: currentUser.uid
+                    });
+                }
+                
+                await db.collection('auditLogs').add({
+                    action: 'TIMETABLE_APPROVED',
+                    adminId: currentUser.uid,
+                    adminName: `${userData?.firstName || ''} ${userData?.surname || ''}`.trim(),
+                    submissionId: submissionId,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Timetable approved and published successfully!');
+                closeReviewModal();
+                loadSubmissions();
+            } catch(e) {
+                alert('Error: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function rejectSubmission(submissionId) {
+            const adminRemark = document.getElementById('adminRemark').value;
+            if (!adminRemark) {
+                alert('Please provide a reason for rejection');
+                return;
+            }
+            if (!confirm('Reject this timetable? The teacher will need to make corrections.')) return;
+            
+            showLoading();
+            try {
+                await db.collection('timetableProposals').doc(submissionId).update({
+                    status: 'rejected',
+                    adminRemark: adminRemark,
+                    rejectionReason: adminRemark,
+                    rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    rejectedBy: currentUser.uid
+                });
+                
+                await db.collection('auditLogs').add({
+                    action: 'TIMETABLE_REJECTED',
+                    adminId: currentUser.uid,
+                    adminName: `${userData?.firstName || ''} ${userData?.surname || ''}`.trim(),
+                    submissionId: submissionId,
+                    reason: adminRemark,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Timetable rejected. Teacher has been notified.');
+                closeReviewModal();
+                loadSubmissions();
+            } catch(e) {
+                alert('Error: ' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.remove('active');
+            currentSubmission = null;
+        }
+        
+        document.getElementById('statusFilter').addEventListener('change', renderSubmissions);
+        document.getElementById('classFilter').addEventListener('change', renderSubmissions);
+        document.getElementById('searchInput').addEventListener('input', renderSubmissions);
+        document.getElementById('refreshBtn').addEventListener('click', loadSubmissions);
+        
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'admin-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || !['master-admin', 'admin'].includes(userDoc.data().role)) {
+                    auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+                currentUser = user;
+                userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'A') + (userData.surname?.[0] || 'A');
+                document.getElementById('profileName').textContent = userData.firstName || 'Admin';
+                loadSubmissions();
+            } catch(e) { console.error(e); }
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='admin-profile.html');
+        
+        window.closeReviewModal = closeReviewModal;
+    </script>
+</body>
+</html>
