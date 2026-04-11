@@ -116,9 +116,6 @@
         .loading-overlay.active { display: flex; }
         .loading-content { background: var(--card-bg); padding:2rem; border-radius:1.5rem; text-align:center; }
 
-        .index-instructions { background: var(--warning-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--warning-text); }
-        .index-instructions code { background: var(--card-bg); padding: 0.2rem 0.4rem; border-radius: 0.25rem; }
-
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
@@ -164,18 +161,6 @@
                     <div class="dropdown-menu"><div class="dropdown-item" id="profileLink"><i class="fas fa-user-edit"></i> Update Profile</div><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
                 </div>
             </div>
-        </div>
-
-        <!-- Index Instructions -->
-        <div class="index-instructions">
-            <i class="fas fa-database"></i> <strong>Required Index:</strong> If you see an index error, please create this index:
-            <br><br>
-            <strong>Collection:</strong> <code>examSubmissions</code><br>
-            <strong>Fields:</strong> <code>examId</code> (Ascending)
-            <br><br>
-            <a href="https://console.firebase.google.com/project/triangle-6e6b7/firestore/indexes" target="_blank" style="color: var(--accent);">→ Click here to open Firebase Console → Indexes</a>
-            <br>
-            Then click <strong>"Create Composite Index"</strong> and add <code>examId</code> as Ascending.
         </div>
 
         <!-- Selectors -->
@@ -313,10 +298,9 @@
                 currentExam = { id: examDoc.id, ...examDoc.data() };
                 examQuestions = currentExam.questions || [];
                 
-                // Get ALL exam submissions first (without where clause to avoid index issues)
+                // Get ALL exam submissions and filter in JavaScript (no index needed)
                 const allSubmissionsSnap = await db.collection('examSubmissions').get();
                 
-                // Filter in JavaScript instead of using where clause
                 allSubmissions = [];
                 allSubmissionsSnap.forEach(doc => {
                     const data = doc.data();
@@ -425,7 +409,6 @@
             
             renderGradingContent(submission);
             
-            // Highlight selected submission
             document.querySelectorAll('.submission-item').forEach((el, i) => {
                 if (i === currentSubmissionIndex) el.classList.add('selected');
                 else el.classList.remove('selected');
@@ -494,7 +477,6 @@
                 `;
             });
             
-            // Add total score section
             html += `
                 <div style="margin-top: 1rem; padding: 1rem; background: var(--hover-bg); border-radius: 1rem;">
                     <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -516,7 +498,6 @@
             
             container.innerHTML = html;
             
-            // Add event listeners for theory score inputs
             examQuestions.forEach((question, qIdx) => {
                 if (question.type === 'theory') {
                     const scoreInput = document.getElementById(`theory_score_${qIdx}`);
@@ -597,7 +578,6 @@
                 
                 await db.collection('examSubmissions').doc(submission.id).update(updateData);
                 
-                // Update local submission data
                 currentSubmissions[currentSubmissionIndex].score = totalScore;
                 currentSubmissions[currentSubmissionIndex].percentage = percentage;
                 currentSubmissions[currentSubmissionIndex].grade = grade;
