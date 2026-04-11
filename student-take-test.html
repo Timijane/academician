@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop · CBT Examination | JAMB Standard</title>
+    <title>EduTop · Take Test | Student Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -50,8 +50,6 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
         .test-info { display: flex; gap: 1.5rem; font-size: 0.85rem; flex-wrap: wrap; }
-        .test-info span { color: var(--text-secondary); }
-        .test-info strong { color: var(--text-primary); margin-left: 0.5rem; }
 
         .main-container { max-width: 1400px; margin: 0 auto; padding: 6rem 2rem 2rem; }
 
@@ -75,7 +73,6 @@
             flex-wrap: wrap; gap: 1rem;
         }
         .question-counter { font-weight: 700; font-size: 1.1rem; color: var(--accent); }
-        .negative-info { font-size: 0.8rem; background: var(--warning-bg); padding: 0.25rem 0.75rem; border-radius: 2rem; color: var(--warning-text); }
         .question-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem; }
         .options-list { display: flex; flex-direction: column; gap: 1rem; }
         .option-item {
@@ -90,6 +87,9 @@
             background: var(--bg-primary); border-radius: 50%; font-weight: 800; font-size: 1.2rem; color: var(--accent);
         }
         .option-text { flex: 1; font-size: 0.95rem; line-height: 1.5; }
+
+        .theory-answer { width: 100%; padding: 1rem; background: var(--input-bg); border: 2px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 1rem; margin-top: 1rem; font-family: inherit; resize: vertical; }
+        .fill-input { width: 100%; padding: 1rem; background: var(--input-bg); border: 2px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 1rem; margin-top: 1rem; }
 
         .nav-panel {
             background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
@@ -106,6 +106,7 @@
         .nav-question.current { background: var(--accent); color: white; border-color: var(--accent); transform: scale(1.1); }
         .nav-question.flagged { background: var(--warning-bg); border-color: var(--warning-text); position: relative; }
         .nav-question.flagged::after { content: "⚑"; position: absolute; top: -5px; right: -5px; font-size: 10px; color: var(--warning-text); }
+        .nav-question.theory { background: var(--info-bg); border-color: var(--info-text); }
 
         .legend { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
         .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; }
@@ -124,7 +125,8 @@
         .warning-banner.show { display: flex; }
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
-        .fill-input { width: 100%; padding: 1rem; background: var(--input-bg); border: 2px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 1rem; margin-top: 1rem; }
+
+        .info-badge { background: var(--info-bg); color: var(--info-text); padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
 
         @media (max-width: 768px) {
             .timer-bar { flex-direction: column; padding: 0.5rem 1rem; }
@@ -278,28 +280,41 @@
 
             const existingAnswer = studentAnswers.find(a => a.questionIndex === currentQuestionIndex);
             const selectedAnswer = existingAnswer ? existingAnswer.answer : null;
+            const points = currentQuestion.points || 1;
 
             let optionsHtml = '';
             const letters = ['A', 'B', 'C', 'D'];
             
             if (currentQuestion.type === 'multiple' || currentQuestion.type === 'mcq') {
                 const options = currentQuestion.options || [];
-                options.forEach((opt, idx) => {
-                    const letter = letters[idx];
-                    optionsHtml += `<div class="option-item ${selectedAnswer === opt ? 'selected' : ''}" onclick="selectAnswer('${escapeHtml(opt).replace(/'/g, "\\'")}')">
-                        <div class="option-letter">${letter}</div>
+                optionsHtml = `<div class="options-list">${options.map((opt, idx) => `
+                    <div class="option-item ${selectedAnswer === opt ? 'selected' : ''}" onclick="selectAnswer('${escapeHtml(opt).replace(/'/g, "\\'")}')">
+                        <div class="option-letter">${letters[idx]}</div>
                         <div class="option-text">${escapeHtml(opt)}</div>
-                    </div>`;
-                });
+                    </div>
+                `).join('')}</div>`;
             } else if (currentQuestion.type === 'boolean' || currentQuestion.type === 'truefalse') {
                 optionsHtml = `
-                    <div class="option-item ${selectedAnswer === 'True' ? 'selected' : ''}" onclick="selectAnswer('True')"><div class="option-letter">T</div><div class="option-text">True</div></div>
-                    <div class="option-item ${selectedAnswer === 'False' ? 'selected' : ''}" onclick="selectAnswer('False')"><div class="option-letter">F</div><div class="option-text">False</div></div>
+                    <div class="options-list">
+                        <div class="option-item ${selectedAnswer === 'True' ? 'selected' : ''}" onclick="selectAnswer('True')"><div class="option-letter">T</div><div class="option-text">True</div></div>
+                        <div class="option-item ${selectedAnswer === 'False' ? 'selected' : ''}" onclick="selectAnswer('False')"><div class="option-letter">F</div><div class="option-text">False</div></div>
+                    </div>
                 `;
             } else if (currentQuestion.type === 'text' || currentQuestion.type === 'fillblank') {
                 optionsHtml = `<input type="text" class="fill-input" id="fillAnswer" placeholder="Type your answer..." value="${escapeHtml(selectedAnswer || '')}">`;
                 setTimeout(() => {
                     const input = document.getElementById('fillAnswer');
+                    if (input) input.addEventListener('input', (e) => selectAnswer(e.target.value));
+                }, 100);
+            } else if (currentQuestion.type === 'theory') {
+                optionsHtml = `
+                    <div class="info-badge">
+                        <i class="fas fa-info-circle"></i> This is an essay question worth ${points} point(s). Write a detailed answer.
+                    </div>
+                    <textarea class="theory-answer" id="theoryAnswer" rows="8" placeholder="Write your answer here. Be detailed and specific.">${escapeHtml(selectedAnswer || '')}</textarea>
+                `;
+                setTimeout(() => {
+                    const input = document.getElementById('theoryAnswer');
                     if (input) input.addEventListener('input', (e) => selectAnswer(e.target.value));
                 }, 100);
             }
@@ -308,17 +323,19 @@
                 <div class="two-column-layout">
                     <div class="question-area">
                         <div class="question-nav-header">
-                            <div class="question-counter">Question ${currentQuestionIndex + 1} of ${questions.length}</div>
+                            <div class="question-counter">
+                                Question ${currentQuestionIndex + 1} of ${questions.length}
+                                <span class="badge badge-info" style="margin-left: 0.5rem; background: var(--info-bg); color: var(--info-text);">${points} ${points === 1 ? 'point' : 'points'}</span>
+                            </div>
                             <div>
                                 <button class="btn btn-outline" style="padding: 0.3rem 1rem;" onclick="toggleFlagQuestion()">
                                     <i class="fas fa-flag ${flaggedQuestions.includes(currentQuestionIndex) ? 'fa-solid' : 'fa-regular'}"></i>
                                     ${flaggedQuestions.includes(currentQuestionIndex) ? 'Flagged' : 'Flag'}
                                 </button>
-                                <span class="negative-info"><i class="fas fa-ban"></i> ${testData.negativeMarking ? '-0.25 per wrong' : 'No negative marking'}</span>
                             </div>
                         </div>
                         <div class="question-text">${escapeHtml(currentQuestion.question)}</div>
-                        <div class="options-list">${optionsHtml}</div>
+                        ${optionsHtml}
                     </div>
                     <div class="nav-panel">
                         <h3><i class="fas fa-th"></i> Question Palette</h3>
@@ -328,6 +345,7 @@
                             <div class="legend-item"><div class="legend-color" style="background: var(--success-bg);"></div> Answered</div>
                             <div class="legend-item"><div class="legend-color" style="background: var(--warning-bg);"></div> Flagged</div>
                             <div class="legend-item"><div class="legend-color" style="background: var(--accent);"></div> Current</div>
+                            <div class="legend-item"><div class="legend-color" style="background: var(--info-bg);"></div> Theory/Essay</div>
                         </div>
                     </div>
                 </div>
@@ -347,7 +365,7 @@
             const grid = document.getElementById('questionGrid');
             if (!grid) return;
             let html = '';
-            questions.forEach((_, idx) => {
+            questions.forEach((q, idx) => {
                 const isAnswered = studentAnswers.some(a => a.questionIndex === idx);
                 const isFlagged = flaggedQuestions.includes(idx);
                 const isCurrent = idx === currentQuestionIndex;
@@ -355,6 +373,7 @@
                 if (isAnswered) classes += ' answered';
                 if (isFlagged) classes += ' flagged';
                 if (isCurrent) classes += ' current';
+                if (q.type === 'theory') classes += ' theory';
                 html += `<div class="${classes}" onclick="goToQuestion(${idx})">${idx + 1}</div>`;
             });
             grid.innerHTML = html;
@@ -380,61 +399,54 @@
         window.closeAutoSubmitModal = () => { document.getElementById('autoSubmitModal').classList.remove('active'); };
         window.closeTabSwitchModal = () => { document.getElementById('tabSwitchModal').classList.remove('active'); };
 
-        // FIXED: Calculate score correctly
         function calculateScore() {
-            let totalPoints = 0, correctCount = 0, wrongCount = 0;
-            
-            console.log('=== SCORE CALCULATION DEBUG ===');
+            let totalPoints = 0, correctCount = 0, wrongCount = 0, theoryCount = 0;
             
             testData.questions.forEach((q, idx) => {
-                const studentAnswerObj = studentAnswers.find(a => a.questionIndex === idx);
-                const studentAnswer = studentAnswerObj ? studentAnswerObj.answer : null;
-                
-                let isCorrect = false;
-                let correctAnswerText = '';
+                const answer = studentAnswers.find(a => a.questionIndex === idx);
+                const studentAnswer = answer ? answer.answer : null;
+                const points = q.points || 1;
                 
                 if (q.type === 'multiple' || q.type === 'mcq') {
-                    // q.correct is the INDEX (0,1,2,3) of the correct option
-                    correctAnswerText = q.options[q.correct];
-                    if (studentAnswer) {
-                        isCorrect = studentAnswer === correctAnswerText;
+                    const correctOptionText = q.options[q.correct];
+                    if (studentAnswer && studentAnswer === correctOptionText) {
+                        totalPoints += points;
+                        correctCount++;
+                    } else if (studentAnswer) {
+                        wrongCount++;
+                    } else {
+                        wrongCount++;
                     }
                 } else if (q.type === 'boolean' || q.type === 'truefalse') {
-                    // q.correct is 1 for True, 0 for False
-                    correctAnswerText = q.correct === 1 ? 'True' : 'False';
-                    if (studentAnswer) {
-                        isCorrect = studentAnswer === correctAnswerText;
+                    const correctAnswer = q.correct === 1 ? 'True' : 'False';
+                    if (studentAnswer && studentAnswer === correctAnswer) {
+                        totalPoints += points;
+                        correctCount++;
+                    } else if (studentAnswer) {
+                        wrongCount++;
+                    } else {
+                        wrongCount++;
                     }
                 } else if (q.type === 'text' || q.type === 'fillblank') {
-                    correctAnswerText = q.correct;
-                    if (studentAnswer) {
-                        isCorrect = studentAnswer.toLowerCase().trim() === correctAnswerText.toLowerCase().trim();
+                    if (studentAnswer && studentAnswer.toLowerCase().trim() === q.correct.toLowerCase().trim()) {
+                        totalPoints += points;
+                        correctCount++;
+                    } else if (studentAnswer) {
+                        wrongCount++;
+                    } else {
+                        wrongCount++;
                     }
-                }
-                
-                if (isCorrect) {
-                    const points = q.points || 1;
-                    totalPoints += points;
-                    correctCount++;
-                } else if (studentAnswer) {
-                    wrongCount++;
-                } else {
-                    wrongCount++;
+                } else if (q.type === 'theory') {
+                    theoryCount++;
                 }
             });
             
             let finalScore = totalPoints;
             if (testData.negativeMarking) {
-                const penalty = wrongCount * 0.25;
-                finalScore = Math.max(0, totalPoints - penalty);
+                finalScore = Math.max(0, totalPoints - (wrongCount * 0.25));
             }
             
-            return { 
-                score: finalScore, 
-                correctCount, 
-                wrongCount, 
-                totalPoints: testData.totalPoints || 100 
-            };
+            return { score: finalScore, correctCount, wrongCount, theoryCount, totalPoints: testData.totalPoints || 100 };
         }
 
         async function submitTest() {
@@ -443,7 +455,7 @@
             clearInterval(timerInterval);
             showLoading();
 
-            const { score, correctCount, wrongCount, totalPoints } = calculateScore();
+            const { score, correctCount, wrongCount, theoryCount, totalPoints } = calculateScore();
             const percentage = (score / totalPoints) * 100;
             let grade = 'F';
             if (percentage >= 75) grade = 'A';
@@ -451,7 +463,6 @@
             else if (percentage >= 50) grade = 'C';
             else if (percentage >= 40) grade = 'D';
 
-            // Format answers for storage
             const formattedAnswers = studentAnswers.map(a => {
                 const question = testData.questions[a.questionIndex];
                 let correctAnswer = '';
@@ -460,6 +471,8 @@
                     correctAnswer = question.options[question.correct];
                 } else if (question.type === 'boolean' || question.type === 'truefalse') {
                     correctAnswer = question.correct === 1 ? 'True' : 'False';
+                } else if (question.type === 'theory') {
+                    correctAnswer = question.sampleAnswer || 'To be graded manually';
                 } else {
                     correctAnswer = question.correct;
                 }
@@ -470,7 +483,8 @@
                     correctAnswer: correctAnswer,
                     question: question.question,
                     points: question.points || 1,
-                    isCorrect: a.answer === correctAnswer
+                    type: question.type,
+                    isCorrect: false
                 };
             });
 
@@ -482,7 +496,7 @@
                 testTitle: testData.title,
                 subject: testData.subject,
                 weeksCovered: testData.weeksCovered || [1],
-                duration: testData.duration || 30,
+                duration: testData.duration || testData.timeLimit || 30,
                 teacherId: testData.teacherId,
                 classId: testData.classId,
                 answers: formattedAnswers,
@@ -492,7 +506,10 @@
                 grade: grade,
                 correctCount: correctCount,
                 wrongCount: wrongCount,
+                theoryCount: theoryCount,
                 negativeMarking: testData.negativeMarking || false,
+                autoReleaseGrades: testData.autoReleaseGrades || false,
+                gradeReleased: testData.autoReleaseGrades || false,
                 submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 tabSwitchCount: tabSwitchCount,
                 status: 'submitted'
@@ -501,24 +518,11 @@
             try {
                 await db.collection('testSubmissions').add(submissionData);
                 
-                // If auto-release grades is enabled, also create testResults
-                if (testData.autoReleaseGrades) {
-                    await db.collection('testResults').add({
-                        testId: testId,
-                        studentId: currentUser.uid,
-                        studentName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
-                        score: score,
-                        totalPoints: totalPoints,
-                        percentage: percentage,
-                        grade: grade,
-                        gradeReleased: true,
-                        releasedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        teacherId: testData.teacherId,
-                        testTitle: testData.title
-                    });
+                let message = `Test submitted!\n\nScore: ${score}/${totalPoints} (${percentage.toFixed(1)}%)\nGrade: ${grade}`;
+                if (theoryCount > 0 && !testData.autoReleaseGrades) {
+                    message += `\n\nNote: ${theoryCount} theory question(s) will be graded by your teacher.`;
                 }
-                
-                alert(`Test submitted!\n\nScore: ${score}/${totalPoints} (${percentage.toFixed(1)}%)\nGrade: ${grade}`);
+                alert(message);
                 window.location.href = 'student-dashboard.html';
             } catch (error) {
                 console.error('Submit error:', error);
@@ -563,7 +567,6 @@
 
                 testData = { id: testDoc.id, ...testDocData };
 
-                // Check if already taken
                 const existingSub = await db.collection('testSubmissions')
                     .where('testId', '==', testId)
                     .where('studentId', '==', currentUser.uid)
@@ -575,21 +578,20 @@
                     return; 
                 }
 
-                // Display header
                 document.getElementById('testTitle').textContent = testData.title;
                 const weeksText = (testData.weeksCovered || [1]).join(', ');
-                const durationMins = testData.duration || 30;
+                const durationMins = testData.duration || testData.timeLimit || 30;
                 
                 document.getElementById('testMeta').innerHTML = `
                     <div class="meta-item"><i class="fas fa-book"></i> Subject: <strong>${escapeHtml(testData.subject)}</strong></div>
                     <div class="meta-item"><i class="fas fa-calendar-week"></i> Weeks: <strong>${weeksText}</strong></div>
                     <div class="meta-item"><i class="fas fa-star"></i> Points: <strong>${testData.totalPoints || 100}</strong></div>
                     <div class="meta-item"><i class="fas fa-hourglass-half"></i> Time: <strong>${durationMins} mins</strong></div>
-                    ${testData.negativeMarking ? '<div class="meta-item"><i class="fas fa-ban"></i> Negative Marking: <strong>-0.25 per wrong</strong></div>' : ''}
                     <div class="meta-item"><i class="fas fa-question-circle"></i> Questions: <strong>${(testData.questions || []).length}</strong></div>
+                    ${testData.negativeMarking ? '<div class="meta-item"><i class="fas fa-ban"></i> Negative Marking: <strong>-0.25 per wrong</strong></div>' : ''}
                 `;
+                document.getElementById('testInfo').innerHTML = `<span><i class="fas fa-user"></i> ${escapeHtml(userData.firstName || 'Student')} ${escapeHtml(userData.surname || '')}</span>`;
 
-                // Randomize if enabled
                 let questions = [...(testData.questions || [])];
                 if (testData.randomizeQuestions) questions = shuffleArray(questions);
                 if (testData.randomizeOptions) {
