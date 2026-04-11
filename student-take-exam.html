@@ -18,7 +18,7 @@
             --success-bg: #dcfce7; --success-text: #16a34a; --warning-bg: #fef9c3;
             --warning-text: #ca8a04; --danger-bg: #fee2e2; --danger-text: #dc2626;
             --info-bg: #dbeafe; --info-text: #2563eb; --timer-bg: #f1f5f9;
-            --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --gradient-start: #3b82f6; --gradient-end: #8b5cf6; --input-bg: #ffffff;
         }
 
         :root[data-theme="dark"] {
@@ -27,7 +27,7 @@
             --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.2);
             --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
             --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa; --timer-bg: #1e293b;
-            --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --gradient-start: #3b82f6; --gradient-end: #8b5cf6; --input-bg: #334155;
         }
 
         body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
@@ -46,6 +46,8 @@
             background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
+
+        .exam-info { display: flex; gap: 1.5rem; font-size: 0.85rem; flex-wrap: wrap; }
 
         .main-container { max-width: 1400px; margin: 0 auto; padding: 6rem 2rem 2rem; }
 
@@ -85,6 +87,7 @@
         .option-text { flex: 1; font-size: 0.95rem; line-height: 1.5; }
 
         .theory-answer { width: 100%; padding: 1rem; background: var(--input-bg); border: 2px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 1rem; margin-top: 1rem; font-family: inherit; resize: vertical; }
+        .fill-input { width: 100%; padding: 1rem; background: var(--input-bg); border: 2px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 1rem; margin-top: 1rem; }
 
         .nav-panel {
             background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem;
@@ -101,6 +104,7 @@
         .nav-question.current { background: var(--accent); color: white; border-color: var(--accent); transform: scale(1.1); }
         .nav-question.flagged { background: var(--warning-bg); border-color: var(--warning-text); position: relative; }
         .nav-question.flagged::after { content: "⚑"; position: absolute; top: -5px; right: -5px; font-size: 10px; color: var(--warning-text); }
+        .nav-question.theory { background: var(--info-bg); border-color: var(--info-text); }
 
         .legend { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
         .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; }
@@ -110,13 +114,17 @@
         .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 1rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
         .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 2rem; max-width: 500px; width: 90%; text-align: center; }
-
+        .warning-banner { background: var(--danger-bg); border-left: 4px solid var(--danger-text); padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 0.75rem; display: none; align-items: center; gap: 0.75rem; }
+        .warning-banner.show { display: flex; }
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
+
+        .info-badge { background: var(--info-bg); color: var(--info-text); padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
 
         @media (max-width: 768px) {
             .timer-bar { flex-direction: column; padding: 0.5rem 1rem; }
@@ -134,13 +142,15 @@
             <i class="fas fa-hourglass-half timer-icon"></i>
             <span class="timer-clock" id="timerDisplay">00:00:00</span>
         </div>
+        <div class="exam-info" id="examInfo"><span><i class="fas fa-book"></i> Loading...</span></div>
     </div>
 
     <div class="main-container">
-        <div class="exam-header" id="examHeader" style="display: none;">
-            <h1 class="exam-title" id="examTitle"></h1>
+        <div class="exam-header">
+            <h1 class="exam-title" id="examTitle">Loading Exam...</h1>
             <div class="exam-meta" id="examMeta"></div>
         </div>
+        <div class="warning-banner" id="warningBanner"><i class="fas fa-exclamation-triangle"></i><span id="warningMessage"></span></div>
         <div id="contentArea"></div>
     </div>
 
@@ -165,7 +175,9 @@
         </div>
     </div>
 
-    <div class="loading-overlay" id="loadingOverlay"><div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Loading Exam...</h3></div></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Loading Exam...</h3><p>Please wait</p></div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -176,16 +188,31 @@
             messagingSenderId: "673937760480",
             appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        let currentUser = null, examData = null, userData = null;
-        let studentAnswers = [], currentQuestionIndex = 0, flaggedQuestions = [];
-        let timerInterval = null, timeRemaining = 0, isSubmitted = false, examId = null;
+        let currentUser = null;
+        let examData = null;
+        let userData = null;
+        let studentAnswers = [];
+        let currentQuestionIndex = 0;
+        let flaggedQuestions = [];
+        let timerInterval = null;
+        let timeRemaining = 0;
+        let isSubmitted = false;
+        let tabSwitchCount = 0;
+        let examId = null;
 
         function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function showWarning(message) { 
+            document.getElementById('warningMessage').textContent = message; 
+            document.getElementById('warningBanner').classList.add('show'); 
+            setTimeout(() => document.getElementById('warningBanner').classList.remove('show'), 5000); 
+        }
+
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
 
@@ -195,8 +222,14 @@
             updateTimerDisplay();
             timerInterval = setInterval(() => {
                 if (isSubmitted) return;
-                if (timeRemaining <= 0) { clearInterval(timerInterval); autoSubmit(); }
-                else { timeRemaining--; updateTimerDisplay(); }
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    autoSubmit();
+                } else {
+                    timeRemaining--;
+                    updateTimerDisplay();
+                    if (timeRemaining === 60) showWarning(`⚠️ 1 minute remaining!`);
+                }
             }, 1000);
         }
 
@@ -206,7 +239,27 @@
             document.getElementById('timerDisplay').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:00`;
         }
 
-        function autoSubmit() { clearInterval(timerInterval); document.getElementById('autoSubmitModal').classList.add('active'); setTimeout(() => submitExam(), 2000); }
+        function autoSubmit() { 
+            clearInterval(timerInterval); 
+            document.getElementById('autoSubmitModal').classList.add('active'); 
+            setTimeout(() => submitExam(), 2000); 
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && !isSubmitted && examData) {
+                tabSwitchCount++;
+                if (tabSwitchCount >= 3) { 
+                    showWarning('⚠️ Multiple tab switches detected! Auto-submitting...'); 
+                    setTimeout(() => submitExam(), 3000); 
+                }
+            }
+        });
+
+        function disableCopyPaste() {
+            document.addEventListener('copy', (e) => { if (examData) { e.preventDefault(); showWarning('Copying is disabled'); } });
+            document.addEventListener('paste', (e) => { if (examData) { e.preventDefault(); showWarning('Pasting is disabled'); } });
+            document.addEventListener('contextmenu', (e) => { if (examData) { e.preventDefault(); } });
+        }
 
         function renderExam() {
             const questions = examData.questions || [];
@@ -215,6 +268,7 @@
 
             const existingAnswer = studentAnswers.find(a => a.questionIndex === currentQuestionIndex);
             const selectedAnswer = existingAnswer ? existingAnswer.answer : null;
+            const points = currentQuestion.points || 1;
 
             let optionsHtml = '';
             const letters = ['A', 'B', 'C', 'D'];
@@ -225,20 +279,48 @@
                     <div class="option-item ${selectedAnswer === opt ? 'selected' : ''}" onclick="selectAnswer('${escapeHtml(opt).replace(/'/g, "\\'")}')">
                         <div class="option-letter">${letters[idx]}</div>
                         <div class="option-text">${escapeHtml(opt)}</div>
-                    </div>`).join('')}</div>`;
+                    </div>
+                `).join('')}</div>`;
             } else if (currentQuestion.type === 'boolean' || currentQuestion.type === 'truefalse') {
-                optionsHtml = `<div class="options-list"><div class="option-item ${selectedAnswer === 'True' ? 'selected' : ''}" onclick="selectAnswer('True')"><div class="option-letter">T</div><div class="option-text">True</div></div><div class="option-item ${selectedAnswer === 'False' ? 'selected' : ''}" onclick="selectAnswer('False')"><div class="option-letter">F</div><div class="option-text">False</div></div></div>`;
+                optionsHtml = `
+                    <div class="options-list">
+                        <div class="option-item ${selectedAnswer === 'True' ? 'selected' : ''}" onclick="selectAnswer('True')"><div class="option-letter">T</div><div class="option-text">True</div></div>
+                        <div class="option-item ${selectedAnswer === 'False' ? 'selected' : ''}" onclick="selectAnswer('False')"><div class="option-letter">F</div><div class="option-text">False</div></div>
+                    </div>
+                `;
+            } else if (currentQuestion.type === 'text' || currentQuestion.type === 'fillblank') {
+                optionsHtml = `<input type="text" class="fill-input" id="fillAnswer" placeholder="Type your answer..." value="${escapeHtml(selectedAnswer || '')}">`;
+                setTimeout(() => {
+                    const input = document.getElementById('fillAnswer');
+                    if (input) input.addEventListener('input', (e) => selectAnswer(e.target.value));
+                }, 100);
             } else if (currentQuestion.type === 'theory') {
-                optionsHtml = `<textarea class="theory-answer" id="theoryAnswer" rows="6" placeholder="Write your answer here...">${escapeHtml(selectedAnswer || '')}</textarea>`;
-                setTimeout(() => { const input = document.getElementById('theoryAnswer'); if (input) input.addEventListener('input', (e) => selectAnswer(e.target.value)); }, 100);
+                optionsHtml = `
+                    <div class="info-badge">
+                        <i class="fas fa-info-circle"></i> This is an essay question worth ${points} point(s). Write a detailed answer.
+                    </div>
+                    <textarea class="theory-answer" id="theoryAnswer" rows="8" placeholder="Write your answer here. Be detailed and specific.">${escapeHtml(selectedAnswer || '')}</textarea>
+                `;
+                setTimeout(() => {
+                    const input = document.getElementById('theoryAnswer');
+                    if (input) input.addEventListener('input', (e) => selectAnswer(e.target.value));
+                }, 100);
             }
 
             document.getElementById('contentArea').innerHTML = `
                 <div class="two-column-layout">
                     <div class="question-area">
                         <div class="question-nav-header">
-                            <div class="question-counter">Question ${currentQuestionIndex + 1} of ${questions.length}</div>
-                            <div><button class="btn btn-outline" style="padding: 0.3rem 1rem;" onclick="toggleFlagQuestion()"><i class="fas fa-flag ${flaggedQuestions.includes(currentQuestionIndex) ? 'fa-solid' : 'fa-regular'}"></i>${flaggedQuestions.includes(currentQuestionIndex) ? 'Flagged' : 'Flag'}</button></div>
+                            <div class="question-counter">
+                                Question ${currentQuestionIndex + 1} of ${questions.length}
+                                <span class="badge badge-info" style="margin-left: 0.5rem; background: var(--info-bg); color: var(--info-text);">${points} ${points === 1 ? 'point' : 'points'}</span>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline" style="padding: 0.3rem 1rem;" onclick="toggleFlagQuestion()">
+                                    <i class="fas fa-flag ${flaggedQuestions.includes(currentQuestionIndex) ? 'fa-solid' : 'fa-regular'}"></i>
+                                    ${flaggedQuestions.includes(currentQuestionIndex) ? 'Flagged' : 'Flag'}
+                                </button>
+                            </div>
                         </div>
                         <div class="question-text">${escapeHtml(currentQuestion.question)}</div>
                         ${optionsHtml}
@@ -246,11 +328,20 @@
                     <div class="nav-panel">
                         <h3><i class="fas fa-th"></i> Question Palette</h3>
                         <div class="question-grid" id="questionGrid"></div>
-                        <div class="legend"><div class="legend-item"><div class="legend-color" style="background: var(--hover-bg);"></div> Not Visited</div><div class="legend-item"><div class="legend-color" style="background: var(--success-bg);"></div> Answered</div><div class="legend-item"><div class="legend-color" style="background: var(--warning-bg);"></div> Flagged</div><div class="legend-item"><div class="legend-color" style="background: var(--accent);"></div> Current</div></div>
+                        <div class="legend">
+                            <div class="legend-item"><div class="legend-color" style="background: var(--hover-bg);"></div> Not Visited</div>
+                            <div class="legend-item"><div class="legend-color" style="background: var(--success-bg);"></div> Answered</div>
+                            <div class="legend-item"><div class="legend-color" style="background: var(--warning-bg);"></div> Flagged</div>
+                            <div class="legend-item"><div class="legend-color" style="background: var(--accent);"></div> Current</div>
+                            <div class="legend-item"><div class="legend-color" style="background: var(--info-bg);"></div> Theory/Essay</div>
+                        </div>
                     </div>
                 </div>
                 <div class="action-buttons">
-                    <div><button class="btn btn-outline" onclick="previousQuestion()" ${currentQuestionIndex === 0 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i> Previous</button><button class="btn btn-outline" onclick="nextQuestion()" ${currentQuestionIndex === questions.length - 1 ? 'disabled' : ''}>Next <i class="fas fa-chevron-right"></i></button></div>
+                    <div>
+                        <button class="btn btn-outline" onclick="previousQuestion()" ${currentQuestionIndex === 0 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i> Previous</button>
+                        <button class="btn btn-outline" onclick="nextQuestion()" ${currentQuestionIndex === questions.length - 1 ? 'disabled' : ''}>Next <i class="fas fa-chevron-right"></i></button>
+                    </div>
                     <button class="btn btn-primary" onclick="openSubmitModal()"><i class="fas fa-paper-plane"></i> Submit Exam</button>
                 </div>
             `;
@@ -262,7 +353,7 @@
             const grid = document.getElementById('questionGrid');
             if (!grid) return;
             let html = '';
-            questions.forEach((_, idx) => {
+            questions.forEach((q, idx) => {
                 const isAnswered = studentAnswers.some(a => a.questionIndex === idx);
                 const isFlagged = flaggedQuestions.includes(idx);
                 const isCurrent = idx === currentQuestionIndex;
@@ -270,6 +361,7 @@
                 if (isAnswered) classes += ' answered';
                 if (isFlagged) classes += ' flagged';
                 if (isCurrent) classes += ' current';
+                if (q.type === 'theory') classes += ' theory';
                 html += `<div class="${classes}" onclick="goToQuestion(${idx})">${idx + 1}</div>`;
             });
             grid.innerHTML = html;
@@ -293,27 +385,54 @@
         window.openSubmitModal = () => { document.getElementById('submitModal').classList.add('active'); };
         window.closeSubmitModal = () => { document.getElementById('submitModal').classList.remove('active'); };
         window.closeAutoSubmitModal = () => { document.getElementById('autoSubmitModal').classList.remove('active'); };
-        window.confirmSubmit = () => { closeSubmitModal(); submitExam(); };
 
         function calculateScore() {
             let totalPoints = 0, correctCount = 0, wrongCount = 0, theoryCount = 0;
+            
             examData.questions.forEach((q, idx) => {
                 const answer = studentAnswers.find(a => a.questionIndex === idx);
                 const studentAnswer = answer ? answer.answer : null;
+                const points = q.points || 1;
+                
                 if (q.type === 'multiple' || q.type === 'mcq') {
                     const correctOptionText = q.options[q.correct];
-                    if (studentAnswer && studentAnswer === correctOptionText) { totalPoints += (q.points || 1); correctCount++; }
-                    else if (studentAnswer) wrongCount++;
-                    else wrongCount++;
+                    if (studentAnswer && studentAnswer === correctOptionText) {
+                        totalPoints += points;
+                        correctCount++;
+                    } else if (studentAnswer) {
+                        wrongCount++;
+                    } else {
+                        wrongCount++;
+                    }
                 } else if (q.type === 'boolean' || q.type === 'truefalse') {
                     const correctAnswer = q.correct === 1 ? 'True' : 'False';
-                    if (studentAnswer && studentAnswer === correctAnswer) { totalPoints += (q.points || 1); correctCount++; }
-                    else if (studentAnswer) wrongCount++;
-                    else wrongCount++;
-                } else if (q.type === 'theory') theoryCount++;
+                    if (studentAnswer && studentAnswer === correctAnswer) {
+                        totalPoints += points;
+                        correctCount++;
+                    } else if (studentAnswer) {
+                        wrongCount++;
+                    } else {
+                        wrongCount++;
+                    }
+                } else if (q.type === 'text' || q.type === 'fillblank') {
+                    if (studentAnswer && studentAnswer.toLowerCase().trim() === q.correct.toLowerCase().trim()) {
+                        totalPoints += points;
+                        correctCount++;
+                    } else if (studentAnswer) {
+                        wrongCount++;
+                    } else {
+                        wrongCount++;
+                    }
+                } else if (q.type === 'theory') {
+                    theoryCount++;
+                }
             });
+            
             let finalScore = totalPoints;
-            if (examData.negativeMarking) finalScore = Math.max(0, totalPoints - (wrongCount * 0.25));
+            if (examData.negativeMarking) {
+                finalScore = Math.max(0, totalPoints - (wrongCount * 0.25));
+            }
+            
             return { score: finalScore, correctCount, wrongCount, theoryCount, totalPoints: examData.totalPoints || 100 };
         }
 
@@ -334,77 +453,171 @@
             const formattedAnswers = studentAnswers.map(a => {
                 const question = examData.questions[a.questionIndex];
                 let correctAnswer = '';
-                if (question.type === 'multiple' || question.type === 'mcq') correctAnswer = question.options[question.correct];
-                else if (question.type === 'boolean' || question.type === 'truefalse') correctAnswer = question.correct === 1 ? 'True' : 'False';
-                else if (question.type === 'theory') correctAnswer = question.sampleAnswer || 'To be graded manually';
-                else correctAnswer = question.correct;
-                return { questionIndex: a.questionIndex, studentAnswer: a.answer, correctAnswer, question: question.question, points: question.points || 1, type: question.type };
+                
+                if (question.type === 'multiple' || question.type === 'mcq') {
+                    correctAnswer = question.options[question.correct];
+                } else if (question.type === 'boolean' || question.type === 'truefalse') {
+                    correctAnswer = question.correct === 1 ? 'True' : 'False';
+                } else if (question.type === 'theory') {
+                    correctAnswer = question.sampleAnswer || 'To be graded manually';
+                } else {
+                    correctAnswer = question.correct;
+                }
+                
+                return {
+                    questionIndex: a.questionIndex,
+                    studentAnswer: a.answer,
+                    correctAnswer: correctAnswer,
+                    question: question.question,
+                    points: question.points || 1,
+                    type: question.type,
+                    isCorrect: false
+                };
             });
 
             const submissionData = {
-                examId: examId, studentId: currentUser.uid, studentName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
-                examTitle: examData.title, subject: examData.subject, examType: examData.examType, weeksCovered: examData.weeksCovered || [1],
-                duration: examData.duration || 120, teacherId: examData.teacherId, classId: examData.classId,
-                answers: formattedAnswers, score: score, totalPoints: totalPoints, percentage: percentage.toFixed(2), grade: grade,
-                correctCount: correctCount, wrongCount: wrongCount, theoryCount: theoryCount,
-                negativeMarking: examData.negativeMarking || false, autoReleaseGrades: examData.autoReleaseGrades || false,
-                gradeReleased: examData.autoReleaseGrades || false, submittedAt: firebase.firestore.FieldValue.serverTimestamp(), status: 'submitted'
+                examId: examId,
+                studentId: currentUser.uid,
+                studentName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                studentEmail: userData.email || currentUser.email,
+                examTitle: examData.title,
+                subject: examData.subject,
+                examType: examData.examType || 'standard',
+                weeksCovered: examData.weeksCovered || [1],
+                duration: examData.duration || 120,
+                teacherId: examData.teacherId,
+                classId: examData.classId,
+                answers: formattedAnswers,
+                score: score,
+                totalPoints: totalPoints,
+                percentage: percentage.toFixed(2),
+                grade: grade,
+                correctCount: correctCount,
+                wrongCount: wrongCount,
+                theoryCount: theoryCount,
+                negativeMarking: examData.negativeMarking || false,
+                autoReleaseGrades: examData.autoReleaseGrades || false,
+                gradeReleased: examData.autoReleaseGrades || false,
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                tabSwitchCount: tabSwitchCount,
+                status: 'submitted'
             };
 
             try {
                 await db.collection('examSubmissions').add(submissionData);
-                alert(`Exam submitted!\n\nScore: ${score}/${totalPoints} (${percentage.toFixed(1)}%)\nGrade: ${grade}`);
-                window.location.href = 'student-exams.html';
-            } catch (error) { alert('Error submitting exam: ' + error.message); isSubmitted = false; }
-            finally { hideLoading(); closeSubmitModal(); }
+                
+                let message = `Exam submitted!\n\nScore: ${score}/${totalPoints} (${percentage.toFixed(1)}%)\nGrade: ${grade}`;
+                if (theoryCount > 0 && !examData.autoReleaseGrades) {
+                    message += `\n\nNote: ${theoryCount} theory question(s) will be graded by your teacher.`;
+                }
+                alert(message);
+                window.location.href = 'student-dashboard.html';
+            } catch (error) {
+                console.error('Submit error:', error);
+                alert('Error submitting exam: ' + error.message);
+                isSubmitted = false;
+            } finally { 
+                hideLoading(); 
+                closeSubmitModal(); 
+            }
         }
+
+        window.confirmSubmit = () => { closeSubmitModal(); submitExam(); };
 
         async function loadExam() {
             const urlParams = new URLSearchParams(window.location.search);
             examId = urlParams.get('id');
-            if (!examId) { alert('No exam specified'); window.location.href = 'student-exams.html'; return; }
+            if (!examId) { alert('No exam specified'); window.location.href = 'student-dashboard.html'; return; }
 
             showLoading();
             try {
                 const examDoc = await db.collection('exams').doc(examId).get();
-                if (!examDoc.exists) { alert('Exam not found'); window.location.href = 'student-exams.html'; return; }
+                
+                if (!examDoc.exists) { 
+                    alert('Exam not found'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
 
                 const examDocData = examDoc.data();
-                if (examDocData.status !== 'published') { alert('This exam is not available'); window.location.href = 'student-exams.html'; return; }
-                if (examDocData.classId !== userData.class) { alert('You are not enrolled in this exam'); window.location.href = 'student-exams.html'; return; }
+                
+                if (examDocData.status !== 'published') { 
+                    alert('This exam is not available'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
+                
+                if (examDocData.classId !== userData.class) { 
+                    alert('You are not enrolled in this exam'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
 
                 examData = { id: examDoc.id, ...examDocData };
 
-                const existingSub = await db.collection('examSubmissions').where('examId', '==', examId).where('studentId', '==', currentUser.uid).get();
-                if (!existingSub.empty) { alert('You have already taken this exam'); window.location.href = 'student-exams.html'; return; }
+                const existingSub = await db.collection('examSubmissions')
+                    .where('examId', '==', examId)
+                    .where('studentId', '==', currentUser.uid)
+                    .get();
+                    
+                if (!existingSub.empty) { 
+                    alert('You have already taken this exam'); 
+                    window.location.href = 'student-dashboard.html'; 
+                    return; 
+                }
 
-                document.getElementById('examHeader').style.display = 'block';
                 document.getElementById('examTitle').textContent = examData.title;
                 const weeksText = (examData.weeksCovered || [1]).join(', ');
+                const durationMins = examData.duration || 120;
                 const examTypeNames = { midterm: 'Mid-Term', endterm: 'End of Term', mock: 'Mock', promotion: 'Promotion' };
-                document.getElementById('examMeta').innerHTML = `<div class="meta-item"><i class="fas fa-book"></i> Subject: <strong>${escapeHtml(examData.subject)}</strong></div><div class="meta-item"><i class="fas fa-calendar-week"></i> Weeks: <strong>${weeksText}</strong></div><div class="meta-item"><i class="fas fa-star"></i> Points: <strong>${examData.totalPoints || 100}</strong></div><div class="meta-item"><i class="fas fa-hourglass-half"></i> Time: <strong>${examData.duration || 120} mins</strong></div><div class="meta-item"><i class="fas fa-tag"></i> Type: <strong>${examTypeNames[examData.examType] || 'Standard'}</strong></div><div class="meta-item"><i class="fas fa-question-circle"></i> Questions: <strong>${(examData.questions || []).length}</strong></div>`;
+                
+                document.getElementById('examMeta').innerHTML = `
+                    <div class="meta-item"><i class="fas fa-book"></i> Subject: <strong>${escapeHtml(examData.subject)}</strong></div>
+                    <div class="meta-item"><i class="fas fa-calendar-week"></i> Weeks: <strong>${weeksText}</strong></div>
+                    <div class="meta-item"><i class="fas fa-star"></i> Points: <strong>${examData.totalPoints || 100}</strong></div>
+                    <div class="meta-item"><i class="fas fa-hourglass-half"></i> Time: <strong>${durationMins} mins</strong></div>
+                    <div class="meta-item"><i class="fas fa-tag"></i> Type: <strong>${examTypeNames[examData.examType] || 'Standard'}</strong></div>
+                    <div class="meta-item"><i class="fas fa-question-circle"></i> Questions: <strong>${(examData.questions || []).length}</strong></div>
+                `;
+                document.getElementById('examInfo').innerHTML = `<span><i class="fas fa-user"></i> ${escapeHtml(userData.firstName || 'Student')} ${escapeHtml(userData.surname || '')}</span>`;
 
                 let questions = [...(examData.questions || [])];
                 if (examData.randomizeQuestions) questions = shuffleArray(questions);
                 examData.questions = questions;
 
-                studentAnswers = []; flaggedQuestions = [];
-                startTimer((examData.duration || 120) * 60);
+                studentAnswers = [];
+                flaggedQuestions = [];
+                startTimer(durationMins * 60);
+                disableCopyPaste();
                 renderExam();
-            } catch (error) { alert('Error loading exam: ' + error.message); }
-            finally { hideLoading(); }
+
+            } catch (error) {
+                console.error('Load error:', error);
+                alert('Error loading exam: ' + error.message);
+            } finally { 
+                hideLoading(); 
+            }
         }
+
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'student-login.html'; return; }
             currentUser = user;
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'student') { auth.signOut(); window.location.href = 'index.html'; return; }
+                if (!userDoc.exists || userDoc.data().role !== 'student') { 
+                    await auth.signOut(); 
+                    window.location.href = 'index.html'; 
+                    return; 
+                }
                 userData = userDoc.data();
-                if (!(userData.approved === true || userData.status === 'approved')) { alert('Account pending approval.'); auth.signOut(); window.location.href = 'student-login.html'; return; }
-                loadExam();
-            } catch (error) { alert('Authentication error: ' + error.message); }
+                await loadExam();
+            } catch (error) { 
+                console.error('Auth error:', error);
+                alert('Authentication error: ' + error.message);
+            }
         });
     </script>
 </body>
