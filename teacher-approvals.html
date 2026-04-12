@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Teacher Approvals</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa;
+            --bg-sidebar: rgba(255,255,255,0.75);
+            --text-primary: #0b1e33;
+            --text-secondary: #2c3e50;
+            --accent: #1e3c72;
+            --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7);
+            --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #16a34a;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #dc2626;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e;
+            --bg-sidebar: rgba(15,23,42,0.8);
+            --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9;
+            --accent: #3b82f6;
+            --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15,23,42,0.6);
+            --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Orb animation */
+        .orb {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%);
+            filter: blur(80px);
+            z-index: 0;
+            animation: float 25s infinite alternate;
+        }
+        .orb-1 { top: -100px; left: -100px; }
+        .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.2); }
+        }
+
+        /* Sidebar (same as teacher panel) */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            transition: width 0.3s;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 2.5rem; }
+        .sidebar .logo-area i { font-size: 2.2rem; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sidebar .logo-area h2 { font-size: 1.3rem; font-weight: 700; white-space: nowrap; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1.2rem;
+            border-radius: 1rem;
+            color: var(--text-secondary);
+            transition: 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); transform: translateX(5px); border-color: var(--border); }
+        .sidebar .nav-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-glow)); color: white; box-shadow: 0 5px 15px -5px var(--accent); }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+            position: relative;
+            z-index: 5;
+        }
+        .main-content.expanded { margin-left: 90px; }
+
+        /* Top bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.3rem 0.3rem 0.3rem 1rem;
+        }
+        .profile-name { font-weight: 600; color: var(--text-primary); }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 2px 10px var(--accent);
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 55px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            min-width: 200px;
+            display: none;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* User grid */
+        .user-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .user-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.3);
+            border-color: var(--accent);
+        }
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .user-info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .user-info p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .user-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .user-detail i {
+            width: 1.2rem;
+            color: var(--accent);
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .btn-approve {
+            background: var(--success-text);
+            color: white;
+        }
+        .btn-reject {
+            background: var(--danger-text);
+            color: white;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            grid-column: 1 / -1;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-chalkboard-teacher"></i><h2>EduTop</h2></div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
+        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-journal-whills"></i><span>Daily Report</span></a>
+        <a href="permission-request.html" class="nav-item"><i class="fas fa-envelope-open-text"></i><span>Permission</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>School News</span></a>
+        <a href="teacher-class-announcements.html" class="nav-item"><i class="fas fa-users"></i><span>Class News</span></a>
+        <a href="teacher-approvals.html" class="nav-item active"><i class="fas fa-user-check"></i><span>Student Approvals</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1>Student Approvals</h1>
+                <p>Approve students who registered for your class</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu"><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-value" id="pendingCount">0</div><div class="stat-label">Pending Approval</div></div>
+            <div class="stat-card"><div class="stat-value" id="totalCount">0</div><div class="stat-label">Total Registrations</div></div>
+        </div>
+
+        <!-- Students List -->
+        <div class="card">
+            <div class="card-header"><h3><i class="fas fa-users"></i> Students Awaiting Approval</h3></div>
+            <div id="studentsContainer" class="user-grid">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Student Details</h3><i class="fas fa-times" style="cursor:pointer" onclick="closeDetailModal()"></i></div>
+            <div id="detailContent"></div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-outline" onclick="closeDetailModal()">Cancel</button>
+                <button class="btn btn-approve" id="modalApproveBtn">Approve</button>
+                <button class="btn btn-reject" id="modalRejectBtn">Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase config (same as all other pages)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar'), mainContent = document.getElementById('mainContent'), toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        let currentUser = null;
+        let teacherClass = null;
+        let pendingStudents = [];
+        let currentDetailStudentId = null;
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = userDoc.data();
+            teacherClass = currentUser.classTeaching;
+            document.getElementById('profileName').textContent = currentUser.firstName || 'Teacher';
+            document.getElementById('profilePic').textContent = (currentUser.firstName?.[0] || 'T') + (currentUser.surname?.[0] || 'E');
+            
+            if (!teacherClass) {
+                document.getElementById('studentsContainer').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>No class assigned</h3><p>You have not been assigned to any class. Contact admin.</p></div>';
+                return;
+            }
+            loadPendingStudents();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+
+        async function loadPendingStudents() {
+            if (!teacherClass) return;
+            try {
+                const snapshot = await db.collection('users')
+                    .where('role', '==', 'student')
+                    .where('class', '==', teacherClass)
+                    .get();
+                pendingStudents = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Only show if not approved (approved === false or missing)
+                    if (data.approved !== true) {
+                        pendingStudents.push({ id: doc.id, ...data });
+                    }
+                });
+                updateStats();
+                renderStudents();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('studentsContainer').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading students</h3></div>';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('pendingCount').textContent = pendingStudents.length;
+            // Total count would require separate query or combined; we can just show pending for now
+            document.getElementById('totalCount').textContent = pendingStudents.length;
+        }
+
+        function renderStudents() {
+            const container = document.getElementById('studentsContainer');
+            if (pendingStudents.length === 0) {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle"></i><h3>All caught up!</h3><p>No pending student approvals for ${teacherClass}.</p></div>`;
+                return;
+            }
+            let html = '';
+            pendingStudents.forEach(student => {
+                const name = `${student.firstName || ''} ${student.surname || ''}`.trim() || 'Unnamed';
+                const initials = (student.firstName?.[0] || '') + (student.surname?.[0] || '') || '?';
+                html += `
+                    <div class="user-card">
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.8rem;">
+                            <div class="user-avatar">${initials}</div>
+                            <div class="user-info"><h3>${escapeHtml(name)}</h3><p>Student</p></div>
+                        </div>
+                        <div class="user-detail"><i class="fas fa-envelope"></i> ${student.email || '—'}</div>
+                        <div class="user-detail"><i class="fas fa-phone"></i> ${student.phone || '—'}</div>
+                        <div class="user-detail"><i class="fas fa-calendar-alt"></i> Registered: ${student.createdAt ? new Date(student.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</div>
+                        <div style="display: flex; gap: 0.8rem; margin-top: 1rem; justify-content: flex-end;">
+                            <button class="btn btn-outline btn-sm" onclick="viewStudentDetails('${student.id}')"><i class="fas fa-eye"></i> Details</button>
+                            <button class="btn btn-approve btn-sm" onclick="approveStudent('${student.id}')"><i class="fas fa-check"></i> Approve</button>
+                            <button class="btn btn-reject btn-sm" onclick="rejectStudent('${student.id}')"><i class="fas fa-times"></i> Reject</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        window.viewStudentDetails = async (studentId) => {
+            const student = pendingStudents.find(s => s.id === studentId);
+            if (!student) return;
+            currentDetailStudentId = studentId;
+            const name = `${student.firstName || ''} ${student.surname || ''}`.trim() || 'Unnamed';
+            const parentName = `${student.parentFirstName || ''} ${student.parentSurname || ''}`.trim() || 'Not provided';
+            const address = student.address || '—';
+            const schools = student.schoolsAttended ? student.schoolsAttended.map(s => `${s.level}: ${s.name}`).join('<br>') : '—';
+            const createdAt = student.createdAt ? new Date(student.createdAt.seconds * 1000).toLocaleString() : '—';
+            const html = `
+                <div class="detail-row"><strong>Name:</strong> ${escapeHtml(name)}</div>
+                <div class="detail-row"><strong>Email:</strong> ${student.email || '—'}</div>
+                <div class="detail-row"><strong>Phone:</strong> ${student.phone || '—'}</div>
+                <div class="detail-row"><strong>Parent:</strong> ${escapeHtml(parentName)}</div>
+                <div class="detail-row"><strong>Parent Phone:</strong> ${student.parentPhone || '—'}</div>
+                <div class="detail-row"><strong>Address:</strong> ${escapeHtml(address)}</div>
+                <div class="detail-row"><strong>Previous Schools:</strong> ${schools}</div>
+                <div class="detail-row"><strong>Registered:</strong> ${createdAt}</div>
+            `;
+            document.getElementById('detailContent').innerHTML = html;
+            document.getElementById('detailModal').classList.add('active');
+        };
+
+        window.approveStudent = async (studentId) => {
+            if (!confirm('Approve this student? They will be able to log in.')) return;
+            try {
+                await db.collection('users').doc(studentId).update({ approved: true });
+                await logAudit(`Teacher ${currentUser.firstName} ${currentUser.surname} approved student ${studentId}`);
+                loadPendingStudents();
+                closeDetailModal();
+            } catch (err) {
+                alert('Error approving student: ' + err.message);
+            }
+        };
+
+        window.rejectStudent = async (studentId) => {
+            if (!confirm('Reject this student? This will delete their registration data.')) return;
+            try {
+                await db.collection('users').doc(studentId).delete();
+                await logAudit(`Teacher ${currentUser.firstName} ${currentUser.surname} rejected student ${studentId}`);
+                loadPendingStudents();
+                closeDetailModal();
+            } catch (err) {
+                alert('Error rejecting student: ' + err.message);
+            }
+        };
+
+        async function logAudit(action) {
+            await db.collection('auditLogs').add({
+                userId: auth.currentUser.uid,
+                userName: `${currentUser.firstName || ''} ${currentUser.surname || ''}`.trim(),
+                userRole: 'teacher',
+                action,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userAgent: navigator.userAgent
+            });
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('active');
+            currentDetailStudentId = null;
+        }
+
+        // Attach modal buttons
+        document.getElementById('modalApproveBtn').onclick = () => {
+            if (currentDetailStudentId) approveStudent(currentDetailStudentId);
+        };
+        document.getElementById('modalRejectBtn').onclick = () => {
+            if (currentDetailStudentId) rejectStudent(currentDetailStudentId);
+        };
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+</body>
+</html>
