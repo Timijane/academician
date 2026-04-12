@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop · Staff Announcements</title>
+    <!-- same head content as teacher-announcements.html -->
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-user-friends"></i><h2>EduTop Staff</h2></div>
+        <a href="staff-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="staff-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="permission-request.html" class="nav-item"><i class="fas fa-envelope-open-text"></i><span>Permission</span></a>
+        <a href="staff-announcements.html" class="nav-item active"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="staff-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title"><h1>Announcements</h1><p>Important updates for non‑teaching staff</p></div>
+            <div class="profile-area"><div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div><div class="profile-dropdown"><div class="profile-icon" id="profileInitials">ST</div><div class="dropdown-menu"><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div></div></div>
+        </div>
+        <div class="card"><div class="card-header"><h3><i class="fas fa-bullhorn"></i> All Announcements</h3></div><div id="announcementsList" class="announcements-grid">Loading...</div></div>
+    </div>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0", authDomain: "triangle-6e6b7.firebaseapp.com", projectId: "triangle-6e6b7", storageBucket: "triangle-6e6b7.firebasestorage.app", messagingSenderId: "673937760480", appId: "1:673937760480:web:f03c06e1207232213ef085" };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        // (same toggle/theme code)
+        const sidebar = document.getElementById('sidebar'), mainContent = document.getElementById('mainContent'), toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => { const current = html.getAttribute('data-theme'); const next = current === 'dark' ? 'light' : 'dark'; html.setAttribute('data-theme', next); localStorage.setItem('edutop-theme', next); themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark'; });
+        let currentUser = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'staff-login.html'; return; }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'non-teaching') { auth.signOut(); window.location.href = 'index.html'; return; }
+            currentUser = userDoc.data();
+            document.getElementById('profileInitials').textContent = (currentUser.firstName?.[0] || 'N') + (currentUser.surname?.[0] || 'S');
+            loadAnnouncements();
+        });
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+        async function loadAnnouncements() {
+            const snap = await db.collection('announcements').orderBy('createdAt', 'desc').get();
+            const container = document.getElementById('announcementsList');
+            if (snap.empty) { container.innerHTML = '<p>No announcements yet.</p>'; return; }
+            let html = '';
+            snap.forEach(doc => {
+                const a = doc.data();
+                if (!a.targets.includes('all') && !a.targets.includes('nonTeachingStaff')) return;
+                const date = a.createdAt ? a.createdAt.toDate().toLocaleString() : 'N/A';
+                html += `<div class="announcement-card"><div class="announcement-title">${escapeHtml(a.title)}</div><div class="announcement-meta"><span>${date}</span></div><div class="announcement-content">${escapeHtml(a.content)}</div></div>`;
+            });
+            container.innerHTML = html || '<p>No announcements for non‑teaching staff.</p>';
+        }
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    </script>
+</body>
+</html>
