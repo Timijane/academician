@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop · Student Announcements</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style> /* copy the same style block from teacher-announcements.html – identical */ </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area"><i class="fas fa-graduation-cap"></i><h2>EduTop</h2></div>
+        <a href="student-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="student-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="student-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="student-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
+        <a href="student-results.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>Results</span></a>
+        <a href="student-announcements.html" class="nav-item active"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="student-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title"><h1>Announcements</h1><p>Important updates for students</p></div>
+            <div class="profile-area"><div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div><div class="profile-dropdown"><div class="profile-icon" id="profileInitials">ST</div><div class="dropdown-menu"><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div></div></div>
+        </div>
+        <div class="card"><div class="card-header"><h3><i class="fas fa-bullhorn"></i> All Announcements</h3></div><div id="announcementsList" class="announcements-grid">Loading...</div></div>
+    </div>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0", authDomain: "triangle-6e6b7.firebaseapp.com", projectId: "triangle-6e6b7", storageBucket: "triangle-6e6b7.firebasestorage.app", messagingSenderId: "673937760480", appId: "1:673937760480:web:f03c06e1207232213ef085" };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        // (same sidebar/theme code as teacher version)
+        const sidebar = document.getElementById('sidebar'), mainContent = document.getElementById('mainContent'), toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => { const current = html.getAttribute('data-theme'); const next = current === 'dark' ? 'light' : 'dark'; html.setAttribute('data-theme', next); localStorage.setItem('edutop-theme', next); themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark'; });
+        let currentUser = null;
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'student-login.html'; return; }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'student') { auth.signOut(); window.location.href = 'index.html'; return; }
+            currentUser = userDoc.data();
+            document.getElementById('profileInitials').textContent = (currentUser.firstName?.[0] || 'S') + (currentUser.surname?.[0] || 'T');
+            loadAnnouncements();
+        });
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+        async function loadAnnouncements() {
+            const snap = await db.collection('announcements').orderBy('createdAt', 'desc').get();
+            const container = document.getElementById('announcementsList');
+            if (snap.empty) { container.innerHTML = '<p>No announcements yet.</p>'; return; }
+            let html = '';
+            snap.forEach(doc => {
+                const a = doc.data();
+                if (!a.targets.includes('all') && !a.targets.includes('students')) return;
+                const date = a.createdAt ? a.createdAt.toDate().toLocaleString() : 'N/A';
+                html += `<div class="announcement-card"><div class="announcement-title">${escapeHtml(a.title)}</div><div class="announcement-meta"><span>${date}</span></div><div class="announcement-content">${escapeHtml(a.content)}</div></div>`;
+            });
+            container.innerHTML = html || '<p>No announcements for students.</p>';
+        }
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    </script>
+</body>
+</html>
