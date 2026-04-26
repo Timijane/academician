@@ -408,7 +408,7 @@
                                 <button class="btn btn-outline btn-sm" id="saveAsTemplateBtn"><i class="fas fa-layer-group"></i> Template</button>
                                 <button class="btn btn-outline" id="useAIAssistantLessonNoteBtn"><i class="fas fa-robot"></i> AI Assistant</button>
                                 <button class="btn btn-primary" id="saveEditorBtn">Save Draft</button>
-                                <button class="btn btn-success" id="submitEditorBtn">Submit for Approval</button>
+                                <button class="btn btn-success" id="submitEditorBtn" style="display:none;">Submit for Approval</button>
                                 <button class="btn btn-outline" id="downloadPdfBtn"><i class="fas fa-download"></i> PDF</button>
                             </div>
                         </div>
@@ -422,6 +422,11 @@
                             <div class="card-header"><h3><i class="fas fa-check-circle" style="color:var(--success-text);"></i> Lesson Note Approved! You can now create supplementary materials.</h3></div>
                         </div>
 
+                        <!-- Push to Teach Button (shows after admin approval) -->
+                        <div class="card" style="text-align:center;">
+                            <button class="btn btn-success" id="pushToTeachBtn" style="font-size:1.1rem;padding:1rem 2rem;"><i class="fas fa-chalkboard-teacher"></i> Push to Teach</button>
+                        </div>
+
                         <!-- Teaching Process (Move to Teach only) -->
                         <div class="card" id="teachingProcessCard">
                             <div class="card-header">
@@ -433,6 +438,9 @@
                                 </div>
                             </div>
                             <p style="color:var(--text-secondary);margin-bottom:1rem;">Write a step-by-step teaching process with time frames to help you deliver this lesson effectively.</p>
+                            <div class="actions" style="margin-bottom:0.5rem;">
+                                <button class="btn btn-primary btn-sm" id="aiGenerateTPBtn"><i class="fas fa-robot"></i> AI Auto-Generate Teaching Process</button>
+                            </div>
                             <div class="editor-container"><div id="teachingProcessEditor"></div></div>
                             <div class="actions">
                                 <button class="btn btn-primary" id="saveTeachingProcessBtn">Save Teaching Process</button>
@@ -449,10 +457,12 @@
                                     <button class="btn btn-outline btn-sm" id="autoFormatResourceBtn"><i class="fas fa-magic"></i> Auto-Format</button>
                                     <button class="btn btn-outline btn-sm" id="saveResourceAsTemplateBtn"><i class="fas fa-layer-group"></i> Save as Template</button>
                                     <button class="btn btn-outline" id="useAIAssistantResourceBtn"><i class="fas fa-robot"></i> AI Assistant</button>
-                                    <button class="btn btn-primary btn-sm" onclick="generateStudentResource()"><i class="fas fa-robot"></i> AI Generate</button>
                                 </div>
                             </div>
                             <p style="color:var(--text-secondary);margin-bottom:1rem;">Write a detailed textbook-style explanation for students to study on their own.</p>
+                            <div class="actions" style="margin-bottom:0.5rem;">
+                                <button class="btn btn-primary btn-sm" id="aiGenerateResourceBtn"><i class="fas fa-robot"></i> AI Auto-Generate Resources</button>
+                            </div>
                             <div class="editor-container"><div id="studentResourceEditor"></div></div>
                             <div class="actions">
                                 <button class="btn btn-primary" id="saveStudentResourceBtn">Save Resource</button>
@@ -556,6 +566,7 @@
         let assistantConversations=[],currentConversationId=null,lastGeneratedText='',hasUnsaved=false;
         let handwritingImages=[],aiContextMode='general';
         let currentPopupImageIndex=-1, currentPopupImageUrl='';
+        let contentMerged=false;
 
         // Workspace tabs
         let currentPanel='timetable';
@@ -640,9 +651,34 @@
         studentQuill.on('text-change',()=>markUnsaved());
         teachingProcessQuill=new Quill('#teachingProcessEditor',{theme:'snow',modules:{toolbar:[['bold','italic','underline'],[{'header':[1,2,3,false]}],[{'list':'ordered'},{'list':'bullet'}],['link','blockquote'],[{'color':[]},{'background':[]}],['clean']]},placeholder:'Write step-by-step teaching process with time frames...'});
         teachingProcessQuill.on('text-change',()=>markUnsaved());
-        subjects=userData.subjects||[];renderSubjectGrid();await loadAllLessonNotes();await loadAIConversations();document.getElementById('reportDate').valueAsDate=new Date();if(currentClass)await loadAllTimetableData();loadMyReports();updateWeeklyStats();}catch(e){console.error(e);showError('Auth error: '+e.message);}});
+        subjects=userData.subjects||[];renderSubjectGrid();await loadAllLessonNotes();await loadAIConversations();document.getElementById('reportDate').valueAsDate=new Date();if(currentClass)await loadAllTimetableData();loadMyReports();updateWeeklyStats();
+        // Add auto-format for lesson note box
+        quill.on('text-change', (delta, oldDelta, source) => {
+            if (source === 'user') {
+                autoFormatOnType(quill, delta);
+            }
+        });
+        }catch(e){console.error(e);showError('Auth error: '+e.message);}});
         document.getElementById('logoutBtn').addEventListener('click',()=>auth.signOut().then(()=>window.location.href='index.html'));
         document.getElementById('profileLink').addEventListener('click',()=>window.location.href='teacher-profile.html');
+
+        // Auto-format function for lesson note
+        function autoFormatOnType(editor, delta) {
+            if (!delta || !delta.ops) return;
+            const text = editor.getText();
+            const lines = text.split('\n');
+            const lastLine = lines[lines.length - 2] || ''; // The line just typed
+            
+            // Auto-bold headers with "Lesson Note" "Topic:" "Class:" etc.
+            if (/^(Lesson\s+Note|Topic:|Class:|Subject:|Week\s+\d+|Term:|Duration:|Date:)/i.test(lastLine.trim())) {
+                setTimeout(() => {
+                    const len = editor.getLength();
+                    const lineStart = len - lastLine.length - 1;
+                    editor.formatText(lineStart, lastLine.length, 'bold', true);
+                    editor.formatText(lineStart, lastLine.length, 'header', '3');
+                }, 100);
+            }
+        }
 
         async function updateWeeklyStats(){if(!currentUser)return;try{const a=Object.values(lessonNotesMap);document.getElementById('statLessons').textContent=a.length;document.getElementById('statPending').textContent=a.filter(n=>n.status==='pending').length;document.getElementById('statApproved').textContent=a.filter(n=>n.status==='approved').length;const r=await db.collection('dailyReports').where('teacherId','==',currentUser.uid).get();document.getElementById('statReports').textContent=r.size;}catch(e){}}
 
@@ -688,7 +724,7 @@
         async function loadAllLessonNotes(){try{const s=await db.collection('lessonNotes').where('teacherId','==',currentUser.uid).get();lessonNotesMap={};s.forEach(d=>{const dd=d.data();lessonNotesMap[`${dd.subject}_${dd.week}`]={id:d.id,...dd};});updateWeeklyStats();}catch(e){}}
 
         function renderWeekTabs(){const w=syllabusMap[currentSubject]?.weeks||[];const t=document.getElementById('weekTabs');t.innerHTML='';w.forEach(wk=>{const d=document.createElement('div');d.className='week-tab';d.textContent=`Week ${wk.week}: ${wk.topic||'No topic'}`;d.onclick=()=>selectWeek(wk.week);t.appendChild(d);});}
-        function selectWeek(week){currentWeek=week;document.querySelectorAll('.week-tab').forEach(t=>t.classList.remove('active'));if(event&&event.target)event.target.classList.add('active');document.getElementById('editorSection').style.display='block';document.getElementById('editorTitle').textContent=`Week ${week} Lesson Note`;const k=`${currentSubject}_${week}`;const n=lessonNotesMap[k]||{};quill.setText(n.lessonNote||'');document.getElementById('lessonContent').value=n.lessonContent||'';studentQuill.setText(n.studentResource||'');teachingProcessQuill.setText(n.teachingProcess||'');lessonNoteApproved=n.status==='approved';updatePostApprovalVisibility();videoLinks=n.videoLinks||[];videosPublished=n.videosPublished||false;videosReady=n.videosReady||false;renderVideoList();handwritingImages=n.handwritingImages||[];renderHandwritingImages();updateAllButtons(n);updateMergeButtons();clearUnsaved();updateWordCount();}
+        function selectWeek(week){currentWeek=week;document.querySelectorAll('.week-tab').forEach(t=>t.classList.remove('active'));if(event&&event.target)event.target.classList.add('active');document.getElementById('editorSection').style.display='block';document.getElementById('editorTitle').textContent=`Week ${week} Lesson Note`;const k=`${currentSubject}_${week}`;const n=lessonNotesMap[k]||{};quill.setText(n.lessonNote||'');document.getElementById('lessonContent').value=n.lessonContent||'';studentQuill.setText(n.studentResource||'');teachingProcessQuill.setText(n.teachingProcess||'');lessonNoteApproved=n.status==='approved';contentMerged=!!(n.lessonContent&&n.lessonNote);updatePostApprovalVisibility();videoLinks=n.videoLinks||[];videosPublished=n.videosPublished||false;videosReady=n.videosReady||false;renderVideoList();handwritingImages=n.handwritingImages||[];renderHandwritingImages();updateAllButtons(n);updateMergeButtons();clearUnsaved();updateWordCount();}
 
         function updatePostApprovalVisibility(){
             const approved=lessonNoteApproved;
@@ -696,13 +732,27 @@
             document.getElementById('studentResourceSection').style.display=approved?'block':'none';
             document.getElementById('handwritingSection').style.display=approved?'block':'none';
             document.getElementById('teachingProcessCard').style.display=approved?'block':'none';
-            document.getElementById('mergeContentBtn').style.display=approved?'inline-block':'none';
-            document.getElementById('submitEditorBtn').style.display=approved?'none':'inline-block';
+            document.getElementById('mergeContentBtn').style.display='none';
+            document.getElementById('submitEditorBtn').style.display='none';
+            // Show push to teach button only when approved
+            document.getElementById('pushToTeachBtn').style.display=approved?'inline-block':'none';
         }
 
         function updateMergeButtons(){
             const hasContent=document.getElementById('lessonContent').value.trim();
-            document.getElementById('mergeContentBtn').style.display=hasContent&&lessonNoteApproved?'inline-block':'none';
+            const hasLessonNote=quill.getText().trim();
+            // Merge button only shows when both content and lesson note exist and not yet merged/approved
+            if(!lessonNoteApproved && hasContent && hasLessonNote && !contentMerged){
+                document.getElementById('mergeContentBtn').style.display='inline-block';
+            } else {
+                document.getElementById('mergeContentBtn').style.display='none';
+            }
+            // Submit button only shows after merge (contentMerged) and before approval
+            if(contentMerged && !lessonNoteApproved){
+                document.getElementById('submitEditorBtn').style.display='inline-block';
+            } else {
+                document.getElementById('submitEditorBtn').style.display='none';
+            }
         }
 
         function updateAllButtons(n){
@@ -763,7 +813,9 @@
             if(!content)return showToast('Empty','Write lesson content first','warning');
             const currentLN=quill.getText().trim();
             quill.setText(currentLN?currentLN+'\n\n---\n\n'+content:content);
-            showToast('Merged','Content merged into lesson note. Now submit both for approval.','success');
+            contentMerged=true;
+            updateMergeButtons();
+            showToast('Merged','Content merged into lesson note. You can now submit for approval.','success');
             markUnsaved();
         });
 
@@ -780,17 +832,33 @@
             await loadAllLessonNotes();renderTeachTab();clearUnsaved();showToast('Saved','Lesson note saved','success');}catch(e){showError(e.message);}
         });
 
-        // Submit for Approval (must merge first)
+        // Submit for Approval (only visible after merge)
         document.getElementById('submitEditorBtn').addEventListener('click',async()=>{
             if(!currentSubject||!currentWeek)return;
+            if(!contentMerged)return showToast('Error','You must merge content into lesson note first using the Merge button.','warning');
             const ln=quill.getText();
             const lc=document.getElementById('lessonContent').value.trim();
-            if(!ln.trim()||!lc)return showToast('Error','Both lesson note and content must be merged before submission. Use the merge button first.','warning');
             const k=`${currentSubject}_${currentWeek}`;const ex=lessonNotesMap[k]||{};
             const d={teacherId:currentUser.uid,subject:currentSubject,week:currentWeek,topic:syllabusMap[currentSubject]?.weeks?.find(w=>w.week==currentWeek)?.topic||'',lessonNote:ln,lessonContent:lc,classId:currentClass,status:'pending',submittedAt:firebase.firestore.FieldValue.serverTimestamp()};
             if(!ex.id){const sy=syllabusMap[currentSubject];if(!sy||sy.status!=='approved')return showToast('Error','Syllabus must be approved','error');d.syllabusId=sy.id;}
             try{if(ex.id)await db.collection('lessonNotes').doc(ex.id).update(d);else{const r=await db.collection('lessonNotes').add(d);lessonNotesMap[k]={id:r.id,...d};}
             await loadAllLessonNotes();renderTeachTab();showToast('Submitted','Both content and lesson note submitted for admin approval.','success');}catch(e){showError(e.message);}
+        });
+
+        // Push to Teach button (appears after admin approval)
+        document.getElementById('pushToTeachBtn').addEventListener('click',async()=>{
+            if(!currentSubject||!currentWeek)return;
+            const k=`${currentSubject}_${currentWeek}`;const n=lessonNotesMap[k];
+            if(!n?.id)return showToast('Error','Lesson note not found','error');
+            try{
+                await db.collection('lessonNotes').doc(n.id).update({
+                    teachable:true,
+                    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast('Pushed','Lesson note pushed to Teach!','success');
+                await loadAllLessonNotes();
+                renderTeachTab();
+            }catch(e){showError(e.message);}
         });
 
         // Download PDF
@@ -799,6 +867,67 @@
             const w=window.open('','_blank');
             w.document.write(`<html><head><title>Lesson Note</title><style>body{font-family:Inter,sans-serif;padding:2rem;}@media print{body{padding:1cm;}}</style></head><body><div class="school-letterhead"><h1>${document.getElementById('schoolName').textContent}</h1><p>Excellence in Education</p></div>${quill.root.innerHTML}</body></html>`);
             w.print();setTimeout(()=>document.getElementById('schoolLetterhead').style.display='none',500);
+        });
+
+        // ============ TEACHING PROCESS - AI Auto-Generate ============
+        document.getElementById('aiGenerateTPBtn').addEventListener('click',async()=>{
+            if(!groq)return showToast('Error','AI not available','error');
+            const topic=syllabusMap[currentSubject]?.weeks?.find(w=>w.week==currentWeek)?.topic||'';
+            if(!topic)return showToast('Error','No topic found','error');
+            const ln=quill.getText();
+            showLoading();
+            try{
+                const completion=await groq.chat.completions.create({
+                    messages:[{
+                        role:'system',
+                        content:`${NIGERIAN_PROMPT}\n\nYou are creating a TEACHING PROCESS step-by-step guide for teachers. Based on the lesson note provided, create a detailed step-by-step teaching guide with time frames (e.g., "5 mins: Introduction", "15 mins: Main Activity"). Use "Teacher does... Pupils do..." format. Include Nigerian context. Format with clear headings.`
+                    },{
+                        role:'user',
+                        content:`Create a teaching process for ${currentSubject}, Week ${currentWeek}, Topic: ${topic}. Lesson note: ${ln.substring(0,2000)}`
+                    }],
+                    model:'llama-3.3-70b-versatile',
+                    temperature:0.5,
+                    max_tokens:3000
+                });
+                const tp=completion.choices[0].message.content;
+                teachingProcessQuill.setText(tp);
+                lastGeneratedText=tp;
+                document.getElementById('copyTPToTeachingProcessEditor').style.display='inline-block';
+                showToast('Generated','Teaching process auto-generated!','success');
+                markUnsaved();
+            }catch(e){
+                showError('AI generation failed: '+e.message);
+            }finally{hideLoading();}
+        });
+
+        // ============ STUDENT RESOURCES - AI Auto-Generate (blue button only) ============
+        document.getElementById('aiGenerateResourceBtn').addEventListener('click',async()=>{
+            if(!groq)return showToast('Error','AI not available','error');
+            const topic=syllabusMap[currentSubject]?.weeks?.find(w=>w.week==currentWeek)?.topic||'';
+            if(!topic)return showToast('Error','No topic found','error');
+            showLoading();
+            try{
+                const completion=await groq.chat.completions.create({
+                    messages:[{
+                        role:'system',
+                        content:`${NIGERIAN_PROMPT}\n\nIMPORTANT: You are creating STUDENT RESOURCES (textbook-style self-study notes), NOT a lesson note. Write a comprehensive textbook-style explanation for Nigerian ${currentSubject} students on "${topic}". Include key points, examples, and Nigerian context. Format as a student-friendly study guide.`
+                    },{
+                        role:'user',
+                        content:`Create student resources for ${currentSubject}, Week ${currentWeek}, Topic: ${topic}`
+                    }],
+                    model:'llama-3.3-70b-versatile',
+                    temperature:0.5,
+                    max_tokens:3000
+                });
+                const resource=completion.choices[0].message.content;
+                studentQuill.setText(resource);
+                lastGeneratedText=resource;
+                updateAllButtons(lessonNotesMap[`${currentSubject}_${currentWeek}`]||{});
+                showToast('Generated','Student resources auto-generated!','success');
+                markUnsaved();
+            }catch(e){
+                showError('AI generation failed: '+e.message);
+            }finally{hideLoading();}
         });
 
         // ============ TEACHING PROCESS (Post-approval) - MOVE TO TEACH ONLY ============
@@ -1007,20 +1136,6 @@
             }catch(e){showError(e.message);}
         });
 
-        // Generate Student Resource with AI
-        window.generateStudentResource=async()=>{
-            if(!lessonNoteApproved)return showToast('Locked','Resources can only be created after lesson note is approved','warning');
-            if(!groq)return showToast('Error','AI not available','error');
-            const topic=syllabusMap[currentSubject]?.weeks?.find(w=>w.week==currentWeek)?.topic||'';
-            if(!topic)return showToast('Error','No topic found','error');
-            showLoading();
-            try{const c=await groq.chat.completions.create({messages:[{role:'system',content:`${NIGERIAN_PROMPT}\n\nIMPORTANT: You are creating STUDENT RESOURCES (textbook-style self-study notes), NOT a lesson note. Write a comprehensive textbook-style explanation for Nigerian ${currentSubject} students on "${topic}".`}],model:'llama-3.3-70b-versatile',temperature:0.5,max_tokens:3000});
-            studentQuill.setText(c.choices[0].message.content);
-            lastGeneratedText=c.choices[0].message.content;
-            updateAllButtons(lessonNotesMap[`${currentSubject}_${currentWeek}`]||{});
-            showToast('Generated','Student resource ready. Use Copy to Resource Editor or AI buttons.','success');}catch(e){showError(e.message);}finally{hideLoading();}
-        };
-
         // Auto-Format Lesson Note
         document.getElementById('autoFormatLessonNoteBtn').addEventListener('click',async()=>{
             if(!quill||!groq)return showToast('Error','AI not available','error');
@@ -1076,10 +1191,11 @@
         // ============ TEACH TAB ============
         function renderTeachTab(){const a=Object.values(lessonNotesMap);const render=(c,i,s,l,act)=>{if(!i.length){c.innerHTML=`<p style="color:var(--text-secondary);">No ${l.toLowerCase()}.</p>`;return;}c.innerHTML=i.map(n=>`<div class="card" style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;"><div><strong>${n.subject} - Wk ${n.week}: ${n.topic}</strong><span class="status-badge status-${s}" style="margin-left:0.5rem;">${l}</span></div><div class="actions">${act(n)}</div></div></div>`).join('');};
         render(document.getElementById('teachableList'),a.filter(n=>n.teachable),'teachable','Ready',n=>`<button class="btn btn-outline btn-sm" onclick="viewInTeach('${n.subject}',${n.week})">View</button><button class="btn btn-danger btn-sm" onclick="deleteLN('${n.id}')">Del</button>`);
-        render(document.getElementById('approvedList'),a.filter(n=>n.status==='approved'&&!n.teachable),'approved','Approved',n=>`<button class="btn btn-success btn-sm" onclick="moveToTeach('${n.id}')">Move to Teach</button><button class="btn btn-outline btn-sm" onclick="continueLN('${n.subject}',${n.week})">Edit</button>`);
+        render(document.getElementById('approvedList'),a.filter(n=>n.status==='approved'&&!n.teachable),'approved','Approved',n=>`<button class="btn btn-success btn-sm" onclick="pushApprovedToTeach('${n.id}')">Push to Teach</button><button class="btn btn-outline btn-sm" onclick="continueLN('${n.subject}',${n.week})">Edit</button>`);
         render(document.getElementById('draftsList'),a.filter(n=>n.status==='draft'),'draft','Drafts',n=>`<button class="btn btn-primary btn-sm" onclick="continueLN('${n.subject}',${n.week})">Edit</button>`);
         render(document.getElementById('pendingNotesList'),a.filter(n=>n.status==='pending'),'pending','Pending',()=>'');
         render(document.getElementById('rejectedNotesList'),a.filter(n=>n.status==='rejected'),'rejected','Rejected',n=>`<button class="btn btn-warning btn-sm" onclick="editRej('${n.subject}',${n.week})">Edit</button>`);}
+        window.pushApprovedToTeach=async id=>{try{await db.collection('lessonNotes').doc(id).update({teachable:true});await loadAllLessonNotes();renderTeachTab();showToast('Pushed','Lesson pushed to Teach','success');}catch(e){showError(e.message);}};
         window.moveToTeach=async id=>{try{await db.collection('lessonNotes').doc(id).update({teachable:true});await loadAllLessonNotes();renderTeachTab();showToast('Moved','Moved to Teach','success');}catch(e){showError(e.message);}};
         window.continueLN=(s,w)=>{const cards=document.querySelectorAll('.subject-card');for(let c of cards){if(c.querySelector('h3').textContent===s){selectSubject(s,c);break;}}setTimeout(()=>{selectWeek(w);document.getElementById('ln-subtabs').querySelector('[data-ln="notebook"]').click();},300);};
         window.viewInTeach=(s,w)=>window.location.href=`teacher-teach.html?subject=${encodeURIComponent(s)}&week=${w}`;
@@ -1097,4 +1213,4 @@
         document.getElementById('submitReportBtn').addEventListener('click',submitDailyReport);
     </script>
 </body>
-</html>
+</html>here
