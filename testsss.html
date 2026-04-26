@@ -404,6 +404,7 @@
                         <div class="card-header">
                             <h3><i class="fas fa-book-open"></i> <span id="editorTitle">Lesson Note</span></h3>
                             <div class="actions">
+                                <button class="btn merge-btn" id="mergeContentBtn"><i class="fas fa-layer-group"></i> Merge Content into Lesson Note</button>
                                 <button class="btn btn-outline btn-sm" id="autoFormatLessonNoteBtn"><i class="fas fa-magic"></i> Auto-Format</button>
                                 <button class="btn btn-outline btn-sm" id="saveAsTemplateBtn"><i class="fas fa-layer-group"></i> Template</button>
                                 <button class="btn btn-outline" id="useAIAssistantLessonNoteBtn"><i class="fas fa-robot"></i> AI Assistant</button>
@@ -412,7 +413,6 @@
                                 <button class="btn btn-outline" id="downloadPdfBtn"><i class="fas fa-download"></i> PDF</button>
                             </div>
                         </div>
-                        <button class="btn merge-btn" id="mergeContentBtn" style="display:none;margin-bottom:1rem;"><i class="fas fa-layer-group"></i> Merge Content into Lesson Note</button>
                         <div class="editor-container"><div id="editor"></div><div class="editor-footer"><span id="wordCount">Words: 0</span><span id="readingTime">Reading: 0 min</span></div></div>
                     </div>
 
@@ -652,33 +652,9 @@
         teachingProcessQuill=new Quill('#teachingProcessEditor',{theme:'snow',modules:{toolbar:[['bold','italic','underline'],[{'header':[1,2,3,false]}],[{'list':'ordered'},{'list':'bullet'}],['link','blockquote'],[{'color':[]},{'background':[]}],['clean']]},placeholder:'Write step-by-step teaching process with time frames...'});
         teachingProcessQuill.on('text-change',()=>markUnsaved());
         subjects=userData.subjects||[];renderSubjectGrid();await loadAllLessonNotes();await loadAIConversations();document.getElementById('reportDate').valueAsDate=new Date();if(currentClass)await loadAllTimetableData();loadMyReports();updateWeeklyStats();
-        // Add auto-format for lesson note box
-        quill.on('text-change', (delta, oldDelta, source) => {
-            if (source === 'user') {
-                autoFormatOnType(quill, delta);
-            }
-        });
         }catch(e){console.error(e);showError('Auth error: '+e.message);}});
         document.getElementById('logoutBtn').addEventListener('click',()=>auth.signOut().then(()=>window.location.href='index.html'));
         document.getElementById('profileLink').addEventListener('click',()=>window.location.href='teacher-profile.html');
-
-        // Auto-format function for lesson note
-        function autoFormatOnType(editor, delta) {
-            if (!delta || !delta.ops) return;
-            const text = editor.getText();
-            const lines = text.split('\n');
-            const lastLine = lines[lines.length - 2] || ''; // The line just typed
-            
-            // Auto-bold headers with "Lesson Note" "Topic:" "Class:" etc.
-            if (/^(Lesson\s+Note|Topic:|Class:|Subject:|Week\s+\d+|Term:|Duration:|Date:)/i.test(lastLine.trim())) {
-                setTimeout(() => {
-                    const len = editor.getLength();
-                    const lineStart = len - lastLine.length - 1;
-                    editor.formatText(lineStart, lastLine.length, 'bold', true);
-                    editor.formatText(lineStart, lastLine.length, 'header', '3');
-                }, 100);
-            }
-        }
 
         async function updateWeeklyStats(){if(!currentUser)return;try{const a=Object.values(lessonNotesMap);document.getElementById('statLessons').textContent=a.length;document.getElementById('statPending').textContent=a.filter(n=>n.status==='pending').length;document.getElementById('statApproved').textContent=a.filter(n=>n.status==='approved').length;const r=await db.collection('dailyReports').where('teacherId','==',currentUser.uid).get();document.getElementById('statReports').textContent=r.size;}catch(e){}}
 
@@ -732,21 +708,13 @@
             document.getElementById('studentResourceSection').style.display=approved?'block':'none';
             document.getElementById('handwritingSection').style.display=approved?'block':'none';
             document.getElementById('teachingProcessCard').style.display=approved?'block':'none';
-            document.getElementById('mergeContentBtn').style.display='none';
             document.getElementById('submitEditorBtn').style.display='none';
             // Show push to teach button only when approved
             document.getElementById('pushToTeachBtn').style.display=approved?'inline-block':'none';
         }
 
         function updateMergeButtons(){
-            const hasContent=document.getElementById('lessonContent').value.trim();
-            const hasLessonNote=quill.getText().trim();
-            // Merge button only shows when both content and lesson note exist and not yet merged/approved
-            if(!lessonNoteApproved && hasContent && hasLessonNote && !contentMerged){
-                document.getElementById('mergeContentBtn').style.display='inline-block';
-            } else {
-                document.getElementById('mergeContentBtn').style.display='none';
-            }
+            // Merge button always shows - it's in the header now
             // Submit button only shows after merge (contentMerged) and before approval
             if(contentMerged && !lessonNoteApproved){
                 document.getElementById('submitEditorBtn').style.display='inline-block';
@@ -1139,10 +1107,27 @@
         // Auto-Format Lesson Note
         document.getElementById('autoFormatLessonNoteBtn').addEventListener('click',async()=>{
             if(!quill||!groq)return showToast('Error','AI not available','error');
-            const content=quill.getText();if(!content.trim())return showToast('Empty','Write something first','warning');
+            const content=quill.getText();
+            if(!content.trim())return showToast('Empty','Write something first','warning');
             showLoading();
-            try{const c=await groq.chat.completions.create({messages:[{role:'system',content:`${NIGERIAN_PROMPT}\n\nYou are formatting a LESSON NOTE. Return ONLY formatted HTML.`},{role:'user',content}],model:'llama-3.3-70b-versatile',temperature:0.3,max_tokens:4096});
-            quill.root.innerHTML=c.choices[0].message.content.replace(/```html|```/g,'').trim();markUnsaved();showToast('Formatted','Lesson note formatted','success');}catch(e){showError('Format failed: '+e.message);}finally{hideLoading();}
+            try{
+                const completion=await groq.chat.completions.create({
+                    messages:[
+                        {role:'system',content:`${NIGERIAN_PROMPT}\n\nYou are formatting a LESSON NOTE for a Nigerian teacher. The user will give you plain text. Your job is to return ONLY the HTML formatted version. Apply these formatting rules STRICTLY:\n- Use <h2> for the main title "LESSON NOTE"\n- Use <h3> for section headers like "Topic:", "Class:", "Subject:", "Week:", "Term:", "Duration:", "Date:", "Objectives:", "Materials:", "Content:", "Presentation:", "Evaluation:", "Conclusion:", "Assignment:"\n- Use <strong> or <b> for key terms\n- Use <ol>/<li> for numbered steps in presentation\n- Use <ul>/<li> for bullet points\n- Use <p> for regular paragraphs\n- Preserve all the original content, only add HTML formatting\n- Return ONLY the HTML, no markdown code blocks, no explanations`},
+                        {role:'user',content:content}
+                    ],
+                    model:'llama-3.3-70b-versatile',
+                    temperature:0.3,
+                    max_tokens:4096
+                });
+                let formatted=completion.choices[0].message.content;
+                formatted=formatted.replace(/```html\n?/g,'').replace(/```\n?/g,'').trim();
+                quill.root.innerHTML=formatted;
+                markUnsaved();
+                showToast('Formatted','Lesson note formatted','success');
+            }catch(e){
+                showError('Format failed: '+e.message);
+            }finally{hideLoading();}
         });
 
         // ============ AI ASSISTANT ============
@@ -1213,4 +1198,4 @@
         document.getElementById('submitReportBtn').addEventListener('click',submitDailyReport);
     </script>
 </body>
-</html>here
+</html>
