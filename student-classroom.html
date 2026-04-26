@@ -4,342 +4,105 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>EduTop · My Classroom</title>
-    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font: Inter + Space Grotesk -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
-            --bg-primary: #f0f5fa;
-            --text-primary: #0b1e33;
-            --text-secondary: #2c3e50;
-            --accent: #1e3c72;
-            --accent-glow: #2a5298;
-            --border: rgba(0,0,0,0.08);
-            --card-bg: rgba(255,255,255,0.7);
-            --hover-bg: rgba(255,255,255,0.9);
+            --bg-primary: #f0f5fa; --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
-            --success-bg: rgba(34,197,94,0.2);
-            --success-text: #16a34a;
-            --warning-bg: rgba(245,158,11,0.2);
-            --warning-text: #b45309;
-            --danger-bg: rgba(239,68,68,0.2);
-            --danger-text: #b91c1c;
+            --success-bg: rgba(34,197,94,0.2); --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #b91c1c;
             --input-bg: rgba(255,255,255,0.9);
         }
         :root[data-theme="dark"] {
-            --bg-primary: #0a0f1e;
-            --text-primary: #f0f4fa;
-            --text-secondary: #a0b3d9;
-            --accent: #3b82f6;
-            --accent-glow: #60a5fa;
-            --border: rgba(255,255,255,0.05);
-            --card-bg: rgba(15, 23, 42, 0.6);
-            --hover-bg: rgba(30, 41, 59, 0.8);
+            --bg-primary: #0a0f1e; --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15, 23, 42, 0.6); --hover-bg: rgba(30, 41, 59, 0.8);
             --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
-            --success-bg: rgba(34,197,94,0.2);
-            --success-text: #4ade80;
-            --warning-bg: rgba(245,158,11,0.2);
-            --warning-text: #fbbf24;
-            --danger-bg: rgba(239,68,68,0.2);
-            --danger-text: #f87171;
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
             --input-bg: rgba(30,41,59,0.8);
         }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            transition: background 0.3s;
-            position: relative;
-            overflow-x: hidden;
-        }
-        .orb {
-            position: fixed;
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%);
-            filter: blur(80px);
-            z-index: 0;
-            animation: float 25s infinite alternate ease-in-out;
-        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
+        .orb { position: fixed; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.15), transparent 70%); filter: blur(80px); z-index: 0; animation: float 25s infinite alternate ease-in-out; }
         .orb-1 { top: -100px; left: -100px; }
         .orb-2 { bottom: -150px; right: -50px; width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.15), transparent); animation-duration: 30s; }
-        @keyframes float {
-            0% { transform: translate(0,0) scale(1); }
-            100% { transform: translate(60px, 40px) scale(1.2); }
-        }
-
-        /* Top navigation */
-        .top-nav {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .nav-left, .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .nav-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.6rem 1.5rem;
-            color: var(--text-primary);
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .nav-btn:hover {
-            background: var(--hover-bg);
-            border-color: var(--accent);
-        }
-        .profile-dropdown {
-            position: relative;
-            cursor: pointer;
-        }
-        .profile-trigger {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 0.4rem 0.4rem 0.4rem 1rem;
-        }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(60px, 40px) scale(1.2); } }
+        .top-nav { position: sticky; top: 0; z-index: 100; background: var(--card-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .nav-left, .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .nav-btn { background: transparent; border: 1px solid var(--border); border-radius: 2rem; padding: 0.6rem 1.5rem; color: var(--text-primary); font-weight: 500; cursor: pointer; transition: 0.2s; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+        .nav-btn:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.4rem 0.4rem 0.4rem 1rem; }
         .profile-name { font-weight: 600; color: var(--text-primary); }
-        .profile-pic {
-            width: 42px; height: 42px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), var(--accent-glow));
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: 600; font-size: 1.1rem;
-            box-shadow: 0 5px 15px var(--accent);
-        }
-        .dropdown-menu {
-            position: absolute; right: 0; top: 60px;
-            background: var(--card-bg); backdrop-filter: blur(16px);
-            border: 1px solid var(--border); border-radius: 1.2rem;
-            padding: 0.5rem; min-width: 180px; display: none;
-            z-index: 1000; box-shadow: var(--shadow);
-        }
+        .profile-pic { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-glow)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.1rem; box-shadow: 0 5px 15px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 60px; background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
         .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .dropdown-item {
-            padding: 0.8rem 1.2rem; color: var(--text-primary);
-            border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem;
-            transition: 0.2s; text-decoration: none;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; text-decoration: none; }
         .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
-        .theme-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.4rem 1.2rem;
-            cursor: pointer;
-        }
-
-        /* Main container – wide */
-        .main-container {
-            max-width: 1600px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-            position: relative;
-            z-index: 5;
-        }
-
-        /* Subject & Week tabs */
-        .subject-tabs, .week-tabs {
-            display: flex; gap: 0.5rem; margin-bottom: 2rem;
-            background: var(--card-bg); backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 0.3rem; width: fit-content; flex-wrap: wrap;
-        }
-        .tab {
-            padding: 0.7rem 2rem; border-radius: 3rem; font-weight: 500;
-            cursor: pointer; transition: 0.2s; color: var(--text-secondary);
-            white-space: nowrap;
-        }
+        .theme-toggle { display: flex; align-items: center; gap: 0.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.4rem 1.2rem; cursor: pointer; }
+        .main-container { max-width: 1600px; margin: 2rem auto; padding: 0 2rem; position: relative; z-index: 5; }
+        .subject-tabs, .week-tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap; }
+        .tab { padding: 0.7rem 2rem; border-radius: 3rem; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap; }
         .tab.active { background: var(--accent); color: white; }
-
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 1.8rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
+        .card { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 2rem; padding: 1.8rem; box-shadow: var(--shadow); margin-bottom: 2rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
         .card-header h3 { font-size: 1.3rem; font-weight: 600; }
-
-        .resource-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1rem;
-        }
-        .resource-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-        }
-        .resource-card h4 {
-            margin-bottom: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--accent);
-        }
-        .resource-card p {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            line-height: 1.6;
-            margin-bottom: 0.5rem;
-            white-space: pre-wrap;
-            max-height: 150px;
-            overflow-y: hidden;
-            transition: max-height 0.3s ease;
-            position: relative;
-        }
-        .resource-card p.expanded {
-            max-height: 1000px;
-        }
-        .read-more-btn {
-            background: none;
-            border: none;
-            color: var(--accent);
-            cursor: pointer;
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-            text-align: left;
-            padding: 0;
-            font-weight: 500;
-        }
-        .resource-card ul {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 1rem;
-        }
-        .resource-card li {
-            margin-bottom: 0.5rem;
-        }
-        .resource-card li a {
-            color: var(--accent);
-            text-decoration: none;
-            word-break: break-all;
-        }
-        .resource-card li a:hover {
-            text-decoration: underline;
-        }
-        .btn {
-            padding: 0.6rem 1.5rem;
-            border: none;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
+        .resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+        .resource-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+        .resource-card h4 { margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; color: var(--accent); }
+        .resource-card p { color: var(--text-secondary); font-size: 1rem; line-height: 1.6; margin-bottom: 0.5rem; white-space: pre-wrap; max-height: 150px; overflow-y: hidden; transition: max-height 0.3s ease; position: relative; }
+        .resource-card p.expanded { max-height: 1000px; }
+        .read-more-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.85rem; margin-top: 0.25rem; text-align: left; padding: 0; font-weight: 500; }
+        .resource-card ul { list-style: none; padding: 0; margin-bottom: 1rem; }
+        .resource-card li { margin-bottom: 0.5rem; }
+        .resource-card li a { color: var(--accent); text-decoration: none; word-break: break-all; }
+        .resource-card li a:hover { text-decoration: underline; }
+        .handwriting-images-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+        .handwriting-images-grid img { width: 100%; border-radius: 0.8rem; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
+        .handwriting-images-grid img:hover { transform: scale(1.03); border-color: var(--accent); }
+        .image-popup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 3000; cursor: pointer; }
+        .image-popup-overlay.active { display: flex; }
+        .image-popup-overlay img { max-width: 90%; max-height: 90%; border-radius: 1rem; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+        .image-popup-overlay .image-popup-close { position: absolute; top: 2rem; right: 2rem; color: white; font-size: 2rem; cursor: pointer; z-index: 3001; }
+        .btn { padding: 0.6rem 1.5rem; border: none; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
         .btn-sm { padding: 0.3rem 1rem; font-size: 0.9rem; }
-
-        .error-message {
-            background: var(--danger-bg);
-            color: var(--danger-text);
-            padding: 1rem;
-            border-radius: 1rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--danger-text);
-        }
-        .error-message a {
-            color: var(--accent);
-            text-decoration: underline;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-        .loading-spinner {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-        .loading-spinner i {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--accent);
-        }
-
-        @media (max-width: 768px) {
-            .main-container { padding: 0 1rem; }
-            .top-nav { padding: 1rem; }
-        }
+        .error-message { background: var(--danger-bg); color: var(--danger-text); padding: 1rem; border-radius: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--danger-text); }
+        .error-message a { color: var(--accent); text-decoration: underline; }
+        .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); }
+        .loading-spinner { text-align: center; padding: 2rem; color: var(--text-secondary); }
+        .loading-spinner i { font-size: 2rem; margin-bottom: 1rem; color: var(--accent); }
+        @media (max-width: 768px) { .main-container { padding: 0 1rem; } .top-nav { padding: 1rem; } }
     </style>
 </head>
 <body>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
+    <div class="image-popup-overlay" id="imagePopupOverlay" onclick="document.getElementById('imagePopupOverlay').classList.remove('active')">
+        <i class="fas fa-times image-popup-close" onclick="document.getElementById('imagePopupOverlay').classList.remove('active')"></i>
+        <img id="imagePopupImg" src="" alt="Visual note enlarged" onclick="event.stopPropagation()">
+    </div>
 
-    <!-- Top Navigation -->
     <div class="top-nav">
         <div class="nav-left">
             <a href="student-dashboard.html" class="nav-btn"><i class="fas fa-chart-pie"></i> Dashboard</a>
             <a href="index.html" class="nav-btn"><i class="fas fa-home"></i> Home</a>
         </div>
         <div class="nav-right">
-            <div class="theme-toggle" id="themeToggle">
-                <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
-            </div>
+            <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
             <div class="profile-dropdown">
-                <div class="profile-trigger">
-                    <span class="profile-name" id="profileName">Student</span>
-                    <div class="profile-pic" id="profilePic">ST</div>
-                </div>
+                <div class="profile-trigger"><span class="profile-name" id="profileName">Student</span><div class="profile-pic" id="profilePic">ST</div></div>
                 <div class="dropdown-menu">
                     <a href="student-profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
                     <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
@@ -349,40 +112,21 @@
     </div>
 
     <div class="main-container">
-        <!-- Error display -->
         <div id="errorMessage" class="error-message" style="display: none;"></div>
-
-        <!-- Subject Tabs -->
         <div class="subject-tabs" id="subjectTabs"></div>
-
-        <!-- Week Tabs -->
         <div class="week-tabs" id="weekTabs"></div>
-
-        <!-- Resources Card -->
         <div class="card">
-            <div class="card-header">
-                <h3>Learning Materials for <span id="currentSubject"></span> – Week <span id="currentWeek"></span></h3>
-            </div>
+            <div class="card-header"><h3>Learning Materials for <span id="currentSubject"></span> – Week <span id="currentWeek"></span></h3></div>
             <div id="resourcesContainer">
-                <div class="loading-spinner" id="resourcesLoading" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading materials...</p>
-                </div>
+                <div class="loading-spinner" id="resourcesLoading" style="display: none;"><i class="fas fa-spinner fa-spin"></i><p>Loading materials...</p></div>
                 <p class="empty-state" id="resourcesEmpty" style="display: block;">Select a subject and week to view materials.</p>
                 <div id="resourcesContent" style="display: block;"></div>
             </div>
         </div>
-
-        <!-- Upcoming Virtual Classes -->
         <div class="card">
-            <div class="card-header">
-                <h3>Upcoming Virtual Classes</h3>
-            </div>
+            <div class="card-header"><h3>Upcoming Virtual Classes</h3></div>
             <div id="virtualClassesContainer">
-                <div class="loading-spinner" id="classesLoading" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading classes...</p>
-                </div>
+                <div class="loading-spinner" id="classesLoading" style="display: none;"><i class="fas fa-spinner fa-spin"></i><p>Loading classes...</p></div>
                 <p class="empty-state" id="classesEmpty" style="display: block;">No upcoming virtual classes.</p>
                 <div id="classesContent" style="display: none;"></div>
             </div>
@@ -390,484 +134,176 @@
     </div>
 
     <script>
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
             projectId: "triangle-6e6b7",
             storageBucket: "triangle-6e6b7.firebasestorage.app",
             messagingSenderId: "673937760480",
-            appId: "1:673937760480:web:f03c06e1207232213ef085",
-            measurementId: "G-ELBMT8WHQ9"
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
-
-        // Initialize Firebase
-        try {
-            firebase.initializeApp(firebaseConfig);
-        } catch (e) {
-            console.error('Firebase initialization error:', e);
-            document.getElementById('errorMessage').innerHTML = 'Firebase initialization failed. Check your config.';
-            document.getElementById('errorMessage').style.display = 'block';
-        }
+        try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error('Firebase initialization error:', e); document.getElementById('errorMessage').innerHTML = 'Firebase initialization failed.'; document.getElementById('errorMessage').style.display = 'block'; }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme toggle
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = themeToggle.querySelector('i:first-child');
         const themeText = themeToggle.querySelector('span');
-        function updateThemeUI(theme) {
-            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
-        }
+        function updateThemeUI(theme) { themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun'; themeText.textContent = theme === 'dark' ? 'Dark' : 'Light'; }
         const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
         updateThemeUI(savedTheme);
-        themeToggle.addEventListener('click', () => {
-            const current = html.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            localStorage.setItem('edutopscholars-theme', next);
-            updateThemeUI(next);
-        });
+        themeToggle.addEventListener('click', () => { const n = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; html.setAttribute('data-theme', n); localStorage.setItem('edutopscholars-theme', n); updateThemeUI(n); });
 
-        // Global variables
-        let currentUser = null;
-        let userData = null;
-        let studentClass = null;
-        let subjects = [];
-        let currentSubject = null;
-        let weeks = [];
-        let currentWeek = null;
-        let lessonNotesMap = {};
+        window.openImagePopup = (url) => { document.getElementById('imagePopupImg').src = url; document.getElementById('imagePopupOverlay').classList.add('active'); };
 
-        // Real‑time listeners
-        let unsubscribeLessonNotes = null;
-        let unsubscribeVirtualClasses = null;
+        let currentUser = null, userData = null, studentClass = null, subjects = [], currentSubject = null, weeks = [], currentWeek = null, lessonNotesMap = {};
+        let unsubscribeLessonNotes = null, unsubscribeVirtualClasses = null;
 
-        // Error handler for Firestore index – provides clickable link
-        function handleFirestoreError(error, context) {
-            console.error(`Firestore error in ${context}:`, error);
-            const errorDiv = document.getElementById('errorMessage');
-            if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-                const url = match ? match[0] : '#';
-                errorDiv.innerHTML = `
-                    <strong>Missing Firestore index.</strong><br>
-                    Please create it by clicking 
-                    <a href="${url}" target="_blank">this link</a>.
-                `;
-                errorDiv.style.display = 'block';
-            } else {
-                errorDiv.textContent = `Error: ${error.message}`;
-                errorDiv.style.display = 'block';
-            }
-        }
+        function handleFirestoreError(error, context) { console.error(`Firestore error in ${context}:`, error); const errorDiv = document.getElementById('errorMessage'); if (error.code === 'failed-precondition' && error.message.includes('index')) { const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/); const url = match ? match[0] : '#'; errorDiv.innerHTML = `<strong>Missing Firestore index.</strong><br>Please create it by clicking <a href="${url}" target="_blank">this link</a>.`; errorDiv.style.display = 'block'; } else { errorDiv.textContent = `Error: ${error.message}`; errorDiv.style.display = 'block'; } }
+        function showError(message) { const errorDiv = document.getElementById('errorMessage'); errorDiv.textContent = message; errorDiv.style.display = 'block'; setTimeout(() => errorDiv.style.display = 'none', 5000); }
+        function setResourcesLoading(v) { document.getElementById('resourcesLoading').style.display = v ? 'block' : 'none'; document.getElementById('resourcesEmpty').style.display = 'none'; document.getElementById('resourcesContent').style.display = 'none'; }
+        function setResourcesEmpty() { document.getElementById('resourcesLoading').style.display = 'none'; document.getElementById('resourcesEmpty').style.display = 'block'; document.getElementById('resourcesContent').style.display = 'none'; }
+        function setResourcesContent(html) { const d = document.getElementById('resourcesContent'); d.style.display = 'block'; d.innerHTML = html; document.getElementById('resourcesLoading').style.display = 'none'; document.getElementById('resourcesEmpty').style.display = 'none'; }
+        function setClassesLoading(v) { document.getElementById('classesLoading').style.display = v ? 'block' : 'none'; document.getElementById('classesEmpty').style.display = 'none'; document.getElementById('classesContent').style.display = 'none'; }
+        function setClassesEmpty() { document.getElementById('classesLoading').style.display = 'none'; document.getElementById('classesEmpty').style.display = 'block'; document.getElementById('classesContent').style.display = 'none'; }
+        function setClassesContent(html) { document.getElementById('classesLoading').style.display = 'none'; document.getElementById('classesEmpty').style.display = 'none'; document.getElementById('classesContent').style.display = 'block'; document.getElementById('classesContent').innerHTML = html; }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => errorDiv.style.display = 'none', 5000);
-        }
-
-        function setResourcesLoading(isLoading) {
-            document.getElementById('resourcesLoading').style.display = isLoading ? 'block' : 'none';
-            document.getElementById('resourcesEmpty').style.display = 'none';
-            document.getElementById('resourcesContent').style.display = 'none';
-        }
-
-        function setResourcesEmpty() {
-            document.getElementById('resourcesLoading').style.display = 'none';
-            document.getElementById('resourcesEmpty').style.display = 'block';
-            document.getElementById('resourcesContent').style.display = 'none';
-        }
-
-        function setResourcesContent(html) {
-            const contentDiv = document.getElementById('resourcesContent');
-            contentDiv.style.display = 'block';
-            contentDiv.innerHTML = html;
-            document.getElementById('resourcesLoading').style.display = 'none';
-            document.getElementById('resourcesEmpty').style.display = 'none';
-        }
-
-        function setClassesLoading(isLoading) {
-            document.getElementById('classesLoading').style.display = isLoading ? 'block' : 'none';
-            document.getElementById('classesEmpty').style.display = 'none';
-            document.getElementById('classesContent').style.display = 'none';
-        }
-
-        function setClassesEmpty() {
-            document.getElementById('classesLoading').style.display = 'none';
-            document.getElementById('classesEmpty').style.display = 'block';
-            document.getElementById('classesContent').style.display = 'none';
-        }
-
-        function setClassesContent(html) {
-            document.getElementById('classesLoading').style.display = 'none';
-            document.getElementById('classesEmpty').style.display = 'none';
-            document.getElementById('classesContent').style.display = 'block';
-            document.getElementById('classesContent').innerHTML = html;
-        }
-
-        // Auth
         auth.onAuthStateChanged(async (user) => {
-            console.log('Auth state changed, user:', user ? user.uid : 'none');
-            if (!user) { 
-                window.location.href = 'student-login.html'; 
-                return; 
-            }
+            if (!user) { window.location.href = 'student-login.html'; return; }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists) {
-                    showError('User document not found.');
-                    auth.signOut();
-                    window.location.href = 'student-login.html';
-                    return;
-                }
+                if (!userDoc.exists) { showError('User document not found.'); auth.signOut(); window.location.href = 'student-login.html'; return; }
                 userData = userDoc.data();
-                if (userData.role !== 'student') {
-                    showError('Invalid user role.');
-                    auth.signOut();
-                    window.location.href = 'index.html';
-                    return;
-                }
+                if (userData.role !== 'student') { showError('Invalid user role.'); auth.signOut(); window.location.href = 'index.html'; return; }
                 const isApproved = userData.approved === true || userData.status === 'approved';
-                if (!isApproved) {
-                    alert('Your account is pending approval.');
-                    auth.signOut();
-                    window.location.href = 'student-login.html';
-                    return;
-                }
-                currentUser = user;
-                studentClass = userData.class;
-                if (!studentClass) {
-                    showError('You are not assigned to any class. Please contact your teacher.');
-                    return;
-                }
+                if (!isApproved) { alert('Your account is pending approval.'); auth.signOut(); window.location.href = 'student-login.html'; return; }
+                currentUser = user; studentClass = userData.class;
+                if (!studentClass) { showError('You are not assigned to any class.'); return; }
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
                 document.getElementById('profileName').textContent = userData.firstName || 'Student';
-
-                console.log('Student class:', studentClass);
-
-                // Set up real‑time listener for lesson notes
                 if (unsubscribeLessonNotes) unsubscribeLessonNotes();
                 setResourcesLoading(true);
                 unsubscribeLessonNotes = db.collection('lessonNotes')
                     .where('classId', '==', studentClass)
                     .where('status', '==', 'approved')
                     .onSnapshot(snapshot => {
-                        console.log('Lesson notes snapshot received, size:', snapshot.size);
-                        lessonNotesMap = {};
-                        subjects = [];
+                        lessonNotesMap = {}; subjects = [];
                         snapshot.forEach(doc => {
                             const data = doc.data();
-                            console.log('Document data:', data);
-                            // Only include if at least one resource is published
-                            if (data.studentResourcePublished || data.handwrittenPublished || (data.youtubeLinks && data.youtubeLinks.length && data.youtubePublished)) {
+                            // FIXED: Check for correct field names
+                            if (data.resourcePublished || data.handwritingImagesPublished || (data.videoLinks && data.videoLinks.length && data.videosPublished)) {
                                 const subj = data.subject;
                                 if (subj && !subjects.includes(subj)) subjects.push(subj);
                                 const key = `${subj}_${data.week}`;
                                 lessonNotesMap[key] = { id: doc.id, ...data };
-                                console.log('Included note for subject:', subj, 'week:', data.week);
-                            } else {
-                                console.log('Note excluded (no published resources):', data.subject, data.week);
                             }
                         });
-                        console.log('Subjects after filtering:', subjects);
                         renderSubjectTabs();
                         if (subjects.length > 0) {
-                            if (!currentSubject || !subjects.includes(currentSubject)) {
-                                currentSubject = subjects[0];
-                            }
+                            if (!currentSubject || !subjects.includes(currentSubject)) currentSubject = subjects[0];
                             switchSubject(currentSubject);
-                        } else {
-                            setResourcesEmpty();
-                            document.getElementById('subjectTabs').innerHTML = '';
-                            document.getElementById('weekTabs').innerHTML = '';
-                            document.getElementById('currentSubject').textContent = '';
-                            document.getElementById('currentWeek').textContent = '';
-                        }
-                    }, error => {
-                        console.error('Lesson notes listener error:', error);
-                        handleFirestoreError(error, 'lessonNotes');
-                        setResourcesEmpty();
-                    });
-
-                // Set up real‑time listener for virtual classes
+                        } else { setResourcesEmpty(); document.getElementById('subjectTabs').innerHTML = ''; document.getElementById('weekTabs').innerHTML = ''; document.getElementById('currentSubject').textContent = ''; document.getElementById('currentWeek').textContent = ''; }
+                    }, error => { handleFirestoreError(error, 'lessonNotes'); setResourcesEmpty(); });
                 if (unsubscribeVirtualClasses) unsubscribeVirtualClasses();
                 setClassesLoading(true);
                 unsubscribeVirtualClasses = db.collection('virtualClasses')
                     .where('classId', '==', studentClass)
-                    .orderBy('date', 'asc')
-                    .orderBy('time', 'asc')
-                    .onSnapshot(snapshot => {
-                        console.log('Virtual classes snapshot received, size:', snapshot.size);
-                        renderVirtualClasses(snapshot);
-                    }, error => {
-                        console.error('Virtual classes listener error:', error);
-                        handleFirestoreError(error, 'virtualClasses');
-                        setClassesEmpty();
-                    });
-
-            } catch (error) {
-                console.error('Auth error:', error);
-                showError('Authentication error: ' + error.message);
-            }
+                    .orderBy('date', 'asc').orderBy('time', 'asc')
+                    .onSnapshot(snapshot => { renderVirtualClasses(snapshot); }, error => { handleFirestoreError(error, 'virtualClasses'); setClassesEmpty(); });
+            } catch (error) { showError('Authentication error: ' + error.message); }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
 
         function renderSubjectTabs() {
-            const container = document.getElementById('subjectTabs');
-            container.innerHTML = '';
-            subjects.forEach(sub => {
-                const tab = document.createElement('span');
-                tab.className = 'tab';
-                tab.textContent = sub;
-                tab.onclick = (e) => switchSubject(sub, e.target);
-                container.appendChild(tab);
-            });
-            // Highlight active subject
-            if (currentSubject) {
-                document.querySelectorAll('#subjectTabs .tab').forEach(t => {
-                    if (t.textContent === currentSubject) t.classList.add('active');
-                });
-            }
+            const container = document.getElementById('subjectTabs'); container.innerHTML = '';
+            subjects.forEach(sub => { const tab = document.createElement('span'); tab.className = 'tab'; tab.textContent = sub; tab.onclick = (e) => switchSubject(sub, e.target); container.appendChild(tab); });
+            if (currentSubject) { document.querySelectorAll('#subjectTabs .tab').forEach(t => { if (t.textContent === currentSubject) t.classList.add('active'); }); }
         }
 
         function switchSubject(subject, clickedElement) {
             document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
             if (clickedElement) clickedElement.classList.add('active');
-            currentSubject = subject;
-            document.getElementById('currentSubject').textContent = subject;
-            console.log('Switched to subject:', subject);
-
+            currentSubject = subject; document.getElementById('currentSubject').textContent = subject;
             weeks = [];
-            for (let key in lessonNotesMap) {
-                if (key.startsWith(subject + '_')) {
-                    const week = lessonNotesMap[key].week;
-                    if (!weeks.includes(week)) weeks.push(week);
-                }
-            }
-            weeks.sort((a,b) => a - b);
-            console.log('Weeks for subject:', weeks);
-            renderWeekTabs();
-            if (weeks.length > 0) {
-                if (currentWeek && weeks.includes(currentWeek)) {
-                    selectWeek(currentWeek);
-                } else {
-                    selectWeek(weeks[0]);
-                }
-            } else {
-                setResourcesEmpty();
-                document.getElementById('weekTabs').innerHTML = '';
-                document.getElementById('currentWeek').textContent = '';
-            }
+            for (let key in lessonNotesMap) { if (key.startsWith(subject + '_')) { const week = lessonNotesMap[key].week; if (!weeks.includes(week)) weeks.push(week); } }
+            weeks.sort((a,b) => a - b); renderWeekTabs();
+            if (weeks.length > 0) { if (currentWeek && weeks.includes(currentWeek)) selectWeek(currentWeek); else selectWeek(weeks[0]); }
+            else { setResourcesEmpty(); document.getElementById('weekTabs').innerHTML = ''; document.getElementById('currentWeek').textContent = ''; }
         }
 
         function renderWeekTabs() {
-            const container = document.getElementById('weekTabs');
-            container.innerHTML = '';
-            weeks.forEach(week => {
-                const tab = document.createElement('span');
-                tab.className = 'tab';
-                tab.textContent = `Week ${week}`;
-                tab.onclick = (e) => selectWeek(week, e.target);
-                container.appendChild(tab);
-            });
-            if (currentWeek) {
-                document.querySelectorAll('#weekTabs .tab').forEach(t => {
-                    if (t.textContent === `Week ${currentWeek}`) t.classList.add('active');
-                });
-            }
+            const container = document.getElementById('weekTabs'); container.innerHTML = '';
+            weeks.forEach(week => { const tab = document.createElement('span'); tab.className = 'tab'; tab.textContent = `Week ${week}`; tab.onclick = (e) => selectWeek(week, e.target); container.appendChild(tab); });
+            if (currentWeek) { document.querySelectorAll('#weekTabs .tab').forEach(t => { if (t.textContent === `Week ${currentWeek}`) t.classList.add('active'); }); }
         }
 
         function selectWeek(week, clickedElement) {
             document.querySelectorAll('#weekTabs .tab').forEach(t => t.classList.remove('active'));
             if (clickedElement) clickedElement.classList.add('active');
-            currentWeek = week;
-            document.getElementById('currentWeek').textContent = week;
-            console.log('Selected week:', week);
+            currentWeek = week; document.getElementById('currentWeek').textContent = week;
             renderResources();
         }
 
-        // Helper to download content as a text file
-        function downloadAsFile(content, filename) {
-            try {
-                const blob = new Blob([content], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (e) {
-                showError('Download failed: ' + e.message);
-            }
-        }
+        function downloadAsFile(content, filename) { try { const blob = new Blob([content], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) { showError('Download failed: ' + e.message); } }
 
-        // Toggle expand/collapse
-        window.toggleReadMore = (btn, contentId) => {
-            const content = document.getElementById(contentId);
-            if (content.classList.contains('expanded')) {
-                content.classList.remove('expanded');
-                btn.textContent = 'Read more';
-            } else {
-                content.classList.add('expanded');
-                btn.textContent = 'Read less';
-            }
-        };
+        window.toggleReadMore = (btn, contentId) => { const content = document.getElementById(contentId); if (content.classList.contains('expanded')) { content.classList.remove('expanded'); btn.textContent = 'Read more'; } else { content.classList.add('expanded'); btn.textContent = 'Read less'; } };
 
-        // Updated renderResources with graceful missing‑content handling
         function renderResources() {
-            if (!currentSubject || !currentWeek) {
-                setResourcesEmpty();
-                return;
-            }
+            if (!currentSubject || !currentWeek) { setResourcesEmpty(); return; }
             const key = `${currentSubject}_${currentWeek}`;
             const note = lessonNotesMap[key];
-            console.log('Rendering resources for key:', key, 'note:', note);
-
-            if (!note) {
-                setResourcesEmpty();
-                return;
-            }
-
+            if (!note) { setResourcesEmpty(); return; }
             let html = '<div class="resource-grid">';
 
             // Student Resource (if published)
-            if (note.studentResourcePublished) {
+            if (note.resourcePublished) {
                 if (note.studentResource) {
-                    console.log('Adding student resource card');
                     const contentId = `student_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
-                    const safeContent = note.studentResource.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
-                    html += `
-                        <div class="resource-card">
-                            <h4><i class="fas fa-users"></i> Student Resource</h4>
-                            <p id="${contentId}">${note.studentResource}</p>
-                            <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
-                            <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'StudentResource_${currentSubject}_Week${currentWeek}.txt')">
-                                <i class="fas fa-download"></i> Download
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    console.warn('Student resource published but content missing');
-                    html += `
-                        <div class="resource-card">
-                            <h4><i class="fas fa-users"></i> Student Resource</h4>
-                            <p style="color: var(--warning-text);">Published but no content available. Please contact your teacher.</p>
-                        </div>
-                    `;
-                }
-            } else {
-                console.log('Student resource not published');
+                    html += `<div class="resource-card"><h4><i class="fas fa-users"></i> Student Resource</h4><p id="${contentId}">${note.studentResource}</p><button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button><button class="btn btn-outline btn-sm" onclick="downloadAsFile('${note.studentResource.replace(/'/g, "\\'")}', 'StudentResource_${currentSubject}_Week${currentWeek}.txt')"><i class="fas fa-download"></i> Download</button></div>`;
+                } else { html += `<div class="resource-card"><h4><i class="fas fa-users"></i> Student Resource</h4><p style="color: var(--warning-text);">Published but no content available.</p></div>`; }
             }
 
-            // Handwritten Notes (if published)
-            if (note.handwrittenPublished) {
-                if (note.handwrittenNotes) {
-                    console.log('Adding handwritten notes card');
-                    const contentId = `handwritten_${currentSubject}_${currentWeek}`.replace(/\s/g, '_');
-                    const safeContent = note.handwrittenNotes.replace(/`/g, '\\`').replace(/\$/g, '$$$$');
-                    html += `
-                        <div class="resource-card">
-                            <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
-                            <p id="${contentId}">${note.handwrittenNotes}</p>
-                            <button class="read-more-btn" onclick="toggleReadMore(this, '${contentId}')">Read more</button>
-                            <button class="btn btn-outline btn-sm" onclick="downloadAsFile(\`${safeContent}\`, 'Handwritten_${currentSubject}_Week${currentWeek}.txt')">
-                                <i class="fas fa-download"></i> Download
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    console.warn('Handwritten notes published but content missing');
-                    html += `
-                        <div class="resource-card">
-                            <h4><i class="fas fa-pen-fancy"></i> Handwritten Notes</h4>
-                            <p style="color: var(--warning-text);">Published but no content available. Please contact your teacher.</p>
-                        </div>
-                    `;
-                }
-            } else {
-                console.log('Handwritten notes not published');
+            // Handwriting Images (if published) - FIXED
+            if (note.handwritingImagesPublished) {
+                if (note.handwritingImages && note.handwritingImages.length > 0) {
+                    let imgsHtml = '<div class="handwriting-images-grid">';
+                    note.handwritingImages.forEach(img => { imgsHtml += `<img src="${img.url}" alt="Visual note" onclick="openImagePopup('${img.url.replace(/'/g, "\\'")}')">`; });
+                    imgsHtml += '</div>';
+                    html += `<div class="resource-card"><h4><i class="fas fa-pen-fancy"></i> Handwriting & Visual Notes</h4>${imgsHtml}<p style="font-size:0.8rem;">Click on images to enlarge</p></div>`;
+                } else { html += `<div class="resource-card"><h4><i class="fas fa-pen-fancy"></i> Handwriting & Visual Notes</h4><p style="color: var(--warning-text);">Published but no images available.</p></div>`; }
             }
 
-            // YouTube Links (if published)
-            if (note.youtubePublished) {
-                if (note.youtubeLinks && note.youtubeLinks.length > 0) {
-                    console.log('Adding YouTube links card');
+            // Video Links (if published) - FIXED: videoLinks
+            if (note.videosPublished) {
+                if (note.videoLinks && note.videoLinks.length > 0) {
                     let linksHtml = '<ul>';
-                    note.youtubeLinks.forEach(link => {
-                        linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`;
-                    });
+                    note.videoLinks.forEach(link => { linksHtml += `<li><a href="${link}" target="_blank">${link}</a></li>`; });
                     linksHtml += '</ul>';
-                    html += `
-                        <div class="resource-card">
-                            <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
-                            ${linksHtml}
-                            <a href="${note.youtubeLinks[0]}" target="_blank" class="btn btn-outline btn-sm" style="align-self: flex-start;">Watch Now</a>
-                        </div>
-                    `;
-                } else {
-                    console.warn('YouTube published but no links');
-                    html += `
-                        <div class="resource-card">
-                            <h4><i class="fab fa-youtube"></i> YouTube Links</h4>
-                            <p style="color: var(--warning-text);">Published but no links available. Please contact your teacher.</p>
-                        </div>
-                    `;
-                }
-            } else {
-                console.log('YouTube not published');
+                    html += `<div class="resource-card"><h4><i class="fab fa-youtube"></i> Video Links</h4>${linksHtml}<a href="${note.videoLinks[0]}" target="_blank" class="btn btn-outline btn-sm" style="align-self: flex-start;">Watch Now</a></div>`;
+                } else { html += `<div class="resource-card"><h4><i class="fab fa-youtube"></i> Video Links</h4><p style="color: var(--warning-text);">Published but no links available.</p></div>`; }
             }
 
             html += '</div>';
-
-            // If none of the above, show empty
-            if (!note.studentResourcePublished && !note.handwrittenPublished && !note.youtubePublished) {
-                console.log('No published resources, showing empty');
-                setResourcesEmpty();
-                return;
-            }
-
+            if (!note.resourcePublished && !note.handwritingImagesPublished && !note.videosPublished) { setResourcesEmpty(); return; }
             setResourcesContent(html);
         }
 
         function renderVirtualClasses(snapshot) {
-            if (snapshot.empty) {
-                setClassesEmpty();
-                return;
-            }
-
-            const now = new Date();
-            let html = '<div class="resource-grid">';
+            if (snapshot.empty) { setClassesEmpty(); return; }
+            const now = new Date(); let html = '<div class="resource-grid">';
             snapshot.forEach(doc => {
-                const vc = doc.data();
-                // Filter future classes only
-                const classDateTime = new Date(`${vc.date}T${vc.time}`);
-                if (classDateTime < now) return; // skip past classes
-
-                html += `
-                    <div class="resource-card">
-                        <h4><i class="fas fa-video"></i> ${vc.subject || 'Unknown'} – Week ${vc.week || '?'}</h4>
-                        <p><strong>Platform:</strong> ${vc.platform || 'N/A'}</p>
-                        <p><strong>Date:</strong> ${vc.date || 'N/A'} at ${vc.time || 'N/A'}</p>
-                        <p><strong>Duration:</strong> ${vc.duration || '?'} min</p>
-                        <a href="${vc.link || '#'}" target="_blank" class="btn btn-outline">Join</a>
-                    </div>
-                `;
+                const vc = doc.data(); const classDateTime = new Date(`${vc.date}T${vc.time}`);
+                if (classDateTime < now) return;
+                html += `<div class="resource-card"><h4><i class="fas fa-video"></i> ${vc.subject || 'Unknown'} – Week ${vc.week || '?'}</h4><p><strong>Platform:</strong> ${vc.platform || 'N/A'}</p><p><strong>Date:</strong> ${vc.date || 'N/A'} at ${vc.time || 'N/A'}</p><p><strong>Duration:</strong> ${vc.duration || '?'} min</p><a href="${vc.link || '#'}" target="_blank" class="btn btn-outline">Join</a></div>`;
             });
-            html += '</div>';
-            setClassesContent(html);
+            html += '</div>'; setClassesContent(html);
         }
 
-        // Expose download function globally
         window.downloadAsFile = downloadAsFile;
+        window.openImagePopup = openImagePopup;
     </script>
 </body>
 </html>
