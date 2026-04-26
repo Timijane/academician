@@ -709,13 +709,10 @@
             document.getElementById('handwritingSection').style.display=approved?'block':'none';
             document.getElementById('teachingProcessCard').style.display=approved?'block':'none';
             document.getElementById('submitEditorBtn').style.display='none';
-            // Show push to teach button only when approved
             document.getElementById('pushToTeachBtn').style.display=approved?'inline-block':'none';
         }
 
         function updateMergeButtons(){
-            // Merge button always shows - it's in the header now
-            // Submit button only shows after merge (contentMerged) and before approval
             if(contentMerged && !lessonNoteApproved){
                 document.getElementById('submitEditorBtn').style.display='inline-block';
             } else {
@@ -724,7 +721,6 @@
         }
 
         function updateAllButtons(n){
-            // Resource buttons
             const moveResBtn=document.getElementById('moveResourceToResourcesBtn');
             const launchResBtn=document.getElementById('launchResourceToStudentsBtn');
             const copyResBtn=document.getElementById('copyResourceToResourceEditor');
@@ -737,8 +733,6 @@
                 launchResBtn.style.display='none';
                 copyResBtn.style.display='none';
             }
-            
-            // Teaching Process buttons
             const copyTPBtn=document.getElementById('copyTPToTeachingProcessEditor');
             if(teachingProcessQuill.getText().trim()){
                 copyTPBtn.style.display='inline-block';
@@ -936,14 +930,30 @@
             }else showToast('Nothing','No AI content to copy','warning');
         });
 
+        // AUTO-FORMAT TEACHING PROCESS - FIXED
         document.getElementById('autoFormatTPBtn').addEventListener('click',async()=>{
             if(!teachingProcessQuill||!groq)return showToast('Error','AI not available','error');
             const content=teachingProcessQuill.getText();
             if(!content.trim())return showToast('Empty','Write teaching process first','warning');
             showLoading();
-            try{const c=await groq.chat.completions.create({messages:[{role:'system',content:`${NIGERIAN_PROMPT}\n\nYou are formatting a TEACHING PROCESS. Format with steps, time frames, and clear headings. Return ONLY formatted HTML.`},{role:'user',content}],model:'llama-3.3-70b-versatile',temperature:0.3,max_tokens:4096});
-            teachingProcessQuill.root.innerHTML=c.choices[0].message.content.replace(/```html|```/g,'').trim();
-            markUnsaved();showToast('Formatted','Teaching process formatted','success');}catch(e){showError('Format failed: '+e.message);}finally{hideLoading();}
+            try{
+                const completion=await groq.chat.completions.create({
+                    messages:[
+                        {role:'system',content:`${NIGERIAN_PROMPT}\n\nYou are formatting a TEACHING PROCESS. Apply these rules:\n- Use <h3> for step titles like "Step 1: Introduction (5 mins)"\n- Use <strong> for teacher actions "Teacher does..."\n- Use <em> for pupil actions "Pupils do..."\n- Use <ul>/<li> for listed items\n- Use <p> for regular text\n- Return ONLY the HTML formatted version, no markdown blocks, no explanations`},
+                        {role:'user',content:content}
+                    ],
+                    model:'llama-3.3-70b-versatile',
+                    temperature:0.3,
+                    max_tokens:4096
+                });
+                let formatted=completion.choices[0].message.content;
+                formatted=formatted.replace(/```html\n?/g,'').replace(/```\n?/g,'').trim();
+                teachingProcessQuill.root.innerHTML=formatted;
+                markUnsaved();
+                showToast('Formatted','Teaching process formatted','success');
+            }catch(e){
+                showError('Format failed: '+e.message);
+            }finally{hideLoading();}
         });
 
         document.getElementById('saveTPAsTemplateBtn').addEventListener('click',async()=>{
@@ -1004,13 +1014,30 @@
             }catch(e){showError(e.message);}
         });
 
+        // AUTO-FORMAT STUDENT RESOURCES - FIXED
         document.getElementById('autoFormatResourceBtn').addEventListener('click',async()=>{
             if(!studentQuill||!groq)return showToast('Error','AI not available','error');
-            const content=studentQuill.getText();if(!content.trim())return showToast('Empty','Write resource first','warning');
+            const content=studentQuill.getText();
+            if(!content.trim())return showToast('Empty','Write resource first','warning');
             showLoading();
-            try{const c=await groq.chat.completions.create({messages:[{role:'system',content:`${NIGERIAN_PROMPT}\n\nYou are formatting STUDENT RESOURCES. Format with proper HTML. Return ONLY formatted HTML.`},{role:'user',content}],model:'llama-3.3-70b-versatile',temperature:0.3,max_tokens:4096});
-            studentQuill.root.innerHTML=c.choices[0].message.content.replace(/```html|```/g,'').trim();
-            markUnsaved();showToast('Formatted','Resource formatted','success');}catch(e){showError('Format failed: '+e.message);}finally{hideLoading();}
+            try{
+                const completion=await groq.chat.completions.create({
+                    messages:[
+                        {role:'system',content:`${NIGERIAN_PROMPT}\n\nYou are formatting STUDENT RESOURCES. Apply these rules:\n- Use <h2> for main title\n- Use <h3> for section headings\n- Use <strong> for key terms and definitions\n- Use <ul>/<li> for bullet points\n- Use <p> for regular paragraphs\n- Use <div class="key-point"> for important notes\n- Return ONLY the HTML formatted version, no markdown blocks, no explanations`},
+                        {role:'user',content:content}
+                    ],
+                    model:'llama-3.3-70b-versatile',
+                    temperature:0.3,
+                    max_tokens:4096
+                });
+                let formatted=completion.choices[0].message.content;
+                formatted=formatted.replace(/```html\n?/g,'').replace(/```\n?/g,'').trim();
+                studentQuill.root.innerHTML=formatted;
+                markUnsaved();
+                showToast('Formatted','Resource formatted','success');
+            }catch(e){
+                showError('Format failed: '+e.message);
+            }finally{hideLoading();}
         });
 
         document.getElementById('saveResourceAsTemplateBtn').addEventListener('click',async()=>{
