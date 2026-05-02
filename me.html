@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Test Center | Teacher Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
+    <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: rgba(255,255,255,0.95);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.01);
+            --success-bg: #dcfce7;
+            --success-text: #16a34a;
+            --warning-bg: #fef9c3;
+            --warning-text: #ca8a04;
+            --danger-bg: #fee2e2;
+            --danger-text: #dc2626;
+            --info-bg: #dbeafe;
+            --info-text: #2563eb;
+            --input-bg: #ffffff;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+            --purple-bg: #f3e8ff;
+            --purple-text: #7c3aed;
+            --teal-bg: #ccfbf1;
+            --teal-text: #0d9488;
+            --rose-bg: #ffe4e6;
+            --rose-text: #e11d48;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-sidebar: rgba(15,23,42,0.95);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --accent-glow: #60a5fa;
+            --border: #1e293b;
+            --card-bg: #1e293b;
+            --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            --success-bg: rgba(34,197,94,0.2);
+            --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2);
+            --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2);
+            --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2);
+            --info-text: #60a5fa;
+            --input-bg: #334155;
+            --gradient-start: #3b82f6;
+            --gradient-end: #8b5cf6;
+            --purple-bg: rgba(124,58,237,0.2);
+            --purple-text: #a78bfa;
+            --teal-bg: rgba(13,148,136,0.2);
+            --teal-text: #2dd4bf;
+            --rose-bg: rgba(225,29,72,0.2);
+            --rose-text: #fb7185;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .orb {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%);
+            filter: blur(100px);
+            z-index: 0;
+            animation: float 20s infinite alternate ease-in-out;
+            pointer-events: none;
+        }
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(40px, 40px) scale(1.1); }
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        .sidebar.collapsed { width: 90px; }
+        .sidebar .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar .logo-area h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            white-space: nowrap;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1.2rem;
+            border-radius: 1rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.3rem;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            font-size: 0.9rem;
+        }
+        .sidebar .nav-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
+            transform: translateX(5px);
+            border-color: var(--border);
+        }
+        .sidebar .nav-item.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            box-shadow: 0 5px 15px -5px var(--accent);
+        }
+        .sidebar .nav-item i { font-size: 1.1rem; width: 1.4rem; text-align: center; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .nav-section-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            padding: 1.5rem 1.2rem 0.5rem;
+            font-weight: 700;
+        }
+        .sidebar.collapsed .nav-section-title { display: none; }
+        .sidebar .toggle-btn {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            transition: 0.2s;
+        }
+        .sidebar .toggle-btn:hover { color: var(--accent); }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            transition: margin-left 0.3s ease;
+            position: relative;
+            z-index: 5;
+        }
+        .main-content.expanded { margin-left: 90px; }
+
+        /* TOP BAR */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+        .page-title p { color: var(--text-secondary); font-size: 0.9rem; }
+        .profile-area { display: flex; align-items: center; gap: 1rem; }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .theme-toggle:hover { border-color: var(--accent); }
+
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.3rem 0.3rem 0.3rem 1rem;
+        }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 2px 10px var(--accent);
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 55px;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            min-width: 200px;
+            display: none;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: 0.2s;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* ==================== PAGE TOGGLE TABS ==================== */
+        .page-tabs-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.4rem;
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 1rem;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+        .page-tab {
+            flex: 1;
+            min-width: 140px;
+            padding: 0.85rem 1.5rem;
+            border-radius: 1.75rem;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .page-tab:hover {
+            color: var(--accent);
+            background: var(--hover-bg);
+        }
+        .page-tab.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            box-shadow: 0 8px 25px -8px var(--accent);
+            border-color: transparent;
+        }
+        .page-tab .tab-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.15rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .page-tab.active .tab-badge {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Section visibility */
+        .page-section {
+            display: none;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .page-section.active { display: block; }
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== SHARED COMPONENTS ==================== */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59,130,246,0.3);
+        }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-success:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .btn-outline:hover {
+            background: var(--hover-bg);
+            border-color: var(--accent);
+        }
+        .btn-sm { padding: 0.35rem 0.85rem; font-size: 0.8rem; }
+        .btn-group { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .form-group label i { margin-right: 0.5rem; }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            border: 1px solid var(--border);
+        }
+        .empty-state i { font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem; display: block; }
+        .empty-state h3 { margin-bottom: 0.5rem; }
+        .empty-state p { color: var(--text-secondary); }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge-draft { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-published { background: var(--success-bg); color: var(--success-text); }
+        .badge-scheduled { background: var(--info-bg); color: var(--info-text); }
+
+        .info-badge {
+            background: var(--info-bg);
+            color: var(--info-text);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 1rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .stat-info h3 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .stat-info p { color: var(--text-secondary); font-size: 0.8rem; }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            text-align: center;
+        }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; }
+
+        /* Debug */
+        .debug-panel {
+            margin-top: 1rem;
+            background: var(--danger-bg);
+            border: 1px solid var(--danger-text);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: var(--danger-text);
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* ==================== SECTION 1: TEST MANAGEMENT ==================== */
+        .filters-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .search-box input:focus { outline: none; border-color: var(--accent); }
+        .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 0.75rem 1.25rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .filter-btn:hover:not(.active) { background: var(--hover-bg); }
+
+        .tests-table {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            overflow: hidden;
+        }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            padding: 1rem 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            background: var(--hover-bg);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        td {
+            padding: 1rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--hover-bg); }
+
+        /* ==================== SECTION 2: CREATE TEST ==================== */
+        .subject-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.3rem;
+            width: fit-content;
+            flex-wrap: wrap;
+        }
+        .subject-tab {
+            padding: 0.6rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+        .subject-tab.active { background: var(--accent); color: white; }
+
+        .weeks-selector {
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+        .weeks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+        .week-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .week-checkbox:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .week-checkbox input { width: 1.2rem; height: 1.2rem; cursor: pointer; accent-color: var(--accent); }
+        .week-checkbox span { font-size: 0.85rem; line-height: 1.3; }
+        .week-checkbox strong { color: var(--accent); }
+
+        .test-settings {
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .setting-item { display: flex; flex-direction: column; gap: 0.5rem; }
+        .setting-item label { font-weight: 600; font-size: 0.85rem; }
+        .setting-item input, .setting-item select {
+            padding: 0.6rem;
+            border-radius: 0.75rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            background: var(--input-bg);
+            border-radius: 0.75rem;
+            cursor: pointer;
+        }
+
+        .question-list { margin-top: 1rem; }
+        .question-item {
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            transition: 0.2s;
+        }
+        .question-item:hover { border-color: var(--accent); }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .question-type {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            background: var(--info-bg);
+            color: var(--info-text);
+        }
+        .question-text { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.75rem; }
+        .question-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 0.75rem 0; }
+        .question-option { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .correct-badge {
+            background: var(--success-bg);
+            color: var(--success-text);
+            padding: 0.2rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+        .difficulty-badge { padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; }
+        .difficulty-easy { background: var(--success-bg); color: var(--success-text); }
+        .difficulty-medium { background: var(--warning-bg); color: var(--warning-text); }
+        .difficulty-hard { background: var(--danger-bg); color: var(--danger-text); }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+        .upload-area:hover { border-color: var(--accent); background: var(--hover-bg); }
+        .upload-area i { font-size: 3rem; color: var(--accent); margin-bottom: 1rem; display: block; }
+        .csv-preview { max-height: 300px; overflow-y: auto; margin-top: 1rem; }
+        .csv-preview table { font-size: 0.7rem; width: 100%; }
+        .csv-preview th, .csv-preview td { padding: 0.3rem; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .ai-chat {
+            height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            background: var(--hover-bg);
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+        .message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 1rem; max-width: 85%; font-size: 0.9rem; }
+        .message.user { background: var(--accent); color: white; margin-left: auto; }
+        .message.assistant { background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border); }
+
+        /* ==================== SECTION 3: GRADE TESTS ==================== */
+        .test-info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        .test-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .test-stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .stat-badge { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+
+        .students-list { display: flex; flex-direction: column; gap: 1rem; }
+        .student-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .student-card:hover { box-shadow: var(--shadow); }
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            background: var(--hover-bg);
+            cursor: pointer;
+            transition: 0.2s;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .student-header:hover { background: var(--info-bg); }
+        .student-info { display: flex; align-items: center; gap: 1rem; }
+        .student-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .student-details h4 { font-size: 1rem; margin-bottom: 0.25rem; }
+        .student-details p { font-size: 0.8rem; color: var(--text-secondary); }
+        .student-status { display: flex; align-items: center; gap: 1.5rem; }
+        .score-display { font-weight: 700; font-size: 1.1rem; }
+        .expand-icon { transition: transform 0.3s; }
+        .student-card.expanded .expand-icon { transform: rotate(180deg); }
+        .student-content { display: none; padding: 1.5rem; border-top: 1px solid var(--border); }
+        .student-card.expanded .student-content { display: block; }
+
+        .question-review {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .question-review:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .question-review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .question-number { font-weight: 700; color: var(--accent); }
+        .student-answer { padding: 0.75rem; border-radius: 0.75rem; margin: 0.5rem 0; }
+        .answer-wrong { background: var(--danger-bg); color: var(--danger-text); }
+        .answer-correct { background: var(--success-bg); color: var(--success-text); }
+        .correct-answer {
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            margin: 0.5rem 0;
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+        .grading-form { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid var(--border); }
+        .feedback-input { margin-bottom: 1rem; }
+        .feedback-input textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* ==================== SECTION 4: UNIFIED ANALYSIS ==================== */
+        .analysis-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 3rem;
+            padding: 0.3rem;
+            width: fit-content;
+            flex-wrap: wrap;
+        }
+        .analysis-tab {
+            padding: 0.6rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .analysis-tab.active { background: var(--accent); color: white; }
+        .analysis-subsection { display: none; }
+        .analysis-subsection.active { display: block; animation: fadeSlideIn 0.3s ease; }
+
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .chart-container canvas { max-height: 350px; }
+
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .insight-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+        }
+        .insight-card h4 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+        .insight-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .insight-item:last-child { border-bottom: none; }
+        .insight-value { font-weight: 700; }
+        .insight-label { color: var(--text-secondary); font-size: 0.85rem; }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--hover-bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .quick-action-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .quick-action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+            border-color: var(--accent);
+        }
+        .quick-action-card i {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        .quick-action-card h4 { margin-bottom: 0.5rem; }
+        .quick-action-card p { color: var(--text-secondary); font-size: 0.85rem; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2, .sidebar .nav-item span, .sidebar .nav-section-title { display: none; }
+            .main-content { margin-left: 80px; padding: 1rem; }
+            .page-tabs-container { flex-direction: column; border-radius: 1rem; }
+            .page-tab { min-width: auto; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .filters-bar { flex-direction: column; }
+            .student-header { flex-direction: column; align-items: flex-start; }
+            .student-status { width: 100%; justify-content: space-between; }
+            .question-options { grid-template-columns: 1fr; }
+            .weeks-grid { grid-template-columns: 1fr; }
+            .insight-grid { grid-template-columns: 1fr; }
+            th, td { font-size: 0.75rem; padding: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-graduation-cap"></i>
+            <h2>EduTop</h2>
+        </div>
+        <a href="teacher-dashboard.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
+        <div class="nav-section-title">Assessments</div>
+        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
+        <a href="teacher-create-assignment.html" class="nav-item"><i class="fas fa-plus-circle"></i><span>Create Assignment</span></a>
+        <a href="#" class="nav-item active" id="navTestCenter"><i class="fas fa-flask"></i><span>Test Center</span></a>
+        <a href="teacher-exams.html" class="nav-item"><i class="fas fa-pen-fancy"></i><span>Exams</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
+        <div class="nav-section-title">Classroom</div>
+        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
+        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
+        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
+    </div>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="page-title">
+                <h1 id="pageTitle">Test Center</h1>
+                <p id="pageSubtitle">Manage all your assessments in one place</p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger">
+                        <span class="profile-name" id="profileName">Teacher</span>
+                        <div class="profile-pic" id="profilePic">T</div>
+                    </div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PAGE TOGGLE TABS ==================== -->
+        <div class="page-tabs-container" id="pageTabs">
+            <div class="page-tab active" data-page="manage" onclick="switchPage('manage')">
+                <i class="fas fa-list-ul"></i> Test Management
+                <span class="tab-badge" id="manageBadge">0</span>
+            </div>
+            <div class="page-tab" data-page="create" onclick="switchPage('create')">
+                <i class="fas fa-plus-square"></i> Create Test
+            </div>
+            <div class="page-tab" data-page="grade" onclick="switchPage('grade')">
+                <i class="fas fa-check-double"></i> Grade Tests
+            </div>
+            <div class="page-tab" data-page="analysis" onclick="switchPage('analysis')">
+                <i class="fas fa-chart-pie"></i> Analysis Hub
+            </div>
+        </div>
+
+        <!-- ==================== SECTION 1: TEST MANAGEMENT ==================== -->
+        <div class="page-section active" id="sectionManage">
+            <div class="stats-grid" id="manageStatsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="stat-info"><h3 id="totalCount">0</h3><p>Total Tests</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-info"><h3 id="publishedCount">0</h3><p>Published</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-info"><h3 id="draftCount">0</h3><p>Drafts</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-info"><h3 id="submissionsCount">0</h3><p>Submissions</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-star"></i></div>
+                    <div class="stat-info"><h3 id="avgScoreManage">0%</h3><p>Avg Score</p></div>
+                </div>
+            </div>
+            <div class="filters-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search tests by title or subject...">
+                </div>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="published">Published</button>
+                    <button class="filter-btn" data-filter="draft">Drafts</button>
+                </div>
+                <button class="btn btn-primary" onclick="switchPage('create')"><i class="fas fa-plus"></i> Create New</button>
+                <button class="btn btn-outline" id="refreshManageBtn"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="tests-table">
+                <div class="table-responsive">
+                    <table id="testsTable">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Test Title</th>
+                                <th>Subject</th>
+                                <th>Weeks</th>
+                                <th>Duration</th>
+                                <th>Questions</th>
+                                <th>Submissions</th>
+                                <th>Avg. Score</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="testsList">
+                            <tr><td colspan="9" style="text-align:center;padding:3rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SECTION 2: CREATE TEST ==================== -->
+        <div class="page-section" id="sectionCreate">
+            <div class="subject-tabs" id="subjectTabs"></div>
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Test Information</h3>
+                    <div>
+                        <button class="btn btn-outline" id="useAIBtn"><i class="fas fa-robot"></i> AI Generator</button>
+                        <button class="btn btn-outline" id="bulkUploadBtn"><i class="fas fa-upload"></i> Bulk CSV</button>
+                        <button class="btn btn-outline" id="downloadTemplateBtn"><i class="fas fa-download"></i> Template</button>
+                    </div>
+                </div>
+                <div class="info-badge">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Pro Tip:</strong> Select weeks from your syllabus to auto-load topics. Use AI to generate questions from your lesson notes.
+                </div>
+                <form id="testForm">
+                    <input type="hidden" id="docId">
+                    <div class="form-group">
+                        <label><i class="fas fa-book"></i> Subject</label>
+                        <input type="text" id="subject" class="form-control" readonly placeholder="Click a subject above">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-week"></i> Weeks Covered</label>
+                        <div id="weeksSelector" class="weeks-selector">
+                            <div id="weeksCheckboxes" class="weeks-grid">
+                                <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-secondary);">
+                                    <i class="fas fa-spinner fa-spin"></i> Select a subject to load weeks
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-heading"></i> Test Title *</label>
+                        <input type="text" id="title" class="form-control" required placeholder="e.g., Mid-Term Assessment">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Instructions</label>
+                        <textarea id="instructions" class="form-control" rows="3" placeholder="Instructions for students..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-eye"></i> Grade Release</label>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="autoReleaseGrades" checked>
+                            <span>Auto-release grades immediately after submission</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-sliders-h"></i> Test Settings</h3>
+                </div>
+                <div class="test-settings">
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-hourglass-half"></i> Time Limit (min) *</label>
+                            <input type="number" id="timeLimit" value="40" min="1" max="180" required>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-star"></i> Total Points</label>
+                            <input type="number" id="totalPoints" value="100" min="1" max="500">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-ban"></i> Negative Marking</label>
+                            <div class="checkbox-item"><input type="checkbox" id="negativeMarking"><span>-0.25 per wrong answer</span></div>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-random"></i> Randomize</label>
+                            <div class="checkbox-item"><input type="checkbox" id="randomizeQuestions" checked><span>Shuffle questions</span></div>
+                            <div class="checkbox-item"><input type="checkbox" id="randomizeOptions" checked><span>Shuffle options</span></div>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-calendar-alt"></i> Start Date</label>
+                            <input type="datetime-local" id="startDate">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-lock"></i> End Date</label>
+                            <input type="datetime-local" id="endDate">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-question-circle"></i> Questions</h3>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button type="button" class="btn btn-outline btn-sm active" data-type="mcq" id="typeMcqBtn">MCQ</button>
+                        <button type="button" class="btn btn-outline btn-sm" data-type="truefalse" id="typeTfBtn">T/F</button>
+                        <button type="button" class="btn btn-outline btn-sm" data-type="fillblank" id="typeFbBtn">Fill Blank</button>
+                        <button type="button" class="btn btn-outline btn-sm" data-type="theory" id="typeTheoryBtn">Theory</button>
+                    </div>
+                </div>
+                <div id="questionsContainer">
+                    <div id="questionsList" class="question-list"></div>
+                    <button type="button" class="btn btn-outline" onclick="addQuestion()">
+                        <i class="fas fa-plus"></i> Add Question
+                    </button>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary" id="saveBtn"><i class="fas fa-save"></i> Save Draft</button>
+                <button type="button" class="btn btn-success" id="publishBtn"><i class="fas fa-paper-plane"></i> Publish Test</button>
+            </div>
+            <div class="debug-panel" id="debugPanel">
+                <strong><i class="fas fa-bug"></i> Debug:</strong><br>
+                <span id="debugInfo">Initializing...</span>
+            </div>
+        </div>
+
+        <!-- ==================== SECTION 3: GRADE TESTS ==================== -->
+        <div class="page-section" id="sectionGrade">
+            <div class="test-info-card">
+                <select id="testSelect" class="form-control" style="width:100%;">
+                    <option value="">-- Select a test to grade --</option>
+                </select>
+            </div>
+            <div id="gradeContentArea">
+                <div class="empty-state">
+                    <i class="fas fa-chalkboard"></i>
+                    <h3>Select a test to view submissions</h3>
+                    <p>Choose a test from the dropdown above to see student results</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SECTION 4: UNIFIED ANALYSIS HUB ==================== -->
+        <div class="page-section" id="sectionAnalysis">
+            <!-- Quick Action Cards -->
+            <div class="quick-actions-grid">
+                <div class="quick-action-card" onclick="switchAnalysisTab('tests')">
+                    <i class="fas fa-file-alt"></i>
+                    <h4>Test Analytics</h4>
+                    <p>View detailed test performance metrics</p>
+                </div>
+                <div class="quick-action-card" onclick="switchAnalysisTab('assignments')">
+                    <i class="fas fa-tasks"></i>
+                    <h4>Assignment Analytics</h4>
+                    <p>Track assignment completion & scores</p>
+                </div>
+                <div class="quick-action-card" onclick="switchAnalysisTab('exams')">
+                    <i class="fas fa-pen-fancy"></i>
+                    <h4>Exam Analytics</h4>
+                    <p>Comprehensive exam results analysis</p>
+                </div>
+                <div class="quick-action-card" onclick="switchAnalysisTab('overview')">
+                    <i class="fas fa-chart-bar"></i>
+                    <h4>Overall Summary</h4>
+                    <p>Combined assessment overview</p>
+                </div>
+            </div>
+
+            <!-- Analysis Tabs -->
+            <div class="analysis-tabs" id="analysisTabs">
+                <div class="analysis-tab active" data-atab="overview" onclick="switchAnalysisTab('overview')">
+                    <i class="fas fa-chart-bar"></i> Overview
+                </div>
+                <div class="analysis-tab" data-atab="tests" onclick="switchAnalysisTab('tests')">
+                    <i class="fas fa-file-alt"></i> Tests
+                </div>
+                <div class="analysis-tab" data-atab="assignments" onclick="switchAnalysisTab('assignments')">
+                    <i class="fas fa-tasks"></i> Assignments
+                </div>
+                <div class="analysis-tab" data-atab="exams" onclick="switchAnalysisTab('exams')">
+                    <i class="fas fa-pen-fancy"></i> Exams
+                </div>
+            </div>
+
+            <!-- Overview Subsection -->
+            <div class="analysis-subsection active" id="analysisOverview">
+                <div class="stats-grid" id="overviewStatsGrid">
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-info"><h3 id="ovAvgScore">0%</h3><p>Overall Average</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="ovCompletion">0%</h3><p>Completion Rate</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="ovStudents">0</h3><p>Active Students</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-trophy"></i></div><div class="stat-info"><h3 id="ovTopPerformer">—</h3><p>Top Performer</p></div></div>
+                </div>
+                <div class="chart-container">
+                    <h4 style="margin-bottom:1rem;"><i class="fas fa-chart-line"></i> Performance Trend</h4>
+                    <canvas id="overviewTrendChart"></canvas>
+                </div>
+                <div class="insight-grid">
+                    <div class="insight-card">
+                        <h4><i class="fas fa-lightbulb"></i> Key Insights</h4>
+                        <div id="overviewInsights">
+                            <div class="insight-item"><span class="insight-label">Highest Scoring Assessment</span><span class="insight-value">—</span></div>
+                            <div class="insight-item"><span class="insight-label">Lowest Scoring Assessment</span><span class="insight-value">—</span></div>
+                            <div class="insight-item"><span class="insight-label">Most Improved Student</span><span class="insight-value">—</span></div>
+                            <div class="insight-item"><span class="insight-label">Students Below 50%</span><span class="insight-value">0</span></div>
+                        </div>
+                    </div>
+                    <div class="insight-card">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Attention Needed</h4>
+                        <div id="overviewAlerts">
+                            <p style="color:var(--text-secondary);">Loading alerts...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tests Analysis Subsection -->
+            <div class="analysis-subsection" id="analysisTests">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-file-alt"></i> Test Performance</h3>
+                        <select id="analysisTestSelect" class="form-control" style="width:auto;min-width:250px;" onchange="loadTestAnalysis()">
+                            <option value="">-- Select a test --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="stats-grid" id="testAnalysisStats">
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-info"><h3 id="taAvgScore">0</h3><p>Average Score</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="taPassRate">0%</h3><p>Pass Rate</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="taTotalSubs">0</h3><p>Total Submissions</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-trophy"></i></div><div class="stat-info"><h3 id="taHighest">0</h3><p>Highest Score</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-arrow-down"></i></div><div class="stat-info"><h3 id="taLowest">0</h3><p>Lowest Score</p></div></div>
+                </div>
+                <div class="chart-container">
+                    <h4 style="margin-bottom:1rem;"><i class="fas fa-chart-bar"></i> Score Distribution</h4>
+                    <canvas id="testScoreDistChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h4 style="margin-bottom:1rem;"><i class="fas fa-question-circle"></i> Question Performance</h4>
+                    <canvas id="questionPerfChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Assignments Analysis Subsection -->
+            <div class="analysis-subsection" id="analysisAssignments">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tasks"></i> Assignment Performance</h3>
+                        <select id="analysisAssignmentSelect" class="form-control" style="width:auto;min-width:250px;" onchange="loadAssignmentAnalysis()">
+                            <option value="">-- Select an assignment --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="stats-grid" id="assignmentAnalysisStats">
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-info"><h3 id="aaAvgScore">0</h3><p>Average Score</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="aaCompletionRate">0%</h3><p>Completion Rate</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><h3 id="aaOnTime">0%</h3><p>On-Time Submission</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="aaTotalSubs">0</h3><p>Total Submissions</p></div></div>
+                </div>
+                <div class="chart-container">
+                    <h4 style="margin-bottom:1rem;"><i class="fas fa-chart-pie"></i> Submission Status</h4>
+                    <canvas id="assignmentStatusChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Exams Analysis Subsection -->
+            <div class="analysis-subsection" id="analysisExams">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-pen-fancy"></i> Exam Performance</h3>
+                        <select id="analysisExamSelect" class="form-control" style="width:auto;min-width:250px;" onchange="loadExamAnalysis()">
+                            <option value="">-- Select an exam --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="stats-grid" id="examAnalysisStats">
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-info"><h3 id="eaAvgScore">0</h3><p>Average Score</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="eaPassRate">0%</h3><p>Pass Rate</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="eaTotalSubs">0</h3><p>Total Submissions</p></div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-trophy"></i></div><div class="stat-info"><h3 id="eaHighest">0</h3><p>Highest Score</p></div></div>
+                </div>
+                <div class="chart-container">
+                    <h4 style="margin-bottom:1rem;"><i class="fas fa-chart-bar"></i> Grade Distribution</h4>
+                    <canvas id="examGradeDistChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+    <!-- AI Modal -->
+    <div class="modal-overlay" id="aiModal">
+        <div class="modal-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3><i class="fas fa-robot"></i> AI Question Generator</h3>
+                <i class="fas fa-times" onclick="closeAIModal()" style="cursor:pointer;font-size:1.2rem;"></i>
+            </div>
+            <div id="aiChat" class="ai-chat">
+                <div class="message assistant">Select weeks, then generate questions from your lesson notes.</div>
+            </div>
+            <div class="form-group"><label>Number of Questions</label><input type="number" id="aiCount" value="5" min="1" max="30" class="form-control"></div>
+            <div class="form-group"><label>Difficulty</label><select id="aiDifficulty" class="form-control"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+            <div class="form-group"><label>Question Type</label><select id="aiType" class="form-control"><option value="mcq">Multiple Choice</option><option value="truefalse">True/False</option><option value="fillblank">Fill in Blank</option></select></div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="generateFromLessonNotes()"><i class="fas fa-book-open"></i> Generate from Lessons</button>
+                <button class="btn btn-outline" onclick="insertAIGenerated()"><i class="fas fa-plus"></i> Insert Questions</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Upload Modal -->
+    <div class="modal-overlay" id="bulkModal">
+        <div class="modal-content" style="max-width:900px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3><i class="fas fa-upload"></i> Bulk Upload CSV</h3>
+                <i class="fas fa-times" onclick="closeBulkModal()" style="cursor:pointer;font-size:1.2rem;"></i>
+            </div>
+            <div class="info-badge">
+                <i class="fas fa-info-circle"></i>
+                <strong>CSV Format:</strong> Question, Option A, Option B, Option C, Option D, Correct (A/B/C/D), Points
+            </div>
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h4>Click or Drag CSV File</h4>
+                <input type="file" id="csvFile" accept=".csv" style="display:none;">
+            </div>
+            <div id="csvPreview" class="csv-preview" style="display:none;">
+                <h4>Preview:</h4>
+                <table id="previewTable"></table>
+            </div>
+            <div class="form-group" style="margin-top:1rem;"><label>Default Points</label><input type="number" id="defaultPoints" value="1" min="1" max="10" class="form-control"></div>
+            <div class="btn-group"><button class="btn btn-outline" onclick="closeBulkModal()">Cancel</button><button class="btn btn-primary" id="importCsvBtn">Import</button></div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div>
+    </div>
+
+    <!-- ==================== MAIN SCRIPT ==================== -->
+    <script type="module">
+        import Groq from "groq-sdk";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const remoteConfig = firebase.remoteConfig();
+        remoteConfig.settings.minimumFetchIntervalMillis = 0;
+
+        // ==================== GLOBAL STATE ====================
+        let currentUser = null;
+        let userData = null;
+        let subjects = [];
+        let currentSubject = null;
+        let syllabusWeeks = [];
+        let groq = null;
+        let questions = [];
+        let currentDocId = null;
+        let currentQuestionType = 'mcq';
+        let selectedWeeks = [];
+        let lastGenerated = [];
+        let csvData = [];
+        let currentPage = 'manage';
+        let currentAnalysisTab = 'overview';
+
+        // Data caches
+        let allTests = [];
+        let submissionsData = {};
+        let testScores = {};
+        let allAssignments = [];
+        let allExams = [];
+        let studentNames = {};
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let selectedTestForGrading = null;
+        let gradingSubmissions = [];
+
+        // Chart instances
+        let overviewTrendChart = null;
+        let testScoreDistChart = null;
+        let questionPerfChart = null;
+        let assignmentStatusChart = null;
+        let examGradeDistChart = null;
+
+        // ==================== UTILITIES ====================
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        function formatTime(minutes) {
+            if (!minutes) return 'No limit';
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return h > 0 ? `${h}h ${m}m` : `${m} min`;
+        }
+        function updateDebug(message) {
+            const el = document.getElementById('debugInfo');
+            if (el) {
+                el.innerHTML = message + '<br>' + el.innerHTML;
+                const lines = el.innerHTML.split('<br>');
+                if (lines.length > 20) el.innerHTML = lines.slice(0, 20).join('<br>');
+            }
+            console.log(message);
+        }
+
+        // ==================== SIDEBAR ====================
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+
+        // ==================== THEME ====================
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+            // Update charts if they exist
+            updateAllCharts();
+        });
+
+        // ==================== PAGE SWITCHING ====================
+        function switchPage(page) {
+            currentPage = page;
+            document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.page-tab[data-page="${page}"]`)?.classList.add('active');
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`section${page.charAt(0).toUpperCase() + page.slice(1)}`)?.classList.add('active');
+
+            const titles = {
+                manage: ['Test Management', 'Manage, monitor, and analyze all your CBT tests'],
+                create: ['Create CBT Test', 'Create tests manually, with AI, or bulk upload via CSV'],
+                grade: ['Grade Tests', 'Review auto-graded results and provide feedback'],
+                analysis: ['Analysis Hub', 'Comprehensive analytics across all assessments']
+            };
+            document.getElementById('pageTitle').textContent = titles[page][0];
+            document.getElementById('pageSubtitle').textContent = titles[page][1];
+
+            if (page === 'manage') refreshManageData();
+            if (page === 'grade') loadTestsForGrading();
+            if (page === 'analysis') loadAnalysisData();
+        }
+        window.switchPage = switchPage;
+
+        // ==================== AUTH ====================
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                    auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
+                currentUser = user;
+                userData = userDoc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                subjects = userData.subjects || [];
+
+                // Initialize AI
+                try {
+                    await remoteConfig.fetchAndActivate();
+                    const key = remoteConfig.getString('groq_api_key');
+                    if (key && key !== '') {
+                        groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true });
+                        updateDebug('✅ Groq AI ready');
+                    }
+                } catch (e) { updateDebug(`⚠️ AI not available: ${e.message}`); }
+
+                await loadSyllabus();
+                renderSubjectTabs();
+                await refreshManageData();
+            } catch (e) { console.error(e); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href = 'teacher-profile.html');
+
+        // ==================== SYLLABUS ====================
+        async function loadSyllabus() {
+            if (!subjects.length) return;
+            try {
+                const snap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'approved')
+                    .get();
+                syllabusWeeks = [];
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    (data.weeks || []).forEach(w => {
+                        syllabusWeeks.push({
+                            subject: data.subject,
+                            week: w.week,
+                            topic: w.topic,
+                            objectives: w.objectives || '',
+                            syllabusId: doc.id
+                        });
+                    });
+                });
+                updateDebug(`📚 Loaded ${syllabusWeeks.length} syllabus weeks`);
+            } catch (e) { updateDebug(`❌ Syllabus error: ${e.message}`); }
+        }
+
+        function getWeeksForSubject(subject) {
+            return syllabusWeeks.filter(w => w.subject === subject).sort((a, b) => a.week - b.week);
+        }
+
+        function renderSubjectTabs() {
+            const container = document.getElementById('subjectTabs');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!subjects.length) {
+                container.innerHTML = '<span class="subject-tab" style="background:var(--warning-bg);">No subjects</span>';
+                return;
+            }
+            subjects.forEach(sub => {
+                const tab = document.createElement('span');
+                tab.className = 'subject-tab';
+                tab.textContent = sub;
+                tab.onclick = () => switchSubject(sub, tab);
+                container.appendChild(tab);
+            });
+            if (subjects.length) switchSubject(subjects[0], container.children[0]);
+        }
+
+        function switchSubject(subject, target) {
+            document.querySelectorAll('#subjectTabs .subject-tab').forEach(t => t.classList.remove('active'));
+            if (target) target.classList.add('active');
+            currentSubject = subject;
+            document.getElementById('subject').value = subject;
+            renderWeekCheckboxes(getWeeksForSubject(subject));
+        }
+
+        function renderWeekCheckboxes(weeks) {
+            const container = document.getElementById('weeksCheckboxes');
+            if (!container) return;
+            if (!weeks.length) {
+                container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--warning-text);">No weeks found. Create syllabus first.</div>`;
+                return;
+            }
+            container.innerHTML = weeks.map(w => `
+                <label class="week-checkbox">
+                    <input type="checkbox" value="${w.week}" onchange="toggleWeek(this)">
+                    <span><strong>Week ${w.week}</strong>: ${escapeHtml(w.topic)}</span>
+                </label>
+            `).join('');
+            selectedWeeks = [];
+        }
+
+        window.toggleWeek = (cb) => {
+            const week = parseInt(cb.value);
+            if (cb.checked) { if (!selectedWeeks.includes(week)) selectedWeeks.push(week); }
+            else { selectedWeeks = selectedWeeks.filter(w => w !== week); }
+            selectedWeeks.sort((a, b) => a - b);
+        };
+
+        // ==================== QUESTION MANAGEMENT ====================
+        document.getElementById('typeMcqBtn')?.addEventListener('click', () => setQuestionType('mcq'));
+        document.getElementById('typeTfBtn')?.addEventListener('click', () => setQuestionType('truefalse'));
+        document.getElementById('typeFbBtn')?.addEventListener('click', () => setQuestionType('fillblank'));
+        document.getElementById('typeTheoryBtn')?.addEventListener('click', () => setQuestionType('theory'));
+
+        function setQuestionType(type) {
+            currentQuestionType = type;
+            ['mcq', 'truefalse', 'fillblank', 'theory'].forEach(t => {
+                const btn = document.getElementById(`type${t.charAt(0).toUpperCase() + t.slice(1)}Btn` || `type${t === 'truefalse' ? 'Tf' : t === 'fillblank' ? 'Fb' : t === 'theory' ? 'Theory' : 'Mcq'}Btn`);
+                if (btn) btn.classList.toggle('active', t === type);
+            });
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questionsList');
+            if (!container) return;
+            if (!questions.length) {
+                container.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-secondary);">No questions yet. Click "Add Question", use AI, or upload CSV.</p>';
+                return;
+            }
+            container.innerHTML = questions.map((q, idx) => {
+                let optionsHtml = '';
+                const letters = ['A', 'B', 'C', 'D'];
+                if (q.type === 'mcq') {
+                    optionsHtml = `<div class="question-options">${q.options.map((opt, oi) => `
+                        <div class="question-option">
+                            <input type="radio" name="correct_${idx}" value="${letters[oi]}" ${q.correct === letters[oi] ? 'checked' : ''} onchange="setCorrect(${idx}, '${letters[oi]}')">
+                            <span>${letters[oi]}. ${escapeHtml(opt)}</span>
+                        </div>`).join('')}</div>`;
+                } else if (q.type === 'truefalse') {
+                    optionsHtml = `<div class="question-options">
+                        <div class="question-option"><input type="radio" name="correct_${idx}" value="True" ${q.correct === 'True' ? 'checked' : ''} onchange="setCorrect(${idx}, 'True')"><span>True</span></div>
+                        <div class="question-option"><input type="radio" name="correct_${idx}" value="False" ${q.correct === 'False' ? 'checked' : ''} onchange="setCorrect(${idx}, 'False')"><span>False</span></div>
+                    </div>`;
+                } else if (q.type === 'fillblank') {
+                    optionsHtml = `<div class="form-group"><input type="text" class="form-control" placeholder="Correct answer" value="${escapeHtml(q.correct || '')}" onchange="setCorrect(${idx}, this.value)"></div>`;
+                } else if (q.type === 'theory') {
+                    optionsHtml = `<div class="form-group"><textarea class="form-control" rows="4" placeholder="Marking guide" onchange="setCorrect(${idx}, this.value)">${escapeHtml(q.correct || '')}</textarea></div>`;
+                }
+                return `
+                    <div class="question-item">
+                        <div class="question-header">
+                            <span class="question-text">Q${idx + 1}: ${escapeHtml(q.question)}</span>
+                            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                                <span class="question-type">${q.type === 'mcq' ? 'MCQ' : q.type === 'truefalse' ? 'T/F' : q.type === 'fillblank' ? 'Fill' : 'Theory'}</span>
+                                <span class="difficulty-badge difficulty-${q.difficulty || 'medium'}">${q.difficulty || 'Med'}</span>
+                                <span class="correct-badge">${q.points || 1} pt</span>
+                                <button class="btn btn-sm btn-outline" onclick="editQuestion(${idx})"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="removeQuestion(${idx})"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        ${optionsHtml}
+                    </div>`;
+            }).join('');
+        }
+
+        window.addQuestion = () => {
+            questions.push({
+                type: currentQuestionType,
+                question: '',
+                options: ['', '', '', ''],
+                correct: currentQuestionType === 'mcq' ? 'A' : currentQuestionType === 'truefalse' ? 'True' : '',
+                points: 1,
+                difficulty: 'medium'
+            });
+            renderQuestions();
+            setTimeout(() => window.editQuestion(questions.length - 1), 100);
+        };
+
+        window.removeQuestion = (i) => { questions.splice(i, 1); renderQuestions(); };
+        window.setCorrect = (i, val) => { questions[i].correct = val; };
+        window.editQuestion = (i) => {
+            const q = questions[i];
+            const newQ = prompt('Question text:', q.question);
+            if (newQ !== null) q.question = newQ;
+            if (q.type === 'mcq') {
+                for (let j = 0; j < 4; j++) {
+                    const newOpt = prompt(`Option ${String.fromCharCode(65 + j)}:`, q.options[j]);
+                    if (newOpt !== null) q.options[j] = newOpt;
+                }
+            }
+            const newPts = prompt('Points:', q.points);
+            if (newPts !== null) q.points = parseInt(newPts) || 1;
+            const newDiff = prompt('Difficulty (easy/medium/hard):', q.difficulty || 'medium');
+            if (newDiff !== null) q.difficulty = newDiff;
+            renderQuestions();
+        };
+
+        // ==================== CSV BULK UPLOAD ====================
+        const bulkModal = document.getElementById('bulkModal');
+        const uploadArea = document.getElementById('uploadArea');
+        const csvFileInput = document.getElementById('csvFile');
+
+        document.getElementById('bulkUploadBtn')?.addEventListener('click', () => bulkModal.classList.add('active'));
+        document.getElementById('downloadTemplateBtn')?.addEventListener('click', downloadCSVTemplate);
+        uploadArea?.addEventListener('click', () => csvFileInput.click());
+        uploadArea?.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.style.borderColor = 'var(--accent)'; });
+        uploadArea?.addEventListener('dragleave', () => { uploadArea.style.borderColor = 'var(--border)'; });
+        uploadArea?.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border)';
+            const file = e.dataTransfer.files[0];
+            if (file?.name.endsWith('.csv')) processCSVFile(file);
+        });
+        csvFileInput?.addEventListener('change', (e) => { if (e.target.files[0]) processCSVFile(e.target.files[0]); });
+        document.getElementById('importCsvBtn')?.addEventListener('click', importCSVQuestions);
+
+        function closeBulkModal() { bulkModal.classList.remove('active'); csvData = []; document.getElementById('csvPreview').style.display = 'none'; }
+        window.closeBulkModal = closeBulkModal;
+
+        function downloadCSVTemplate() {
+            const csv = ['Question,Option A,Option B,Option C,Option D,Correct Answer,Points',
+                'What is 2+2?,1,2,3,4,C,1',
+                'Capital of France?,London,Berlin,Paris,Madrid,C,2'].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'question_template.csv';
+            a.click();
+        }
+
+        function processCSVFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => parseCSV(e.target.result);
+            reader.readAsText(file);
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            csvData = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                let row = [];
+                let inQuotes = false, current = '';
+                for (let char of lines[i]) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { row.push(current.trim()); current = ''; }
+                    else current += char;
+                }
+                row.push(current.trim());
+                if (row.length >= 7 && ['A', 'B', 'C', 'D'].includes(row[5].toUpperCase())) {
+                    csvData.push({
+                        question: row[0].replace(/"/g, ''),
+                        options: [row[1], row[2], row[3], row[4]].map(s => s.replace(/"/g, '')),
+                        correct: row[5].toUpperCase(),
+                        points: parseInt(row[6]) || 1,
+                        type: 'mcq',
+                        difficulty: 'medium'
+                    });
+                }
+            }
+            showCSVPreview();
+        }
+
+        function showCSVPreview() {
+            const preview = document.getElementById('csvPreview');
+            const table = document.getElementById('previewTable');
+            if (!csvData.length) { preview.style.display = 'none'; return; }
+            table.innerHTML = '<thead><tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th><th>Pts</th></tr></thead><tbody>' +
+                csvData.slice(0, 10).map((q, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(q.question.substring(0, 40))}</td><td>${escapeHtml(q.options[0])}</td><td>${escapeHtml(q.options[1])}</td><td>${escapeHtml(q.options[2])}</td><td>${escapeHtml(q.options[3])}</td><td><strong>${q.correct}</strong></td><td>${q.points}</td></tr>`).join('') +
+                '</tbody>';
+            preview.style.display = 'block';
+        }
+
+        function importCSVQuestions() {
+            if (!csvData.length) { alert('No valid questions to import.'); return; }
+            questions = questions.concat(csvData.map(q => ({ ...q })));
+            renderQuestions();
+            closeBulkModal();
+            alert(`Imported ${csvData.length} questions!`);
+        }
+
+        // ==================== AI GENERATION ====================
+        const aiModal = document.getElementById('aiModal');
+        document.getElementById('useAIBtn')?.addEventListener('click', () => aiModal.classList.add('active'));
+        window.closeAIModal = () => aiModal.classList.remove('active');
+
+        async function getLessonNoteContent(subject, weeks) {
+            try {
+                const snap = await db.collection('syllabus')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('subject', '==', subject)
+                    .where('status', '==', 'approved')
+                    .limit(1).get();
+                if (snap.empty) return null;
+                const syllabusId = snap.docs[0].id;
+                const notesSnap = await db.collection('lessonNotes')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('syllabusId', '==', syllabusId)
+                    .where('week', 'in', weeks)
+                    .where('status', '==', 'approved')
+                    .get();
+                if (notesSnap.empty) return null;
+                const notes = [];
+                notesSnap.forEach(doc => {
+                    const d = doc.data();
+                    notes.push({ week: d.week, topic: d.topic, content: d.content || d.lessonContent || '', objectives: d.objectives || '', keyPoints: d.keyPoints || '' });
+                });
+                return notes;
+            } catch (e) { return null; }
+        }
+
+        window.generateFromLessonNotes = async () => {
+            if (!groq) { alert('AI not ready.'); return; }
+            if (!selectedWeeks.length) { alert('Select weeks first.'); return; }
+            const count = document.getElementById('aiCount').value;
+            const difficulty = document.getElementById('aiDifficulty').value;
+            const type = document.getElementById('aiType').value;
+            showLoading();
+            const chat = document.getElementById('aiChat');
+            try {
+                const notes = await getLessonNoteContent(currentSubject, selectedWeeks);
+                if (!notes) { chat.innerHTML += '<div class="message assistant">❌ No lesson notes found.</div>'; hideLoading(); return; }
+                let context = notes.map(n => `WEEK ${n.week}: ${n.topic}\n${n.content?.substring(0, 4000)}`).join('\n---\n');
+                const prompt = `Create ${count} ${difficulty} ${type} questions based on:\n${context}\nReturn JSON array. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}] for MCQ, [{"question":"...","correct":"True","points":1}] for T/F, [{"question":"...","correct":"answer","points":1}] for fill-blank.`;
+                chat.innerHTML += '<div class="message user">Generating questions...</div>';
+                const res = await groq.chat.completions.create({ messages: [{ role: 'user', content: prompt }], model: 'llama-3.3-70b-versatile', temperature: 0.4 });
+                const match = res.choices[0].message.content.match(/\[[\s\S]*\]/);
+                if (!match) throw new Error('No JSON found');
+                lastGenerated = JSON.parse(match[0]).map(q => ({ ...q, type: type, difficulty: difficulty }));
+                chat.innerHTML += `<div class="message assistant">✅ Generated ${lastGenerated.length} questions.</div>`;
+            } catch (e) { chat.innerHTML += `<div class="message assistant">❌ ${e.message}</div>`; }
+            finally { hideLoading(); }
+        };
+
+        window.insertAIGenerated = () => {
+            if (!lastGenerated?.length) { alert('Generate questions first.'); return; }
+            questions = questions.concat(lastGenerated);
+            renderQuestions();
+            aiModal.classList.remove('active');
+        };
+
+        // ==================== SAVE TEST ====================
+        document.getElementById('testForm')?.addEventListener('submit', (e) => { e.preventDefault(); saveTest('draft'); });
+        document.getElementById('publishBtn')?.addEventListener('click', () => saveTest('published'));
+
+        async function saveTest(status) {
+            const title = document.getElementById('title').value.trim();
+            const instructions = document.getElementById('instructions').value;
+            const timeLimit = parseInt(document.getElementById('timeLimit').value);
+            const totalPoints = parseInt(document.getElementById('totalPoints').value);
+            const negativeMarking = document.getElementById('negativeMarking').checked;
+            const randomizeQuestions = document.getElementById('randomizeQuestions').checked;
+            const randomizeOptions = document.getElementById('randomizeOptions').checked;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const autoReleaseGrades = document.getElementById('autoReleaseGrades').checked;
+            const subject = currentSubject;
+
+            if (!subject) { alert('Select subject.'); return; }
+            if (!selectedWeeks.length) { alert('Select weeks.'); return; }
+            if (!title) { alert('Enter title.'); return; }
+            if (!timeLimit) { alert('Set time limit.'); return; }
+            if (!questions.length) { alert('Add questions.'); return; }
+
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                if (!q.question?.trim()) { alert(`Q${i + 1} has no text.`); return; }
+                if (q.type !== 'theory' && (!q.correct || q.correct === '')) { alert(`Q${i + 1} missing answer.`); return; }
+            }
+
+            const formattedQuestions = questions.map(q => {
+                const f = { question: q.question, type: q.type === 'mcq' ? 'multiple' : q.type === 'truefalse' ? 'boolean' : q.type === 'fillblank' ? 'text' : 'theory', points: q.points || 1, difficulty: q.difficulty || 'medium' };
+                if (q.type === 'mcq') { f.options = q.options; const map = { A: 0, B: 1, C: 2, D: 3 }; f.correct = map[q.correct] ?? 0; }
+                else if (q.type === 'truefalse') { f.correct = q.correct === 'True' ? 1 : 0; }
+                else if (q.type === 'theory') { f.sampleAnswer = q.correct; f.correct = null; }
+                else { f.correct = q.correct; }
+                return f;
+            });
+
+            const testData = {
+                teacherId: currentUser.uid,
+                classId: userData.classTeaching || 'jss2',
+                subject, weeksCovered: selectedWeeks, title, instructions, duration: timeLimit,
+                totalPoints, negativeMarking, randomizeQuestions, randomizeOptions,
+                questions: formattedQuestions, status, autoReleaseGrades,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (status === 'published') testData.publishedAt = firebase.firestore.FieldValue.serverTimestamp();
+            if (startDate) testData.startDate = new Date(startDate);
+            if (endDate) testData.endDate = new Date(endDate);
+
+            showLoading();
+            try {
+                if (currentDocId) {
+                    await db.collection('tests').doc(currentDocId).update(testData);
+                } else {
+                    const ref = await db.collection('tests').add({ ...testData, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    currentDocId = ref.id;
+                }
+                try {
+                    await db.collection('auditLogs').add({
+                        userId: currentUser.uid,
+                        userName: `${userData.firstName || ''} ${userData.surname || ''}`.trim(),
+                        action: status === 'published' ? 'TEST_PUBLISHED' : 'TEST_SAVED',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        details: { testId: currentDocId, title, subject, questionCount: questions.length }
+                    });
+                } catch (e) { /* audit log optional */ }
+                alert(`Test ${status === 'published' ? 'published' : 'saved'}!`);
+                switchPage('manage');
+            } catch (e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        }
+
+        // ==================== SECTION 1: TEST MANAGEMENT ====================
+        async function refreshManageData() {
+            if (currentPage !== 'manage') return;
+            showLoading();
+            try {
+                const snap = await db.collection('tests').where('teacherId', '==', currentUser.uid).orderBy('createdAt', 'desc').get();
+                allTests = [];
+                snap.forEach(doc => allTests.push({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate() || new Date() }));
+                await loadSubmissionsData();
+                updateManageStats();
+                renderManageTable();
+                document.getElementById('manageBadge').textContent = allTests.length;
+            } catch (e) { console.error(e); }
+            finally { hideLoading(); }
+        }
+
+        async function loadSubmissionsData() {
+            try {
+                const snap = await db.collection('testSubmissions').where('teacherId', '==', currentUser.uid).get();
+                submissionsData = {}; testScores = {};
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if (!submissionsData[d.testId]) { submissionsData[d.testId] = []; testScores[d.testId] = []; }
+                    submissionsData[d.testId].push(d);
+                    if (d.score !== undefined && d.score !== null) testScores[d.testId].push(d.score);
+                });
+            } catch (e) { console.warn('Submissions load warning:', e.message); }
+        }
+
+        function updateManageStats() {
+            const pub = allTests.filter(t => t.status === 'published').length;
+            const drafts = allTests.filter(t => t.status === 'draft').length;
+            let allScores = [];
+            Object.values(testScores).forEach(s => allScores = allScores.concat(s));
+            const avg = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
+            const totalSubs = Object.values(submissionsData).reduce((a, b) => a + b.length, 0);
+            document.getElementById('totalCount').textContent = allTests.length;
+            document.getElementById('publishedCount').textContent = pub;
+            document.getElementById('draftCount').textContent = drafts;
+            document.getElementById('submissionsCount').textContent = totalSubs;
+            document.getElementById('avgScoreManage').textContent = avg + '%';
+        }
+
+        function renderManageTable() {
+            const tbody = document.getElementById('testsList');
+            let filtered = allTests.filter(t => {
+                if (currentFilter !== 'all' && t.status !== currentFilter) return false;
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    return (t.title?.toLowerCase().includes(q) || t.subject?.toLowerCase().includes(q));
+                }
+                return true;
+            });
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:3rem;"><i class="fas fa-inbox" style="font-size:3rem;display:block;margin-bottom:1rem;"></i>No tests found</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = filtered.map(test => {
+                const subCount = submissionsData[test.id]?.length || 0;
+                const avg = testScores[test.id]?.length ? Math.round(testScores[test.id].reduce((a, b) => a + b, 0) / testScores[test.id].length) : 0;
+                return `
+                    <tr>
+                        <td>${test.status === 'published' ? '<span class="badge badge-published">Published</span>' : '<span class="badge badge-draft">Draft</span>'}</td>
+                        <td><strong>${escapeHtml(test.title)}</strong></td>
+                        <td>${escapeHtml(test.subject)}</td>
+                        <td>${(test.weeksCovered || []).join(', ')}</td>
+                        <td>${formatTime(test.duration)}</td>
+                        <td>${test.questions?.length || 0}</td>
+                        <td><span class="badge" style="background:var(--info-bg);color:var(--info-text);">${subCount}</span></td>
+                        <td>${subCount ? `<span class="badge" style="background:${avg >= 70 ? 'var(--success-bg)' : avg >= 50 ? 'var(--warning-bg)' : 'var(--danger-bg)'};color:${avg >= 70 ? 'var(--success-text)' : avg >= 50 ? 'var(--warning-text)' : 'var(--danger-text)'};">${avg}%</span>` : '—'}</td>
+                        <td>
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                ${subCount ? `<button class="btn btn-primary btn-sm" onclick="navigateToGrade('${test.id}')"><i class="fas fa-check-double"></i> Grade</button>` : `<button class="btn btn-outline btn-sm" disabled><i class="fas fa-clock"></i></button>`}
+                                <button class="btn btn-outline btn-sm" onclick="viewAnalysis('${test.id}')"><i class="fas fa-chart-line"></i></button>
+                                ${test.status === 'draft' ? `<button class="btn btn-success btn-sm" onclick="publishTest('${test.id}')"><i class="fas fa-paper-plane"></i></button>` : ''}
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        window.navigateToGrade = (testId) => {
+            switchPage('grade');
+            setTimeout(() => {
+                document.getElementById('testSelect').value = testId;
+                loadSubmissionsForGrading(testId);
+            }, 300);
+        };
+
+        window.viewAnalysis = (testId) => {
+            switchPage('analysis');
+            setTimeout(() => {
+                switchAnalysisTab('tests');
+                document.getElementById('analysisTestSelect').value = testId;
+                loadTestAnalysis();
+            }, 300);
+        };
+
+        window.publishTest = async (testId) => {
+            if (!confirm('Publish this test?')) return;
+            showLoading();
+            try {
+                await db.collection('tests').doc(testId).update({ status: 'published', publishedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await refreshManageData();
+            } catch (e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        };
+
+        document.getElementById('searchInput')?.addEventListener('input', (e) => { searchQuery = e.target.value; renderManageTable(); });
+        document.querySelectorAll('#sectionManage .filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#sectionManage .filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderManageTable();
+            });
+        });
+        document.getElementById('refreshManageBtn')?.addEventListener('click', refreshManageData);
+
+        // ==================== SECTION 3: GRADE TESTS ====================
+        async function loadTestsForGrading() {
+            if (currentPage !== 'grade') return;
+            try {
+                const snap = await db.collection('tests').where('teacherId', '==', currentUser.uid).orderBy('createdAt', 'desc').get();
+                const select = document.getElementById('testSelect');
+                select.innerHTML = '<option value="">-- Select a test to grade --</option>';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.textContent = `${d.title} (${d.subject})`;
+                    select.appendChild(opt);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        document.getElementById('testSelect')?.addEventListener('change', (e) => {
+            if (e.target.value) loadSubmissionsForGrading(e.target.value);
+            else document.getElementById('gradeContentArea').innerHTML = '<div class="empty-state"><i class="fas fa-chalkboard"></i><h3>Select a test</h3></div>';
+        });
+
+        async function loadSubmissionsForGrading(testId) {
+            showLoading();
+            try {
+                const testDoc = await db.collection('tests').doc(testId).get();
+                if (!testDoc.exists) throw new Error('Test not found');
+                selectedTestForGrading = { id: testDoc.id, ...testDoc.data() };
+                const subsSnap = await db.collection('testSubmissions').where('testId', '==', testId).get();
+                gradingSubmissions = [];
+                subsSnap.forEach(doc => gradingSubmissions.push({ id: doc.id, ...doc.data() }));
+                const studentIds = [...new Set(gradingSubmissions.map(s => s.studentId))];
+                for (const id of studentIds) {
+                    const uDoc = await db.collection('users').doc(id).get();
+                    if (uDoc.exists) {
+                        const d = uDoc.data();
+                        studentNames[id] = `${d.firstName || ''} ${d.surname || ''}`.trim() || 'Unknown';
+                    }
+                }
+                renderGradeInterface();
+            } catch (e) {
+                document.getElementById('gradeContentArea').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error</h3><p>${e.message}</p></div>`;
+            }
+            finally { hideLoading(); }
+        }
+
+        function renderGradeInterface() {
+            const container = document.getElementById('gradeContentArea');
+            const t = selectedTestForGrading;
+            const totalSubs = gradingSubmissions.length;
+            const avg = totalSubs ? (gradingSubmissions.reduce((s, sub) => s + (sub.score || 0), 0) / totalSubs).toFixed(1) : 0;
+            container.innerHTML = `
+                <div class="test-info-card">
+                    <h2 class="test-title">${escapeHtml(t.title)}</h2>
+                    <div class="test-stats">
+                        <div class="stat-badge"><i class="fas fa-book"></i> ${escapeHtml(t.subject)}</div>
+                        <div class="stat-badge"><i class="fas fa-star"></i> ${t.totalPoints} pts</div>
+                        <div class="stat-badge"><i class="fas fa-users"></i> ${totalSubs} submissions</div>
+                        <div class="stat-badge"><i class="fas fa-chart-line"></i> Avg: ${avg}/${t.totalPoints}</div>
+                    </div>
+                </div>
+                <div class="students-list" id="studentsList"></div>
+            `;
+            if (!totalSubs) {
+                document.getElementById('studentsList').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No submissions</h3></div>';
+                return;
+            }
+            document.getElementById('studentsList').innerHTML = gradingSubmissions.map(sub => {
+                const name = studentNames[sub.studentId] || 'Unknown';
+                const initials = name.split(' ').map(n => n[0]).join('').toUpperCase() || 'S';
+                const pct = (sub.score / t.totalPoints) * 100;
+                let grade = pct >= 75 ? 'A' : pct >= 65 ? 'B' : pct >= 50 ? 'C' : pct >= 40 ? 'D' : 'F';
+                let answersHtml = '';
+                if (t.questions && sub.answers) {
+                    answersHtml = sub.answers.map((ans, idx) => {
+                        const q = t.questions[ans.questionIndex];
+                        if (!q) return '';
+                        let isCorrect = false;
+                        let sDisp = ans.answer;
+                        let cDisp = q.correct;
+                        if (q.type === 'multiple') {
+                            const sIdx = typeof ans.answer === 'number' ? ans.answer : (ans.answer?.charCodeAt?.(0) - 65) ?? 0;
+                            const cIdx = typeof q.correct === 'number' ? q.correct : (q.correct?.charCodeAt?.(0) - 65) ?? 0;
+                            isCorrect = sIdx === cIdx;
+                            sDisp = `${String.fromCharCode(65 + sIdx)}. ${q.options?.[sIdx] || 'N/A'}`;
+                            cDisp = `${String.fromCharCode(65 + cIdx)}. ${q.options?.[cIdx] || 'N/A'}`;
+                        } else if (q.type === 'boolean') {
+                            isCorrect = (ans.answer === 'True' && q.correct === 1) || (ans.answer === 'False' && q.correct === 0);
+                            cDisp = q.correct === 1 ? 'True' : 'False';
+                        } else {
+                            isCorrect = ans.answer?.toLowerCase?.()?.trim() === String(q.correct)?.toLowerCase()?.trim();
+                        }
+                        return `
+                            <div class="question-review">
+                                <div class="question-review-header"><span class="question-number">Q${idx + 1}</span><span>${isCorrect ? (q.points || 1) : 0}/${q.points || 1} pts</span></div>
+                                <div><strong>Q:</strong> ${escapeHtml(q.question)}</div>
+                                <div class="student-answer ${isCorrect ? 'answer-correct' : 'answer-wrong'}"><strong>Answer:</strong> ${escapeHtml(sDisp)}</div>
+                                ${!isCorrect ? `<div class="correct-answer"><strong>Correct:</strong> ${escapeHtml(cDisp)}</div>` : ''}
+                            </div>`;
+                    }).join('');
+                }
+                return `
+                    <div class="student-card" id="sc_${sub.id}">
+                        <div class="student-header" onclick="document.getElementById('sc_${sub.id}').classList.toggle('expanded')">
+                            <div class="student-info">
+                                <div class="student-avatar">${initials}</div>
+                                <div class="student-details">
+                                    <h4>${escapeHtml(name)}</h4>
+                                    <p>${sub.submittedAt ? new Date(sub.submittedAt.toDate()).toLocaleString() : 'Unknown'}</p>
+                                </div>
+                            </div>
+                            <div class="student-status">
+                                <span class="score-display">${sub.score}/${t.totalPoints} (${pct.toFixed(0)}% - ${grade})</span>
+                                <i class="fas fa-chevron-down expand-icon"></i>
+                            </div>
+                        </div>
+                        <div class="student-content">
+                            <h4 style="margin-bottom:1rem;"><i class="fas fa-question-circle"></i> Review</h4>
+                            ${answersHtml}
+                            <div class="grading-form">
+                                <h4 style="margin-bottom:1rem;"><i class="fas fa-graduation-cap"></i> Feedback</h4>
+                                <div class="feedback-input"><textarea id="fb_${sub.id}" rows="3" placeholder="Feedback...">${escapeHtml(sub.feedback || '')}</textarea></div>
+                                <button class="btn btn-success" onclick="saveFeedback('${sub.id}')"><i class="fas fa-save"></i> Save Feedback</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        window.saveFeedback = async (subId) => {
+            const fb = document.getElementById(`fb_${subId}`).value;
+            showLoading();
+            try {
+                await db.collection('testSubmissions').doc(subId).update({
+                    feedback: fb,
+                    feedbackGivenAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    feedbackGivenBy: currentUser.uid
+                });
+                alert('Feedback saved!');
+            } catch (e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        };
+
+        // ==================== SECTION 4: ANALYSIS HUB ====================
+        function switchAnalysisTab(tab) {
+            currentAnalysisTab = tab;
+            document.querySelectorAll('.analysis-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.analysis-tab[data-atab="${tab}"]`)?.classList.add('active');
+            document.querySelectorAll('.analysis-subsection').forEach(s => s.classList.remove('active'));
+            const sectionMap = { overview: 'analysisOverview', tests: 'analysisTests', assignments: 'analysisAssignments', exams: 'analysisExams' };
+            document.getElementById(sectionMap[tab])?.classList.add('active');
+            if (tab === 'overview') loadOverviewAnalysis();
+            if (tab === 'tests') loadTestAnalysisSelect();
+            if (tab === 'assignments') loadAssignmentAnalysisSelect();
+            if (tab === 'exams') loadExamAnalysisSelect();
+            setTimeout(updateAllCharts, 300);
+        }
+        window.switchAnalysisTab = switchAnalysisTab;
+
+        async function loadAnalysisData() {
+            if (currentPage !== 'analysis') return;
+            loadOverviewAnalysis();
+            loadTestAnalysisSelect();
+            loadAssignmentAnalysisSelect();
+            loadExamAnalysisSelect();
+        }
+
+        // Overview Analysis
+        async function loadOverviewAnalysis() {
+            try {
+                // Aggregate all scores
+                let allScores = [];
+                let totalPossible = 0;
+                let studentSet = new Set();
+
+                const testSnap = await db.collection('tests').where('teacherId', '==', currentUser.uid).get();
+                const testIds = [];
+                testSnap.forEach(doc => { testIds.push(doc.id); totalPossible += doc.data().totalPoints || 0; });
+
+                const subSnap = await db.collection('testSubmissions').where('teacherId', '==', currentUser.uid).get();
+                subSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.score !== undefined) allScores.push(d.score);
+                    if (d.studentId) studentSet.add(d.studentId);
+                });
+
+                const avgScore = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
+                const completionRate = testIds.length && studentSet.size ? Math.round((allScores.length / (testIds.length * studentSet.size)) * 100) : 0;
+
+                document.getElementById('ovAvgScore').textContent = avgScore + '%';
+                document.getElementById('ovCompletion').textContent = completionRate + '%';
+                document.getElementById('ovStudents').textContent = studentSet.size;
+
+                // Top performer
+                let topScore = 0, topStudent = '—';
+                subSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.score > topScore) { topScore = d.score; topStudent = studentNames[d.studentId] || 'Student'; }
+                });
+                document.getElementById('ovTopPerformer').textContent = topStudent;
+
+                // Trend chart
+                const ctx = document.getElementById('overviewTrendChart')?.getContext('2d');
+                if (ctx) {
+                    if (overviewTrendChart) overviewTrendChart.destroy();
+                    overviewTrendChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                            datasets: [{
+                                label: 'Avg Score %',
+                                data: [avgScore * 0.8, avgScore * 0.85, avgScore * 0.9, avgScore * 0.95, avgScore, avgScore * 1.02].map(Math.round),
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59,130,246,0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') } } }, scales: { y: { beginAtZero: false, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') } }, x: { grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') } } } }
+                    });
+                }
+
+                // Insights
+                document.getElementById('overviewInsights').innerHTML = `
+                    <div class="insight-item"><span class="insight-label">Highest Avg Assessment</span><span class="insight-value">${avgScore}%</span></div>
+                    <div class="insight-item"><span class="insight-label">Completion Rate</span><span class="insight-value">${completionRate}%</span></div>
+                    <div class="insight-item"><span class="insight-label">Total Assessments</span><span class="insight-value">${testIds.length}</span></div>
+                    <div class="insight-item"><span class="insight-label">Students Below 50%</span><span class="insight-value">${allScores.filter(s => s < 50).length}</span></div>`;
+                document.getElementById('overviewAlerts').innerHTML = studentSet.size === 0 ?
+                    '<p style="color:var(--text-secondary);">No data available yet.</p>' :
+                    `<p style="color:${completionRate < 50 ? 'var(--danger-text)' : 'var(--success-text)'};">${completionRate < 50 ? '⚠️ Low completion rate detected' : '✅ Completion rate is healthy'}</p>`;
+            } catch (e) { console.error('Overview analysis error:', e); }
+        }
+
+        // Test Analysis
+        async function loadTestAnalysisSelect() {
+            const select = document.getElementById('analysisTestSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Select a test --</option>';
+            allTests.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.title;
+                select.appendChild(opt);
+            });
+        }
+
+        async function loadTestAnalysis() {
+            const testId = document.getElementById('analysisTestSelect')?.value;
+            if (!testId) return;
+            const test = allTests.find(t => t.id === testId);
+            if (!test) return;
+            const scores = testScores[testId] || [];
+            const subs = submissionsData[testId] || [];
+            const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+            const passRate = scores.length ? Math.round((scores.filter(s => s >= (test.totalPoints * 0.5)).length / scores.length) * 100) : 0;
+            const highest = scores.length ? Math.max(...scores) : 0;
+            const lowest = scores.length ? Math.min(...scores) : 0;
+
+            document.getElementById('taAvgScore').textContent = avg;
+            document.getElementById('taPassRate').textContent = passRate + '%';
+            document.getElementById('taTotalSubs').textContent = subs.length;
+            document.getElementById('taHighest').textContent = highest;
+            document.getElementById('taLowest').textContent = lowest;
+
+            // Score distribution
+            const distCtx = document.getElementById('testScoreDistChart')?.getContext('2d');
+            if (distCtx) {
+                if (testScoreDistChart) testScoreDistChart.destroy();
+                const ranges = ['0-25%', '26-50%', '51-75%', '76-100%'];
+                const counts = [0, 0, 0, 0];
+                scores.forEach(s => {
+                    const pct = (s / test.totalPoints) * 100;
+                    if (pct <= 25) counts[0]++;
+                    else if (pct <= 50) counts[1]++;
+                    else if (pct <= 75) counts[2]++;
+                    else counts[3]++;
+                });
+                testScoreDistChart = new Chart(distCtx, {
+                    type: 'bar',
+                    data: { labels: ranges, datasets: [{ label: 'Students', data: counts, backgroundColor: ['#f87171', '#fbbf24', '#60a5fa', '#4ade80'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') } }, x: { grid: { display: false } } } }
+                });
+            }
+
+            // Question performance
+            const qCtx = document.getElementById('questionPerfChart')?.getContext('2d');
+            if (qCtx && test.questions) {
+                if (questionPerfChart) questionPerfChart.destroy();
+                const qLabels = test.questions.map((_, i) => `Q${i + 1}`);
+                const qData = test.questions.map((q, i) => {
+                    const correct = subs.filter(s => s.answers?.[i]?.correct || s.answers?.[i]?.answer === (q.correct ?? q.sampleAnswer)).length;
+                    return subs.length ? Math.round((correct / subs.length) * 100) : 0;
+                });
+                questionPerfChart = new Chart(qCtx, {
+                    type: 'bar',
+                    data: { labels: qLabels, datasets: [{ label: '% Correct', data: qData, backgroundColor: qData.map(v => v >= 70 ? '#4ade80' : v >= 40 ? '#fbbf24' : '#f87171') }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') } }, x: { grid: { display: false } } } }
+                });
+            }
+        }
+        window.loadTestAnalysis = loadTestAnalysis;
+
+        // Assignment Analysis
+        async function loadAssignmentAnalysisSelect() {
+            const select = document.getElementById('analysisAssignmentSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Select an assignment --</option>';
+            try {
+                const snap = await db.collection('assignments').where('teacherId', '==', currentUser.uid).get();
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.textContent = d.title || 'Untitled';
+                    select.appendChild(opt);
+                });
+                allAssignments = [];
+                snap.forEach(doc => allAssignments.push({ id: doc.id, ...doc.data() }));
+            } catch (e) { console.warn('Assignment load:', e.message); }
+        }
+
+        async function loadAssignmentAnalysis() {
+            const assignId = document.getElementById('analysisAssignmentSelect')?.value;
+            if (!assignId) return;
+            try {
+                const subsSnap = await db.collection('submissions').where('assignmentId', '==', assignId).get();
+                const subs = [];
+                subsSnap.forEach(doc => subs.push(doc.data()));
+                const scores = subs.filter(s => s.score !== undefined).map(s => s.score);
+                const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+                const totalStudents = userData.classTeaching ? (await db.collection('users').where('class', '==', userData.classTeaching).where('role', '==', 'student').get()).size : subs.length;
+                const completionRate = totalStudents ? Math.round((subs.length / totalStudents) * 100) : 0;
+                const onTime = subs.filter(s => s.submittedAt && s.dueDate && s.submittedAt.toDate() <= s.dueDate.toDate()).length;
+                const onTimeRate = subs.length ? Math.round((onTime / subs.length) * 100) : 0;
+
+                document.getElementById('aaAvgScore').textContent = avg;
+                document.getElementById('aaCompletionRate').textContent = completionRate + '%';
+                document.getElementById('aaOnTime').textContent = onTimeRate + '%';
+                document.getElementById('aaTotalSubs').textContent = subs.length;
+
+                const ctx = document.getElementById('assignmentStatusChart')?.getContext('2d');
+                if (ctx) {
+                    if (assignmentStatusChart) assignmentStatusChart.destroy();
+                    assignmentStatusChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: { labels: ['Submitted', 'Pending'], datasets: [{ data: [subs.length, Math.max(0, totalStudents - subs.length)], backgroundColor: ['#4ade80', '#fbbf24'] }] },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            } catch (e) { console.error('Assignment analysis:', e); }
+        }
+        window.loadAssignmentAnalysis = loadAssignmentAnalysis;
+
+        // Exam Analysis
+        async function loadExamAnalysisSelect() {
+            const select = document.getElementById('analysisExamSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Select an exam --</option>';
+            try {
+                const snap = await db.collection('exams').where('teacherId', '==', currentUser.uid).get();
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.textContent = d.title || d.subject || 'Untitled';
+                    select.appendChild(opt);
+                });
+                allExams = [];
+                snap.forEach(doc => allExams.push({ id: doc.id, ...doc.data() }));
+            } catch (e) { console.warn('Exam load:', e.message); }
+        }
+
+        async function loadExamAnalysis() {
+            const examId = document.getElementById('analysisExamSelect')?.value;
+            if (!examId) return;
+            try {
+                const subsSnap = await db.collection('examSubmissions').where('examId', '==', examId).get();
+                const subs = [];
+                subsSnap.forEach(doc => subs.push(doc.data()));
+                const scores = subs.filter(s => s.score !== undefined).map(s => s.score);
+                const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+                const exam = allExams.find(e => e.id === examId);
+                const totalPoints = exam?.totalPoints || 100;
+                const passRate = scores.length ? Math.round((scores.filter(s => s >= totalPoints * 0.5).length / scores.length) * 100) : 0;
+                const highest = scores.length ? Math.max(...scores) : 0;
+
+                document.getElementById('eaAvgScore').textContent = avg;
+                document.getElementById('eaPassRate').textContent = passRate + '%';
+                document.getElementById('eaTotalSubs').textContent = subs.length;
+                document.getElementById('eaHighest').textContent = highest;
+
+                const ctx = document.getElementById('examGradeDistChart')?.getContext('2d');
+                if (ctx) {
+                    if (examGradeDistChart) examGradeDistChart.destroy();
+                    const grades = ['A (75+)', 'B (65-74)', 'C (50-64)', 'D (40-49)', 'F (<40)'];
+                    const counts = [0, 0, 0, 0, 0];
+                    scores.forEach(s => {
+                        const pct = (s / totalPoints) * 100;
+                        if (pct >= 75) counts[0]++;
+                        else if (pct >= 65) counts[1]++;
+                        else if (pct >= 50) counts[2]++;
+                        else if (pct >= 40) counts[3]++;
+                        else counts[4]++;
+                    });
+                    examGradeDistChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: { labels: grades, datasets: [{ label: 'Students', data: counts, backgroundColor: ['#4ade80', '#60a5fa', '#fbbf24', '#fb923c', '#f87171'] }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') } }, x: { grid: { display: false } } } }
+                    });
+                }
+            } catch (e) { console.error('Exam analysis:', e); }
+        }
+        window.loadExamAnalysis = loadExamAnalysis;
+
+        function updateAllCharts() {
+            if (overviewTrendChart) { overviewTrendChart.destroy(); overviewTrendChart = null; }
+            if (testScoreDistChart) { testScoreDistChart.destroy(); testScoreDistChart = null; }
+            if (questionPerfChart) { questionPerfChart.destroy(); questionPerfChart = null; }
+            if (assignmentStatusChart) { assignmentStatusChart.destroy(); assignmentStatusChart = null; }
+            if (examGradeDistChart) { examGradeDistChart.destroy(); examGradeDistChart = null; }
+            if (currentPage === 'analysis') {
+                if (currentAnalysisTab === 'overview') loadOverviewAnalysis();
+                if (currentAnalysisTab === 'tests') loadTestAnalysis();
+                if (currentAnalysisTab === 'assignments') loadAssignmentAnalysis();
+                if (currentAnalysisTab === 'exams') loadExamAnalysis();
+            }
+        }
+
+        // ==================== GLOBAL EXPOSURE ====================
+        window.addQuestion = window.addQuestion;
+        window.removeQuestion = window.removeQuestion;
+        window.setCorrect = window.setCorrect;
+        window.editQuestion = window.editQuestion;
+        window.generateFromLessonNotes = window.generateFromLessonNotes;
+        window.insertAIGenerated = window.insertAIGenerated;
+        window.toggleWeek = window.toggleWeek;
+        window.closeBulkModal = closeBulkModal;
+        window.closeAIModal = () => aiModal.classList.remove('active');
+        window.saveFeedback = window.saveFeedback;
+        window.switchAnalysisTab = switchAnalysisTab;
+        window.loadTestAnalysis = loadTestAnalysis;
+        window.loadAssignmentAnalysis = loadAssignmentAnalysis;
+        window.loadExamAnalysis = loadExamAnalysis;
+        window.navigateToGrade = window.navigateToGrade;
+        window.viewAnalysis = window.viewAnalysis;
+        window.publishTest = window.publishTest;
+    </script>
+</body>
+</html>
