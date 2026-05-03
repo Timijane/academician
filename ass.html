@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Assignment Center | Teacher Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
+    <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f8fafc; --text-primary: #0f172a; --text-secondary: #475569;
+            --accent: #3b82f6; --accent-dark: #2563eb; --accent-glow: #60a5fa;
+            --border: #e2e8f0; --card-bg: #ffffff; --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.01);
+            --success-bg: #dcfce7; --success-text: #16a34a;
+            --warning-bg: #fef9c3; --warning-text: #ca8a04;
+            --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb;
+            --input-bg: #ffffff; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --purple-bg: rgba(168,85,247,0.2); --purple-text: #a855f7;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a; --text-primary: #f1f5f9; --text-secondary: #94a3b8;
+            --accent: #3b82f6; --accent-dark: #2563eb; --accent-glow: #60a5fa;
+            --border: #1e293b; --card-bg: #1e293b; --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa;
+            --input-bg: #334155; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --purple-bg: rgba(168,85,247,0.2); --purple-text: #c084fc;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: all 0.3s ease; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%); filter: blur(100px); z-index: 0; animation: float 20s infinite alternate ease-in-out; pointer-events: none; }
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px, 40px) scale(1.1); } }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; position: relative; z-index: 5; }
+
+        /* Top Navigation Bar */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); flex-wrap: wrap; gap: 1rem; }
+        .nav-left { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+        .nav-logo { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-logo i { font-size: 2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-logo h2 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 0.75rem; align-items: center; }
+        .nav-link { padding: 0.6rem 1.2rem; border-radius: 0.75rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; }
+        .nav-link:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); }
+        .nav-link.active { background: var(--accent); color: white; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; box-shadow: 0 2px 10px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Tab Navigation */
+        .tab-navigation { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 0.4rem; overflow-x: auto; box-shadow: var(--shadow); }
+        .tab-btn { padding: 0.8rem 1.5rem; border-radius: 1.25rem; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; font-family: inherit; }
+        .tab-btn:hover { background: var(--hover-bg); color: var(--accent); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.3); }
+        .tab-content { display: none; animation: fadeSlideIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; display: flex; align-items: center; gap: 1rem; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 1rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; }
+        .stat-info h3 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .stat-info p { color: var(--text-secondary); font-size: 0.8rem; }
+
+        /* Filters */
+        .filters-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+        .search-box { flex: 1; min-width: 200px; position: relative; }
+        .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.9rem; }
+        .search-box input:focus { outline: none; border-color: var(--accent); }
+        .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .filter-btn { padding: 0.75rem 1.25rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-secondary); cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .filter-btn:hover:not(.active) { background: var(--hover-bg); }
+
+        /* Tables */
+        .assignments-table { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 1rem 1rem; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border); background: var(--hover-bg); font-size: 0.85rem; }
+        td { padding: 1rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        tr:last-child td { border-bottom: none; }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge-draft { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-published { background: var(--success-bg); color: var(--success-text); }
+        .badge-classwork { background: var(--info-bg); color: var(--info-text); }
+        .badge-homework { background: var(--purple-bg); color: var(--purple-text); }
+        .badge-project { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .badge-quiz { background: rgba(236,72,153,0.2); color: #ec4899; }
+        .badge-overdue { background: var(--danger-bg); color: var(--danger-text); }
+
+        /* Assignment Info Card */
+        .assignment-info-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .assignment-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .assignment-stats { display: flex; gap: 2rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+        .stat-badge { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+
+        /* Students List */
+        .students-list { display: flex; flex-direction: column; gap: 1rem; }
+        .student-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; transition: all 0.3s; }
+        .student-card:hover { box-shadow: var(--shadow); }
+        .student-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background: var(--hover-bg); cursor: pointer; transition: 0.2s; flex-wrap: wrap; gap: 1rem; }
+        .student-header:hover { background: var(--info-bg); }
+        .student-info { display: flex; align-items: center; gap: 1rem; }
+        .student-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: white; }
+        .student-details h4 { font-size: 1rem; margin-bottom: 0.25rem; }
+        .student-details p { font-size: 0.8rem; color: var(--text-secondary); }
+        .student-status { display: flex; align-items: center; gap: 1.5rem; }
+        .score-display { font-weight: 700; font-size: 1.1rem; }
+        .expand-icon { transition: transform 0.3s; }
+        .student-card.expanded .expand-icon { transform: rotate(180deg); }
+        .student-content { display: none; padding: 1.5rem; border-top: 1px solid var(--border); }
+        .student-card.expanded .student-content { display: block; }
+
+        .question-review { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .question-review:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .question-review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+        .question-number { font-weight: 700; color: var(--accent); }
+        .student-answer { background: var(--hover-bg); padding: 0.75rem; border-radius: 0.75rem; margin: 0.5rem 0; }
+        .correct-answer { background: var(--success-bg); padding: 0.75rem; border-radius: 0.75rem; margin: 0.5rem 0; color: var(--success-text); }
+        .answer-wrong { background: var(--danger-bg); color: var(--danger-text); }
+        .answer-correct { background: var(--success-bg); color: var(--success-text); }
+        .grading-form { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid var(--border); }
+
+        /* Buttons */
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59,130,246,0.3); }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .btn-sm { padding: 0.35rem 0.85rem; font-size: 0.8rem; }
+        .btn-group { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; }
+
+        /* Form */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; }
+        .form-group label i { margin-right: 0.5rem; }
+        .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.95rem; transition: all 0.2s; font-family: inherit; }
+        .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+        select.form-control { appearance: auto; }
+
+        .weeks-selector { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-top: 0.5rem; }
+        .weeks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+        .week-checkbox { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .week-checkbox:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .week-checkbox input { width: 1.2rem; height: 1.2rem; cursor: pointer; accent-color: var(--accent); }
+        .week-checkbox span { font-size: 0.85rem; line-height: 1.3; }
+        .week-checkbox strong { color: var(--accent); }
+
+        .info-badge { background: var(--info-bg); color: var(--info-text); padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+
+        .assignment-settings { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .setting-item { display: flex; flex-direction: column; gap: 0.5rem; }
+        .setting-item label { font-weight: 600; font-size: 0.85rem; }
+        .setting-item input, .setting-item select { padding: 0.6rem; border-radius: 0.75rem; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-primary); }
+        .checkbox-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: var(--input-bg); border-radius: 0.75rem; }
+        .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 1.1rem; height: 1.1rem; }
+
+        .question-list { margin-top: 1rem; }
+        .question-item { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
+        .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+        .question-type { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 1rem; background: var(--info-bg); color: var(--info-text); }
+        .question-text { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.75rem; }
+        .question-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 0.75rem 0; }
+        .question-option { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .correct-badge { background: var(--success-bg); color: var(--success-text); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; display: inline-block; }
+        .difficulty-badge { padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; }
+        .difficulty-easy { background: var(--success-bg); color: var(--success-text); }
+        .difficulty-medium { background: var(--warning-bg); color: var(--warning-text); }
+        .difficulty-hard { background: var(--danger-bg); color: var(--danger-text); }
+
+        .empty-state { text-align: center; padding: 4rem; background: var(--card-bg); border-radius: 1.5rem; border: 1px solid var(--border); }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+        /* Question Bank Styles */
+        .bank-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+        .bank-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem; cursor: pointer; transition: all 0.2s; position: relative; }
+        .bank-card:hover { border-color: var(--accent); box-shadow: var(--shadow); transform: translateY(-2px); }
+        .bank-card.selected { border-color: var(--accent); background: var(--info-bg); }
+        .bank-card .bank-check { position: absolute; top: 0.75rem; right: 0.75rem; accent-color: var(--accent); width: 1.2rem; height: 1.2rem; }
+        .bank-card .bank-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+        .bank-select-all { margin-bottom: 1rem; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; max-width: 900px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .ai-chat { height: 300px; overflow-y: auto; padding: 1rem; background: var(--hover-bg); border-radius: 1rem; margin-bottom: 1rem; }
+        .message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 1rem; max-width: 85%; font-size: 0.9rem; }
+        .message.user { background: var(--accent); color: white; margin-left: auto; }
+        .message.assistant { background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border); }
+
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; }
+
+        .subject-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap; }
+        .tab { padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap; font-size: 0.9rem; }
+        .tab.active { background: var(--accent); color: white; }
+
+        .upload-area { border: 2px dashed var(--border); border-radius: 1rem; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; }
+        .upload-area:hover { border-color: var(--accent); background: var(--hover-bg); }
+        .upload-area i { font-size: 3rem; color: var(--accent); margin-bottom: 1rem; display: block; }
+        .csv-preview { max-height: 300px; overflow-y: auto; margin-top: 1rem; }
+        .csv-preview table { font-size: 0.75rem; }
+        .csv-preview th, .csv-preview td { padding: 0.3rem 0.5rem; }
+
+        .debug-panel { margin-top: 1rem; background: var(--danger-bg); border: 1px solid var(--danger-text); border-radius: 0.75rem; padding: 0.75rem; font-family: monospace; font-size: 0.7rem; color: var(--danger-text); overflow-x: auto; max-height: 200px; overflow-y: auto; }
+
+        .point-config-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .point-input-sm { width: 70px; padding: 0.5rem; border-radius: 0.5rem; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-primary); text-align: center; }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 0.75rem; }
+            .top-nav { flex-direction: column; align-items: stretch; padding: 1rem; }
+            .nav-left { flex-direction: column; align-items: stretch; }
+            .nav-links { overflow-x: auto; }
+            .tab-navigation { overflow-x: auto; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .weeks-grid { grid-template-columns: 1fr; }
+            .question-options { grid-template-columns: 1fr; }
+            .bank-grid { grid-template-columns: 1fr; }
+            th, td { font-size: 0.75rem; padding: 0.5rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="main-container">
+        <!-- Top Navigation Bar -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h2>EduTop</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="teacher-dashboard.html" class="nav-link">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                    <a href="teacher-analysis.html" class="nav-link">
+                        <i class="fas fa-chart-bar"></i> Analysis Hub
+                    </a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger">
+                        <span class="profile-name" id="profileName">Teacher</span>
+                        <div class="profile-pic" id="profilePic">T</div>
+                    </div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink">
+                            <i class="fas fa-user-edit"></i> Update Profile
+                        </div>
+                        <div class="dropdown-item" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation" id="tabNavigation">
+            <button class="tab-btn active" data-tab="manage">
+                <i class="fas fa-list-check"></i> Manage Assignments
+            </button>
+            <button class="tab-btn" data-tab="create">
+                <i class="fas fa-plus-square"></i> Create Assignment
+            </button>
+            <button class="tab-btn" data-tab="grade">
+                <i class="fas fa-check-double"></i> Grade Assignments
+            </button>
+        </div>
+
+        <!-- TAB 1: Manage Assignments -->
+        <div class="tab-content active" id="tab-manage">
+            <div class="stats-grid" id="assignmentStatsGrid">
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-tasks"></i></div><div class="stat-info"><h3 id="totalAssignments">0</h3><p>Total</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="publishedAssignments">0</h3><p>Published</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><h3 id="draftAssignments">0</h3><p>Drafts</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="assignmentSubmissions">0</h3><p>Submissions</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-times"></i></div><div class="stat-info"><h3 id="overdueAssignments">0</h3><p>Overdue</p></div></div>
+            </div>
+
+            <div class="filters-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="assignmentSearchInput" placeholder="Search by title or subject...">
+                </div>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="published">Published</button>
+                    <button class="filter-btn" data-filter="draft">Drafts</button>
+                    <button class="filter-btn" data-filter="overdue">Overdue</button>
+                </div>
+                <button class="btn btn-outline" id="refreshAssignmentBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+
+            <div class="assignments-table">
+                <div class="table-responsive">
+                    <table id="assignmentsTable">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Title</th>
+                                <th>Subject</th>
+                                <th>Type</th>
+                                <th>Weeks</th>
+                                <th>Due Date</th>
+                                <th>Questions</th>
+                                <th>Submissions</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsList">
+                            <tr><td colspan="9" style="text-align:center;padding:3rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Create Assignment -->
+        <div class="tab-content" id="tab-create">
+            <div class="subject-tabs" id="subjectTabs"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Assignment Information</h3>
+                    <div>
+                        <button class="btn btn-outline btn-sm" id="useAIBtn"><i class="fas fa-robot"></i> AI Generator</button>
+                        <button class="btn btn-outline btn-sm" id="bulkUploadBtn"><i class="fas fa-upload"></i> Bulk CSV</button>
+                        <button class="btn btn-outline btn-sm" id="questionBankBtn"><i class="fas fa-database"></i> Question Bank</button>
+                        <button class="btn btn-outline btn-sm" id="downloadTemplateBtn"><i class="fas fa-download"></i> CSV Template</button>
+                    </div>
+                </div>
+
+                <div class="info-badge">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Auto-Grading:</strong> MCQ, True/False, and Fill-in-Blank questions are auto-graded. Theory questions require manual grading.
+                </div>
+
+                <form id="assignmentForm">
+                    <input type="hidden" id="docId">
+                    <div class="form-group">
+                        <label><i class="fas fa-book"></i> Subject</label>
+                        <input type="text" id="subject" class="form-control" readonly placeholder="Click a subject above">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-week"></i> Weeks Covered</label>
+                        <div id="weeksSelector" class="weeks-selector">
+                            <div id="weeksCheckboxes" class="weeks-grid">
+                                <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-secondary);">
+                                    <i class="fas fa-spinner fa-spin"></i> Select a subject to load weeks
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-heading"></i> Assignment Title *</label>
+                        <input type="text" id="title" class="form-control" required placeholder="e.g., Week 5 Mathematics Assignment">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Instructions</label>
+                        <textarea id="instructions" class="form-control" rows="3" placeholder="Assignment instructions..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-day"></i> Due Date *</label>
+                        <input type="date" id="dueDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-eye"></i> Grade Visibility</label>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="autoReleaseGrades" checked>
+                            <span>Auto-grade objective questions & show scores</span>
+                        </div>
+                        <small style="color:var(--text-secondary);display:block;margin-top:0.5rem;">Theory questions will always need manual grading.</small>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-sliders-h"></i> Assignment Settings</h3>
+                </div>
+                <div class="assignment-settings">
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-star"></i> Total Points</label>
+                            <input type="number" id="totalPoints" class="form-control" value="100" min="1" max="500">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-tasks"></i> Assignment Type</label>
+                            <select id="assignmentType" class="form-control">
+                                <option value="classwork">Classwork</option>
+                                <option value="homework">Homework</option>
+                                <option value="project">Project</option>
+                                <option value="quiz">Quiz</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-ban"></i> Late Submission</label>
+                            <div class="checkbox-item"><input type="checkbox" id="allowLateSubmission"><span>Allow late submissions</span></div>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-percent"></i> Late Penalty (%)</label>
+                            <input type="number" id="latePenalty" class="form-control" value="10" min="0" max="100" step="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-question-circle"></i> Questions</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                        <button type="button" class="btn btn-outline btn-sm active q-type-btn" data-type="mcq">MCQ</button>
+                        <button type="button" class="btn btn-outline btn-sm q-type-btn" data-type="truefalse">True/False</button>
+                        <button type="button" class="btn btn-outline btn-sm q-type-btn" data-type="fillblank">Fill Blank</button>
+                        <button type="button" class="btn btn-outline btn-sm q-type-btn" data-type="theory">Theory</button>
+                    </div>
+                </div>
+
+                <div class="point-config-row" style="margin-bottom:1rem;padding:0.75rem;background:var(--hover-bg);border-radius:0.75rem;">
+                    <strong>Default Points per Question:</strong>
+                    <input type="number" id="defaultQuestionPoints" class="point-input-sm" value="2" min="1" max="50">
+                    <small style="color:var(--text-secondary);">Applies to new questions</small>
+                </div>
+
+                <div id="questionsContainer">
+                    <div id="questionsList" class="question-list"></div>
+                    <button type="button" class="btn btn-outline" onclick="addQuestion()"><i class="fas fa-plus"></i> Add Question</button>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="saveDraftBtn"><i class="fas fa-save"></i> Save as Draft</button>
+                <button type="button" class="btn btn-success" id="publishBtn"><i class="fas fa-paper-plane"></i> Publish Assignment</button>
+            </div>
+
+            <div class="debug-panel" id="debugPanel" style="display:none;">
+                <strong><i class="fas fa-bug"></i> Debug:</strong><br>
+                <span id="debugInfo">Initializing...</span>
+            </div>
+        </div>
+
+        <!-- TAB 3: Grade Assignments -->
+        <div class="tab-content" id="tab-grade">
+            <div class="card">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label><i class="fas fa-tasks"></i> Select Assignment to Grade</label>
+                    <select id="assignmentSelect" class="form-control">
+                        <option value="">-- Select an assignment --</option>
+                    </select>
+                </div>
+            </div>
+            <div id="gradeContentArea">
+                <div class="empty-state">
+                    <i class="fas fa-chalkboard"></i>
+                    <h3>Select an assignment to view submissions</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Modal -->
+    <div class="modal-overlay" id="aiModal">
+        <div class="modal-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3><i class="fas fa-robot"></i> AI Question Generator</h3>
+                <i class="fas fa-times" onclick="closeAIModal()" style="cursor:pointer;font-size:1.2rem;"></i>
+            </div>
+            <div id="aiChat" class="ai-chat">
+                <div class="message assistant">Select weeks first, then generate questions based on your lesson notes.</div>
+            </div>
+            <div class="form-group"><label>Number of Questions</label><input type="number" id="aiCount" value="5" min="1" max="30" class="form-control"></div>
+            <div class="form-group"><label>Points per Question</label><input type="number" id="aiPoints" value="2" min="1" max="50" class="form-control"></div>
+            <div class="form-group"><label>Difficulty</label><select id="aiDifficulty" class="form-control"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+            <div class="form-group"><label>Question Type</label><select id="aiType" class="form-control"><option value="mcq">MCQ</option><option value="truefalse">True/False</option><option value="fillblank">Fill Blank</option></select></div>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="generateFromLessonNotes()"><i class="fas fa-book-open"></i> Generate</button>
+                <button class="btn btn-outline" onclick="insertAIGenerated()"><i class="fas fa-plus"></i> Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Upload Modal -->
+    <div class="modal-overlay" id="bulkModal">
+        <div class="modal-content" style="max-width:900px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3><i class="fas fa-upload"></i> Bulk Upload CSV</h3>
+                <i class="fas fa-times" onclick="closeBulkModal()" style="cursor:pointer;font-size:1.2rem;"></i>
+            </div>
+            <div class="info-badge"><i class="fas fa-info-circle"></i><strong>CSV Format:</strong> Question, Option A, Option B, Option C, Option D, Correct Answer (A/B/C/D), Points</div>
+            <div class="upload-area" id="uploadArea"><i class="fas fa-cloud-upload-alt"></i><h4>Click or Drag CSV</h4><input type="file" id="csvFile" accept=".csv" style="display:none;"></div>
+            <div id="csvPreview" class="csv-preview" style="display:none;"><h4>Preview:</h4><table id="previewTable"></table></div>
+            <div class="form-group" style="margin-top:1rem;"><label>Default Points</label><input type="number" id="defaultPoints" class="form-control" value="2" min="1"></div>
+            <div class="btn-group"><button class="btn btn-outline" onclick="closeBulkModal()">Cancel</button><button class="btn btn-primary" id="importCsvBtn">Import</button></div>
+        </div>
+    </div>
+
+    <!-- Question Bank Modal -->
+    <div class="modal-overlay" id="bankModal">
+        <div class="modal-content" style="max-width:1100px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3><i class="fas fa-database"></i> Question Bank</h3>
+                <i class="fas fa-times" onclick="closeBankModal()" style="cursor:pointer;font-size:1.2rem;"></i>
+            </div>
+            <div class="info-badge"><i class="fas fa-info-circle"></i><strong>Select questions from your question bank.</strong> Questions are pulled from all your assignments, tests, and exams.</div>
+
+            <div class="filters-bar" style="margin-bottom:1rem;">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="bankSearchInput" placeholder="Search questions...">
+                </div>
+                <div class="filter-group">
+                    <button class="filter-btn active bank-filter" data-filter="all">All</button>
+                    <button class="filter-btn bank-filter" data-filter="mcq">MCQ</button>
+                    <button class="filter-btn bank-filter" data-filter="truefalse">T/F</button>
+                    <button class="filter-btn bank-filter" data-filter="fillblank">Fill</button>
+                    <button class="filter-btn bank-filter" data-filter="theory">Theory</button>
+                </div>
+            </div>
+
+            <div class="bank-select-all checkbox-item" style="margin-bottom:0.75rem;">
+                <input type="checkbox" id="bankSelectAll" onchange="toggleSelectAll(this)">
+                <span><strong>Select All Visible</strong></span>
+            </div>
+
+            <div id="bankQuestionsList" class="bank-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-secondary);">
+                    <i class="fas fa-spinner fa-spin"></i> Loading question bank...
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top:1.5rem;">
+                <button class="btn btn-outline" onclick="closeBankModal()">Cancel</button>
+                <button class="btn btn-primary" id="importBankBtn"><i class="fas fa-plus"></i> Add Selected Questions (<span id="bankSelectedCount">0</span>)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin fa-2x"></i><h3 style="margin-top:1rem;">Processing...</h3></div>
+    </div>
+
+    <script type="module">
+        import Groq from "groq-sdk";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const remoteConfig = firebase.remoteConfig();
+        remoteConfig.settings.minimumFetchIntervalMillis = 0;
+
+        // ==================== GLOBAL STATE ====================
+        let currentUser = null, userData = null, groq = null;
+        let currentSubject = null, subjects = [], syllabusWeeks = [];
+        let selectedWeeks = [], questions = [], currentDocId = null;
+        let currentQuestionType = 'mcq', allAssignments = [];
+        let submissionsData = {}, studentNames = {};
+        let lastGenerated = [], csvData = [], bankQuestions = [], selectedBankIds = new Set();
+
+        // ==================== UTILITY ====================
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function updateDebug(msg) { const el = document.getElementById('debugInfo'); if (el) { el.innerHTML = msg + '<br>' + el.innerHTML.substring(0, 3000); } console.log(msg); }
+
+        function getTypeBadge(type) {
+            const map = { classwork: 'badge-classwork', homework: 'badge-homework', project: 'badge-project', quiz: 'badge-quiz' };
+            const labels = { classwork: 'Classwork', homework: 'Homework', project: 'Project', quiz: 'Quiz' };
+            return `<span class="badge ${map[type]||'badge-draft'}">${labels[type]||type}</span>`;
+        }
+
+        function getStatusBadge(assignment) {
+            if (assignment.status === 'published') return '<span class="badge badge-published">Published</span>';
+            return '<span class="badge badge-draft">Draft</span>';
+        }
+
+        // ==================== TAB NAVIGATION ====================
+        document.getElementById('tabNavigation').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            if (btn.dataset.tab === 'manage') loadManageTab();
+            else if (btn.dataset.tab === 'grade') loadGradeTabAssignments();
+        });
+
+        // ==================== THEME ====================
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        // ==================== QUESTION TYPE ====================
+        document.querySelectorAll('.q-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.q-type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentQuestionType = this.dataset.type;
+            });
+        });
+
+        // Set default due date to 7 days from now
+        const defaultDue = new Date(); defaultDue.setDate(defaultDue.getDate() + 7);
+        document.getElementById('dueDate').value = defaultDue.toISOString().split('T')[0];
+
+        // ==================== MANAGE TAB ====================
+        async function loadAssignmentSubmissionsData() {
+            try {
+                const snap = await db.collection('submissions').where('teacherId','==',currentUser.uid).get();
+                submissionsData = {};
+                snap.forEach(doc => { const d = doc.data(); const aid = d.assignmentId; if (!submissionsData[aid]) submissionsData[aid] = []; submissionsData[aid].push(d); });
+            } catch(e) { console.warn('Submissions:', e.message); }
+        }
+
+        async function loadManageTab() {
+            showLoading();
+            try {
+                const snap = await db.collection('assignments').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').get();
+                allAssignments = [];
+                snap.forEach(doc => allAssignments.push({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate?.() || new Date() }));
+                await loadAssignmentSubmissionsData();
+                updateAssignmentStats();
+                renderAssignmentTable();
+            } catch(e) {
+                document.getElementById('assignmentsList').innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--danger-text);">Error: ${e.message}</td></tr>`;
+            } finally { hideLoading(); }
+        }
+
+        function updateAssignmentStats() {
+            const pub = allAssignments.filter(a => a.status==='published').length;
+            const drafts = allAssignments.filter(a => a.status==='draft').length;
+            const totalSubs = Object.values(submissionsData).reduce((a,b)=>a+b.length,0);
+            const now = new Date(); now.setHours(0,0,0,0);
+            const overdue = allAssignments.filter(a => a.status==='published' && a.dueDate && new Date(a.dueDate) < now).length;
+            document.getElementById('totalAssignments').textContent = allAssignments.length;
+            document.getElementById('publishedAssignments').textContent = pub;
+            document.getElementById('draftAssignments').textContent = drafts;
+            document.getElementById('assignmentSubmissions').textContent = totalSubs;
+            document.getElementById('overdueAssignments').textContent = overdue;
+        }
+
+        function renderAssignmentTable(filter='all', query='') {
+            const now = new Date(); now.setHours(0,0,0,0);
+            let filtered = allAssignments.filter(a => {
+                if (filter==='published' && a.status!=='published') return false;
+                if (filter==='draft' && a.status!=='draft') return false;
+                if (filter==='overdue' && !(a.status==='published' && a.dueDate && new Date(a.dueDate) < now)) return false;
+                if (query) { const q = query.toLowerCase(); return (a.title?.toLowerCase().includes(q) || a.subject?.toLowerCase().includes(q)); }
+                return true;
+            });
+            const tbody = document.getElementById('assignmentsList');
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:3rem;"><i class="fas fa-inbox" style="font-size:3rem;display:block;margin-bottom:1rem;"></i><h3>No assignments found</h3></td></tr>`;
+                return;
+            }
+            tbody.innerHTML = filtered.map(a => {
+                const subCount = submissionsData[a.id]?.length || 0;
+                const weeks = a.weeksCovered?.join?.(', ') || 'All';
+                const isOverdue = a.status==='published' && a.dueDate && new Date(a.dueDate) < now;
+                return `
+                    <tr>
+                        <td>${getStatusBadge(a)} ${isOverdue?'<span class="badge badge-overdue">Overdue</span>':''}</td>
+                        <td><strong>${escapeHtml(a.title)}</strong></td>
+                        <td>${escapeHtml(a.subject)}</td>
+                        <td>${getTypeBadge(a.assignmentType)}</td>
+                        <td>Weeks: ${weeks}</td>
+                        <td>${a.dueDate||'N/A'} ${a.allowLateSubmission?'<br><small style="color:var(--warning-text);">Late: -'+(a.latePenalty||10)+'%</small>':''}</td>
+                        <td>${a.questions?.length||0}</td>
+                        <td><span class="badge" style="background:var(--info-bg);color:var(--info-text);">${subCount}</span></td>
+                        <td>
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                <button class="btn btn-outline btn-sm" onclick="editAssignment('${a.id}')"><i class="fas fa-edit"></i></button>
+                                ${subCount?`<button class="btn btn-primary btn-sm" onclick="goToGrade('${a.id}')"><i class="fas fa-check-double"></i> Grade</button>`:''}
+                                ${a.status==='draft'?`<button class="btn btn-success btn-sm" onclick="publishAssignment('${a.id}')"><i class="fas fa-paper-plane"></i></button>`:''}
+                                <button class="btn btn-outline btn-sm" onclick="duplicateAssignment('${a.id}')"><i class="fas fa-copy"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        window.publishAssignment = async (id) => {
+            if (!confirm('Publish this assignment?')) return;
+            showLoading();
+            try {
+                await db.collection('assignments').doc(id).update({ status:'published', publishedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedAt:firebase.firestore.FieldValue.serverTimestamp() });
+                await db.collection('auditLogs').add({ userId:currentUser.uid, userName:`${userData.firstName||''} ${userData.surname||''}`.trim(), action:'ASSIGNMENT_PUBLISHED', timestamp:firebase.firestore.FieldValue.serverTimestamp(), details:{assignmentId:id} }).catch(()=>{});
+                await loadManageTab(); alert('Published!');
+            } catch(e) { alert('Error: '+e.message); }
+            finally { hideLoading(); }
+        };
+
+        window.editAssignment = (id) => {
+            currentDocId = id;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.tab-btn[data-tab="create"]').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-create').classList.add('active');
+            loadExistingAssignment(id);
+        };
+
+        window.goToGrade = (id) => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.tab-btn[data-tab="grade"]').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-grade').classList.add('active');
+            document.getElementById('assignmentSelect').value = id;
+            loadGradeSubmissions(id);
+        };
+
+        window.duplicateAssignment = async (id) => {
+            if (!confirm('Duplicate as new draft?')) return;
+            showLoading();
+            try {
+                const doc = await db.collection('assignments').doc(id).get();
+                if (!doc.exists) { alert('Not found'); return; }
+                const data = doc.data(); delete data.publishedAt;
+                data.status = 'draft'; data.title = (data.title||'Assignment') + ' (Copy)';
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection('assignments').add(data);
+                await loadManageTab(); alert('Duplicated!');
+            } catch(e) { alert('Error: '+e.message); }
+            finally { hideLoading(); }
+        };
+
+        document.getElementById('assignmentSearchInput').addEventListener('input', (e) => {
+            renderAssignmentTable(document.querySelector('#tab-manage .filter-btn.active')?.dataset.filter||'all', e.target.value);
+        });
+        document.querySelectorAll('#tab-manage .filter-btn').forEach(b => {
+            b.addEventListener('click', function() {
+                document.querySelectorAll('#tab-manage .filter-btn').forEach(x => x.classList.remove('active'));
+                this.classList.add('active');
+                renderAssignmentTable(this.dataset.filter, document.getElementById('assignmentSearchInput').value);
+            });
+        });
+        document.getElementById('refreshAssignmentBtn').addEventListener('click', loadManageTab);
+
+        // ==================== CREATE TAB ====================
+        async function loadSyllabus() {
+            if (!subjects.length) return;
+            try {
+                const snap = await db.collection('syllabus').where('teacherId','==',currentUser.uid).where('status','==','approved').get();
+                syllabusWeeks = [];
+                snap.forEach(doc => { const d = doc.data(); (d.weeks||[]).forEach(w => syllabusWeeks.push({ subject:d.subject, week:w.week, topic:w.topic, objectives:w.objectives||'', syllabusId:doc.id })); });
+            } catch(e) { console.error('Syllabus:', e); }
+        }
+
+        function getWeeksForSubject(s) { return syllabusWeeks.filter(w => w.subject===s).sort((a,b)=>a.week-b.week); }
+
+        function renderSubjectTabs() {
+            const c = document.getElementById('subjectTabs'); c.innerHTML = '';
+            if (!subjects.length) { c.innerHTML = '<span class="tab" style="background:var(--warning-bg);">No subjects</span>'; return; }
+            subjects.forEach(s => { const t = document.createElement('span'); t.className='tab'; t.textContent=s; t.onclick=()=>switchSubject(s,t); c.appendChild(t); });
+            if (subjects.length) switchSubject(subjects[0], c.children[0]);
+        }
+
+        function switchSubject(s, target) {
+            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
+            if (target) target.classList.add('active');
+            currentSubject = s; document.getElementById('subject').value = s;
+            renderWeekCheckboxes(getWeeksForSubject(s));
+        }
+
+        function renderWeekCheckboxes(weeks) {
+            const c = document.getElementById('weeksCheckboxes');
+            if (!weeks.length) { c.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--warning-text);">No weeks found.</div>`; return; }
+            c.innerHTML = weeks.map(w => `<label class="week-checkbox"><input type="checkbox" value="${w.week}" onchange="toggleWeek(this)"><span><strong>Week ${w.week}</strong>: ${escapeHtml(w.topic)}</span></label>`).join('');
+            selectedWeeks = [];
+        }
+
+        window.toggleWeek = (cb) => {
+            const w = parseInt(cb.value);
+            cb.checked ? (!selectedWeeks.includes(w) && selectedWeeks.push(w)) : (selectedWeeks = selectedWeeks.filter(x=>x!==w));
+            selectedWeeks.sort((a,b)=>a-b);
+        };
+
+        function renderQuestions() {
+            const c = document.getElementById('questionsList');
+            if (!questions.length) { c.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-secondary);">No questions yet. Add manually, AI, CSV, or from Question Bank.</p>'; return; }
+            c.innerHTML = questions.map((q,i) => {
+                let opts = '';
+                if (q.type==='mcq') {
+                    const L = ['A','B','C','D'];
+                    opts = `<div class="question-options">${q.options.map((o,oi)=>`<div class="question-option"><input type="radio" name="correct_${i}" value="${L[oi]}" ${q.correct===L[oi]?'checked':''} onchange="setCorrect(${i},'${L[oi]}')"><span>${L[oi]}. ${escapeHtml(o)}</span></div>`).join('')}</div>`;
+                } else if (q.type==='truefalse') {
+                    opts = `<div class="question-options"><div class="question-option"><input type="radio" name="correct_${i}" value="True" ${q.correct==='True'?'checked':''} onchange="setCorrect(${i},'True')"><span>True</span></div><div class="question-option"><input type="radio" name="correct_${i}" value="False" ${q.correct==='False'?'checked':''} onchange="setCorrect(${i},'False')"><span>False</span></div></div>`;
+                } else if (q.type==='fillblank') {
+                    opts = `<div class="form-group"><input type="text" class="form-control" value="${escapeHtml(q.correct||'')}" onchange="setCorrect(${i},this.value)" placeholder="Correct answer"></div>`;
+                } else {
+                    opts = `<div class="form-group"><textarea class="form-control" rows="4" onchange="setCorrect(${i},this.value)" placeholder="Marking guide">${escapeHtml(q.correct||'')}</textarea></div>`;
+                }
+                return `<div class="question-item"><div class="question-header"><span class="question-text">Q${i+1}: ${escapeHtml(q.question)}</span><div><span class="question-type">${q.type==='mcq'?'MCQ':q.type==='truefalse'?'T/F':q.type==='fillblank'?'Fill':'Theory'}</span><span class="difficulty-badge difficulty-${q.difficulty||'medium'}">${q.difficulty||'Medium'}</span><span class="correct-badge">${q.points||1} pts</span><button class="btn btn-sm btn-outline" onclick="editQuestion(${i})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="removeQuestion(${i})"><i class="fas fa-trash"></i></button></div></div>${opts}</div>`;
+            }).join('');
+        }
+
+        window.addQuestion = () => {
+            const pts = parseInt(document.getElementById('defaultQuestionPoints').value) || 2;
+            questions.push({ type:currentQuestionType, question:'', options:['','','',''], correct:currentQuestionType==='mcq'?'A':currentQuestionType==='truefalse'?'True':'', points:pts, difficulty:'medium' });
+            renderQuestions();
+            setTimeout(()=>editQuestion(questions.length-1), 100);
+        };
+        window.removeQuestion = (i) => { questions.splice(i,1); renderQuestions(); };
+        window.setCorrect = (i,v) => { questions[i].correct = v; };
+
+        window.editQuestion = (i) => {
+            const q = questions[i];
+            const nq = prompt('Question:', q.question); if (nq!==null) q.question = nq;
+            if (q.type==='mcq') for (let j=0;j<4;j++) { const o = prompt(`Option ${String.fromCharCode(65+j)}:`, q.options[j]); if (o!==null) q.options[j]=o; }
+            const pts = prompt('Points:', q.points); if (pts!==null) q.points = parseInt(pts)||1;
+            const diff = prompt('Difficulty (easy/medium/hard):', q.difficulty||'medium'); if (diff!==null) q.difficulty = diff;
+            renderQuestions();
+        };
+
+        // ==================== CSV ====================
+        document.getElementById('bulkUploadBtn').addEventListener('click', ()=>document.getElementById('bulkModal').classList.add('active'));
+        document.getElementById('downloadTemplateBtn').addEventListener('click', ()=>{
+            const h=['Question','Option A','Option B','Option C','Option D','Correct Answer','Points'];
+            const r=[['What is 2+2?','1','2','3','4','D','2'],['Capital of Nigeria?','Lagos','Abuja','Kano','Ibadan','B','2']];
+            const csv=[h,...r].map(x=>x.join(',')).join('\n');
+            const b=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');
+            a.href=URL.createObjectURL(b); a.download='assignment_template.csv'; a.click();
+        });
+        window.closeBulkModal = () => { document.getElementById('bulkModal').classList.remove('active'); csvData=[]; document.getElementById('csvPreview').style.display='none'; };
+
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('click', ()=>document.getElementById('csvFile').click());
+        uploadArea.addEventListener('dragover', e=>{e.preventDefault(); uploadArea.style.borderColor='var(--accent)';});
+        uploadArea.addEventListener('dragleave', ()=>{uploadArea.style.borderColor='var(--border)';});
+        uploadArea.addEventListener('drop', e=>{
+            e.preventDefault(); uploadArea.style.borderColor='var(--border)';
+            const f=e.dataTransfer.files[0]; if(f?.name.endsWith('.csv')) processCSV(f); else alert('CSV only');
+        });
+        document.getElementById('csvFile').addEventListener('change', e=>{if(e.target.files[0])processCSV(e.target.files[0]);});
+
+        function processCSV(file) { const r=new FileReader(); r.onload=e=>parseCSV(e.target.result); r.readAsText(file); }
+
+        function parseCSV(text) {
+            const lines=text.split('\n').filter(l=>l.trim()); if(lines.length<2){alert('Empty CSV');return;}
+            csvData=[];
+            for(let i=1;i<lines.length;i++){
+                const row=lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+                if(row.length>=6&&['A','B','C','D'].includes(row[5]?.toUpperCase())){
+                    csvData.push({question:row[0],options:[row[1]||'',row[2]||'',row[3]||'',row[4]||''],correct:row[5].toUpperCase(),points:parseInt(row[6])||parseInt(document.getElementById('defaultPoints').value)||2});
+                }
+            }
+            if(csvData.length){
+                document.getElementById('previewTable').innerHTML=`<thead><tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Correct</th><th>Pts</th></tr></thead><tbody>${csvData.slice(0,10).map((q,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(q.question.substring(0,40))}</td><td>${escapeHtml(q.options[0])}</td><td>${escapeHtml(q.options[1])}</td><td>${escapeHtml(q.options[2])}</td><td>${escapeHtml(q.options[3])}</td><td><strong>${q.correct}</strong></td><td>${q.points}</td></tr>`).join('')}</tbody>`;
+                document.getElementById('csvPreview').style.display='block';
+            }
+        }
+
+        document.getElementById('importCsvBtn').addEventListener('click',()=>{
+            if(!csvData.length){alert('No valid questions');return;}
+            questions=questions.concat(csvData.map(q=>({type:'mcq',question:q.question,options:q.options,correct:q.correct,points:q.points,difficulty:'medium'})));
+            renderQuestions(); closeBulkModal(); alert(`Imported ${csvData.length} questions!`);
+        });
+
+        // ==================== QUESTION BANK ====================
+        document.getElementById('questionBankBtn').addEventListener('click', openBankModal);
+        window.closeBankModal = () => { document.getElementById('bankModal').classList.remove('active'); selectedBankIds.clear(); };
+
+        function openBankModal() {
+            document.getElementById('bankModal').classList.add('active');
+            loadBankQuestions();
+        }
+
+        async function loadBankQuestions() {
+            showLoading();
+            try {
+                // Gather questions from assignments, tests, and exams
+                bankQuestions = [];
+                const collections = ['assignments', 'tests', 'exams'];
+                const sourceLabels = { assignments: 'Assignment', tests: 'Test', exams: 'Exam' };
+
+                for (const col of collections) {
+                    const snap = await db.collection(col).where('teacherId','==',currentUser.uid).get();
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        (data.questions || []).forEach((q, qi) => {
+                            bankQuestions.push({
+                                id: `${col}_${doc.id}_${qi}`,
+                                source: sourceLabels[col] || col,
+                                sourceId: doc.id,
+                                subject: data.subject,
+                                title: data.title,
+                                question: q.question,
+                                type: q.type || 'mcq',
+                                options: q.options || [],
+                                correct: q.correct || '',
+                                points: q.points || 1,
+                                difficulty: q.difficulty || 'medium'
+                            });
+                        });
+                    });
+                }
+
+                renderBankQuestions();
+            } catch(e) { console.error('Bank error:', e); }
+            finally { hideLoading(); }
+        }
+
+        function renderBankQuestions(filter='all', query='') {
+            const container = document.getElementById('bankQuestionsList');
+            let filtered = bankQuestions.filter(q => {
+                if (filter!=='all' && q.type!==filter) return false;
+                if (query) { const qr = query.toLowerCase(); return q.question?.toLowerCase().includes(qr) || q.subject?.toLowerCase().includes(qr) || q.title?.toLowerCase().includes(qr); }
+                return true;
+            });
+
+            if (!filtered.length) {
+                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-secondary);">No questions found in bank. Create assignments, tests, or exams first.</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(q => `
+                <div class="bank-card ${selectedBankIds.has(q.id)?'selected':''}" onclick="toggleBankQuestion('${q.id}', this)">
+                    <input type="checkbox" class="bank-check" ${selectedBankIds.has(q.id)?'checked':''} onclick="event.stopPropagation(); toggleBankQuestion('${q.id}', this.closest('.bank-card'))">
+                    <div style="font-weight:600;font-size:0.9rem;margin-right:2rem;">${escapeHtml(q.question.substring(0, 80))}${q.question.length>80?'...':''}</div>
+                    <div class="bank-meta">
+                        <span class="badge" style="background:var(--purple-bg);color:var(--purple-text);">${q.source}</span>
+                        <span class="badge" style="background:var(--info-bg);color:var(--info-text);">${q.subject}</span>
+                        <span class="badge" style="background:var(--success-bg);color:var(--success-text);">${q.points}pts</span>
+                        <span class="badge" style="background:var(--warning-bg);color:var(--warning-text);">${q.difficulty}</span>
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">Source: ${escapeHtml(q.title)}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('bankSelectedCount').textContent = selectedBankIds.size;
+        }
+
+        window.toggleBankQuestion = (id, card) => {
+            if (selectedBankIds.has(id)) { selectedBankIds.delete(id); card.classList.remove('selected'); card.querySelector('.bank-check').checked = false; }
+            else { selectedBankIds.add(id); card.classList.add('selected'); card.querySelector('.bank-check').checked = true; }
+            document.getElementById('bankSelectedCount').textContent = selectedBankIds.size;
+        };
+
+        window.toggleSelectAll = (cb) => {
+            const cards = document.querySelectorAll('.bank-card');
+            cards.forEach(card => {
+                const id = card.querySelector('.bank-check')?.dataset?.id || card.getAttribute('data-id');
+                const actualId = [...bankQuestions].find((q,i) => card.textContent.includes(q.question.substring(0,30)))?.id;
+                if (cb.checked && actualId && !selectedBankIds.has(actualId)) {
+                    selectedBankIds.add(actualId); card.classList.add('selected');
+                    const chk = card.querySelector('.bank-check'); if (chk) chk.checked = true;
+                } else if (!cb.checked) {
+                    selectedBankIds.clear(); card.classList.remove('selected');
+                    const chk = card.querySelector('.bank-check'); if (chk) chk.checked = false;
+                }
+            });
+            document.getElementById('bankSelectedCount').textContent = selectedBankIds.size;
+        };
+
+        document.getElementById('bankSearchInput').addEventListener('input', (e) => {
+            renderBankQuestions(document.querySelector('.bank-filter.active')?.dataset.filter||'all', e.target.value);
+        });
+        document.querySelectorAll('.bank-filter').forEach(b => {
+            b.addEventListener('click', function() {
+                document.querySelectorAll('.bank-filter').forEach(x => x.classList.remove('active'));
+                this.classList.add('active');
+                renderBankQuestions(this.dataset.filter, document.getElementById('bankSearchInput').value);
+            });
+        });
+
+        document.getElementById('importBankBtn').addEventListener('click', () => {
+            if (!selectedBankIds.size) { alert('Select questions first'); return; }
+            const selected = bankQuestions.filter(q => selectedBankIds.has(q.id));
+            const newQs = selected.map(q => ({
+                type: q.type,
+                question: q.question,
+                options: q.options || ['','','',''],
+                correct: q.correct || '',
+                points: q.points || 2,
+                difficulty: q.difficulty || 'medium'
+            }));
+            questions = questions.concat(newQs);
+            renderQuestions();
+            closeBankModal();
+            alert(`Added ${newQs.length} questions from Question Bank!`);
+        });
+
+        // ==================== AI ====================
+        document.getElementById('useAIBtn').addEventListener('click',()=>document.getElementById('aiModal').classList.add('active'));
+        window.closeAIModal = () => document.getElementById('aiModal').classList.remove('active');
+
+        async function getLessonNoteContent(subject, weeks) {
+            try {
+                const snap = await db.collection('syllabus').where('teacherId','==',currentUser.uid).where('subject','==',subject).where('status','==','approved').limit(1).get();
+                if(snap.empty)return null;
+                const sid=snap.docs[0].id;
+                const ns=await db.collection('lessonNotes').where('teacherId','==',currentUser.uid).where('syllabusId','==',sid).where('week','in',weeks).where('status','==','approved').get();
+                if(ns.empty)return null;
+                const notes=[]; ns.forEach(d=>{const dd=d.data();notes.push({week:dd.week,topic:dd.topic,content:dd.content||dd.lessonContent||'',objectives:dd.objectives||'',keyPoints:dd.keyPoints||''});});
+                return notes;
+            }catch(e){return null;}
+        }
+
+        window.generateFromLessonNotes = async () => {
+            if(!groq){alert('AI not ready');return;}
+            if(!selectedWeeks.length){alert('Select weeks first');return;}
+            const count=parseInt(document.getElementById('aiCount').value)||5;
+            const points=parseInt(document.getElementById('aiPoints').value)||2;
+            const diff=document.getElementById('aiDifficulty').value;
+            const type=document.getElementById('aiType').value;
+            showLoading();
+            const chat=document.getElementById('aiChat');
+            try {
+                const notes=await getLessonNoteContent(currentSubject,selectedWeeks);
+                if(!notes?.length){chat.innerHTML+='<div class="message assistant">❌ No approved lesson notes found.</div>';hideLoading();return;}
+                let ctx=notes.map(n=>`=== WEEK ${n.week}: ${n.topic} ===\nCONTENT: ${n.content.substring(0,4000)}\nOBJECTIVES: ${n.objectives}\nKEY POINTS: ${n.keyPoints}`).join('\n---\n');
+                const td=type==='mcq'?'Multiple Choice':type==='truefalse'?'True/False':'Fill in the Blank';
+                const prompt=`Create ${count} ${diff} ${td} assignment questions (${points} pts each) based STRICTLY on:\n\n${ctx}\n\nReturn ONLY JSON array. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":${points}}]${type==='truefalse'?' Use "True"/"False".':type==='fillblank'?' Use exact answer.':''}`;
+                chat.innerHTML+=`<div class="message user">Generating ${count} ${diff} ${td} questions (${points} pts each)...</div>`;
+                const res=await groq.chat.completions.create({messages:[{role:'user',content:prompt}],model:'llama-3.3-70b-versatile',temperature:0.4});
+                const match=res.choices[0].message.content.match(/\[[\s\S]*\]/);
+                if(!match)throw new Error('No JSON found');
+                lastGenerated=JSON.parse(match[0]).map(q=>({...q,type,difficulty:diff,points,options:q.options||['','','','']}));
+                chat.innerHTML+=`<div class="message assistant">✅ Generated ${lastGenerated.length} questions (${points} pts each)!</div>`;
+            }catch(e){chat.innerHTML+=`<div class="message assistant">❌ ${e.message}</div>`;}
+            finally{hideLoading();}
+        };
+
+        window.insertAIGenerated = () => {
+            if(!lastGenerated?.length){alert('Generate first');return;}
+            questions=questions.concat(lastGenerated); renderQuestions(); closeAIModal();
+        };
+
+        // ==================== SAVE/PUBLISH ====================
+        async function saveAssignment(status) {
+            const title=document.getElementById('title').value.trim();
+            const instructions=document.getElementById('instructions').value;
+            const dueDate=document.getElementById('dueDate').value;
+            const totalPoints=parseInt(document.getElementById('totalPoints').value);
+            const assignmentType=document.getElementById('assignmentType').value;
+            const allowLateSubmission=document.getElementById('allowLateSubmission').checked;
+            const latePenalty=parseInt(document.getElementById('latePenalty').value);
+            const autoReleaseGrades=document.getElementById('autoReleaseGrades').checked;
+
+            if(!currentSubject){alert('Select subject');return;}
+            if(!selectedWeeks.length){alert('Select weeks');return;}
+            if(!title){alert('Enter title');return;}
+            if(!dueDate){alert('Set due date');return;}
+            if(!questions.length){alert('Add questions');return;}
+
+            for(let i=0;i<questions.length;i++){
+                const q=questions[i];
+                if(!q.question?.trim()){alert(`Q${i+1} no text`);return;}
+                if(q.type!=='theory'&&(!q.correct||q.correct==='')){alert(`Q${i+1} missing answer`);return;}
+            }
+
+            const fq=questions.map(q=>{
+                const f={question:q.question,type:q.type,points:q.points||2,difficulty:q.difficulty||'medium'};
+                if(q.type==='mcq'){f.options=q.options;f.correct=q.correct;}
+                else if(q.type==='truefalse'){f.correct=q.correct;}
+                else if(q.type==='fillblank'){f.correct=q.correct;}
+                else{f.sampleAnswer=q.correct;f.correct=null;}
+                return f;
+            });
+
+            const data={
+                teacherId:currentUser.uid,classId:userData.classTeaching||'jss2',subject:currentSubject,
+                weeksCovered:selectedWeeks,title,instructions:instructions||'',dueDate,totalPoints,
+                assignmentType,allowLateSubmission,latePenalty,questions:fq,status,autoReleaseGrades,
+                publishedAt:status==='published'?firebase.firestore.FieldValue.serverTimestamp():null,
+                createdAt:currentDocId?firebase.firestore.FieldValue.serverTimestamp():firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            showLoading();
+            try {
+                let aid=currentDocId;
+                if(currentDocId){await db.collection('assignments').doc(currentDocId).update(data);}
+                else{const ref=await db.collection('assignments').add(data);aid=ref.id;currentDocId=ref.id;}
+
+                await db.collection('auditLogs').add({userId:currentUser.uid,userName:`${userData.firstName||''} ${userData.surname||''}`.trim(),action:status==='published'?'ASSIGNMENT_PUBLISHED':'ASSIGNMENT_SAVED',timestamp:firebase.firestore.FieldValue.serverTimestamp(),details:{assignmentId:aid,title,subject:currentSubject}}).catch(()=>{});
+
+                alert(`Assignment ${status==='published'?'published':'saved'}!`);
+                questions=[];currentDocId=null;selectedWeeks=[];document.getElementById('title').value='';document.getElementById('instructions').value='';renderQuestions();renderWeekCheckboxes(getWeeksForSubject(currentSubject));
+                document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+                document.querySelector('.tab-btn[data-tab="manage"]').classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+                document.getElementById('tab-manage').classList.add('active');
+                await loadManageTab();
+            }catch(e){alert('Error: '+e.message);}
+            finally{hideLoading();}
+        }
+
+        document.getElementById('saveDraftBtn').addEventListener('click',()=>saveAssignment('draft'));
+        document.getElementById('publishBtn').addEventListener('click',()=>saveAssignment('published'));
+
+        async function loadExistingAssignment(id) {
+            showLoading();
+            try {
+                const doc=await db.collection('assignments').doc(id).get();
+                if(!doc.exists){alert('Not found');return;}
+                const d=doc.data();currentDocId=id;currentSubject=d.subject;
+                document.getElementById('subject').value=d.subject;
+                document.getElementById('title').value=d.title||'';
+                document.getElementById('instructions').value=d.instructions||'';
+                document.getElementById('dueDate').value=d.dueDate||'';
+                document.getElementById('totalPoints').value=d.totalPoints||100;
+                document.getElementById('assignmentType').value=d.assignmentType||'homework';
+                document.getElementById('allowLateSubmission').checked=d.allowLateSubmission||false;
+                document.getElementById('latePenalty').value=d.latePenalty||10;
+                document.getElementById('autoReleaseGrades').checked=d.autoReleaseGrades!==false;
+                selectedWeeks=d.weeksCovered||[];
+                questions=(d.questions||[]).map(q=>({type:q.type||'mcq',question:q.question,options:q.options||['','','',''],correct:q.correct||'',points:q.points||2,difficulty:q.difficulty||'medium'}));
+                document.querySelectorAll('#subjectTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent===d.subject)t.classList.add('active');});
+                renderWeekCheckboxes(getWeeksForSubject(d.subject));
+                setTimeout(()=>{document.querySelectorAll('#weeksCheckboxes input[type="checkbox"]').forEach(cb=>{if(selectedWeeks.includes(parseInt(cb.value)))cb.checked=true;});},200);
+                renderQuestions();
+            }catch(e){alert('Error: '+e.message);}
+            finally{hideLoading();}
+        }
+
+        // ==================== GRADE TAB ====================
+        async function loadGradeTabAssignments() {
+            showLoading();
+            try {
+                const snap=await db.collection('assignments').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').get();
+                const s=document.getElementById('assignmentSelect');
+                s.innerHTML='<option value="">-- Select an assignment --</option>';
+                snap.forEach(doc=>{const d=doc.data();const o=document.createElement('option');o.value=doc.id;o.textContent=`${d.title} (${d.subject})`;s.appendChild(o);});
+            }catch(e){console.error(e);}
+            finally{hideLoading();}
+        }
+
+        document.getElementById('assignmentSelect').addEventListener('change',e=>{
+            if(e.target.value)loadGradeSubmissions(e.target.value);
+            else document.getElementById('gradeContentArea').innerHTML='<div class="empty-state"><i class="fas fa-chalkboard"></i><h3>Select an assignment</h3></div>';
+        });
+
+        async function loadGradeSubmissions(assignmentId) {
+            showLoading();
+            try {
+                const ad=await db.collection('assignments').doc(assignmentId).get();
+                if(!ad.exists)throw new Error('Assignment not found');
+                const assignment={id:ad.id,...ad.data()};
+                const ss=await db.collection('submissions').where('assignmentId','==',assignmentId).get();
+                const subs=[];ss.forEach(d=>subs.push({id:d.id,...d.data()}));
+                const sids=[...new Set(subs.map(s=>s.studentId))];
+                for(const sid of sids){const u=await db.collection('users').doc(sid).get();if(u.exists){const d=u.data();studentNames[sid]=`${d.firstName||''} ${d.surname||''}`.trim()||'Unknown';}}
+                renderGradeInterface(assignment,subs);
+            }catch(e){document.getElementById('gradeContentArea').innerHTML=`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error</h3><p>${e.message}</p></div>`;}
+            finally{hideLoading();}
+        }
+
+        function renderGradeInterface(assignment, subs) {
+            const c=document.getElementById('gradeContentArea');
+            c.innerHTML=`
+                <div class="assignment-info-card">
+                    <h2 class="assignment-title">${escapeHtml(assignment.title)}</h2>
+                    <div class="assignment-stats">
+                        <div class="stat-badge"><i class="fas fa-book"></i> ${escapeHtml(assignment.subject)}</div>
+                        <div class="stat-badge"><i class="fas fa-calendar-week"></i> Weeks: ${(assignment.weeksCovered||[]).join(', ')}</div>
+                        <div class="stat-badge"><i class="fas fa-star"></i> Total: ${assignment.totalPoints} pts</div>
+                        <div class="stat-badge"><i class="fas fa-tag"></i> ${getTypeBadge(assignment.assignmentType)}</div>
+                        <div class="stat-badge"><i class="fas fa-users"></i> ${subs.length} submissions</div>
+                        <div class="stat-badge"><i class="fas fa-calendar-day"></i> Due: ${assignment.dueDate||'N/A'}</div>
+                    </div>
+                </div>
+                <div class="students-list" id="studentsList"></div>`;
+            if(!subs.length){document.getElementById('studentsList').innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><h3>No submissions</h3></div>';return;}
+            document.getElementById('studentsList').innerHTML=subs.map(sub=>{
+                const name=studentNames[sub.studentId]||'Unknown';
+                const init=name.split(' ').map(n=>n[0]).join('').toUpperCase()||'S';
+                const pct=assignment.totalPoints?((sub.score/assignment.totalPoints)*100).toFixed(0):0;
+                const grade=pct>=75?'A':pct>=65?'B':pct>=50?'C':pct>=40?'D':'F';
+                let ah='';
+                if(assignment.questions&&sub.answers){ah=sub.answers.map((a,idx)=>{const q=assignment.questions[a.questionIndex];if(!q)return'';let ok=false;let sa=a.answer;let ca=q.correct;if(q.type==='mcq'){ok=a.answer===q.correct;if(q.options){const si=a.answer?.charCodeAt(0)-65;const ci=q.correct?.charCodeAt(0)-65;sa=`${a.answer}. ${q.options[si]||'N/A'}`;ca=`${q.correct}. ${q.options[ci]||'N/A'}`;}}else if(q.type==='truefalse'){ok=a.answer===q.correct;}else if(q.type==='fillblank'){ok=a.answer?.toLowerCase().trim()===q.correct?.toLowerCase().trim();}const pts=ok?(q.points||1):0;return`<div class="question-review"><div class="question-review-header"><span class="question-number">Q${idx+1}</span><span>${pts}/${q.points||1} pts</span></div><div><strong>Q:</strong> ${escapeHtml(q.question)}</div><div class="student-answer ${ok?'answer-correct':'answer-wrong'}"><strong>A:</strong> ${escapeHtml(sa)}</div>${!ok?`<div class="correct-answer"><strong>Correct:</strong> ${escapeHtml(ca)}</div>`:''}</div>`;}).join('');}
+                const lateTag = sub.isLate ? '<span class="badge badge-overdue">Late</span>' : '';
+                return`<div class="student-card" id="sc_${sub.id}"><div class="student-header" onclick="toggleStudentCard('${sub.id}')"><div class="student-info"><div class="student-avatar">${init}</div><div class="student-details"><h4>${escapeHtml(name)} ${lateTag}</h4><p>${sub.submittedAt?.toDate?.()?.toLocaleString()||'Unknown'}</p><p>${sub.correctCount||0} correct / ${sub.wrongCount||0} wrong</p></div></div><div class="student-status"><span class="score-display">${sub.score}/${assignment.totalPoints} (${pct}% - ${grade})</span><i class="fas fa-chevron-down expand-icon"></i></div></div><div class="student-content"><h4 style="margin-bottom:1rem;">Answers Review</h4>${ah}<div class="grading-form"><h4 style="margin-bottom:1rem;">Feedback</h4><div class="form-group"><textarea id="fb_${sub.id}" rows="3" class="form-control" placeholder="Feedback...">${escapeHtml(sub.feedback||'')}</textarea></div><button class="btn btn-success" onclick="saveFeedback('${sub.id}')"><i class="fas fa-save"></i> Save Feedback</button></div></div></div>`;
+            }).join('');
+        }
+
+        window.toggleStudentCard = (id) => { document.getElementById(`sc_${id}`).classList.toggle('expanded'); };
+        window.saveFeedback = async (sid) => {
+            const fb=document.getElementById(`fb_${sid}`).value;
+            showLoading();
+            try{await db.collection('submissions').doc(sid).update({feedback:fb,feedbackGivenAt:firebase.firestore.FieldValue.serverTimestamp(),feedbackGivenBy:currentUser.uid});alert('Feedback saved!');}
+            catch(e){alert('Error: '+e.message);}
+            finally{hideLoading();}
+        };
+
+        // ==================== AUTH ====================
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || doc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0]||'T')+(userData.surname?.[0]||'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                subjects = userData.subjects || [];
+
+                try { await remoteConfig.fetchAndActivate(); const key = remoteConfig.getString('groq_api_key'); if (key) groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true }); } catch(e) {}
+
+                await loadSyllabus();
+                renderSubjectTabs();
+                await loadManageTab();
+            } catch(e) { console.error('Auth error:', e); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
+
+        // ==================== EXPOSE ====================
+        window.addQuestion = addQuestion;
+        window.removeQuestion = removeQuestion;
+        window.setCorrect = setCorrect;
+        window.editQuestion = editQuestion;
+        window.toggleWeek = toggleWeek;
+        window.closeAIModal = closeAIModal;
+        window.closeBulkModal = closeBulkModal;
+        window.closeBankModal = closeBankModal;
+        window.generateFromLessonNotes = generateFromLessonNotes;
+        window.insertAIGenerated = insertAIGenerated;
+        window.toggleStudentCard = toggleStudentCard;
+        window.saveFeedback = saveFeedback;
+        window.publishAssignment = publishAssignment;
+        window.editAssignment = editAssignment;
+        window.goToGrade = goToGrade;
+        window.duplicateAssignment = duplicateAssignment;
+        window.toggleBankQuestion = toggleBankQuestion;
+        window.toggleSelectAll = toggleSelectAll;
+    </script>
+</body>
+</html>
