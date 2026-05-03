@@ -72,6 +72,11 @@
         .tab-content.active { display: block; }
         @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Error Banner */
+        .error-banner { background: var(--danger-bg); color: var(--danger-text); padding: 1rem 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; border-left: 4px solid var(--danger-text); display: none; }
+        .error-banner a { color: var(--accent); font-weight: 600; text-decoration: underline; }
+        .error-banner.show { display: block; }
+
         /* Cards */
         .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
@@ -87,7 +92,6 @@
 
         /* Grids */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 
         /* Events */
         .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
@@ -134,7 +138,7 @@
             .main-container { padding: 0.75rem; }
             .top-nav { flex-direction: column; align-items: stretch; }
             .nav-left { flex-direction: column; }
-            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .grid-2 { grid-template-columns: 1fr; }
             .events-grid, .announcements-grid { grid-template-columns: 1fr; }
         }
     </style>
@@ -168,6 +172,9 @@
                 </div>
             </div>
         </div>
+
+        <!-- Error Banner -->
+        <div class="error-banner" id="errorBanner"></div>
 
         <!-- Tab Navigation -->
         <div class="tab-navigation" id="tabNavigation">
@@ -271,6 +278,21 @@
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
         function escapeHtml(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
+        function showError(error, context) {
+            const banner = document.getElementById('errorBanner');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                const url = match ? match[0] : '#';
+                banner.innerHTML = `<strong>⚠️ Missing Firestore Index (${context})</strong><br>Click <a href="${url}" target="_blank">here</a> to create the required index automatically.`;
+            } else if (error.code === 'permission-denied') {
+                banner.innerHTML = `<strong>🔒 Permission Denied (${context})</strong><br>${error.message}. Check Firestore rules for the <code>${context}</code> collection.`;
+            } else {
+                banner.innerHTML = `<strong>❌ Error (${context}):</strong> ${error.message}`;
+            }
+            banner.classList.add('show');
+            setTimeout(() => banner.classList.remove('show'), 15000);
+        }
+
         // ==================== THEME ====================
         const themeToggle = document.getElementById('themeToggle');
         const html = document.documentElement;
@@ -327,7 +349,6 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                // Check if report already exists for this date
                 const existing = await db.collection('dailyReports')
                     .where('teacherId','==',currentUser.uid)
                     .where('date','==',date).get();
@@ -343,7 +364,7 @@
                 document.getElementById('drClosingTime').value = '';
                 document.getElementById('drContent').value = '';
                 loadDailyReports();
-            } catch(e) { alert('Error: ' + e.message); }
+            } catch(e) { showError(e, 'dailyReports'); }
             finally { hideLoading(); }
         });
 
@@ -385,7 +406,7 @@
                     `;
                     container.appendChild(div);
                 }
-            } catch(e) { console.error('Reports:', e); }
+            } catch(e) { showError(e, 'dailyReports'); }
         }
 
         window.postDrReply = async (reportId, qIndex) => {
@@ -443,7 +464,7 @@
                 document.getElementById('permStartTime').value = '';
                 document.getElementById('permEndTime').value = '';
                 loadPermissionRequests();
-            } catch(e) { alert('Error: ' + e.message); }
+            } catch(e) { showError(e, 'permissions'); }
             finally { hideLoading(); }
         });
 
@@ -467,7 +488,7 @@
                         ${r.adminRemark?`<div><strong>Admin:</strong> ${escapeHtml(r.adminRemark)}</div>`:''}
                     </div>`;
                 }).join('');
-            } catch(e) { console.error('Permissions:', e); }
+            } catch(e) { showError(e, 'permissions'); }
         }
 
         // ==================== TAB 3: ANNOUNCEMENTS ====================
@@ -493,7 +514,7 @@
                         <div style="white-space:pre-wrap;">${escapeHtml(a.content)}</div>
                     </div>`;
                 }).join('');
-            } catch(e) { console.error('Announcements:', e); }
+            } catch(e) { showError(e, 'announcements'); }
         }
 
         // ==================== TAB 4: CALENDAR ====================
@@ -514,7 +535,7 @@
                         <div class="event-desc">${escapeHtml(ev.description||'No description')}</div>
                     </div>`;
                 }).join('');
-            } catch(e) { console.error('Calendar:', e); }
+            } catch(e) { showError(e, 'calendarEvents'); }
         }
 
         // ==================== AUTH ====================
