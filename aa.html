@@ -6,483 +6,521 @@
     <title>EduTop · Exam Center | Teacher Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
     <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc; --bg-surface: #ffffff; --text-primary: #0f172a; --text-secondary: #475569;
-            --accent: #3b82f6; --accent-dark: #2563eb; --accent-glow: #60a5fa; --border: #e2e8f0;
-            --card-bg: #ffffff; --hover-bg: #f1f5f9; --input-bg: #ffffff; --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
-            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05); --shadow-lg: 0 25px 50px -12px rgba(0,0,0,0.08);
-            --success-bg: #dcfce7; --success-text: #16a34a; --warning-bg: #fef9c3; --warning-text: #ca8a04;
-            --danger-bg: #fee2e2; --danger-text: #dc2626; --info-bg: #dbeafe; --info-text: #2563eb;
-            --gradient-start: #3b82f6; --gradient-end: #8b5cf6; --topnav-bg: rgba(255,255,255,0.85);
+            --bg-primary: #f8fafc; --text-primary: #0f172a; --text-secondary: #475569;
+            --accent: #3b82f6; --accent-dark: #2563eb; --accent-glow: #60a5fa;
+            --border: #e2e8f0; --card-bg: #ffffff; --hover-bg: #f1f5f9;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.01);
+            --success-bg: #dcfce7; --success-text: #16a34a;
+            --warning-bg: #fef9c3; --warning-text: #ca8a04;
+            --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb;
+            --input-bg: #ffffff; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
         }
 
         :root[data-theme="dark"] {
-            --bg-primary: #0a0f1e; --bg-surface: #111827; --text-primary: #f1f5f9; --text-secondary: #94a3b8;
-            --accent: #3b82f6; --accent-dark: #2563eb; --accent-glow: #60a5fa; --border: #1e293b;
-            --card-bg: #1a2332; --hover-bg: #1e2d3d; --input-bg: #1e2d3d; --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
-            --shadow: 0 20px 25px -5px rgba(0,0,0,0.3); --shadow-lg: 0 25px 50px -12px rgba(0,0,0,0.4);
-            --success-bg: rgba(34,197,94,0.15); --success-text: #4ade80; --warning-bg: rgba(245,158,11,0.15);
-            --warning-text: #fbbf24; --danger-bg: rgba(239,68,68,0.15); --danger-text: #f87171;
-            --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa; --input-bg: #1e2d3d;
-            --gradient-start: #3b82f6; --gradient-end: #8b5cf6; --topnav-bg: rgba(17,24,39,0.9);
+            --bg-primary: #0f172a; --text-primary: #f1f5f9; --text-secondary: #94a3b8;
+            --accent: #3b82f6; --accent-dark: #2563eb; --accent-glow: #60a5fa;
+            --border: #1e293b; --card-bg: #1e293b; --hover-bg: #334155;
+            --shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa;
+            --input-bg: #334155; --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
         }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary); color: var(--text-primary); min-height: 100vh;
-            transition: all 0.3s ease; position: relative; overflow-x: hidden; -webkit-font-smoothing: antialiased;
-        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: all 0.3s ease; position: relative; overflow-x: hidden; }
 
-        .ambient-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-        .orb { position: absolute; width: 600px; height: 600px; border-radius: 50%; filter: blur(120px); animation: float 20s infinite alternate ease-in-out; opacity: 0.5; }
-        .orb-1 { top: -250px; right: -200px; background: radial-gradient(circle at 60% 40%, rgba(139,92,246,0.18), transparent 70%); animation-duration: 22s; }
-        .orb-2 { bottom: -250px; left: -200px; background: radial-gradient(circle at 40% 60%, rgba(59,130,246,0.14), transparent 70%); animation-duration: 26s; }
-        .orb-3 { top: 40%; left: 50%; width: 400px; height: 400px; background: radial-gradient(circle at 50% 50%, rgba(139,92,246,0.06), transparent 70%); animation-duration: 18s; animation-delay: -5s; }
+        .orb { position: fixed; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.1), transparent 70%); filter: blur(100px); z-index: 0; animation: float 20s infinite alternate ease-in-out; pointer-events: none; }
+        .orb-1 { top: -200px; right: -200px; background: radial-gradient(circle at 70% 30%, rgba(139,92,246,0.12), transparent 70%); }
+        .orb-2 { bottom: -200px; left: -200px; animation-duration: 25s; }
 
-        @keyframes float {
-            0% { transform: translate(0,0) scale(1) rotate(0deg); }
-            33% { transform: translate(50px,-30px) scale(1.08) rotate(3deg); }
-            66% { transform: translate(-30px,40px) scale(0.95) rotate(-2deg); }
-            100% { transform: translate(20px,-20px) scale(1.04) rotate(1deg); }
-        }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px, 40px) scale(1.1); } }
 
-        .top-nav {
-            position: sticky; top: 0; z-index: 200; background: var(--topnav-bg);
-            backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-            border-bottom: 1px solid var(--border); padding: 0 2rem;
-            display: flex; align-items: center; justify-content: space-between; height: 64px;
-            box-shadow: var(--shadow-sm); transition: all 0.3s ease;
-        }
-        .top-nav .nav-brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.2rem; color: var(--text-primary); text-decoration: none; }
-        .top-nav .nav-brand i { font-size: 1.6rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .top-nav .nav-brand span { background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .top-nav .nav-links { display: flex; align-items: center; gap: 0.5rem; }
-        .top-nav .nav-link { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.75rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.875rem; transition: all 0.2s ease; border: 1px solid transparent; cursor: pointer; }
-        .top-nav .nav-link:hover { color: var(--accent); background: var(--hover-bg); border-color: var(--border); }
-        .top-nav .nav-link i { font-size: 0.95rem; }
-        .top-nav .nav-right { display: flex; align-items: center; gap: 1rem; }
-        .theme-toggle { background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.45rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); transition: all 0.2s; }
-        .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; position: relative; z-index: 5; }
+
+        /* Top Navigation Bar */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); flex-wrap: wrap; gap: 1rem; }
+
+        .nav-left { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+        .nav-logo { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-logo i { font-size: 2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-logo h2 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 0.75rem; align-items: center; }
+        .nav-link { padding: 0.6rem 1.2rem; border-radius: 0.75rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; }
+        .nav-link:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); }
+        .nav-link.active { background: var(--accent); color: white; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
         .profile-dropdown { position: relative; cursor: pointer; }
-        .profile-trigger { display: flex; align-items: center; gap: 0.7rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 0.9rem; transition: all 0.2s; }
-        .profile-trigger:hover { border-color: var(--accent); }
-        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .profile-pic { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; box-shadow: 0 2px 10px var(--accent); flex-shrink: 0; }
-        .dropdown-menu { position: absolute; right: 0; top: 50px; background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.4rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow-lg); }
-        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-item { padding: 0.7rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.7rem; transition: 0.15s; cursor: pointer; font-size: 0.9rem; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; box-shadow: 0 2px 10px var(--accent); }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
         .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
 
-        .main-content { padding: 2rem; position: relative; z-index: 5; max-width: 1400px; margin: 0 auto; }
-        .page-header { margin-bottom: 2rem; }
-        .page-header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
-        .page-header p { color: var(--text-secondary); font-size: 0.9rem; }
+        /* Tab Navigation */
+        .tab-navigation { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 0.4rem; overflow-x: auto; box-shadow: var(--shadow); }
+        .tab-btn { padding: 0.8rem 1.5rem; border-radius: 1.25rem; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; font-family: inherit; }
+        .tab-btn:hover { background: var(--hover-bg); color: var(--accent); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.3); }
+        .tab-content { display: none; animation: fadeSlideIn 0.4s ease; }
+        .tab-content.active { display: block; }
 
-        .tabs-container {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.4rem;
-            display: flex; gap: 0.25rem; margin-bottom: 2rem; position: sticky; top: 80px; z-index: 50;
-            backdrop-filter: blur(12px); box-shadow: var(--shadow); flex-wrap: wrap;
-        }
-        .tab { flex: 1; min-width: 130px; padding: 0.85rem 1.2rem; border-radius: 1.75rem; text-align: center; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.3s ease; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 0.5rem; white-space: nowrap; border: 2px solid transparent; }
-        .tab:hover { color: var(--accent); background: var(--hover-bg); }
-        .tab.active { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; box-shadow: 0 8px 25px -8px #8b5cf6; }
-        .tab-section { display: none; animation: fadeSlideIn 0.4s ease; }
-        .tab-section.active { display: block; }
-        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; transition: all 0.3s ease; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
-        .card-header h3 { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        /* Cards */
+        .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
 
-        .btn { padding: 0.55rem 1.1rem; border: none; border-radius: 0.7rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; white-space: nowrap; font-family: inherit; }
-        .btn-primary { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; box-shadow: 0 4px 15px rgba(139,92,246,0.2); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(139,92,246,0.35); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); color: var(--accent); }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-success { background: var(--success-text); color: white; }
-        .btn-sm { padding: 0.3rem 0.75rem; font-size: 0.78rem; border-radius: 0.55rem; }
-        .btn-xs { padding: 0.2rem 0.5rem; font-size: 0.7rem; border-radius: 0.45rem; }
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; display: flex; align-items: center; gap: 1rem; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 1rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; }
+        .stat-info h3 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .stat-info p { color: var(--text-secondary); font-size: 0.8rem; }
 
-        .form-control { width: 100%; padding: 0.7rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.9rem; color: var(--text-primary); font-size: 0.9rem; font-family: inherit; transition: all 0.2s; }
-        .form-control:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,0.12); }
-        textarea.form-control { resize: vertical; min-height: 80px; }
-        select.form-control { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem; }
+        /* Filters */
+        .filters-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+        .search-box { flex: 1; min-width: 200px; position: relative; }
+        .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.9rem; }
+        .search-box input:focus { outline: none; border-color: var(--accent); }
+        .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .filter-btn { padding: 0.75rem 1.25rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-secondary); cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .filter-btn:hover:not(.active) { background: var(--hover-bg); }
 
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--text-secondary); }
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-
-        .badge { padding: 0.2rem 0.65rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; letter-spacing: 0.01em; }
-        .badge-success { background: var(--success-bg); color: var(--success-text); }
-        .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
-        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
-        .badge-info { background: var(--info-bg); color: var(--info-text); }
-        .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
-
+        /* Tables */
+        .tests-table { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; }
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 0.8rem 1rem; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+        th { text-align: left; padding: 1rem 1rem; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border); background: var(--hover-bg); font-size: 0.85rem; }
+        td { padding: 1rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         tr:last-child td { border-bottom: none; }
-        tr:hover td { background: var(--hover-bg); }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .badge-draft { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-published { background: var(--success-bg); color: var(--success-text); }
+        .badge-scheduled { background: var(--info-bg); color: var(--info-text); }
+        .badge-midterm { background: rgba(168,85,247,0.2); color: #a855f7; }
+        .badge-endterm { background: rgba(236,72,153,0.2); color: #ec4899; }
+        .badge-mock { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .badge-promotion { background: rgba(34,197,94,0.2); color: #22c55e; }
 
-        .question-block { background: var(--hover-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1rem; transition: all 0.2s; }
-        .question-block:hover { border-color: #8b5cf6; }
-        .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; gap: 0.5rem; }
-        .question-number { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; width: 32px; height: 32px; border-radius: 0.6rem; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
-        .options-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
-        .option-row { display: flex; align-items: center; gap: 0.75rem; background: var(--card-bg); padding: 0.5rem 0.75rem; border-radius: 0.6rem; border: 1px solid var(--border); }
-        .option-row input[type="text"] { flex: 1; }
-        .option-row input[type="radio"] { accent-color: #8b5cf6; width: 18px; height: 18px; cursor: pointer; }
+        /* Exam Info Card */
+        .exam-info-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; }
+        .exam-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .exam-stats { display: flex; gap: 2rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+        .stat-badge { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
 
-        .toggle-wrapper { display: flex; align-items: center; gap: 0.75rem; }
-        .toggle-switch { position: relative; width: 48px; height: 26px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--border); border-radius: 26px; transition: 0.3s; }
-        .toggle-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
-        .toggle-switch input:checked + .toggle-slider { background: #8b5cf6; }
-        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(22px); }
+        /* Students List */
+        .students-list { display: flex; flex-direction: column; gap: 1rem; }
+        .student-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; transition: all 0.3s; }
+        .student-card:hover { box-shadow: var(--shadow); }
+        .student-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background: var(--hover-bg); cursor: pointer; transition: 0.2s; flex-wrap: wrap; gap: 1rem; }
+        .student-header:hover { background: var(--info-bg); }
+        .student-info { display: flex; align-items: center; gap: 1rem; }
+        .student-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: white; }
+        .student-details h4 { font-size: 1rem; margin-bottom: 0.25rem; }
+        .student-details p { font-size: 0.8rem; color: var(--text-secondary); }
+        .student-status { display: flex; align-items: center; gap: 1.5rem; }
+        .score-display { font-weight: 700; font-size: 1.1rem; }
+        .expand-icon { transition: transform 0.3s; }
+        .student-card.expanded .expand-icon { transform: rotate(180deg); }
+        .student-content { display: none; padding: 1.5rem; border-top: 1px solid var(--border); }
+        .student-card.expanded .student-content { display: block; }
 
-        .info-callout { background: var(--info-bg); border: 1px solid var(--info-text); border-radius: 0.8rem; padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--info-text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-        .warning-callout { background: var(--warning-bg); border: 1px solid var(--warning-text); border-radius: 0.8rem; padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--warning-text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .question-review { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .question-review:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .question-review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+        .question-number { font-weight: 700; color: var(--accent); }
+        .student-answer { background: var(--hover-bg); padding: 0.75rem; border-radius: 0.75rem; margin: 0.5rem 0; }
+        .correct-answer { background: var(--success-bg); padding: 0.75rem; border-radius: 0.75rem; margin: 0.5rem 0; color: var(--success-text); }
+        .answer-wrong { background: var(--danger-bg); color: var(--danger-text); }
+        .answer-correct { background: var(--success-bg); color: var(--success-text); }
+        .grading-form { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid var(--border); }
 
-        .score-summary { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-        .score-box { flex: 1; min-width: 120px; background: var(--hover-bg); border-radius: 0.8rem; padding: 1rem; text-align: center; border: 1px solid var(--border); }
-        .score-box .big-number { font-size: 1.8rem; font-weight: 700; }
-        .score-box .small-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem; }
+        /* Buttons */
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59,130,246,0.3); }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .btn-sm { padding: 0.35rem 0.85rem; font-size: 0.8rem; }
+        .btn-group { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; }
+        .btn-group-center { justify-content: center; }
 
-        .question-bank-item { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: var(--hover-bg); border-radius: 0.75rem; margin-bottom: 0.5rem; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
-        .question-bank-item:hover { border-color: #8b5cf6; background: var(--card-bg); }
-        .question-bank-item.selected { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
+        /* Form */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; }
+        .form-group label i { margin-right: 0.5rem; }
+        .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.95rem; transition: all 0.2s; font-family: inherit; }
+        .form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+        select.form-control { appearance: auto; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .weeks-selector { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-top: 0.5rem; }
+        .weeks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+        .week-checkbox { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .week-checkbox:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .week-checkbox input { width: 1.2rem; height: 1.2rem; cursor: pointer; accent-color: var(--accent); }
+        .week-checkbox span { font-size: 0.85rem; line-height: 1.3; }
+        .week-checkbox strong { color: var(--accent); }
+
+        .info-badge { background: var(--info-bg); color: var(--info-text); padding: 0.75rem 1rem; border-radius: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+
+        .exam-settings { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .setting-item { display: flex; flex-direction: column; gap: 0.5rem; }
+        .setting-item label { font-weight: 600; font-size: 0.85rem; }
+        .setting-item input, .setting-item select { padding: 0.6rem; border-radius: 0.75rem; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-primary); }
+        .checkbox-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: var(--input-bg); border-radius: 0.75rem; }
+        .checkbox-item input[type="checkbox"] { accent-color: var(--accent); width: 1.1rem; height: 1.1rem; }
+
+        .question-list { margin-top: 1rem; }
+        .question-item { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
+        .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+        .question-type { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 1rem; background: var(--info-bg); color: var(--info-text); }
+        .question-text { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.75rem; }
+        .question-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 0.75rem 0; }
+        .question-option { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .correct-badge { background: var(--success-bg); color: var(--success-text); padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.8rem; display: inline-block; }
+        .difficulty-badge { padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; }
+        .difficulty-easy { background: var(--success-bg); color: var(--success-text); }
+        .difficulty-medium { background: var(--warning-bg); color: var(--warning-text); }
+        .difficulty-hard { background: var(--danger-bg); color: var(--danger-text); }
+
+        .empty-state { text-align: center; padding: 4rem; background: var(--card-bg); border-radius: 1.5rem; border: 1px solid var(--border); }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; max-width: 900px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .ai-chat { height: 300px; overflow-y: auto; padding: 1rem; background: var(--hover-bg); border-radius: 1rem; margin-bottom: 1rem; }
+        .message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 1rem; max-width: 85%; font-size: 0.9rem; }
+        .message.user { background: var(--accent); color: white; margin-left: auto; }
+        .message.assistant { background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--border); }
 
-        .empty-state { text-align: center; padding: 4rem 2rem; background: var(--card-bg); border-radius: 1.5rem; border: 1px solid var(--border); }
-        .empty-state i { font-size: 3.5rem; color: var(--text-secondary); margin-bottom: 1rem; display: block; opacity: 0.4; }
-        .empty-state h3 { margin-bottom: 0.5rem; font-weight: 600; }
-        .empty-state p { color: var(--text-secondary); font-size: 0.9rem; }
-
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
-        .loading-content { background: var(--card-bg); padding: 2.5rem 3rem; border-radius: 1.5rem; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
-        .loading-content i { font-size: 2.5rem; color: #8b5cf6; margin-bottom: 1rem; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem; }
 
-        .subject-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .subject-tab { padding: 0.5rem 1rem; border-radius: 1.5rem; cursor: pointer; font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); background: var(--hover-bg); border: 1px solid var(--border); transition: all 0.2s; }
-        .subject-tab.active { background: #8b5cf6; color: white; border-color: #8b5cf6; }
-
-        .weeks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
-        .week-checkbox { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 0.5rem; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
-        .week-checkbox:hover { border-color: #8b5cf6; }
-        .week-checkbox input { accent-color: #8b5cf6; }
+        .subject-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap; }
+        .tab { padding: 0.6rem 1.5rem; border-radius: 2rem; font-weight: 500; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap; font-size: 0.9rem; }
+        .tab.active { background: var(--accent); color: white; }
 
         .upload-area { border: 2px dashed var(--border); border-radius: 1rem; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; }
-        .upload-area:hover { border-color: #8b5cf6; background: var(--hover-bg); }
-        .upload-area i { font-size: 3rem; color: #8b5cf6; margin-bottom: 1rem; display: block; }
+        .upload-area:hover { border-color: var(--accent); background: var(--hover-bg); }
+        .upload-area i { font-size: 3rem; color: var(--accent); margin-bottom: 1rem; display: block; }
+        .csv-preview { max-height: 300px; overflow-y: auto; margin-top: 1rem; }
+        .csv-preview table { font-size: 0.75rem; }
+        .csv-preview th, .csv-preview td { padding: 0.3rem 0.5rem; }
+
+        .debug-panel { margin-top: 1rem; background: var(--danger-bg); border: 1px solid var(--danger-text); border-radius: 0.75rem; padding: 0.75rem; font-family: monospace; font-size: 0.7rem; color: var(--danger-text); overflow-x: auto; max-height: 200px; overflow-y: auto; }
+
+        .point-config-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .point-input-sm { width: 70px; padding: 0.5rem; border-radius: 0.5rem; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-primary); text-align: center; }
+        .negative-mark-config { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: var(--warning-bg); border-radius: 0.75rem; margin-top: 0.5rem; }
+
+        .exam-type-badge { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; }
 
         @media (max-width: 768px) {
-            .top-nav { padding: 0 1rem; height: 56px; }
-            .top-nav .nav-brand span { display: none; }
-            .top-nav .nav-link span { display: none; }
-            .main-content { padding: 1rem; }
-            .tabs-container { flex-direction: column; border-radius: 1.2rem; top: 65px; }
-            .tab { min-width: auto; padding: 0.7rem 1rem; font-size: 0.8rem; }
-            .form-row { grid-template-columns: 1fr; }
+            .main-container { padding: 0.75rem; }
+            .top-nav { flex-direction: column; align-items: stretch; padding: 1rem; }
+            .nav-left { flex-direction: column; align-items: stretch; }
+            .nav-links { overflow-x: auto; }
+            .tab-navigation { overflow-x: auto; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .weeks-grid { grid-template-columns: 1fr; }
+            .question-options { grid-template-columns: 1fr; }
+            th, td { font-size: 0.75rem; padding: 0.5rem 0.5rem; }
         }
     </style>
 </head>
 <body>
-    <div class="ambient-bg">
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
-    </div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
 
-    <nav class="top-nav">
-        <a href="teacher-dashboard.html" class="nav-brand">
-            <i class="fas fa-graduation-cap"></i>
-            <span>EduTop</span>
-        </a>
-        <div class="nav-links">
-            <a href="teacher-dashboard.html" class="nav-link"><i class="fas fa-arrow-left"></i><span>Dashboard</span></a>
-            <a href="teacher-test-center.html" class="nav-link"><i class="fas fa-file-alt"></i><span>Test Center</span></a>
-            <a href="teacher-analysis.html" class="nav-link"><i class="fas fa-chart-bar"></i><span>Analysis Hub</span></a>
-        </div>
-        <div class="nav-right">
-            <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
-            <div class="profile-dropdown">
-                <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
-                <div class="dropdown-menu">
-                    <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
-                    <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+    <div class="main-container">
+        <!-- Top Navigation Bar -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h2>EduTop</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="teacher-dashboard.html" class="nav-link">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                    <a href="teacher-analysis.html" class="nav-link">
+                        <i class="fas fa-chart-bar"></i> Analysis Hub
+                    </a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger">
+                        <span class="profile-name" id="profileName">Teacher</span>
+                        <div class="profile-pic" id="profilePic">T</div>
+                    </div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink">
+                            <i class="fas fa-user-edit"></i> Update Profile
+                        </div>
+                        <div class="dropdown-item" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <div class="main-content">
-        <div class="page-header">
-            <h1>Exam Center</h1>
-            <p>Create, manage, and grade formal examinations with AI, CSV upload, or question bank</p>
+        <!-- Tab Navigation -->
+        <div class="tab-navigation" id="tabNavigation">
+            <button class="tab-btn active" data-tab="manage">
+                <i class="fas fa-list-check"></i> Manage Exams
+            </button>
+            <button class="tab-btn" data-tab="create">
+                <i class="fas fa-plus-square"></i> Create Exam
+            </button>
+            <button class="tab-btn" data-tab="grade">
+                <i class="fas fa-check-double"></i> Grade Exams
+            </button>
         </div>
 
-        <div class="tabs-container" id="mainTabs">
-            <div class="tab active" data-tab="create" onclick="switchTab('create')"><i class="fas fa-plus-circle"></i> Create Exam</div>
-            <div class="tab" data-tab="manage" onclick="switchTab('manage')"><i class="fas fa-list-check"></i> Manage Exams</div>
-            <div class="tab" data-tab="grade" onclick="switchTab('grade')"><i class="fas fa-check-double"></i> Grade Theory <span class="badge badge-warning" id="pendingGradeBadge" style="margin-left:0.25rem;">0</span></div>
-            <div class="tab" data-tab="results" onclick="switchTab('results')"><i class="fas fa-chart-simple"></i> View Results</div>
-        </div>
+        <!-- TAB 1: Manage Exams -->
+        <div class="tab-content active" id="tab-manage">
+            <div class="stats-grid" id="examStatsGrid">
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-pen-fancy"></i></div><div class="stat-info"><h3 id="totalExams">0</h3><p>Total Exams</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="publishedExams">0</h3><p>Published</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><h3 id="draftExams">0</h3><p>Drafts</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="examSubmissions">0</h3><p>Submissions</p></div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-info"><h3 id="examAvgScore">0%</h3><p>Avg Score</p></div></div>
+            </div>
 
-        <!-- ==================== CREATE EXAM TAB ==================== -->
-        <div class="tab-section active" id="sectionCreate">
-            <form id="examForm" onsubmit="saveExam(event, 'published')">
-                <!-- Subject Selection -->
-                <div class="card">
-                    <div class="card-header"><h3><i class="fas fa-book"></i> Subject & Weeks</h3></div>
-                    <div class="subject-tabs" id="subjectTabs"></div>
-                    <div class="form-group">
-                        <label>Subject *</label>
-                        <input type="text" id="examSubject" class="form-control" readonly placeholder="Click a subject above">
-                    </div>
-                    <div class="form-group">
-                        <label>Weeks Covered * (select all that apply)</label>
-                        <div id="weeksContainer" class="weeks-grid">
-                            <p style="grid-column:1/-1;text-align:center;color:var(--text-secondary);padding:2rem;">Select a subject to load weeks</p>
-                        </div>
-                    </div>
+            <div class="filters-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="examSearchInput" placeholder="Search exams by title or subject...">
                 </div>
-
-                <!-- Basic Info -->
-                <div class="card">
-                    <div class="card-header"><h3><i class="fas fa-info-circle"></i> Exam Information</h3></div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Exam Title *</label>
-                            <input type="text" class="form-control" id="examTitle" required placeholder="e.g., First Term Examination">
-                        </div>
-                        <div class="form-group">
-                            <label>Class/Grade *</label>
-                            <input type="text" class="form-control" id="examClass" required placeholder="e.g., Grade 10A">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Duration (minutes) *</label>
-                            <input type="number" class="form-control" id="examDuration" required min="1" value="120">
-                        </div>
-                        <div class="form-group">
-                            <label>Term *</label>
-                            <select class="form-control" id="examTerm">
-                                <option value="first">First Term</option>
-                                <option value="second">Second Term</option>
-                                <option value="third">Third Term</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Exam Type</label>
-                            <select class="form-control" id="examType">
-                                <option value="midterm">Mid-Term Examination</option>
-                                <option value="endterm">End of Term Examination</option>
-                                <option value="mock">Mock Examination</option>
-                                <option value="promotion">Promotion Examination</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Instructions for Students</label>
-                        <textarea class="form-control" id="examInstructions" rows="3" placeholder="Enter exam instructions..."></textarea>
-                    </div>
-                    <!-- Date Range -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Start Date (Optional)</label>
-                            <input type="datetime-local" class="form-control" id="examStartDate">
-                        </div>
-                        <div class="form-group">
-                            <label>End Date (Optional)</label>
-                            <input type="datetime-local" class="form-control" id="examEndDate">
-                        </div>
-                    </div>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="published">Published</button>
+                    <button class="filter-btn" data-filter="draft">Drafts</button>
                 </div>
+                <button class="btn btn-outline" id="refreshExamBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
 
-                <!-- Grading Settings -->
-                <div class="card">
-                    <div class="card-header"><h3><i class="fas fa-cog"></i> Grading Settings</h3></div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Auto-Grading</label>
-                            <div class="toggle-wrapper">
-                                <label class="toggle-switch"><input type="checkbox" id="autoGrade" checked onchange="updateAutoGradeUI()"><span class="toggle-slider"></span></label>
-                                <span style="font-size:0.85rem;" id="autoGradeLabel">Enabled - MCQ/TF auto-graded</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Show Results Immediately</label>
-                            <div class="toggle-wrapper">
-                                <label class="toggle-switch"><input type="checkbox" id="showImmediate" checked><span class="toggle-slider"></span></label>
-                                <span style="font-size:0.85rem;">Students see scores right after submission</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Randomize Questions</label>
-                            <div class="toggle-wrapper">
-                                <label class="toggle-switch"><input type="checkbox" id="randomizeQuestions" checked><span class="toggle-slider"></span></label>
-                                <span style="font-size:0.85rem;">Shuffle question order per student</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Randomize Options</label>
-                            <div class="toggle-wrapper">
-                                <label class="toggle-switch"><input type="checkbox" id="randomizeOptions" checked><span class="toggle-slider"></span></label>
-                                <span style="font-size:0.85rem;">Shuffle A-D order per student</span>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Negative Marking -->
-                    <div class="form-row" style="margin-top:1rem;">
-                        <div class="form-group">
-                            <label>Enable Negative Marking</label>
-                            <div class="toggle-wrapper">
-                                <label class="toggle-switch"><input type="checkbox" id="enableNegMark" onchange="updateNegMarkUI()"><span class="toggle-slider"></span></label>
-                                <span style="font-size:0.85rem;">Deduct points for wrong answers</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="negMarkConfig" style="display:none; margin-top: 1rem;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Penalty Per Wrong Answer (Points)</label>
-                                <input type="number" class="form-control" id="negMarkPenalty" min="0" step="0.25" value="1">
-                            </div>
-                            <div class="form-group">
-                                <label>Apply To</label>
-                                <select class="form-control" id="negMarkApplyTo">
-                                    <option value="all">All Question Types</option>
-                                    <option value="objective">Only MCQ & True/False</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Questions Section -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-list-ol"></i> Questions</h3>
-                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                            <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('multiple')"><i class="fas fa-list-ul"></i> MCQ</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('boolean')"><i class="fas fa-toggle-on"></i> T/F</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('fillblank')"><i class="fas fa-edit"></i> Fill Blank</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="addQuestion('theory')"><i class="fas fa-pen"></i> Theory</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="openQuestionBank()"><i class="fas fa-database"></i> Question Bank</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="openBulkModal()"><i class="fas fa-upload"></i> Upload CSV</button>
-                        </div>
-                    </div>
-
-                    <div class="score-summary">
-                        <div class="score-box"><div class="big-number" id="totalMCQPoints">0</div><div class="small-label">Objective Points</div></div>
-                        <div class="score-box"><div class="big-number" id="totalTheoryPoints">0</div><div class="small-label">Theory Points</div></div>
-                        <div class="score-box" style="border:2px solid #8b5cf6;"><div class="big-number" style="color:#8b5cf6;" id="grandTotalPoints">0</div><div class="small-label">Total Marks</div></div>
-                        <div class="score-box"><div class="big-number" id="totalQuestions">0</div><div class="small-label">Total Questions</div></div>
-                    </div>
-
-                    <div id="questionsContainer"></div>
-                    <div id="noQuestionsState" class="empty-state" style="padding:2rem;">
-                        <i class="fas fa-question-circle"></i>
-                        <h3>No Questions Yet</h3>
-                        <p>Add questions manually, from Question Bank, AI, or CSV upload</p>
-                    </div>
-                </div>
-
-                <div style="margin-top:1.5rem;display:flex;gap:1rem;justify-content:flex-end;">
-                    <button type="button" class="btn btn-outline" onclick="saveExamDraft(event)"><i class="fas fa-save"></i> Save as Draft</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Publish Exam</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- ==================== MANAGE EXAMS TAB ==================== -->
-        <div class="tab-section" id="sectionManage">
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-list-check"></i> All Exams</h3>
-                    <button class="btn btn-outline btn-sm" onclick="loadExamList()"><i class="fas fa-sync"></i> Refresh</button>
-                </div>
+            <div class="tests-table">
                 <div class="table-responsive">
-                    <table>
-                        <thead><tr><th>Title</th><th>Subject</th><th>Class</th><th>Questions</th><th>Total Points</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-                        <tbody id="examListBody"><tr><td colspan="8" style="text-align:center;">Loading exams...</td></tr></tbody>
+                    <table id="examsTable">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Exam Title</th>
+                                <th>Subject</th>
+                                <th>Type</th>
+                                <th>Weeks</th>
+                                <th>Duration</th>
+                                <th>Questions</th>
+                                <th>Submissions</th>
+                                <th>Avg. Score</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="examsList">
+                            <tr><td colspan="10" style="text-align:center;padding:3rem;"><i class="fas fa-spinner fa-spin"></i> Loading exams...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ==================== GRADE THEORY TAB ==================== -->
-        <div class="tab-section" id="sectionGrade">
+        <!-- TAB 2: Create Exam -->
+        <div class="tab-content" id="tab-create">
+            <div class="subject-tabs" id="subjectTabs"></div>
+
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-check-double"></i> Pending Theory Grading</h3>
-                    <button class="btn btn-outline btn-sm" onclick="loadPendingGrading()"><i class="fas fa-sync"></i> Refresh</button>
+                    <h3><i class="fas fa-info-circle"></i> Exam Information</h3>
+                    <div>
+                        <button class="btn btn-outline btn-sm" id="useAIBtn"><i class="fas fa-robot"></i> AI Generator</button>
+                        <button class="btn btn-outline btn-sm" id="bulkUploadBtn"><i class="fas fa-upload"></i> Bulk CSV</button>
+                        <button class="btn btn-outline btn-sm" id="downloadTemplateBtn"><i class="fas fa-download"></i> CSV Template</button>
+                    </div>
                 </div>
-                <div id="pendingGradingContainer"></div>
-            </div>
-        </div>
 
-        <!-- ==================== VIEW RESULTS TAB ==================== -->
-        <div class="tab-section" id="sectionResults">
+                <div class="info-badge">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Auto-Grading:</strong> MCQ, True/False, and Fill-in-Blank questions are auto-graded. Theory questions require manual grading.
+                </div>
+
+                <form id="examForm">
+                    <input type="hidden" id="docId">
+                    <div class="form-group">
+                        <label><i class="fas fa-book"></i> Subject</label>
+                        <input type="text" id="subject" class="form-control" readonly placeholder="Click a subject above">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-week"></i> Weeks Covered</label>
+                        <div id="weeksSelector" class="weeks-selector">
+                            <div id="weeksCheckboxes" class="weeks-grid">
+                                <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-secondary);">
+                                    <i class="fas fa-spinner fa-spin"></i> Select a subject to load weeks
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-heading"></i> Exam Title *</label>
+                        <input type="text" id="title" class="form-control" required placeholder="e.g., First Term Examination">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Instructions</label>
+                        <textarea id="instructions" class="form-control" rows="3" placeholder="Exam instructions for students..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-eye"></i> Grade Visibility</label>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="autoReleaseGrades" checked>
+                            <span>Show scores immediately after submission</span>
+                        </div>
+                        <small style="color:var(--text-secondary);display:block;margin-top:0.5rem;">
+                            If unchecked, students won't see scores until you manually release them.
+                        </small>
+                    </div>
+                </form>
+            </div>
+
             <div class="card">
-                <div class="card-header"><h3><i class="fas fa-chart-simple"></i> Select Exam to View Results</h3></div>
-                <select class="form-control" id="resultExamSelect" onchange="loadExamResults()">
-                    <option value="">-- Select an exam --</option>
-                </select>
+                <div class="card-header">
+                    <h3><i class="fas fa-sliders-h"></i> Exam Settings</h3>
+                </div>
+                <div class="exam-settings">
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label><i class="fas fa-hourglass-half"></i> Time Limit (minutes) *</label>
+                            <input type="number" id="timeLimit" class="form-control" value="120" min="1" max="300" required>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-star"></i> Total Points</label>
+                            <input type="number" id="totalPoints" class="form-control" value="100" min="1" max="500">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-ban"></i> Negative Marking</label>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="negativeMarking">
+                                <span>Enable</span>
+                            </div>
+                            <div id="negativeMarkConfig" style="display:none;margin-top:0.5rem;">
+                                <div class="negative-mark-config">
+                                    <label>Deduction per wrong answer:</label>
+                                    <input type="number" id="negativeMarkValue" class="point-input-sm" value="0.25" min="0" step="0.25" style="width:80px;">
+                                    <small>points</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-random"></i> Randomization</label>
+                            <div class="checkbox-item"><input type="checkbox" id="randomizeQuestions" checked><span>Randomize question order</span></div>
+                            <div class="checkbox-item"><input type="checkbox" id="randomizeOptions" checked><span>Randomize options order</span></div>
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-calendar-alt"></i> Start Date (Optional)</label>
+                            <input type="datetime-local" id="startDate" class="form-control">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-lock"></i> End Date (Optional)</label>
+                            <input type="datetime-local" id="endDate" class="form-control">
+                        </div>
+                        <div class="setting-item">
+                            <label><i class="fas fa-chalkboard"></i> Exam Type</label>
+                            <select id="examType" class="form-control">
+                                <option value="midterm">Mid-Term</option>
+                                <option value="endterm">End of Term</option>
+                                <option value="mock">Mock</option>
+                                <option value="promotion">Promotion</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="resultsContainer"></div>
-        </div>
-    </div>
 
-    <!-- Question Bank Modal -->
-    <div class="modal-overlay" id="questionBankModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-database"></i> Question Bank</h3>
-                <i class="fas fa-times" onclick="closeQuestionBank()" style="cursor:pointer;font-size:1.2rem;"></i>
-            </div>
-            <div class="form-row" style="margin-bottom:1rem;">
-                <div class="form-group">
-                    <label>Filter by Subject</label>
-                    <select class="form-control" id="qbSubjectFilter" onchange="loadQuestionBank()">
-                        <option value="">All Subjects</option>
-                    </select>
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-question-circle"></i> Questions</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                        <button type="button" class="btn btn-outline btn-sm active q-type-btn" data-type="mcq">MCQ</button>
+                        <button type="button" class="btn btn-outline btn-sm q-type-btn" data-type="truefalse">True/False</button>
+                        <button type="button" class="btn btn-outline btn-sm q-type-btn" data-type="fillblank">Fill Blank</button>
+                        <button type="button" class="btn btn-outline btn-sm q-type-btn" data-type="theory">Theory</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Filter by Type</label>
-                    <select class="form-control" id="qbTypeFilter" onchange="loadQuestionBank()">
-                        <option value="">All Types</option>
-                        <option value="multiple">MCQ</option>
-                        <option value="boolean">True/False</option>
-                        <option value="fillblank">Fill Blank</option>
-                        <option value="theory">Theory</option>
-                    </select>
+
+                <div class="point-config-row" style="margin-bottom:1rem;padding:0.75rem;background:var(--hover-bg);border-radius:0.75rem;">
+                    <strong>Default Points per Question:</strong>
+                    <input type="number" id="defaultQuestionPoints" class="point-input-sm" value="5" min="1" max="50">
+                    <small style="color:var(--text-secondary);">Applies to new questions</small>
+                </div>
+
+                <div id="questionsContainer">
+                    <div id="questionsList" class="question-list"></div>
+                    <button type="button" class="btn btn-outline" onclick="addQuestion()"><i class="fas fa-plus"></i> Add Question</button>
                 </div>
             </div>
-            <div id="questionBankList" style="max-height:400px;overflow-y:auto;"></div>
-            <div style="margin-top:1rem;display:flex;gap:0.5rem;justify-content:flex-end;">
-                <button class="btn btn-outline" onclick="closeQuestionBank()">Cancel</button>
-                <button class="btn btn-primary" onclick="importFromQuestionBank()"><i class="fas fa-plus"></i> Add Selected Questions</button>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="saveDraftBtn"><i class="fas fa-save"></i> Save as Draft</button>
+                <button type="button" class="btn btn-success" id="publishBtn"><i class="fas fa-paper-plane"></i> Publish Exam</button>
+            </div>
+
+            <div class="debug-panel" id="debugPanel" style="display:none;">
+                <strong><i class="fas fa-bug"></i> Debug:</strong><br>
+                <span id="debugInfo">Initializing...</span>
+            </div>
+        </div>
+
+        <!-- TAB 3: Grade Exams -->
+        <div class="tab-content" id="tab-grade">
+            <div class="card">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label><i class="fas fa-pen-fancy"></i> Select Exam to Grade</label>
+                    <select id="examSelect" class="form-control">
+                        <option value="">-- Select an exam --</option>
+                    </select>
+                </div>
+            </div>
+            <div id="gradeContentArea">
+                <div class="empty-state">
+                    <i class="fas fa-chalkboard"></i>
+                    <h3>Select an exam to view submissions</h3>
+                    <p>Choose an exam from the dropdown above to review student results</p>
+                </div>
             </div>
         </div>
     </div>
@@ -490,52 +528,80 @@
     <!-- AI Modal -->
     <div class="modal-overlay" id="aiModal">
         <div class="modal-content">
-            <div class="modal-header">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
                 <h3><i class="fas fa-robot"></i> AI Question Generator</h3>
                 <i class="fas fa-times" onclick="closeAIModal()" style="cursor:pointer;font-size:1.2rem;"></i>
             </div>
-            <div class="info-callout"><i class="fas fa-info-circle"></i> Generates questions based on your lesson notes for the selected weeks.</div>
-            <div class="form-row">
-                <div class="form-group"><label>Number of Questions</label><input type="number" id="aiCount" value="10" min="1" max="50" class="form-control"></div>
-                <div class="form-group"><label>Difficulty</label><select id="aiDifficulty" class="form-control"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
-                <div class="form-group"><label>Question Type</label><select id="aiType" class="form-control"><option value="multiple">MCQ</option><option value="boolean">True/False</option><option value="fillblank">Fill Blank</option></select></div>
+            <div id="aiChat" class="ai-chat">
+                <div class="message assistant">Select weeks first, then generate exam questions based on your lesson notes.</div>
             </div>
-            <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+            <div class="form-group">
+                <label>Number of Questions</label>
+                <input type="number" id="aiCount" value="10" min="1" max="50" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Points per Question</label>
+                <input type="number" id="aiPoints" value="5" min="1" max="50" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Difficulty</label>
+                <select id="aiDifficulty" class="form-control">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Question Type</label>
+                <select id="aiType" class="form-control">
+                    <option value="mcq">Multiple Choice</option>
+                    <option value="truefalse">True/False</option>
+                    <option value="fillblank">Fill in the Blank</option>
+                </select>
+            </div>
+            <div class="btn-group">
                 <button class="btn btn-primary" onclick="generateFromLessonNotes()"><i class="fas fa-book-open"></i> Generate from Lesson Notes</button>
                 <button class="btn btn-outline" onclick="insertAIGenerated()"><i class="fas fa-plus"></i> Insert Questions</button>
             </div>
-            <div id="aiChat" style="max-height:200px;overflow-y:auto;margin-top:1rem;padding:0.5rem;background:var(--hover-bg);border-radius:0.75rem;font-size:0.8rem;"></div>
         </div>
     </div>
 
     <!-- Bulk Upload Modal -->
     <div class="modal-overlay" id="bulkModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-upload"></i> Bulk Upload Questions (CSV)</h3>
+        <div class="modal-content" style="max-width:900px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3><i class="fas fa-upload"></i> Bulk Upload CSV</h3>
                 <i class="fas fa-times" onclick="closeBulkModal()" style="cursor:pointer;font-size:1.2rem;"></i>
             </div>
-            <div class="info-callout">
+            <div class="info-badge">
                 <i class="fas fa-info-circle"></i>
-                <strong>Format:</strong> Question, Option A, Option B, Option C, Option D, Correct Answer (A/B/C/D), Points<br>
-                <a href="#" onclick="downloadCSVTemplate();return false;" style="color:var(--info-text);">Download template</a>
+                <strong>CSV Format:</strong> Question, Option A, Option B, Option C, Option D, Correct Answer (A/B/C/D), Points
             </div>
             <div class="upload-area" id="uploadArea">
                 <i class="fas fa-cloud-upload-alt"></i>
-                <h4>Click or Drag CSV File Here</h4>
+                <h4>Click or Drag CSV File</h4>
                 <input type="file" id="csvFile" accept=".csv" style="display:none;">
             </div>
-            <div id="csvPreview" style="display:none;"></div>
-            <div class="form-group" style="margin-top:1rem;"><label>Default Points</label><input type="number" id="defaultPoints" class="form-control" value="1" min="1"></div>
-            <div style="margin-top:1rem;display:flex;gap:0.5rem;justify-content:flex-end;">
+            <div id="csvPreview" class="csv-preview" style="display:none;">
+                <h4>Preview:</h4>
+                <table id="previewTable"></table>
+            </div>
+            <div class="form-group" style="margin-top:1rem;">
+                <label>Default Points (if not in CSV)</label>
+                <input type="number" id="defaultPoints" class="form-control" value="5" min="1">
+            </div>
+            <div class="btn-group">
                 <button class="btn btn-outline" onclick="closeBulkModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="importCSVQuestions()">Import Questions</button>
+                <button class="btn btn-primary" id="importCsvBtn">Import</button>
             </div>
         </div>
     </div>
 
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3><p style="color:var(--text-secondary);">Please wait</p></div>
+        <div class="loading-content">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <h3 style="margin-top:1rem;">Processing...</h3>
+        </div>
     </div>
 
     <script type="module">
@@ -549,24 +615,55 @@
             messagingSenderId: "673937760480",
             appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const remoteConfig = firebase.remoteConfig();
+        remoteConfig.settings.minimumFetchIntervalMillis = 0;
 
+        // ==================== GLOBAL STATE ====================
         let currentUser = null, userData = null, groq = null;
-        let questions = [], editingExamId = null, currentSubject = null;
-        let selectedWeeks = [], syllabusWeeks = [], subjects = [];
-        let lastGenerated = [], csvData = [], selectedQBQuestions = [];
+        let currentSubject = null, subjects = [], syllabusWeeks = [];
+        let selectedWeeks = [], questions = [], currentDocId = null;
+        let currentQuestionType = 'mcq', allExams = [];
+        let submissionsData = {}, examScores = {}, studentNames = {};
+        let lastGenerated = [], csvData = [];
 
-        // ==================== UTILITIES ====================
+        // ==================== UTILITY ====================
         function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function updateDebug(msg) { const el = document.getElementById('debugInfo'); if (el) { el.innerHTML = msg + '<br>' + el.innerHTML.substring(0, 3000); } console.log(msg); }
+        function formatTime(minutes) { if (!minutes) return 'No limit'; const h = Math.floor(minutes/60); const m = minutes%60; return h>0?`${h}h ${m}m`:`${m} min`; }
+
+        function getExamTypeBadge(type) {
+            const map = { midterm: 'badge-midterm', endterm: 'badge-endterm', mock: 'badge-mock', promotion: 'badge-promotion' };
+            const labels = { midterm: 'Mid-Term', endterm: 'End Term', mock: 'Mock', promotion: 'Promotion' };
+            return `<span class="badge ${map[type]||'badge-scheduled'}">${labels[type]||type}</span>`;
         }
+
+        function getStatusBadge(exam) {
+            const now = new Date();
+            const startDate = exam.startDate?.toDate?.() || exam.startDate;
+            if (exam.status === 'published') {
+                if (startDate && new Date(startDate) > now) return '<span class="badge badge-scheduled">Scheduled</span>';
+                return '<span class="badge badge-published">Published</span>';
+            }
+            return '<span class="badge badge-draft">Draft</span>';
+        }
+
+        // ==================== TAB NAVIGATION ====================
+        document.getElementById('tabNavigation').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            if (btn.dataset.tab === 'manage') loadManageTab();
+            else if (btn.dataset.tab === 'grade') loadGradeTabExams();
+        });
 
         // ==================== THEME ====================
         const themeToggle = document.getElementById('themeToggle');
@@ -581,764 +678,533 @@
             themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
         });
 
-        // ==================== TAB SWITCHING ====================
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`.tab[data-tab="${tab}"]`)?.classList.add('active');
-            document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
-            const map = { create: 'sectionCreate', manage: 'sectionManage', grade: 'sectionGrade', results: 'sectionResults' };
-            document.getElementById(map[tab])?.classList.add('active');
-            if (tab === 'manage') loadExamList();
-            if (tab === 'grade') loadPendingGrading();
-            if (tab === 'results') loadResultExamSelect();
+        // ==================== NEGATIVE MARKING ====================
+        document.getElementById('negativeMarking').addEventListener('change', function() {
+            document.getElementById('negativeMarkConfig').style.display = this.checked ? 'block' : 'none';
+        });
+
+        // ==================== QUESTION TYPE ====================
+        document.querySelectorAll('.q-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.q-type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentQuestionType = this.dataset.type;
+            });
+        });
+
+        // ==================== MANAGE TAB ====================
+        async function loadExamSubmissionsData() {
+            try {
+                const snap = await db.collection('examSubmissions').where('teacherId','==',currentUser.uid).get();
+                submissionsData = {}; examScores = {};
+                snap.forEach(doc => {
+                    const d = doc.data(); const eid = d.examId;
+                    if (!submissionsData[eid]) { submissionsData[eid] = []; examScores[eid] = []; }
+                    submissionsData[eid].push(d);
+                    if (d.score !== undefined && d.score !== null) examScores[eid].push(d.score);
+                });
+            } catch(e) { console.warn('Submissions:', e.message); }
         }
-        window.switchTab = switchTab;
+
+        function calcAvg(scores) { return scores?.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0; }
+
+        async function loadManageTab() {
+            showLoading();
+            try {
+                const snap = await db.collection('exams').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').get();
+                allExams = [];
+                snap.forEach(doc => allExams.push({ id: doc.id, ...doc.data(), createdAt: doc.data().createdAt?.toDate?.() || new Date() }));
+                await loadExamSubmissionsData();
+                updateExamStats();
+                renderExamTable();
+            } catch(e) {
+                document.getElementById('examsList').innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--danger-text);">Error: ${e.message}</td></tr>`;
+            } finally { hideLoading(); }
+        }
+
+        function updateExamStats() {
+            const pub = allExams.filter(e => e.status==='published').length;
+            const drafts = allExams.filter(e => e.status==='draft').length;
+            const totalSubs = Object.values(submissionsData).reduce((a,b)=>a+b.length, 0);
+            let allScores = []; Object.values(examScores).forEach(s => allScores=allScores.concat(s));
+            const avg = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+            document.getElementById('totalExams').textContent = allExams.length;
+            document.getElementById('publishedExams').textContent = pub;
+            document.getElementById('draftExams').textContent = drafts;
+            document.getElementById('examSubmissions').textContent = totalSubs;
+            document.getElementById('examAvgScore').textContent = avg + '%';
+        }
+
+        function renderExamTable(filter='all', query='') {
+            let filtered = allExams.filter(e => {
+                if (filter!=='all' && e.status!==filter) return false;
+                if (query) { const q=query.toLowerCase(); return (e.title?.toLowerCase().includes(q) || e.subject?.toLowerCase().includes(q)); }
+                return true;
+            });
+            const tbody = document.getElementById('examsList');
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:3rem;"><i class="fas fa-inbox" style="font-size:3rem;display:block;margin-bottom:1rem;"></i><h3>No exams found</h3></td></tr>`;
+                return;
+            }
+            tbody.innerHTML = filtered.map(exam => {
+                const subCount = submissionsData[exam.id]?.length || 0;
+                const avg = examScores[exam.id] ? calcAvg(examScores[exam.id]) : 0;
+                const weeks = exam.weeksCovered?.join?.(', ') || 'All';
+                return `
+                    <tr>
+                        <td>${getStatusBadge(exam)}</td>
+                        <td><strong>${escapeHtml(exam.title)}</strong></td>
+                        <td>${escapeHtml(exam.subject)}</td>
+                        <td>${getExamTypeBadge(exam.examType)}</td>
+                        <td>Weeks: ${weeks}</td>
+                        <td>${formatTime(exam.duration||120)}</td>
+                        <td>${exam.questions?.length||0}</td>
+                        <td><span class="badge" style="background:var(--info-bg);color:var(--info-text);">${subCount}</span></td>
+                        <td>${subCount?`<span class="badge" style="background:${avg>=70?'var(--success-bg)':avg>=50?'var(--warning-bg)':'var(--danger-bg)'};color:${avg>=70?'var(--success-text)':avg>=50?'var(--warning-text)':'var(--danger-text)'};">${avg}%</span>`:'<span class="badge">—</span>'}</td>
+                        <td>
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                                <button class="btn btn-outline btn-sm" onclick="editExam('${exam.id}')"><i class="fas fa-edit"></i></button>
+                                ${subCount?`<button class="btn btn-primary btn-sm" onclick="goToGrade('${exam.id}')"><i class="fas fa-check-double"></i> Grade</button>`:''}
+                                ${exam.status==='draft'?`<button class="btn btn-success btn-sm" onclick="publishExam('${exam.id}')"><i class="fas fa-paper-plane"></i></button>`:''}
+                                <button class="btn btn-outline btn-sm" onclick="duplicateExam('${exam.id}')"><i class="fas fa-copy"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        window.publishExam = async (id) => {
+            if (!confirm('Publish this exam?')) return;
+            showLoading();
+            try {
+                await db.collection('exams').doc(id).update({ status:'published', publishedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedAt:firebase.firestore.FieldValue.serverTimestamp() });
+                await db.collection('auditLogs').add({ userId:currentUser.uid, userName:`${userData.firstName||''} ${userData.surname||''}`.trim(), action:'EXAM_PUBLISHED', timestamp:firebase.firestore.FieldValue.serverTimestamp(), details:{examId:id} }).catch(()=>{});
+                await loadManageTab();
+                alert('Exam published!');
+            } catch(e) { alert('Error: '+e.message); }
+            finally { hideLoading(); }
+        };
+
+        window.editExam = (id) => {
+            currentDocId = id;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.tab-btn[data-tab="create"]').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-create').classList.add('active');
+            loadExistingExam(id);
+        };
+
+        window.goToGrade = (id) => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.tab-btn[data-tab="grade"]').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-grade').classList.add('active');
+            document.getElementById('examSelect').value = id;
+            loadGradeSubmissions(id);
+        };
+
+        window.duplicateExam = async (id) => {
+            if (!confirm('Duplicate this exam as a new draft?')) return;
+            showLoading();
+            try {
+                const doc = await db.collection('exams').doc(id).get();
+                if (!doc.exists) { alert('Not found'); return; }
+                const data = doc.data(); delete data.publishedAt;
+                data.status = 'draft'; data.title = (data.title||'Exam') + ' (Copy)';
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection('exams').add(data);
+                await loadManageTab(); alert('Exam duplicated!');
+            } catch(e) { alert('Error: '+e.message); }
+            finally { hideLoading(); }
+        };
+
+        document.getElementById('examSearchInput').addEventListener('input', (e) => {
+            renderExamTable(document.querySelector('#tab-manage .filter-btn.active')?.dataset.filter||'all', e.target.value);
+        });
+        document.querySelectorAll('#tab-manage .filter-btn').forEach(b => {
+            b.addEventListener('click', function() {
+                document.querySelectorAll('#tab-manage .filter-btn').forEach(x => x.classList.remove('active'));
+                this.classList.add('active');
+                renderExamTable(this.dataset.filter, document.getElementById('examSearchInput').value);
+            });
+        });
+        document.getElementById('refreshExamBtn').addEventListener('click', loadManageTab);
+
+        // ==================== CREATE TAB ====================
+        async function loadSyllabus() {
+            if (!subjects.length) return;
+            try {
+                const snap = await db.collection('syllabus').where('teacherId','==',currentUser.uid).where('status','==','approved').get();
+                syllabusWeeks = [];
+                snap.forEach(doc => { const d = doc.data(); (d.weeks||[]).forEach(w => syllabusWeeks.push({ subject:d.subject, week:w.week, topic:w.topic, objectives:w.objectives||'', syllabusId:doc.id })); });
+            } catch(e) { console.error('Syllabus:', e); }
+        }
+
+        function getWeeksForSubject(s) { return syllabusWeeks.filter(w => w.subject===s).sort((a,b)=>a.week-b.week); }
+
+        function renderSubjectTabs() {
+            const c = document.getElementById('subjectTabs'); c.innerHTML = '';
+            if (!subjects.length) { c.innerHTML = '<span class="tab" style="background:var(--warning-bg);">No subjects</span>'; return; }
+            subjects.forEach(s => { const t = document.createElement('span'); t.className='tab'; t.textContent=s; t.onclick=()=>switchSubject(s,t); c.appendChild(t); });
+            if (subjects.length) switchSubject(subjects[0], c.children[0]);
+        }
+
+        function switchSubject(s, target) {
+            document.querySelectorAll('#subjectTabs .tab').forEach(t => t.classList.remove('active'));
+            if (target) target.classList.add('active');
+            currentSubject = s; document.getElementById('subject').value = s;
+            renderWeekCheckboxes(getWeeksForSubject(s));
+        }
+
+        function renderWeekCheckboxes(weeks) {
+            const c = document.getElementById('weeksCheckboxes');
+            if (!weeks.length) { c.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--warning-text);">No weeks found.</div>`; return; }
+            c.innerHTML = weeks.map(w => `<label class="week-checkbox"><input type="checkbox" value="${w.week}" onchange="toggleWeek(this)"><span><strong>Week ${w.week}</strong>: ${escapeHtml(w.topic)}</span></label>`).join('');
+            selectedWeeks = [];
+        }
+
+        window.toggleWeek = (cb) => {
+            const w = parseInt(cb.value);
+            cb.checked ? (!selectedWeeks.includes(w) && selectedWeeks.push(w)) : (selectedWeeks = selectedWeeks.filter(x=>x!==w));
+            selectedWeeks.sort((a,b)=>a-b);
+        };
+
+        function renderQuestions() {
+            const c = document.getElementById('questionsList');
+            if (!questions.length) { c.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-secondary);">No questions yet.</p>'; return; }
+            c.innerHTML = questions.map((q,i) => {
+                let opts = '';
+                if (q.type==='mcq') {
+                    const L = ['A','B','C','D'];
+                    opts = `<div class="question-options">${q.options.map((o,oi)=>`<div class="question-option"><input type="radio" name="correct_${i}" value="${L[oi]}" ${q.correct===L[oi]?'checked':''} onchange="setCorrect(${i},'${L[oi]}')"><span>${L[oi]}. ${escapeHtml(o)}</span></div>`).join('')}</div>`;
+                } else if (q.type==='truefalse') {
+                    opts = `<div class="question-options"><div class="question-option"><input type="radio" name="correct_${i}" value="True" ${q.correct==='True'?'checked':''} onchange="setCorrect(${i},'True')"><span>True</span></div><div class="question-option"><input type="radio" name="correct_${i}" value="False" ${q.correct==='False'?'checked':''} onchange="setCorrect(${i},'False')"><span>False</span></div></div>`;
+                } else if (q.type==='fillblank') {
+                    opts = `<div class="form-group"><input type="text" class="form-control" value="${escapeHtml(q.correct||'')}" onchange="setCorrect(${i},this.value)" placeholder="Correct answer"></div>`;
+                } else {
+                    opts = `<div class="form-group"><textarea class="form-control" rows="4" onchange="setCorrect(${i},this.value)" placeholder="Marking guide">${escapeHtml(q.correct||'')}</textarea></div>`;
+                }
+                return `<div class="question-item"><div class="question-header"><span class="question-text">Q${i+1}: ${escapeHtml(q.question)}</span><div><span class="question-type">${q.type==='mcq'?'MCQ':q.type==='truefalse'?'T/F':q.type==='fillblank'?'Fill':'Theory'}</span><span class="difficulty-badge difficulty-${q.difficulty||'medium'}">${q.difficulty||'Medium'}</span><span class="correct-badge">${q.points||1} pts</span><button class="btn btn-sm btn-outline" onclick="editQuestion(${i})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="removeQuestion(${i})"><i class="fas fa-trash"></i></button></div></div>${opts}</div>`;
+            }).join('');
+        }
+
+        window.addQuestion = () => {
+            const pts = parseInt(document.getElementById('defaultQuestionPoints').value) || 5;
+            questions.push({ type:currentQuestionType, question:'', options:['','','',''], correct:currentQuestionType==='mcq'?'A':currentQuestionType==='truefalse'?'True':'', points:pts, difficulty:'medium' });
+            renderQuestions();
+            setTimeout(()=>editQuestion(questions.length-1), 100);
+        };
+        window.removeQuestion = (i) => { questions.splice(i,1); renderQuestions(); };
+        window.setCorrect = (i,v) => { questions[i].correct = v; };
+
+        window.editQuestion = (i) => {
+            const q = questions[i];
+            const nq = prompt('Question:', q.question); if (nq!==null) q.question = nq;
+            if (q.type==='mcq') for (let j=0;j<4;j++) { const o = prompt(`Option ${String.fromCharCode(65+j)}:`, q.options[j]); if (o!==null) q.options[j]=o; }
+            const pts = prompt('Points:', q.points); if (pts!==null) q.points = parseInt(pts)||1;
+            const diff = prompt('Difficulty (easy/medium/hard):', q.difficulty||'medium'); if (diff!==null) q.difficulty = diff;
+            renderQuestions();
+        };
+
+        // ==================== CSV ====================
+        document.getElementById('bulkUploadBtn').addEventListener('click', ()=>document.getElementById('bulkModal').classList.add('active'));
+        document.getElementById('downloadTemplateBtn').addEventListener('click', ()=>{
+            const h=['Question','Option A','Option B','Option C','Option D','Correct Answer','Points'];
+            const r=[['What is 2+2?','1','2','3','4','D','5'],['Capital of Nigeria?','Lagos','Abuja','Kano','Ibadan','B','5']];
+            const csv=[h,...r].map(x=>x.join(',')).join('\n');
+            const b=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');
+            a.href=URL.createObjectURL(b); a.download='exam_template.csv'; a.click();
+        });
+        window.closeBulkModal = () => { document.getElementById('bulkModal').classList.remove('active'); csvData=[]; document.getElementById('csvPreview').style.display='none'; };
+
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('click', ()=>document.getElementById('csvFile').click());
+        uploadArea.addEventListener('dragover', e=>{e.preventDefault(); uploadArea.style.borderColor='var(--accent)';});
+        uploadArea.addEventListener('dragleave', ()=>{uploadArea.style.borderColor='var(--border)';});
+        uploadArea.addEventListener('drop', e=>{
+            e.preventDefault(); uploadArea.style.borderColor='var(--border)';
+            const f=e.dataTransfer.files[0]; if(f?.name.endsWith('.csv')) processCSV(f); else alert('CSV only');
+        });
+        document.getElementById('csvFile').addEventListener('change', e=>{if(e.target.files[0])processCSV(e.target.files[0]);});
+
+        function processCSV(file) { const r=new FileReader(); r.onload=e=>parseCSV(e.target.result); r.readAsText(file); }
+
+        function parseCSV(text) {
+            const lines=text.split('\n').filter(l=>l.trim()); if(lines.length<2){alert('Empty CSV');return;}
+            csvData=[];
+            for(let i=1;i<lines.length;i++){
+                const row=lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+                if(row.length>=6&&['A','B','C','D'].includes(row[5]?.toUpperCase())){
+                    csvData.push({question:row[0],options:[row[1]||'',row[2]||'',row[3]||'',row[4]||''],correct:row[5].toUpperCase(),points:parseInt(row[6])||parseInt(document.getElementById('defaultPoints').value)||5});
+                }
+            }
+            if(csvData.length){
+                document.getElementById('previewTable').innerHTML=`<thead><tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Correct</th><th>Pts</th></tr></thead><tbody>${csvData.slice(0,10).map((q,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(q.question.substring(0,40))}</td><td>${escapeHtml(q.options[0])}</td><td>${escapeHtml(q.options[1])}</td><td>${escapeHtml(q.options[2])}</td><td>${escapeHtml(q.options[3])}</td><td><strong>${q.correct}</strong></td><td>${q.points}</td></tr>`).join('')}</tbody>`;
+                document.getElementById('csvPreview').style.display='block';
+            }
+        }
+
+        document.getElementById('importCsvBtn').addEventListener('click',()=>{
+            if(!csvData.length){alert('No valid questions');return;}
+            questions=questions.concat(csvData.map(q=>({type:'mcq',question:q.question,options:q.options,correct:q.correct,points:q.points,difficulty:'medium'})));
+            renderQuestions(); closeBulkModal(); alert(`Imported ${csvData.length} questions!`);
+        });
+
+        // ==================== AI ====================
+        document.getElementById('useAIBtn').addEventListener('click',()=>document.getElementById('aiModal').classList.add('active'));
+        window.closeAIModal = () => document.getElementById('aiModal').classList.remove('active');
+
+        async function getLessonNoteContent(subject, weeks) {
+            try {
+                const snap = await db.collection('syllabus').where('teacherId','==',currentUser.uid).where('subject','==',subject).where('status','==','approved').limit(1).get();
+                if(snap.empty)return null;
+                const sid=snap.docs[0].id;
+                const ns=await db.collection('lessonNotes').where('teacherId','==',currentUser.uid).where('syllabusId','==',sid).where('week','in',weeks).where('status','==','approved').get();
+                if(ns.empty)return null;
+                const notes=[]; ns.forEach(d=>{const dd=d.data();notes.push({week:dd.week,topic:dd.topic,content:dd.content||dd.lessonContent||'',objectives:dd.objectives||'',keyPoints:dd.keyPoints||''});});
+                return notes;
+            }catch(e){return null;}
+        }
+
+        window.generateFromLessonNotes = async () => {
+            if(!groq){alert('AI not ready');return;}
+            if(!selectedWeeks.length){alert('Select weeks first');return;}
+            const count=parseInt(document.getElementById('aiCount').value)||10;
+            const points=parseInt(document.getElementById('aiPoints').value)||5;
+            const diff=document.getElementById('aiDifficulty').value;
+            const type=document.getElementById('aiType').value;
+            showLoading();
+            const chat=document.getElementById('aiChat');
+            try {
+                const notes=await getLessonNoteContent(currentSubject,selectedWeeks);
+                if(!notes?.length){chat.innerHTML+='<div class="message assistant">❌ No approved lesson notes found.</div>';hideLoading();return;}
+                let ctx=notes.map(n=>`=== WEEK ${n.week}: ${n.topic} ===\nCONTENT: ${n.content.substring(0,4000)}\nOBJECTIVES: ${n.objectives}\nKEY POINTS: ${n.keyPoints}`).join('\n---\n');
+                const td=type==='mcq'?'Multiple Choice':type==='truefalse'?'True/False':'Fill in the Blank';
+                const prompt=`Create ${count} ${diff} ${td} exam questions (${points} pts each) based STRICTLY on:\n\n${ctx}\n\nReturn ONLY JSON array. Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":${points}}]${type==='truefalse'?' Use "True"/"False".':type==='fillblank'?' Use exact answer.':''}`;
+                chat.innerHTML+=`<div class="message user">Generating ${count} ${diff} ${td} questions (${points} pts each)...</div>`;
+                const res=await groq.chat.completions.create({messages:[{role:'user',content:prompt}],model:'llama-3.3-70b-versatile',temperature:0.4});
+                const match=res.choices[0].message.content.match(/\[[\s\S]*\]/);
+                if(!match)throw new Error('No JSON found');
+                lastGenerated=JSON.parse(match[0]).map(q=>({...q,type,difficulty:diff,points,options:q.options||['','','','']}));
+                chat.innerHTML+=`<div class="message assistant">✅ Generated ${lastGenerated.length} questions (${points} pts each)!</div>`;
+            }catch(e){chat.innerHTML+=`<div class="message assistant">❌ ${e.message}</div>`;}
+            finally{hideLoading();}
+        };
+
+        window.insertAIGenerated = () => {
+            if(!lastGenerated?.length){alert('Generate first');return;}
+            questions=questions.concat(lastGenerated); renderQuestions(); closeAIModal();
+        };
+
+        // ==================== SAVE/PUBLISH EXAM ====================
+        async function saveExam(status) {
+            const title=document.getElementById('title').value.trim();
+            const instructions=document.getElementById('instructions').value;
+            const timeLimit=parseInt(document.getElementById('timeLimit').value);
+            const totalPoints=parseInt(document.getElementById('totalPoints').value);
+            const negativeMarking=document.getElementById('negativeMarking').checked;
+            const negativeMarkValue=negativeMarking?parseFloat(document.getElementById('negativeMarkValue').value)||0.25:0;
+            const randomizeQuestions=document.getElementById('randomizeQuestions').checked;
+            const randomizeOptions=document.getElementById('randomizeOptions').checked;
+            const autoReleaseGrades=document.getElementById('autoReleaseGrades').checked;
+            const examType=document.getElementById('examType').value;
+            const startDate=document.getElementById('startDate').value;
+            const endDate=document.getElementById('endDate').value;
+
+            if(!currentSubject){alert('Select subject');return;}
+            if(!selectedWeeks.length){alert('Select weeks');return;}
+            if(!title){alert('Enter title');return;}
+            if(!timeLimit){alert('Set time limit');return;}
+            if(!questions.length){alert('Add questions');return;}
+
+            for(let i=0;i<questions.length;i++){
+                const q=questions[i];
+                if(!q.question?.trim()){alert(`Q${i+1} no text`);return;}
+                if(q.type!=='theory'&&(!q.correct||q.correct==='')){alert(`Q${i+1} missing answer`);return;}
+            }
+
+            const fq=questions.map(q=>{
+                const f={question:q.question,type:q.type,points:q.points||5,difficulty:q.difficulty||'medium'};
+                if(q.type==='mcq'){f.options=q.options;f.correct=q.correct;}
+                else if(q.type==='truefalse'){f.correct=q.correct;}
+                else if(q.type==='fillblank'){f.correct=q.correct;}
+                else{f.sampleAnswer=q.correct;f.correct=null;}
+                return f;
+            });
+
+            const data={
+                teacherId:currentUser.uid,classId:userData.classTeaching||'jss2',subject:currentSubject,
+                weeksCovered:selectedWeeks,title,instructions:instructions||'',duration:timeLimit,
+                totalPoints,negativeMarking,negativeMarkValue,randomizeQuestions,randomizeOptions,
+                questions:fq,status,examType,autoReleaseGrades,
+                publishedAt:status==='published'?firebase.firestore.FieldValue.serverTimestamp():null,
+                createdAt:currentDocId?firebase.firestore.FieldValue.serverTimestamp():firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if(startDate)data.startDate=new Date(startDate);
+            if(endDate)data.endDate=new Date(endDate);
+
+            showLoading();
+            try {
+                let eid=currentDocId;
+                if(currentDocId){await db.collection('exams').doc(currentDocId).update(data);}
+                else{const ref=await db.collection('exams').add(data);eid=ref.id;currentDocId=ref.id;}
+
+                await db.collection('auditLogs').add({userId:currentUser.uid,userName:`${userData.firstName||''} ${userData.surname||''}`.trim(),action:status==='published'?'EXAM_PUBLISHED':'EXAM_SAVED',timestamp:firebase.firestore.FieldValue.serverTimestamp(),details:{examId:eid,title,subject:currentSubject,examType}}).catch(()=>{});
+
+                alert(`Exam ${status==='published'?'published':'saved'}!`);
+                questions=[];currentDocId=null;selectedWeeks=[];document.getElementById('title').value='';document.getElementById('instructions').value='';renderQuestions();renderWeekCheckboxes(getWeeksForSubject(currentSubject));
+                document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+                document.querySelector('.tab-btn[data-tab="manage"]').classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+                document.getElementById('tab-manage').classList.add('active');
+                await loadManageTab();
+            }catch(e){alert('Error: '+e.message);}
+            finally{hideLoading();}
+        }
+
+        document.getElementById('saveDraftBtn').addEventListener('click',()=>saveExam('draft'));
+        document.getElementById('publishBtn').addEventListener('click',()=>saveExam('published'));
+
+        async function loadExistingExam(id) {
+            showLoading();
+            try {
+                const doc=await db.collection('exams').doc(id).get();
+                if(!doc.exists){alert('Not found');return;}
+                const d=doc.data();currentDocId=id;currentSubject=d.subject;
+                document.getElementById('subject').value=d.subject;
+                document.getElementById('title').value=d.title||'';
+                document.getElementById('instructions').value=d.instructions||'';
+                document.getElementById('timeLimit').value=d.duration||120;
+                document.getElementById('totalPoints').value=d.totalPoints||100;
+                document.getElementById('negativeMarking').checked=d.negativeMarking||false;
+                document.getElementById('negativeMarkConfig').style.display=d.negativeMarking?'block':'none';
+                document.getElementById('negativeMarkValue').value=d.negativeMarkValue||0.25;
+                document.getElementById('randomizeQuestions').checked=d.randomizeQuestions!==false;
+                document.getElementById('randomizeOptions').checked=d.randomizeOptions!==false;
+                document.getElementById('autoReleaseGrades').checked=d.autoReleaseGrades!==false;
+                document.getElementById('examType').value=d.examType||'midterm';
+                if(d.startDate?.toDate)document.getElementById('startDate').value=d.startDate.toDate().toISOString().slice(0,16);
+                if(d.endDate?.toDate)document.getElementById('endDate').value=d.endDate.toDate().toISOString().slice(0,16);
+                selectedWeeks=d.weeksCovered||[];
+                questions=(d.questions||[]).map(q=>({type:q.type||'mcq',question:q.question,options:q.options||['','','',''],correct:q.correct||'',points:q.points||5,difficulty:q.difficulty||'medium'}));
+                document.querySelectorAll('#subjectTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent===d.subject)t.classList.add('active');});
+                renderWeekCheckboxes(getWeeksForSubject(d.subject));
+                setTimeout(()=>{document.querySelectorAll('#weeksCheckboxes input[type="checkbox"]').forEach(cb=>{if(selectedWeeks.includes(parseInt(cb.value)))cb.checked=true;});},200);
+                renderQuestions();
+            }catch(e){alert('Error: '+e.message);}
+            finally{hideLoading();}
+        }
+
+        // ==================== GRADE TAB ====================
+        async function loadGradeTabExams() {
+            showLoading();
+            try {
+                const snap=await db.collection('exams').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').get();
+                const s=document.getElementById('examSelect');
+                s.innerHTML='<option value="">-- Select an exam --</option>';
+                snap.forEach(doc=>{const d=doc.data();const o=document.createElement('option');o.value=doc.id;o.textContent=`${d.title} (${d.subject}, ${d.examType||'Exam'})`;s.appendChild(o);});
+            }catch(e){console.error(e);}
+            finally{hideLoading();}
+        }
+
+        document.getElementById('examSelect').addEventListener('change',e=>{
+            if(e.target.value)loadGradeSubmissions(e.target.value);
+            else document.getElementById('gradeContentArea').innerHTML='<div class="empty-state"><i class="fas fa-chalkboard"></i><h3>Select an exam</h3></div>';
+        });
+
+        async function loadGradeSubmissions(examId) {
+            showLoading();
+            try {
+                const ed=await db.collection('exams').doc(examId).get();
+                if(!ed.exists)throw new Error('Exam not found');
+                const exam={id:ed.id,...ed.data()};
+                const ss=await db.collection('examSubmissions').where('examId','==',examId).get();
+                const subs=[];ss.forEach(d=>subs.push({id:d.id,...d.data()}));
+                const sids=[...new Set(subs.map(s=>s.studentId))];
+                for(const sid of sids){const u=await db.collection('users').doc(sid).get();if(u.exists){const d=u.data();studentNames[sid]=`${d.firstName||''} ${d.surname||''}`.trim()||'Unknown';}}
+                renderGradeInterface(exam,subs);
+            }catch(e){document.getElementById('gradeContentArea').innerHTML=`<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error</h3><p>${e.message}</p></div>`;}
+            finally{hideLoading();}
+        }
+
+        function renderGradeInterface(exam, subs) {
+            const c=document.getElementById('gradeContentArea');
+            const avg=subs.length?(subs.reduce((s,x)=>s+(x.score||0),0)/subs.length).toFixed(1):0;
+            c.innerHTML=`
+                <div class="exam-info-card">
+                    <h2 class="exam-title">${escapeHtml(exam.title)}</h2>
+                    <div class="exam-stats">
+                        <div class="stat-badge"><i class="fas fa-book"></i> ${escapeHtml(exam.subject)}</div>
+                        <div class="stat-badge"><i class="fas fa-calendar-week"></i> Weeks: ${(exam.weeksCovered||[]).join(', ')}</div>
+                        <div class="stat-badge"><i class="fas fa-star"></i> Total: ${exam.totalPoints} pts</div>
+                        <div class="stat-badge"><i class="fas fa-tag"></i> ${getExamTypeBadge(exam.examType)}</div>
+                        <div class="stat-badge"><i class="fas fa-users"></i> ${subs.length} submissions</div>
+                        <div class="stat-badge"><i class="fas fa-chart-line"></i> Avg: ${avg}/${exam.totalPoints}</div>
+                        ${exam.negativeMarking?`<div class="stat-badge"><i class="fas fa-ban"></i> Negative: -${exam.negativeMarkValue||0.25}/wrong</div>`:''}
+                    </div>
+                </div>
+                <div class="students-list" id="studentsList"></div>`;
+            if(!subs.length){document.getElementById('studentsList').innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><h3>No submissions</h3></div>';return;}
+            document.getElementById('studentsList').innerHTML=subs.map(sub=>{
+                const name=studentNames[sub.studentId]||'Unknown';
+                const init=name.split(' ').map(n=>n[0]).join('').toUpperCase()||'S';
+                const pct=exam.totalPoints?((sub.score/exam.totalPoints)*100).toFixed(0):0;
+                const grade=pct>=75?'A':pct>=65?'B':pct>=50?'C':pct>=40?'D':'F';
+                let ah='';
+                if(exam.questions&&sub.answers){ah=sub.answers.map((a,idx)=>{const q=exam.questions[a.questionIndex];if(!q)return'';let ok=false;let sa=a.answer;let ca=q.correct;if(q.type==='mcq'){ok=a.answer===q.correct;if(q.options){const si=a.answer?.charCodeAt(0)-65;const ci=q.correct?.charCodeAt(0)-65;sa=`${a.answer}. ${q.options[si]||'N/A'}`;ca=`${q.correct}. ${q.options[ci]||'N/A'}`;}}else if(q.type==='truefalse'){ok=a.answer===q.correct;}else if(q.type==='fillblank'){ok=a.answer?.toLowerCase().trim()===q.correct?.toLowerCase().trim();}const pts=ok?(q.points||1):0;return`<div class="question-review"><div class="question-review-header"><span class="question-number">Q${idx+1}</span><span>${pts}/${q.points||1} pts</span></div><div><strong>Q:</strong> ${escapeHtml(q.question)}</div><div class="student-answer ${ok?'answer-correct':'answer-wrong'}"><strong>A:</strong> ${escapeHtml(sa)}</div>${!ok?`<div class="correct-answer"><strong>Correct:</strong> ${escapeHtml(ca)}</div>`:''}</div>`;}).join('');}
+                return`<div class="student-card" id="sc_${sub.id}"><div class="student-header" onclick="toggleStudentCard('${sub.id}')"><div class="student-info"><div class="student-avatar">${init}</div><div class="student-details"><h4>${escapeHtml(name)}</h4><p>${sub.submittedAt?.toDate?.()?.toLocaleString()||'Unknown'}</p><p>${sub.correctCount||0} correct / ${sub.wrongCount||0} wrong</p></div></div><div class="student-status"><span class="score-display">${sub.score}/${exam.totalPoints} (${pct}% - ${grade})</span><i class="fas fa-chevron-down expand-icon"></i></div></div><div class="student-content"><h4 style="margin-bottom:1rem;">Answers Review</h4>${ah}<div class="grading-form"><h4 style="margin-bottom:1rem;">Feedback</h4><div class="form-group"><textarea id="fb_${sub.id}" rows="3" class="form-control" placeholder="Feedback...">${escapeHtml(sub.feedback||'')}</textarea></div><button class="btn btn-success" onclick="saveFeedback('${sub.id}')"><i class="fas fa-save"></i> Save Feedback</button></div></div></div>`;
+            }).join('');
+        }
+
+        window.toggleStudentCard = (id) => { document.getElementById(`sc_${id}`).classList.toggle('expanded'); };
+        window.saveFeedback = async (sid) => {
+            const fb=document.getElementById(`fb_${sid}`).value;
+            showLoading();
+            try{await db.collection('examSubmissions').doc(sid).update({feedback:fb,feedbackGivenAt:firebase.firestore.FieldValue.serverTimestamp(),feedbackGivenBy:currentUser.uid});alert('Feedback saved!');}
+            catch(e){alert('Error: '+e.message);}
+            finally{hideLoading();}
+        };
 
         // ==================== AUTH ====================
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
-            currentUser = user;
-            userData = userDoc.data();
-            document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
-            document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
-            subjects = userData.subjects || [];
-            renderSubjectTabs();
-            await loadSyllabus();
             try {
-                const resp = await fetch('https://firebaseremoteconfig.googleapis.com/v1/projects/triangle-6e6b7/namespaces/firebase/remoteConfig?key=AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0');
-                const data = await resp.json();
-                const key = data.parameters?.groq_api_key?.defaultValue?.value;
-                if (key && key !== '') groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true });
-            } catch (e) { console.log('AI not available'); }
-            loadPendingBadge();
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || doc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0]||'T')+(userData.surname?.[0]||'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                subjects = userData.subjects || [];
+
+                try { await remoteConfig.fetchAndActivate(); const key = remoteConfig.getString('groq_api_key'); if (key) groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true }); } catch(e) {}
+
+                await loadSyllabus();
+                renderSubjectTabs();
+                await loadManageTab();
+            } catch(e) { console.error('Auth error:', e); }
         });
-        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
-        document.getElementById('profileLink').addEventListener('click', () => window.location.href = 'teacher-profile.html');
 
-        // ==================== SUBJECT & WEEKS ====================
-        function renderSubjectTabs() {
-            const container = document.getElementById('subjectTabs');
-            if (!subjects.length) { container.innerHTML = '<span class="subject-tab" style="background:var(--warning-bg);">No subjects</span>'; return; }
-            container.innerHTML = subjects.map(s => `<span class="subject-tab" onclick="switchSubject('${escapeHtml(s)}', this)">${escapeHtml(s)}</span>`).join('');
-            if (subjects.length) switchSubject(subjects[0], container.children[0]);
-        }
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('profileLink').addEventListener('click', () => window.location.href='teacher-profile.html');
 
-        async function loadSyllabus() {
-            try {
-                const snap = await db.collection('syllabus').where('teacherId', '==', currentUser.uid).where('status', '==', 'approved').get();
-                syllabusWeeks = [];
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    (data.weeks || []).forEach(w => {
-                        syllabusWeeks.push({ subject: data.subject, week: w.week, topic: w.topic, objectives: w.objectives || '' });
-                    });
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        function switchSubject(subject, target) {
-            document.querySelectorAll('.subject-tab').forEach(t => t.classList.remove('active'));
-            if (target) target.classList.add('active');
-            currentSubject = subject;
-            document.getElementById('examSubject').value = subject;
-            const weeks = syllabusWeeks.filter(w => w.subject === subject).sort((a, b) => a.week - b.week);
-            const container = document.getElementById('weeksContainer');
-            if (!weeks.length) {
-                container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--warning-text);padding:2rem;">No syllabus weeks found</p>';
-            } else {
-                container.innerHTML = weeks.map(w => `
-                    <label class="week-checkbox">
-                        <input type="checkbox" value="${w.week}" onchange="toggleWeek(this)">
-                        <span><strong>Week ${w.week}:</strong> ${escapeHtml(w.topic)}</span>
-                    </label>`).join('');
-            }
-            selectedWeeks = [];
-        }
-        window.switchSubject = switchSubject;
-
-        function toggleWeek(cb) {
-            const week = parseInt(cb.value);
-            if (cb.checked) { if (!selectedWeeks.includes(week)) selectedWeeks.push(week); }
-            else { selectedWeeks = selectedWeeks.filter(w => w !== week); }
-            selectedWeeks.sort((a, b) => a - b);
-        }
-        window.toggleWeek = toggleWeek;
-
-        // ==================== UI UPDATES ====================
-        function updateAutoGradeUI() {
-            document.getElementById('autoGradeLabel').textContent = document.getElementById('autoGrade').checked ? 'Enabled - MCQ/TF auto-graded' : 'Disabled - All manual grading';
-        }
-        function updateNegMarkUI() {
-            document.getElementById('negMarkConfig').style.display = document.getElementById('enableNegMark').checked ? 'block' : 'none';
-        }
-
-        function updateScoreSummary() {
-            let objPoints = 0, theoryPoints = 0;
-            questions.forEach(q => {
-                const pts = parseInt(q.points) || 0;
-                if (q.type === 'theory') theoryPoints += pts;
-                else objPoints += pts;
-            });
-            document.getElementById('totalMCQPoints').textContent = objPoints;
-            document.getElementById('totalTheoryPoints').textContent = theoryPoints;
-            document.getElementById('grandTotalPoints').textContent = objPoints + theoryPoints;
-            document.getElementById('totalQuestions').textContent = questions.length;
-            document.getElementById('noQuestionsState').style.display = questions.length === 0 ? 'block' : 'none';
-        }
-
-        // ==================== QUESTION MANAGEMENT ====================
-        function addQuestion(type) {
-            const q = {
-                id: 'q_' + Date.now(),
-                type: type,
-                question: '',
-                points: type === 'theory' ? 5 : 2,
-                options: type === 'multiple' ? ['', '', '', ''] : [],
-                correct: type === 'boolean' ? 0 : (type === 'multiple' ? 0 : (type === 'fillblank' ? '' : '')),
-                difficulty: 'medium'
-            };
-            questions.push(q);
-            renderQuestions();
-        }
+        // ==================== EXPOSE ====================
         window.addQuestion = addQuestion;
-
-        function removeQuestion(qId) { questions = questions.filter(q => q.id !== qId); renderQuestions(); }
         window.removeQuestion = removeQuestion;
-
-        function updateQuestionField(qId, field, value, optionIndex = null) {
-            const q = questions.find(q => q.id === qId);
-            if (!q) return;
-            if (optionIndex !== null && q.options) q.options[optionIndex] = value;
-            else q[field] = value;
-            updateScoreSummary();
-        }
-        window.updateQuestionField = updateQuestionField;
-
-        function setCorrectAnswer(qId, value) {
-            const q = questions.find(q => q.id === qId);
-            if (!q) return;
-            if (q.type === 'boolean') q.correct = parseInt(value);
-            else if (q.type === 'multiple') q.correct = parseInt(value);
-            else q.correct = value;
-        }
-        window.setCorrectAnswer = setCorrectAnswer;
-
-        function renderQuestions() {
-            const container = document.getElementById('questionsContainer');
-            let html = '';
-            questions.forEach((q, idx) => {
-                html += `
-                <div class="question-block">
-                    <div class="question-header">
-                        <div style="display:flex;align-items:center;gap:0.75rem;">
-                            <div class="question-number">${idx + 1}</div>
-                            <span class="badge ${q.type === 'multiple' ? 'badge-info' : q.type === 'boolean' ? 'badge-success' : q.type === 'fillblank' ? 'badge-purple' : 'badge-warning'}">${q.type === 'multiple' ? 'MCQ' : q.type === 'boolean' ? 'T/F' : q.type === 'fillblank' ? 'Fill Blank' : 'Theory'}</span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:0.5rem;">
-                            <input type="number" class="form-control" style="width:70px;padding:0.3rem;" value="${q.points}" min="1" onchange="updateQuestionField('${q.id}','points',this.value)">
-                            <span style="font-size:0.7rem;color:var(--text-secondary);">pts</span>
-                            <button type="button" class="btn btn-danger btn-xs" onclick="removeQuestion('${q.id}')"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                    <div class="form-group"><textarea class="form-control" placeholder="Question text..." style="min-height:50px;" onchange="updateQuestionField('${q.id}','question',this.value)">${escapeHtml(q.question)}</textarea></div>`;
-                
-                if (q.type === 'multiple') {
-                    const labels = ['A', 'B', 'C', 'D'];
-                    html += `<div class="options-list"><label style="font-size:0.75rem;color:var(--text-secondary);">Options (select correct):</label>`;
-                    q.options.forEach((opt, oi) => {
-                        html += `<div class="option-row">
-                            <input type="radio" name="correct_${q.id}" value="${oi}" ${q.correct === oi ? 'checked' : ''} onchange="setCorrectAnswer('${q.id}',${oi})">
-                            <span style="font-weight:600;font-size:0.8rem;">${labels[oi]}</span>
-                            <input type="text" class="form-control" style="padding:0.4rem;" value="${escapeHtml(opt)}" onchange="updateQuestionField('${q.id}','options',this.value,${oi})">
-                        </div>`;
-                    });
-                    html += `</div>`;
-                } else if (q.type === 'boolean') {
-                    html += `<div style="display:flex;gap:1rem;margin-top:0.5rem;">
-                        <label class="option-row" style="flex:1;justify-content:center;"><input type="radio" name="correct_${q.id}" value="1" ${q.correct===1?'checked':''} onchange="setCorrectAnswer('${q.id}',1)"><span>✅ True</span></label>
-                        <label class="option-row" style="flex:1;justify-content:center;"><input type="radio" name="correct_${q.id}" value="0" ${q.correct===0?'checked':''} onchange="setCorrectAnswer('${q.id}',0)"><span>❌ False</span></label>
-                    </div>`;
-                } else if (q.type === 'fillblank') {
-                    html += `<input type="text" class="form-control" style="margin-top:0.5rem;" placeholder="Correct answer" value="${escapeHtml(q.correct)}" onchange="setCorrectAnswer('${q.id}',this.value)">`;
-                } else if (q.type === 'theory') {
-                    html += `<textarea class="form-control" style="margin-top:0.5rem;" placeholder="Model answer / grading rubric" onchange="setCorrectAnswer('${q.id}',this.value)">${escapeHtml(q.correct || '')}</textarea>
-                    <div class="info-callout" style="margin-top:0.5rem;"><i class="fas fa-info-circle"></i> Theory questions require manual grading after submission.</div>`;
-                }
-                html += `</div>`;
-            });
-            container.innerHTML = html;
-            updateScoreSummary();
-        }
-
-        // ==================== QUESTION BANK ====================
-        async function openQuestionBank() {
-            document.getElementById('questionBankModal').classList.add('active');
-            // Populate subject filter
-            const subjectFilter = document.getElementById('qbSubjectFilter');
-            subjectFilter.innerHTML = '<option value="">All Subjects</option>' + subjects.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-            if (currentSubject) subjectFilter.value = currentSubject;
-            await loadQuestionBank();
-        }
-        window.openQuestionBank = openQuestionBank;
-
-        function closeQuestionBank() { document.getElementById('questionBankModal').classList.remove('active'); selectedQBQuestions = []; }
-        window.closeQuestionBank = closeQuestionBank;
-
-        async function loadQuestionBank() {
-            try {
-                const subject = document.getElementById('qbSubjectFilter').value;
-                const type = document.getElementById('qbTypeFilter').value;
-                const snap = await db.collection('questionBank').where('teacherId', '==', currentUser.uid).get();
-                const allQuestions = [];
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    const qs = data.questions || [];
-                    qs.forEach(q => {
-                        if ((!subject || data.subject === subject) && (!type || q.type === type)) {
-                            allQuestions.push({ ...q, bankDocId: doc.id, subject: data.subject });
-                        }
-                    });
-                });
-                const container = document.getElementById('questionBankList');
-                if (!allQuestions.length) {
-                    container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:2rem;">No questions found in bank</p>';
-                } else {
-                    container.innerHTML = allQuestions.map((q, i) => `
-                        <div class="question-bank-item ${selectedQBQuestions.includes(i) ? 'selected' : ''}" onclick="toggleQBSelection(${i})" id="qbItem${i}">
-                            <div style="flex:1;">
-                                <strong>${escapeHtml((q.question || '').substring(0,80))}${(q.question||'').length>80?'...':''}</strong>
-                                <div style="font-size:0.7rem;color:var(--text-secondary);">${q.type} · ${escapeHtml(q.subject)} · ${q.points||1} pts</div>
-                            </div>
-                            ${selectedQBQuestions.includes(i) ? '<i class="fas fa-check-circle" style="color:#8b5cf6;"></i>' : '<i class="far fa-circle"></i>'}
-                        </div>`).join('');
-                }
-                window._qbQuestions = allQuestions;
-            } catch (e) { console.error(e); }
-        }
-        window.loadQuestionBank = loadQuestionBank;
-
-        function toggleQBSelection(index) {
-            if (selectedQBQuestions.includes(index)) {
-                selectedQBQuestions = selectedQBQuestions.filter(i => i !== index);
-            } else {
-                selectedQBQuestions.push(index);
-            }
-            loadQuestionBank();
-        }
-        window.toggleQBSelection = toggleQBSelection;
-
-        function importFromQuestionBank() {
-            if (!selectedQBQuestions.length) { alert('Select questions first'); return; }
-            const qs = window._qbQuestions || [];
-            selectedQBQuestions.forEach(i => {
-                const q = qs[i];
-                if (q) {
-                    const newQ = {
-                        id: 'q_' + Date.now() + '_' + i,
-                        type: q.type === 'multiple' ? 'multiple' : q.type === 'boolean' ? 'boolean' : q.type === 'fillblank' ? 'fillblank' : 'theory',
-                        question: q.question,
-                        points: q.points || 1,
-                        options: q.options || ['', '', '', ''],
-                        correct: q.correct,
-                        difficulty: q.difficulty || 'medium'
-                    };
-                    questions.push(newQ);
-                }
-            });
-            renderQuestions();
-            closeQuestionBank();
-            alert(`Imported ${selectedQBQuestions.length} questions from bank`);
-        }
-        window.importFromQuestionBank = importFromQuestionBank;
-
-        // ==================== BULK CSV ====================
-        function openBulkModal() { document.getElementById('bulkModal').classList.add('active'); }
-        function closeBulkModal() { document.getElementById('bulkModal').classList.remove('active'); csvData = []; document.getElementById('csvPreview').style.display = 'none'; }
-        window.openBulkModal = openBulkModal;
-        window.closeBulkModal = closeBulkModal;
-
-        document.getElementById('uploadArea').addEventListener('click', () => document.getElementById('csvFile').click());
-        document.getElementById('uploadArea').addEventListener('dragover', (e) => { e.preventDefault(); });
-        document.getElementById('uploadArea').addEventListener('drop', (e) => {
-            e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.csv')) processCSVFile(file);
-        });
-        document.getElementById('csvFile').addEventListener('change', (e) => { if (e.target.files[0]) processCSVFile(e.target.files[0]); });
-
-        function processCSVFile(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const lines = e.target.result.split('\n');
-                csvData = [];
-                for (let i = 1; i < lines.length; i++) {
-                    if (!lines[i].trim()) continue;
-                    const row = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                    if (row.length >= 7) {
-                        const correct = row[5].toUpperCase();
-                        if (!['A','B','C','D'].includes(correct)) continue;
-                        csvData.push({
-                            question: row[0], options: [row[1], row[2], row[3], row[4]],
-                            correct: {A:0, B:1, C:2, D:3}[correct], points: parseInt(row[6]) || 1,
-                            type: 'multiple', difficulty: 'medium'
-                        });
-                    }
-                }
-                const preview = document.getElementById('csvPreview');
-                preview.innerHTML = `<p style="margin-top:0.5rem;"><strong>Parsed ${csvData.length} questions</strong></p>`;
-                preview.style.display = 'block';
-            };
-            reader.readAsText(file);
-        }
-
-        function importCSVQuestions() {
-            if (!csvData.length) { alert('No valid questions'); return; }
-            csvData.forEach(q => {
-                questions.push({
-                    id: 'q_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
-                    type: 'multiple', question: q.question, points: q.points,
-                    options: q.options, correct: q.correct, difficulty: 'medium'
-                });
-            });
-            renderQuestions();
-            closeBulkModal();
-            alert(`Imported ${csvData.length} questions`);
-        }
-        window.importCSVQuestions = importCSVQuestions;
-
-        function downloadCSVTemplate() {
-            const csv = 'Question,Option A,Option B,Option C,Option D,Correct Answer,Points\n"What is 2+2?",1,2,3,4,C,2\n"Capital of France?",London,Berlin,Paris,Madrid,C,1';
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'exam_template.csv';
-            a.click();
-        }
-        window.downloadCSVTemplate = downloadCSVTemplate;
-
-        // ==================== AI GENERATION ====================
-        function openAIModal() { document.getElementById('aiModal').classList.add('active'); }
-        function closeAIModal() { document.getElementById('aiModal').classList.remove('active'); }
-        window.openAIModal = openAIModal;
+        window.setCorrect = setCorrect;
+        window.editQuestion = editQuestion;
+        window.toggleWeek = toggleWeek;
         window.closeAIModal = closeAIModal;
-
-        async function generateFromLessonNotes() {
-            if (!groq) { alert('AI not available'); return; }
-            if (!selectedWeeks.length) { alert('Select weeks first'); return; }
-            const count = document.getElementById('aiCount').value;
-            const difficulty = document.getElementById('aiDifficulty').value;
-            const type = document.getElementById('aiType').value;
-            const chatDiv = document.getElementById('aiChat');
-            chatDiv.innerHTML = '<p>Generating...</p>';
-            showLoading();
-            try {
-                const syllabusSnap = await db.collection('syllabus').where('teacherId','==',currentUser.uid).where('subject','==',currentSubject).where('status','==','approved').limit(1).get();
-                if (syllabusSnap.empty) { chatDiv.innerHTML = '<p>No approved syllabus found</p>'; hideLoading(); return; }
-                const syllabusId = syllabusSnap.docs[0].id;
-                const notesSnap = await db.collection('lessonNotes').where('teacherId','==',currentUser.uid).where('syllabusId','==',syllabusId).where('week','in',selectedWeeks).where('status','==','approved').get();
-                let content = '';
-                notesSnap.forEach(doc => {
-                    const d = doc.data();
-                    content += `Week ${d.week}: ${d.topic}\n${(d.content||'').substring(0,3000)}\n---\n`;
-                });
-                if (!content) { chatDiv.innerHTML = '<p>No lesson notes found for selected weeks</p>'; hideLoading(); return; }
-                const typeMap = { multiple: 'MCQ with options A-D', boolean: 'True/False', fillblank: 'Fill in the Blank' };
-                const prompt = `Create ${count} ${difficulty} ${typeMap[type]} questions based on:\n${content}\nReturn JSON: [{"question":"...","options":["A","B","C","D"],"correct":"A","points":1}]`;
-                const res = await groq.chat.completions.create({ messages: [{ role: 'user', content: prompt }], model: 'llama-3.3-70b-versatile', temperature: 0.4 });
-                const text = res.choices[0].message.content;
-                const match = text.match(/\[[\s\S]*\]/);
-                if (!match) throw new Error('No JSON found');
-                lastGenerated = JSON.parse(match[0]).map(q => ({
-                    type: type === 'multiple' ? 'multiple' : type === 'boolean' ? 'boolean' : 'fillblank',
-                    question: q.question,
-                    points: q.points || 1,
-                    options: q.options || ['','','',''],
-                    correct: q.correct,
-                    difficulty: difficulty
-                }));
-                chatDiv.innerHTML = `<p>✅ Generated ${lastGenerated.length} questions. Click "Insert Questions" to add.</p>`;
-            } catch (e) { chatDiv.innerHTML = `<p>❌ Error: ${e.message}</p>`; }
-            finally { hideLoading(); }
-        }
+        window.closeBulkModal = closeBulkModal;
         window.generateFromLessonNotes = generateFromLessonNotes;
-
-        function insertAIGenerated() {
-            if (!lastGenerated.length) { alert('Generate questions first'); return; }
-            lastGenerated.forEach(q => {
-                questions.push({
-                    id: 'q_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
-                    ...q,
-                    correct: q.type === 'multiple' ? (typeof q.correct === 'string' ? {A:0,B:1,C:2,D:3}[q.correct.toUpperCase()] : q.correct) : q.correct
-                });
-            });
-            renderQuestions();
-            closeAIModal();
-            alert(`Added ${lastGenerated.length} questions`);
-        }
         window.insertAIGenerated = insertAIGenerated;
-
-        // ==================== SAVE EXAM ====================
-        async function saveExamDraft(event) { event.preventDefault(); await saveExamToDB('draft'); }
-        async function saveExam(event, status) { event.preventDefault(); await saveExamToDB(status || 'published'); }
-        window.saveExamDraft = saveExamDraft;
-
-        async function saveExamToDB(status) {
-            const title = document.getElementById('examTitle').value.trim();
-            const subject = currentSubject;
-            const examClass = document.getElementById('examClass').value.trim();
-            const duration = parseInt(document.getElementById('examDuration').value) || 120;
-            const term = document.getElementById('examTerm').value;
-            const examType = document.getElementById('examType').value;
-            const instructions = document.getElementById('examInstructions').value;
-            const startDate = document.getElementById('examStartDate').value;
-            const endDate = document.getElementById('examEndDate').value;
-
-            if (!subject || !title || !examClass) { alert('Fill all required fields'); return; }
-            if (!selectedWeeks.length) { alert('Select at least one week'); return; }
-            if (!questions.length) { alert('Add at least one question'); return; }
-
-            const invalidQ = questions.find(q => !q.question.trim());
-            if (invalidQ) { alert('All questions must have text'); return; }
-
-            showLoading();
-            try {
-                const autoGrade = document.getElementById('autoGrade').checked;
-                const showImmediate = document.getElementById('showImmediate').checked;
-                const enableNegMark = document.getElementById('enableNegMark').checked;
-                const totalPoints = questions.reduce((sum, q) => sum + (parseInt(q.points) || 0), 0);
-                const theoryCount = questions.filter(q => q.type === 'theory').length;
-
-                const examData = {
-                    title, subject, class: examClass, duration, term, examType,
-                    instructions: instructions || '',
-                    weeksCovered: selectedWeeks,
-                    autoGrade, showImmediate,
-                    randomizeQuestions: document.getElementById('randomizeQuestions').checked,
-                    randomizeOptions: document.getElementById('randomizeOptions').checked,
-                    negativeMarking: {
-                        enabled: enableNegMark,
-                        penalty: enableNegMark ? parseFloat(document.getElementById('negMarkPenalty').value) || 0 : 0,
-                        applyTo: document.getElementById('negMarkApplyTo').value
-                    },
-                    questions: questions.map((q, idx) => ({
-                        questionIndex: idx,
-                        type: q.type,
-                        question: q.question.trim(),
-                        points: parseInt(q.points) || 1,
-                        options: q.type === 'multiple' ? q.options.map(o => o.trim()) : [],
-                        correct: q.correct,
-                        difficulty: q.difficulty || 'medium'
-                    })),
-                    totalPoints, theoryCount, status,
-                    teacherId: currentUser.uid,
-                    teacherName: `${userData.firstName||''} ${userData.surname||''}`.trim(),
-                    ...(startDate ? { startDate: new Date(startDate) } : {}),
-                    ...(endDate ? { endDate: new Date(endDate) } : {}),
-                    publishedAt: status === 'published' ? firebase.firestore.FieldValue.serverTimestamp() : null,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                if (editingExamId) {
-                    await db.collection('exams').doc(editingExamId).update(examData);
-                } else {
-                    const ref = await db.collection('exams').add(examData);
-                    editingExamId = ref.id;
-                }
-
-                alert(`Exam "${title}" ${status === 'published' ? 'published' : 'saved as draft'}!`);
-                resetForm();
-                switchTab('manage');
-            } catch (e) { console.error(e); alert('Error: ' + e.message); }
-            finally { hideLoading(); }
-        }
-
-        function resetForm() {
-            document.getElementById('examForm').reset();
-            document.getElementById('autoGrade').checked = true;
-            document.getElementById('showImmediate').checked = true;
-            document.getElementById('randomizeQuestions').checked = true;
-            document.getElementById('randomizeOptions').checked = true;
-            document.getElementById('enableNegMark').checked = false;
-            updateAutoGradeUI();
-            updateNegMarkUI();
-            questions = [];
-            editingExamId = null;
-            selectedWeeks = [];
-            renderQuestions();
-        }
-
-        // ==================== LOAD EXAM LIST ====================
-        async function loadExamList() {
-            try {
-                const snap = await db.collection('exams').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').get();
-                const exams = [];
-                snap.forEach(doc => exams.push({ id: doc.id, ...doc.data() }));
-                const tbody = document.getElementById('examListBody');
-                if (!exams.length) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No exams created yet</td></tr>';
-                } else {
-                    tbody.innerHTML = exams.map(e => {
-                        const statusClass = e.status === 'published' ? 'badge-success' : e.status === 'draft' ? 'badge-warning' : 'badge-danger';
-                        const negInfo = e.negativeMarking?.enabled ? ` <span class="badge badge-danger">-${e.negativeMarking.penalty}</span>` : '';
-                        return `<tr>
-                            <td><strong>${escapeHtml(e.title)}</strong></td>
-                            <td>${escapeHtml(e.subject)}</td>
-                            <td>${escapeHtml(e.class)}</td>
-                            <td>${e.questions?.length||0} (${e.theoryCount||0} theory)</td>
-                            <td>${e.totalPoints||0}${negInfo}</td>
-                            <td><span class="badge ${statusClass}">${e.status}</span></td>
-                            <td>${e.createdAt?.toDate?.()?.toLocaleDateString?.()||'N/A'}</td>
-                            <td>
-                                <button class="btn btn-outline btn-xs" onclick="editExam('${e.id}')"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline btn-xs" onclick="duplicateExam('${e.id}')"><i class="fas fa-copy"></i></button>
-                                <button class="btn btn-danger btn-xs" onclick="deleteExam('${e.id}')"><i class="fas fa-trash"></i></button>
-                            </td></tr>`;
-                    }).join('');
-                }
-            } catch (e) { console.error(e); }
-        }
-        window.loadExamList = loadExamList;
-
-        async function editExam(examId) {
-            showLoading();
-            try {
-                const doc = await db.collection('exams').doc(examId).get();
-                if (!doc.exists) { alert('Not found'); return; }
-                const e = doc.data();
-                editingExamId = examId;
-                document.getElementById('examTitle').value = e.title || '';
-                document.getElementById('examClass').value = e.class || '';
-                document.getElementById('examDuration').value = e.duration || 120;
-                document.getElementById('examTerm').value = e.term || 'first';
-                document.getElementById('examType').value = e.examType || 'endterm';
-                document.getElementById('examInstructions').value = e.instructions || '';
-                document.getElementById('autoGrade').checked = e.autoGrade !== false;
-                document.getElementById('showImmediate').checked = e.showImmediate !== false;
-                document.getElementById('randomizeQuestions').checked = e.randomizeQuestions !== false;
-                document.getElementById('randomizeOptions').checked = e.randomizeOptions !== false;
-                document.getElementById('enableNegMark').checked = e.negativeMarking?.enabled || false;
-                if (e.negativeMarking?.enabled) {
-                    document.getElementById('negMarkPenalty').value = e.negativeMarking.penalty || 0;
-                    document.getElementById('negMarkApplyTo').value = e.negativeMarking.applyTo || 'all';
-                }
-                updateAutoGradeUI();
-                updateNegMarkUI();
-                currentSubject = e.subject;
-                document.getElementById('examSubject').value = e.subject;
-                selectedWeeks = e.weeksCovered || [];
-                // Restore week checkboxes
-                const weeks = syllabusWeeks.filter(w => w.subject === currentSubject);
-                const container = document.getElementById('weeksContainer');
-                container.innerHTML = weeks.map(w => `
-                    <label class="week-checkbox">
-                        <input type="checkbox" value="${w.week}" ${selectedWeeks.includes(w.week)?'checked':''} onchange="toggleWeek(this)">
-                        <span><strong>Week ${w.week}:</strong> ${escapeHtml(w.topic)}</span>
-                    </label>`).join('');
-                questions = (e.questions || []).map(q => ({
-                    id: 'q_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
-                    type: q.type === 'multiple' ? 'multiple' : q.type === 'boolean' ? 'boolean' : q.type === 'fillblank' ? 'fillblank' : 'theory',
-                    question: q.question,
-                    points: q.points,
-                    options: q.options || ['','','',''],
-                    correct: q.correct,
-                    difficulty: q.difficulty || 'medium'
-                }));
-                renderQuestions();
-                switchTab('create');
-                window.scrollTo(0,0);
-            } catch (e) { console.error(e); }
-            finally { hideLoading(); }
-        }
+        window.toggleStudentCard = toggleStudentCard;
+        window.saveFeedback = saveFeedback;
+        window.publishExam = publishExam;
         window.editExam = editExam;
-
-        async function duplicateExam(examId) {
-            showLoading();
-            try {
-                const doc = await db.collection('exams').doc(examId).get();
-                if (!doc.exists) { alert('Not found'); return; }
-                const data = doc.data();
-                await db.collection('exams').add({ ...data, title: (data.title||'') + ' (Copy)', status: 'draft', createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                alert('Duplicated as draft!');
-                loadExamList();
-            } catch (e) { console.error(e); }
-            finally { hideLoading(); }
-        }
+        window.goToGrade = goToGrade;
         window.duplicateExam = duplicateExam;
-
-        async function deleteExam(examId) {
-            if (!confirm('Delete this exam? This cannot be undone.')) return;
-            await db.collection('exams').doc(examId).delete();
-            alert('Deleted.');
-            loadExamList();
-        }
-        window.deleteExam = deleteExam;
-
-        // ==================== GRADE THEORY ====================
-        async function loadPendingBadge() {
-            try {
-                const examsSnap = await db.collection('exams').where('teacherId','==',currentUser.uid).get();
-                let total = 0;
-                for (const doc of examsSnap.docs) {
-                    const subsSnap = await db.collection('examSubmissions').where('examId','==',doc.id).where('fullyGraded','==',false).get();
-                    total += subsSnap.size;
-                }
-                document.getElementById('pendingGradeBadge').textContent = total;
-            } catch (e) { console.error(e); }
-        }
-
-        async function loadPendingGrading() {
-            showLoading();
-            try {
-                const examsSnap = await db.collection('exams').where('teacherId','==',currentUser.uid).get();
-                const exams = [];
-                examsSnap.forEach(doc => exams.push({ id: doc.id, ...doc.data() }));
-                let allPending = [];
-                for (const exam of exams) {
-                    const subsSnap = await db.collection('examSubmissions').where('examId','==',exam.id).where('fullyGraded','==',false).get();
-                    subsSnap.forEach(doc => allPending.push({ submissionId: doc.id, examId: exam.id, examTitle: exam.title, ...doc.data() }));
-                }
-                const container = document.getElementById('pendingGradingContainer');
-                if (!allPending.length) {
-                    container.innerHTML = '<div class="empty-state" style="padding:2rem;"><i class="fas fa-check-circle"></i><h3>No Pending Grading</h3></div>';
-                } else {
-                    const studentIds = [...new Set(allPending.map(s => s.studentId).filter(Boolean))];
-                    const names = {};
-                    for (const id of studentIds) {
-                        const uDoc = await db.collection('users').doc(id).get();
-                        if (uDoc.exists) { const d = uDoc.data(); names[id] = `${d.firstName||''} ${d.surname||''}`.trim() || 'Unknown'; }
-                    }
-                    let html = '';
-                    allPending.forEach(sub => {
-                        const exam = exams.find(e => e.id === sub.examId);
-                        const ungraded = [];
-                        if (sub.answers && exam?.questions) {
-                            sub.answers.forEach((ans, idx) => {
-                                const q = exam.questions.find(qq => qq.questionIndex === idx);
-                                if (q && q.type === 'theory' && ans.answer && !ans.graded) {
-                                    ungraded.push({ ...ans, question: q, index: idx });
-                                }
-                            });
-                        }
-                        if (ungraded.length) {
-                            html += `<div class="card" style="margin-bottom:1rem;">
-                                <div class="card-header"><div><h4>${escapeHtml(sub.examTitle)}</h4><span style="font-size:0.8rem;">Student: <strong>${escapeHtml(names[sub.studentId]||'Unknown')}</strong></span></div></div>`;
-                            ungraded.forEach(ans => {
-                                html += `<div style="padding:1rem;border-bottom:1px solid var(--border);">
-                                    <p style="font-weight:600;">Q${ans.index+1}: ${escapeHtml(ans.question.question)} <span class="badge badge-warning">${ans.question.points} pts</span></p>
-                                    <div style="background:var(--input-bg);padding:1rem;border-radius:0.8rem;margin:0.5rem 0;"><strong>Answer:</strong> ${escapeHtml(ans.answer||'No answer')}</div>
-                                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                                        <input type="number" class="form-control" style="width:100px;" placeholder="Score" min="0" max="${ans.question.points}" onchange="quickGradeTheory('${sub.submissionId}',${ans.index},'${sub.examId}',this.value,${ans.question.points})">
-                                        <span>/ ${ans.question.points}</span>
-                                    </div></div>`;
-                            });
-                            html += `</div>`;
-                        }
-                    });
-                    container.innerHTML = html || '<div class="empty-state" style="padding:2rem;"><i class="fas fa-check-circle"></i><h3>No Pending Grading</h3></div>';
-                }
-            } catch (e) { console.error(e); }
-            finally { hideLoading(); loadPendingBadge(); }
-        }
-        window.loadPendingGrading = loadPendingGrading;
-
-        async function quickGradeTheory(submissionId, qIdx, examId, score, maxPoints) {
-            score = parseFloat(score);
-            if (isNaN(score) || score < 0 || score > maxPoints) return;
-            try {
-                const subRef = db.collection('examSubmissions').doc(submissionId);
-                const subDoc = await subRef.get();
-                const data = subDoc.data();
-                const answers = data.answers || [];
-                if (answers[qIdx]) { answers[qIdx].graded = true; answers[qIdx].score = score; }
-                const examDoc = await db.collection('exams').doc(examId).get();
-                const examData = examDoc.data();
-                let totalScore = 0, allGraded = true;
-                answers.forEach((ans, idx) => {
-                    const q = examData.questions?.find(qq => qq.questionIndex === idx);
-                    if (q) {
-                        if (q.type === 'theory') {
-                            if (ans.graded) totalScore += ans.score || 0;
-                            else allGraded = false;
-                        } else if (ans.isCorrect) totalScore += q.points || 0;
-                        else if (data.negativeMarking?.enabled && q.type !== 'theory') {
-                            const penalty = data.negativeMarking.penalty || 0;
-                            totalScore -= penalty;
-                        }
-                    }
-                });
-                totalScore = Math.max(0, totalScore);
-                await subRef.update({
-                    answers, score: totalScore, fullyGraded: allGraded,
-                    gradedAt: allGraded ? firebase.firestore.FieldValue.serverTimestamp() : null
-                });
-                if (allGraded) { alert('Fully graded! Score: ' + totalScore); loadPendingGrading(); }
-            } catch (e) { console.error(e); }
-        }
-        window.quickGradeTheory = quickGradeTheory;
-
-        // ==================== VIEW RESULTS ====================
-        async function loadResultExamSelect() {
-            const snap = await db.collection('exams').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').get();
-            const select = document.getElementById('resultExamSelect');
-            select.innerHTML = '<option value="">-- Select an exam --</option>';
-            snap.forEach(doc => {
-                const d = doc.data();
-                select.innerHTML += `<option value="${doc.id}">${escapeHtml(d.title)} (${escapeHtml(d.subject)})</option>`;
-            });
-        }
-
-        async function loadExamResults() {
-            const examId = document.getElementById('resultExamSelect')?.value;
-            if (!examId) { document.getElementById('resultsContainer').innerHTML = ''; return; }
-            showLoading();
-            try {
-                const examDoc = await db.collection('exams').doc(examId).get();
-                const examData = examDoc.data();
-                const subsSnap = await db.collection('examSubmissions').where('examId','==',examId).get();
-                const subs = [];
-                subsSnap.forEach(doc => subs.push(doc.data()));
-                const studentIds = [...new Set(subs.map(s => s.studentId).filter(Boolean))];
-                const names = {};
-                for (const id of studentIds) {
-                    const uDoc = await db.collection('users').doc(id).get();
-                    if (uDoc.exists) { const d = uDoc.data(); names[id] = `${d.firstName||''} ${d.surname||''}`.trim() || 'Unknown'; }
-                }
-                const totalPoints = examData.totalPoints || 100;
-                const scores = subs.map(s => ({
-                    name: names[s.studentId] || 'Unknown',
-                    score: s.score || 0,
-                    percentage: totalPoints > 0 ? ((s.score||0)/totalPoints)*100 : 0,
-                    graded: s.fullyGraded,
-                    submittedAt: s.submittedAt?.toDate?.() || new Date()
-                })).sort((a,b) => b.score - a.score);
-
-                document.getElementById('resultsContainer').innerHTML = `
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
-                    <div class="score-box"><div class="big-number">${subs.length}</div><div class="small-label">Submissions</div></div>
-                    <div class="score-box"><div class="big-number">${scores.length>0?(scores.reduce((s,r)=>s+r.percentage,0)/scores.length).toFixed(1):0}%</div><div class="small-label">Average</div></div>
-                    <div class="score-box"><div class="big-number">${scores.length>0?scores[0].percentage.toFixed(1):0}%</div><div class="small-label">Highest</div></div>
-                </div>
-                <div class="card"><div class="card-header"><h3>Student Scores</h3></div>
-                <div class="table-responsive"><table><thead><tr><th>Rank</th><th>Student</th><th>Score</th><th>%</th><th>Grade</th><th>Status</th></tr></thead><tbody>
-                ${scores.map((s,idx)=>{
-                    const grade = s.percentage>=75?'A':s.percentage>=65?'B':s.percentage>=50?'C':s.percentage>=40?'D':'F';
-                    const gc = grade==='A'?'badge-success':grade==='B'?'badge-info':grade==='C'?'badge-warning':'badge-danger';
-                    const medal = idx===0?'🏆':idx===1?'🥈':idx===2?'🥉':'';
-                    return `<tr><td>${idx+1}${medal}</td><td><strong>${escapeHtml(s.name)}</strong></td><td>${s.score}/${totalPoints}</td><td>${s.percentage.toFixed(1)}%</td><td><span class="badge ${gc}">${grade}</span></td><td>${s.graded?'<span class="badge badge-success">Graded</span>':'<span class="badge badge-warning">Pending</span>'}</td></tr>`;
-                }).join('')}
-                </tbody></table></div></div>`;
-            } catch (e) { console.error(e); }
-            finally { hideLoading(); }
-        }
-        window.loadExamResults = loadExamResults;
-
-        // ==================== INIT ====================
-        updateAutoGradeUI();
-        updateNegMarkUI();
-        renderQuestions();
-</script>
+    </script>
 </body>
 </html>
