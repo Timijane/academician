@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Academic Review | Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: #dcfce7; --success-text: #16a34a; --warning-bg: #fef9c3;
+            --warning-text: #ca8a04; --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb; --input-bg: rgba(255,255,255,0.9);
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15,23,42,0.6); --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa;
+            --input-bg: rgba(30,41,59,0.8); --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: all 0.3s ease; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.08), transparent 70%); filter: blur(80px); z-index: 0; animation: float 20s infinite alternate; pointer-events: none; }
+        .orb-1 { top: -150px; right: -100px; } .orb-2 { bottom: -200px; left: -50px; width: 500px; height: 500px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px, 30px) scale(1.15); } }
+
+        .main-container { max-width: 1500px; margin: 0 auto; padding: 1.5rem; position: relative; z-index: 5; }
+
+        /* Top Navigation */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); flex-wrap: wrap; gap: 1rem; }
+        .nav-left { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+        .nav-logo { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-logo i { font-size: 2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-logo h2 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 0.75rem; align-items: center; }
+        .nav-link { padding: 0.6rem 1.2rem; border-radius: 0.75rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; }
+        .nav-link:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Tab Navigation */
+        .tab-navigation { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 0.4rem; overflow-x: auto; box-shadow: var(--shadow); }
+        .tab-btn { padding: 0.8rem 1.5rem; border-radius: 1.25rem; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; font-family: inherit; }
+        .tab-btn:hover { background: var(--hover-bg); color: var(--accent); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .tab-content { display: none; animation: fadeSlideIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Sub Tabs */
+        .sub-tabs { display: flex; gap: 0.3rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .sub-tab { padding: 0.5rem 1.2rem; border-radius: 1.5rem; font-weight: 500; cursor: pointer; font-size: 0.8rem; color: var(--text-secondary); border: 1px solid var(--border); background: transparent; font-family: inherit; }
+        .sub-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; text-align: center; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+        .stat-card h3 { font-size: 2rem; font-weight: 700; color: var(--accent); }
+        .stat-card p { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; }
+
+        /* Cards */
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Filters */
+        .filters-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+        .search-box { flex: 1; min-width: 200px; position: relative; }
+        .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); }
+        .filter-select { padding: 0.75rem 1rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); }
+        .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-family: inherit; }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        th { background: var(--hover-bg); font-weight: 600; color: var(--text-secondary); }
+        tr:hover td { background: var(--hover-bg); cursor: pointer; }
+
+        /* Badges */
+        .badge { padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+        .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-approved { background: var(--success-bg); color: var(--success-text); }
+        .badge-published { background: var(--success-bg); color: var(--success-text); }
+        .badge-rejected { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-draft { background: var(--warning-bg); color: var(--warning-text); }
+        .type-badge { background: var(--accent); color: white; padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem; }
+
+        /* Buttons */
+        .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+        .error-message { background: var(--danger-bg); color: var(--danger-text); padding: 1rem; border-radius: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--danger-text); }
+        .error-message a { color: var(--accent); text-decoration: underline; }
+
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 0.75rem; }
+            .top-nav { flex-direction: column; align-items: stretch; }
+            .nav-left { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="main-container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <h2>Admin Panel</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="admin-dashboard.html" class="nav-link"><i class="fas fa-arrow-left"></i> Dashboard</a>
+                    <a href="admin-approvals.html" class="nav-link"><i class="fas fa-user-check"></i> Approvals Hub</a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Admin</span><div class="profile-pic" id="profilePic">A</div></div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation" id="tabNavigation">
+            <button class="tab-btn active" data-tab="lessonnotes"><i class="fas fa-book-open"></i> Lesson Notes</button>
+            <button class="tab-btn" data-tab="timetables"><i class="fas fa-calendar-alt"></i> Timetables</button>
+            <button class="tab-btn" data-tab="reportcards"><i class="fas fa-graduation-cap"></i> Report Cards</button>
+        </div>
+
+        <!-- ==================== TAB 1: LESSON NOTES ==================== -->
+        <div class="tab-content active" id="tab-lessonnotes">
+            <div id="indexError" class="error-message" style="display:none;"></div>
+
+            <div class="sub-tabs" id="lessonSubTabs">
+                <button class="sub-tab active" data-sub="syllabus">Pending Syllabi</button>
+                <button class="sub-tab" data-sub="lessonNotes">Pending Lesson Notes</button>
+            </div>
+
+            <!-- Syllabi Table -->
+            <div class="card" id="syllabusSection">
+                <div class="card-header"><h3><i class="fas fa-list"></i> Pending Syllabus Proposals</h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Teacher</th><th>Subject</th><th>Class</th><th>Submitted</th><th>Weeks</th><th>Actions</th></tr></thead>
+                        <tbody id="syllabusBody"><tr><td colspan="6">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Lesson Notes Table -->
+            <div class="card" id="lessonNotesSection" style="display:none;">
+                <div class="card-header"><h3><i class="fas fa-book"></i> Pending Lesson Notes</h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Teacher</th><th>Subject</th><th>Week</th><th>Topic</th><th>Submitted</th><th>Actions</th></tr></thead>
+                        <tbody id="lessonNotesBody"><tr><td colspan="6">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: TIMETABLES ==================== -->
+        <div class="tab-content" id="tab-timetables">
+            <div class="sub-tabs" id="timetableSubTabs">
+                <button class="sub-tab active" data-sub="pending">Pending</button>
+                <button class="sub-tab" data-sub="approved">Approved</button>
+                <button class="sub-tab" data-sub="rejected">Rejected</button>
+            </div>
+
+            <!-- Pending Timetables -->
+            <div class="card" id="timetablePendingSection">
+                <div class="card-header"><h3><i class="fas fa-clock"></i> Pending Proposals</h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Status</th></tr></thead>
+                        <tbody id="timetablePendingBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Approved Timetables -->
+            <div class="card" id="timetableApprovedSection" style="display:none;">
+                <div class="card-header"><h3><i class="fas fa-check-circle"></i> Approved Timetables</h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Approved On</th><th>Published</th></tr></thead>
+                        <tbody id="timetableApprovedBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Rejected Timetables -->
+            <div class="card" id="timetableRejectedSection" style="display:none;">
+                <div class="card-header"><h3><i class="fas fa-times-circle"></i> Rejected Proposals</h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Type</th><th>Class</th><th>Teacher</th><th>Submitted</th><th>Feedback</th></tr></thead>
+                        <tbody id="timetableRejectedBody"><tr><td colspan="5">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: REPORT CARDS ==================== -->
+        <div class="tab-content" id="tab-reportcards">
+            <div class="stats-grid" id="reportStats">
+                <div class="stat-card"><h3 id="rcPending">0</h3><p>Pending</p></div>
+                <div class="stat-card"><h3 id="rcApproved">0</h3><p>Approved</p></div>
+                <div class="stat-card"><h3 id="rcPublished">0</h3><p>Published</p></div>
+                <div class="stat-card"><h3 id="rcDraft">0</h3><p>Drafts</p></div>
+            </div>
+
+            <div class="filters-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="rcSearchInput" placeholder="Search by teacher, class, session...">
+                </div>
+                <select id="rcStatusFilter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="pending_approval">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="published">Published</option>
+                    <option value="draft">Draft</option>
+                </select>
+                <select id="rcTermFilter" class="filter-select">
+                    <option value="all">All Terms</option>
+                    <option value="first">First Term</option>
+                    <option value="second">Second Term</option>
+                    <option value="third">Third Term</option>
+                </select>
+                <button class="btn btn-outline btn-sm" id="rcRefreshBtn"><i class="fas fa-sync-alt"></i></button>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-list"></i> Report Cards</h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr><th>Session/Term</th><th>Class</th><th>Teacher</th><th>Students</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="rcBody"><tr><td colspan="7">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal (Lesson Notes & Timetables) -->
+    <div class="modal-overlay" id="reviewModal">
+        <div class="modal-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3 id="modalTitle">Review</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeReviewModal()"></i>
+            </div>
+            <div id="modalContent"></div>
+            <textarea id="feedbackInput" class="form-control" placeholder="Feedback (required for rejection)" style="margin-top:1rem;"></textarea>
+            <div class="btn-group" style="justify-content:flex-end;margin-top:1rem;">
+                <button class="btn btn-success" id="modalApproveBtn"><i class="fas fa-check"></i> Approve</button>
+                <button class="btn btn-danger" id="modalRejectBtn"><i class="fas fa-times"></i> Reject</button>
+                <button class="btn btn-outline" onclick="closeReviewModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Card Detail Modal -->
+    <div class="modal-overlay" id="rcDetailModal">
+        <div class="modal-content" style="max-width:900px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3>Report Card Details</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeRcDetailModal()"></i>
+            </div>
+            <div id="rcDetailContent"></div>
+            <div class="form-group" style="margin-top:1rem;">
+                <label>Admin Remark</label>
+                <textarea id="rcAdminRemark" class="form-control" rows="3" placeholder="Remark..."></textarea>
+            </div>
+            <div class="btn-group" style="justify-content:flex-end;margin-top:1rem;">
+                <button class="btn btn-danger" id="rcRejectBtn"><i class="fas fa-times"></i> Reject</button>
+                <button class="btn btn-success" id="rcApproveBtn"><i class="fas fa-check"></i> Approve</button>
+                <button class="btn btn-primary" id="rcPublishBtn"><i class="fas fa-globe"></i> Publish</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin fa-2x"></i><h3 style="margin-top:1rem;">Processing...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ==================== STATE ====================
+        let currentUser = null, userData = null;
+        let currentReviewItem = null; // { type, id, data }
+        let currentRcItem = null;
+        let allReportCards = [];
+
+        // ==================== UTILITY ====================
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function handleFirestoreError(error, context) {
+            console.error(`Error in ${context}:`, error);
+            const errorDiv = document.getElementById('indexError');
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                errorDiv.innerHTML = `<strong>Missing Index.</strong> <a href="${match?.[0]||'#'}" target="_blank">Create it here</a>`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // ==================== THEME ====================
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        // ==================== MAIN TABS ====================
+        document.getElementById('tabNavigation').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document.querySelectorAll('#tabNavigation .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            if (btn.dataset.tab === 'timetables') loadTimetablePending();
+            if (btn.dataset.tab === 'reportcards') loadReportCards();
+        });
+
+        // ==================== TEACHER NAME HELPER ====================
+        async function fetchTeacherNames(teacherIds) {
+            const map = {};
+            for (let i = 0; i < teacherIds.length; i += 10) {
+                const chunk = teacherIds.slice(i, i+10);
+                const snaps = await Promise.all(chunk.map(id => db.collection('users').doc(id).get()));
+                snaps.forEach(snap => { if (snap.exists) map[snap.id] = snap.data(); });
+            }
+            return map;
+        }
+        function getTeacherDisplay(id, map) {
+            const t = map[id];
+            return t ? `${t.firstName||''} ${t.surname||''}`.trim() || id : id;
+        }
+
+        // ==================== AUDIT LOG ====================
+        async function logAudit(action, details = {}) {
+            if (!currentUser) return;
+            try {
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: `${userData.firstName||''} ${userData.surname||''}`.trim(),
+                    userEmail: userData.email || currentUser.email,
+                    action,
+                    details: JSON.stringify(details),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch(e) { console.warn('Audit:', e); }
+        }
+
+        // ==================== LESSON NOTES SUB-TABS ====================
+        document.getElementById('lessonSubTabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('.sub-tab');
+            if (!btn) return;
+            document.querySelectorAll('#lessonSubTabs .sub-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const sub = btn.dataset.sub;
+            document.getElementById('syllabusSection').style.display = sub === 'syllabus' ? '' : 'none';
+            document.getElementById('lessonNotesSection').style.display = sub === 'lessonNotes' ? '' : 'none';
+            if (sub === 'syllabus') loadSyllabi();
+            else loadLessonNotes();
+        });
+
+        async function loadSyllabi() {
+            const tbody = document.getElementById('syllabusBody');
+            tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+            try {
+                const snap = await db.collection('syllabus').where('status','==','pending').orderBy('submittedAt','desc').get();
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="6">No pending syllabi.</td></tr>'; return; }
+                const tids = [...new Set(snap.docs.map(d => d.data().teacherId))];
+                const tmap = await fetchTeacherNames(tids);
+                tbody.innerHTML = snap.docs.map(doc => {
+                    const s = doc.data();
+                    return `<tr onclick="openSyllabus('${doc.id}')">
+                        <td>${getTeacherDisplay(s.teacherId, tmap)}</td>
+                        <td>${escapeHtml(s.subject)}</td><td>${s.classId}</td>
+                        <td>${s.submittedAt?.toDate().toLocaleString()||'N/A'}</td>
+                        <td>${s.weeks?.length||0}</td>
+                        <td><button class="btn btn-sm btn-primary">Review</button></td>
+                    </tr>`;
+                }).join('');
+            } catch(e) { handleFirestoreError(e, 'syllabi'); }
+        }
+
+        async function loadLessonNotes() {
+            const tbody = document.getElementById('lessonNotesBody');
+            tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+            try {
+                const snap = await db.collection('lessonNotes').where('status','==','pending').orderBy('submittedAt','desc').get();
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="6">No pending lesson notes.</td></tr>'; return; }
+                const tids = [...new Set(snap.docs.map(d => d.data().teacherId))];
+                const tmap = await fetchTeacherNames(tids);
+                tbody.innerHTML = snap.docs.map(doc => {
+                    const n = doc.data();
+                    return `<tr onclick="openLessonNote('${doc.id}')">
+                        <td>${getTeacherDisplay(n.teacherId, tmap)}</td>
+                        <td>${escapeHtml(n.subject)}</td><td>Week ${n.week}</td>
+                        <td>${escapeHtml(n.topic)}</td>
+                        <td>${n.submittedAt?.toDate().toLocaleString()||'N/A'}</td>
+                        <td><button class="btn btn-sm btn-primary">Review</button></td>
+                    </tr>`;
+                }).join('');
+            } catch(e) { handleFirestoreError(e, 'lessonNotes'); }
+        }
+
+        window.openSyllabus = async (id) => {
+            const doc = await db.collection('syllabus').doc(id).get();
+            const data = doc.data();
+            currentReviewItem = { type: 'syllabus', id, data };
+            document.getElementById('modalTitle').textContent = 'Review Syllabus';
+            let html = `<p><strong>Subject:</strong> ${data.subject} | <strong>Class:</strong> ${data.classId}</p>`;
+            html += '<table><tr><th>Week</th><th>Topic</th><th>Objectives</th></tr>';
+            data.weeks.forEach(w => html += `<tr><td>${w.week}</td><td>${escapeHtml(w.topic)}</td><td>${escapeHtml(w.objectives||'')}</td></tr>`);
+            html += '</table>';
+            document.getElementById('modalContent').innerHTML = html;
+            document.getElementById('feedbackInput').value = '';
+            document.getElementById('reviewModal').classList.add('active');
+        };
+
+        window.openLessonNote = async (id) => {
+            const doc = await db.collection('lessonNotes').doc(id).get();
+            const data = doc.data();
+            currentReviewItem = { type: 'lessonNote', id, data };
+            document.getElementById('modalTitle').textContent = 'Review Lesson Note';
+            let html = `<p><strong>Subject:</strong> ${data.subject} | <strong>Week:</strong> ${data.week} – ${data.topic}</p>`;
+            if (data.content) html += `<h4>Content:</h4><div>${data.content.replace(/\n/g,'<br>')}</div>`;
+            if (data.objectives) html += `<h4>Objectives:</h4><div>${data.objectives}</div>`;
+            document.getElementById('modalContent').innerHTML = html;
+            document.getElementById('feedbackInput').value = '';
+            document.getElementById('reviewModal').classList.add('active');
+        };
+
+        document.getElementById('modalApproveBtn').addEventListener('click', async () => {
+            if (!currentReviewItem) return;
+            const { type, id, data } = currentReviewItem;
+            const fb = document.getElementById('feedbackInput').value;
+            showLoading();
+            try {
+                const update = { status: 'approved', reviewedAt: firebase.firestore.FieldValue.serverTimestamp(), reviewedBy: auth.currentUser.uid, feedback: fb };
+                if (type === 'syllabus') await db.collection('syllabus').doc(id).update(update);
+                else await db.collection('lessonNotes').doc(id).update(update);
+                await logAudit(`APPROVE_${type.toUpperCase()}`, { id, subject: data.subject });
+                closeReviewModal();
+                loadSyllabi(); loadLessonNotes();
+                alert('Approved!');
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        document.getElementById('modalRejectBtn').addEventListener('click', async () => {
+            if (!currentReviewItem) return;
+            const fb = document.getElementById('feedbackInput').value;
+            if (!fb) { alert('Provide feedback for rejection.'); return; }
+            const { type, id, data } = currentReviewItem;
+            showLoading();
+            try {
+                const update = { status: 'rejected', reviewedAt: firebase.firestore.FieldValue.serverTimestamp(), reviewedBy: auth.currentUser.uid, feedback: fb };
+                if (type === 'syllabus') await db.collection('syllabus').doc(id).update(update);
+                else await db.collection('lessonNotes').doc(id).update(update);
+                await logAudit(`REJECT_${type.toUpperCase()}`, { id, subject: data.subject, feedback: fb });
+                closeReviewModal();
+                loadSyllabi(); loadLessonNotes();
+                alert('Rejected.');
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        window.closeReviewModal = () => { document.getElementById('reviewModal').classList.remove('active'); currentReviewItem = null; };
+
+        // ==================== TIMETABLE SUB-TABS ====================
+        document.getElementById('timetableSubTabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('.sub-tab');
+            if (!btn) return;
+            document.querySelectorAll('#timetableSubTabs .sub-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const sub = btn.dataset.sub;
+            document.getElementById('timetablePendingSection').style.display = sub === 'pending' ? '' : 'none';
+            document.getElementById('timetableApprovedSection').style.display = sub === 'approved' ? '' : 'none';
+            document.getElementById('timetableRejectedSection').style.display = sub === 'rejected' ? '' : 'none';
+            if (sub === 'pending') loadTimetablePending();
+            else if (sub === 'approved') loadTimetableApproved();
+            else loadTimetableRejected();
+        });
+
+        async function loadTimetablePending() {
+            const tbody = document.getElementById('timetablePendingBody');
+            tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+            try {
+                const snap = await db.collection('timetableProposals').where('status','==','pending').orderBy('submittedAt','desc').get();
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="5">None.</td></tr>'; return; }
+                const tids = [...new Set(snap.docs.map(d => d.data().teacherId))];
+                const tmap = await fetchTeacherNames(tids);
+                tbody.innerHTML = snap.docs.map(doc => {
+                    const p = doc.data();
+                    return `<tr onclick="openTimetable('${doc.id}')">
+                        <td><span class="type-badge">${p.type||'academic'}</span></td>
+                        <td>${p.classId}</td><td>${getTeacherDisplay(p.teacherId, tmap)}</td>
+                        <td>${p.submittedAt?.toDate().toLocaleString()||'N/A'}</td>
+                        <td><span class="badge badge-pending">Pending</span></td>
+                    </tr>`;
+                }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadTimetableApproved() {
+            const tbody = document.getElementById('timetableApprovedBody');
+            tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+            try {
+                const snap = await db.collection('timetables').get();
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="5">None.</td></tr>'; return; }
+                const tids = [...new Set(snap.docs.map(d => d.data().teacherId))];
+                const tmap = await fetchTeacherNames(tids);
+                tbody.innerHTML = snap.docs.map(doc => {
+                    const t = doc.data();
+                    return `<tr>
+                        <td><span class="type-badge">${t.type||doc.id.split('_')[1]||'academic'}</span></td>
+                        <td>${doc.id}</td><td>${getTeacherDisplay(t.teacherId, tmap)}</td>
+                        <td>${t.approvedAt?.toDate().toLocaleString()||'N/A'}</td>
+                        <td>${t.published?'<span class="badge badge-published">Published</span>':'<span class="badge badge-approved">Not Published</span>'}</td>
+                    </tr>`;
+                }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadTimetableRejected() {
+            const tbody = document.getElementById('timetableRejectedBody');
+            tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+            try {
+                const snap = await db.collection('timetableProposals').where('status','==','rejected').orderBy('submittedAt','desc').get();
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="5">None.</td></tr>'; return; }
+                const tids = [...new Set(snap.docs.map(d => d.data().teacherId))];
+                const tmap = await fetchTeacherNames(tids);
+                tbody.innerHTML = snap.docs.map(doc => {
+                    const p = doc.data();
+                    return `<tr>
+                        <td><span class="type-badge">${p.type||'academic'}</span></td>
+                        <td>${p.classId}</td><td>${getTeacherDisplay(p.teacherId, tmap)}</td>
+                        <td>${p.submittedAt?.toDate().toLocaleString()||'N/A'}</td>
+                        <td>${p.feedback||'—'}</td>
+                    </tr>`;
+                }).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        function getTimetableHeaders(type) {
+            switch(type) {
+                case 'academic': return ['Start','End','Mon','Tue','Wed','Thu','Fri'];
+                case 'hairstyle': return ['Week','Style','Desc'];
+                case 'test': case 'exam': return ['Date','Time','Subject','Venue','Duration'];
+                default: return [];
+            }
+        }
+
+        window.openTimetable = async (id) => {
+            const doc = await db.collection('timetableProposals').doc(id).get();
+            const p = doc.data();
+            currentReviewItem = { type: 'timetable', id, data: p };
+            document.getElementById('modalTitle').textContent = 'Review Timetable';
+            const type = p.type || 'academic';
+            const headers = getTimetableHeaders(type);
+            let html = `<p><strong>Class:</strong> ${p.classId} | <strong>Type:</strong> ${type}</p><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+            p.periods.forEach(per => {
+                html += '<tr>';
+                if (type === 'academic') html += `<td>${per.startTime}</td><td>${per.endTime}</td><td>${per.monday||''}</td><td>${per.tuesday||''}</td><td>${per.wednesday||''}</td><td>${per.thursday||''}</td><td>${per.friday||''}</td>`;
+                else html += `<td>${per.startTime||''}</td><td>${per.monday||''}</td><td>${per.tuesday||''}</td><td>${per.wednesday||''}</td>`;
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            document.getElementById('modalContent').innerHTML = html;
+            document.getElementById('feedbackInput').value = '';
+            document.getElementById('reviewModal').classList.add('active');
+        };
+
+        // Override approve for timetable
+        const origApprove = document.getElementById('modalApproveBtn').onclick;
+        document.getElementById('modalApproveBtn').addEventListener('click', async function(e) {
+            if (!currentReviewItem || currentReviewItem.type !== 'timetable') return;
+            e.stopImmediatePropagation();
+            const { id, data } = currentReviewItem;
+            const type = data.type || 'academic';
+            const docId = `${data.classId}_${type}`;
+            showLoading();
+            try {
+                await db.collection('timetables').doc(docId).set({
+                    periods: data.periods, teacherId: data.teacherId, classId: data.classId,
+                    type, approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    approvedBy: auth.currentUser.uid, published: false
+                });
+                await db.collection('timetableProposals').doc(id).update({
+                    status: 'approved', reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    reviewedBy: auth.currentUser.uid, feedback: document.getElementById('feedbackInput').value
+                });
+                await logAudit('APPROVE_TIMETABLE', { type, classId: data.classId });
+                closeReviewModal();
+                loadTimetablePending(); loadTimetableApproved();
+                alert('Approved!');
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        // ==================== REPORT CARDS ====================
+        async function loadReportCards() {
+            showLoading();
+            try {
+                const snap = await db.collection('reportCards').orderBy('createdAt','desc').get();
+                allReportCards = [];
+                snap.forEach(doc => allReportCards.push({ id: doc.id, ...doc.data() }));
+                updateRcStats();
+                renderRcTable();
+            } catch(e) { console.error(e); }
+            finally { hideLoading(); }
+        }
+
+        function updateRcStats() {
+            document.getElementById('rcPending').textContent = allReportCards.filter(r => r.status==='pending_approval').length;
+            document.getElementById('rcApproved').textContent = allReportCards.filter(r => r.status==='approved').length;
+            document.getElementById('rcPublished').textContent = allReportCards.filter(r => r.status==='published').length;
+            document.getElementById('rcDraft').textContent = allReportCards.filter(r => r.status==='draft').length;
+        }
+
+        function renderRcTable() {
+            const statusFilter = document.getElementById('rcStatusFilter').value;
+            const termFilter = document.getElementById('rcTermFilter').value;
+            const search = (document.getElementById('rcSearchInput')?.value||'').toLowerCase();
+            let filtered = allReportCards;
+            if (statusFilter !== 'all') filtered = filtered.filter(r => r.status === statusFilter);
+            if (termFilter !== 'all') filtered = filtered.filter(r => r.term === termFilter);
+            if (search) filtered = filtered.filter(r => `${r.session||''} ${r.className||''} ${r.teacherName||''}`.toLowerCase().includes(search));
+
+            const termNames = { first:'First', second:'Second', third:'Third' };
+            const badges = {
+                draft: '<span class="badge badge-draft">Draft</span>',
+                pending_approval: '<span class="badge badge-pending">Pending</span>',
+                approved: '<span class="badge badge-approved">Approved</span>',
+                published: '<span class="badge badge-published">Published</span>'
+            };
+
+            const tbody = document.getElementById('rcBody');
+            if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7">No report cards.</td></tr>'; return; }
+
+            tbody.innerHTML = filtered.map(r => `
+                <tr onclick="openRcDetail('${r.id}')">
+                    <td><strong>${r.session}</strong><br><small>${termNames[r.term]} Term</small></td>
+                    <td>${r.className||r.classId}</td>
+                    <td>${r.teacherName||'N/A'}</td>
+                    <td>${r.studentResults?.length||0}</td>
+                    <td>${r.submittedForApprovalAt?.toDate().toLocaleDateString()||r.createdAt?.toDate().toLocaleDateString()||'N/A'}</td>
+                    <td>${badges[r.status]||r.status}</td>
+                    <td><button class="btn btn-sm btn-outline">Review</button></td>
+                </tr>
+            `).join('');
+        }
+
+        window.openRcDetail = (id) => {
+            currentRcItem = allReportCards.find(r => r.id === id);
+            if (!currentRcItem) return;
+            const rc = currentRcItem;
+            document.getElementById('rcDetailContent').innerHTML = `
+                <p><strong>Session:</strong> ${rc.session} | <strong>Term:</strong> ${rc.term} | <strong>Class:</strong> ${rc.className||rc.classId}</p>
+                <p><strong>Teacher:</strong> ${rc.teacherName} | <strong>Students:</strong> ${rc.studentResults?.length||0}</p>
+                <p><strong>Status:</strong> ${rc.status}</p>
+                ${rc.studentResults?.slice(0,10).map(s => `<div>#${s.position} ${s.studentName} - ${s.averageScore?.toFixed(1)}%</div>`).join('')}
+            `;
+            document.getElementById('rcAdminRemark').value = rc.adminRemark || '';
+            document.getElementById('rcDetailModal').classList.add('active');
+        };
+
+        window.closeRcDetailModal = () => {
+            document.getElementById('rcDetailModal').classList.remove('active');
+            currentRcItem = null;
+        };
+
+        document.getElementById('rcApproveBtn').addEventListener('click', async () => {
+            if (!currentRcItem) return;
+            const remark = document.getElementById('rcAdminRemark').value;
+            showLoading();
+            try {
+                await db.collection('reportCards').doc(currentRcItem.id).update({
+                    status: 'approved', adminRemark: remark,
+                    approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    approvedBy: auth.currentUser.uid
+                });
+                await logAudit('APPROVE_REPORT_CARD', { id: currentRcItem.id });
+                closeRcDetailModal();
+                loadReportCards();
+                alert('Approved!');
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        document.getElementById('rcRejectBtn').addEventListener('click', async () => {
+            if (!currentRcItem) return;
+            const remark = document.getElementById('rcAdminRemark').value;
+            if (!remark) { alert('Provide a reason.'); return; }
+            showLoading();
+            try {
+                await db.collection('reportCards').doc(currentRcItem.id).update({
+                    status: 'draft', adminRemark: remark, rejectionReason: remark,
+                    rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    rejectedBy: auth.currentUser.uid
+                });
+                await logAudit('REJECT_REPORT_CARD', { id: currentRcItem.id });
+                closeRcDetailModal();
+                loadReportCards();
+                alert('Rejected.');
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        document.getElementById('rcPublishBtn').addEventListener('click', async () => {
+            if (!currentRcItem) return;
+            if (!confirm('Publish this report card? Students can view it.')) return;
+            showLoading();
+            try {
+                await db.collection('reportCards').doc(currentRcItem.id).update({
+                    status: 'published',
+                    publishedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await logAudit('PUBLISH_REPORT_CARD', { id: currentRcItem.id });
+                closeRcDetailModal();
+                loadReportCards();
+                alert('Published!');
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        document.getElementById('rcStatusFilter').addEventListener('change', renderRcTable);
+        document.getElementById('rcTermFilter').addEventListener('change', renderRcTable);
+        document.getElementById('rcSearchInput').addEventListener('input', renderRcTable);
+        document.getElementById('rcRefreshBtn').addEventListener('click', loadReportCards);
+
+        // ==================== AUTH ====================
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'admin-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || !['master-admin','admin'].includes(doc.data().role)) {
+                    auth.signOut(); window.location.href = 'index.html'; return;
+                }
+                currentUser = user;
+                userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0]||'A')+(userData.surname?.[0]||'A');
+                document.getElementById('profileName').textContent = userData.firstName || 'Admin';
+                loadSyllabi();
+            } catch(e) { console.error(e); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+    </script>
+</body>
+</html>
