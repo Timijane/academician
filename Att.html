@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Operations Hub | Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: #dcfce7; --success-text: #16a34a; --warning-bg: #fef9c3;
+            --warning-text: #ca8a04; --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb; --input-bg: rgba(255,255,255,0.9);
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15,23,42,0.6); --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa;
+            --input-bg: rgba(30,41,59,0.8); --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: all 0.3s ease; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.08), transparent 70%); filter: blur(80px); z-index: 0; animation: float 20s infinite alternate; pointer-events: none; }
+        .orb-1 { top: -150px; right: -100px; } .orb-2 { bottom: -200px; left: -50px; width: 500px; height: 500px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px, 30px) scale(1.15); } }
+
+        .main-container { max-width: 1500px; margin: 0 auto; padding: 1.5rem; position: relative; z-index: 5; }
+
+        /* Top Navigation */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); flex-wrap: wrap; gap: 1rem; }
+        .nav-left { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+        .nav-logo { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-logo i { font-size: 2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-logo h2 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 0.75rem; align-items: center; }
+        .nav-link { padding: 0.6rem 1.2rem; border-radius: 0.75rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; }
+        .nav-link:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Tab Navigation */
+        .tab-navigation { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 0.4rem; overflow-x: auto; box-shadow: var(--shadow); }
+        .tab-btn { padding: 0.8rem 1.5rem; border-radius: 1.25rem; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; font-family: inherit; }
+        .tab-btn:hover { background: var(--hover-bg); color: var(--accent); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .tab-content { display: none; animation: fadeSlideIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; text-align: center; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+        .stat-card h3 { font-size: 2rem; font-weight: 700; color: var(--accent); }
+        .stat-card p { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; }
+
+        /* Cards */
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Filters */
+        .filters-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; background: var(--card-bg); padding: 1rem 1.5rem; border-radius: 2rem; border: 1px solid var(--border); }
+        .search-box { flex: 1; min-width: 200px; position: relative; }
+        .search-box i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); }
+        .filter-select { padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-family: inherit; }
+        .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-family: inherit; }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        th { background: var(--hover-bg); font-weight: 600; color: var(--text-secondary); }
+        tr:hover td { background: var(--hover-bg); }
+
+        /* Badges */
+        .badge { padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+        .badge-present { background: var(--success-bg); color: var(--success-text); }
+        .badge-absent { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-morning { background: var(--info-bg); color: var(--info-text); }
+        .badge-afternoon { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-acknowledged { background: var(--success-bg); color: var(--success-text); }
+        .target-badge { background: var(--hover-bg); padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; }
+
+        /* Announcements Grid */
+        .announcements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+        .announcement-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; transition: transform 0.2s; }
+        .announcement-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+        /* Events Grid */
+        .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+        .event-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; transition: transform 0.2s; }
+        .event-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+        /* Report Items */
+        .report-card-item { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 0.75rem; }
+
+        /* Buttons */
+        .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem; }
+        .checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; }
+        .chart-container { height: 300px; margin: 1rem 0; }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 0.75rem; }
+            .top-nav { flex-direction: column; align-items: stretch; }
+            .nav-left { flex-direction: column; }
+            .announcements-grid, .events-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="main-container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <h2>Admin Panel</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="admin-dashboard.html" class="nav-link"><i class="fas fa-arrow-left"></i> Dashboard</a>
+                    <a href="admin-approvals.html" class="nav-link"><i class="fas fa-user-check"></i> Approvals</a>
+                    <a href="admin-academic-review.html" class="nav-link"><i class="fas fa-book-open"></i> Academic</a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Admin</span><div class="profile-pic" id="profilePic">A</div></div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation" id="tabNavigation">
+            <button class="tab-btn active" data-tab="attendance"><i class="fas fa-fingerprint"></i> Attendance</button>
+            <button class="tab-btn" data-tab="announcements"><i class="fas fa-bullhorn"></i> Announcements</button>
+            <button class="tab-btn" data-tab="calendar"><i class="fas fa-calendar-check"></i> Calendar</button>
+            <button class="tab-btn" data-tab="dailyreports"><i class="fas fa-journal-whills"></i> Daily Reports</button>
+        </div>
+
+        <!-- ==================== TAB 1: ATTENDANCE ==================== -->
+        <div class="tab-content active" id="tab-attendance">
+            <div class="stats-grid" id="attStats">
+                <div class="stat-card"><h3 id="totalRecords">0</h3><p>Total Records</p></div>
+                <div class="stat-card"><h3 id="totalStudents">0</h3><p>Unique Students</p></div>
+                <div class="stat-card"><h3 id="avgAttendance">0%</h3><p>Avg Attendance</p></div>
+                <div class="stat-card"><h3 id="presentToday">0</h3><p>Present Today</p></div>
+            </div>
+
+            <div class="filters-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="attSearchInput" placeholder="Search by student or class...">
+                </div>
+                <select id="attClassFilter" class="filter-select"><option value="all">All Classes</option></select>
+                <input type="date" id="attDateFilter" class="filter-select">
+                <select id="attSessionFilter" class="filter-select">
+                    <option value="all">All Sessions</option>
+                    <option value="morning">Morning</option>
+                    <option value="afternoon">Afternoon</option>
+                </select>
+                <select id="attStatusFilter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="present">Present</option>
+                    <option value="absent">Absent</option>
+                </select>
+                <button class="btn btn-outline btn-sm" id="attRefreshBtn"><i class="fas fa-sync-alt"></i></button>
+                <button class="btn btn-outline btn-sm" id="attExportBtn"><i class="fas fa-download"></i> CSV</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-chart-line"></i> Attendance Trend (Last 30 Days)</h3></div>
+                <div class="chart-container"><canvas id="attendanceChart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-list"></i> Attendance Records <span class="badge" id="recordsCount">0</span></h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Date</th><th>Student</th><th>Admission No</th><th>Class</th><th>Session</th><th>Status</th><th>Teacher</th><th>Remark</th></tr></thead>
+                        <tbody id="attendanceBody"><tr><td colspan="8" style="text-align:center;">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: ANNOUNCEMENTS ==================== -->
+        <div class="tab-content" id="tab-announcements">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus-circle"></i> Create Announcement</h3>
+                    <button class="btn btn-outline btn-sm" id="toggleAnnFormBtn">Hide Form</button>
+                </div>
+                <form id="announcementForm">
+                    <div class="form-group"><label>Title</label><input type="text" id="annTitle" class="form-control" required></div>
+                    <div class="form-group"><label>Content</label><textarea id="annContent" class="form-control" required></textarea></div>
+                    <div class="form-group"><label>Target Audience</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label"><input type="checkbox" value="teachers"> Teachers</label>
+                            <label class="checkbox-label"><input type="checkbox" value="students"> Students</label>
+                            <label class="checkbox-label"><input type="checkbox" value="nonTeachingStaff"> Non-Teaching Staff</label>
+                            <label class="checkbox-label"><input type="checkbox" value="coAdmins"> Co-Admins</label>
+                            <label class="checkbox-label"><input type="checkbox" value="all"> All</label>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Publish</button>
+                        <button type="button" class="btn btn-outline" id="cancelAnnBtn" style="display:none;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-bullhorn"></i> All Announcements</h3></div>
+                <div id="announcementsList" class="announcements-grid">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: CALENDAR ==================== -->
+        <div class="tab-content" id="tab-calendar">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus-circle"></i> Add Event</h3>
+                    <button class="btn btn-outline btn-sm" id="toggleCalFormBtn">Hide Form</button>
+                </div>
+                <form id="calendarForm">
+                    <div class="form-group"><label>Event Title</label><input type="text" id="calTitle" class="form-control" required></div>
+                    <div class="form-group"><label>Date</label><input type="date" id="calDate" class="form-control" required></div>
+                    <div class="form-group"><label>Description</label><textarea id="calDesc" class="form-control" rows="3"></textarea></div>
+                    <div class="form-group"><label>Session/Term</label><input type="text" id="calSession" class="form-control" placeholder="e.g., 2024/2025 First Term"></div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Add Event</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-calendar-alt"></i> All Events</h3></div>
+                <div id="eventsContainer" class="events-grid">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 4: DAILY REPORTS ==================== -->
+        <div class="tab-content" id="tab-dailyreports">
+            <div class="filters-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="drSearchInput" placeholder="Search by teacher, class, date...">
+                </div>
+                <select id="drStatusFilter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="acknowledged">Acknowledged</option>
+                </select>
+                <button class="btn btn-outline btn-sm" id="drRefreshBtn"><i class="fas fa-sync-alt"></i></button>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-list"></i> Submitted Reports</h3></div>
+                <div id="reportsContainer">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Report Question Modal -->
+    <div class="modal-overlay" id="questionModal">
+        <div class="modal-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3>Ask a Question</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeQuestionModal()"></i>
+            </div>
+            <textarea id="drQuestionText" class="form-control" rows="4" placeholder="Type your question for the teacher..."></textarea>
+            <div class="btn-group" style="justify-content:flex-end;margin-top:1rem;">
+                <button class="btn btn-outline" onclick="closeQuestionModal()">Cancel</button>
+                <button class="btn btn-primary" id="sendQuestionBtn">Send Question</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Edit Modal -->
+    <div class="modal-overlay" id="calEditModal">
+        <div class="modal-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3>Edit Event</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeCalEditModal()"></i>
+            </div>
+            <input type="hidden" id="calEditId">
+            <div class="form-group"><label>Title</label><input type="text" id="calEditTitle" class="form-control" required></div>
+            <div class="form-group"><label>Date</label><input type="date" id="calEditDate" class="form-control" required></div>
+            <div class="form-group"><label>Description</label><textarea id="calEditDesc" class="form-control" rows="3"></textarea></div>
+            <div class="form-group"><label>Session/Term</label><input type="text" id="calEditSession" class="form-control"></div>
+            <div class="btn-group" style="justify-content:flex-end;margin-top:1rem;">
+                <button class="btn btn-outline" onclick="closeCalEditModal()">Cancel</button>
+                <button class="btn btn-primary" id="calUpdateBtn">Update</button>
+                <button class="btn btn-danger" id="calDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcement Edit Modal -->
+    <div class="modal-overlay" id="annEditModal">
+        <div class="modal-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3>Edit Announcement</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeAnnEditModal()"></i>
+            </div>
+            <input type="hidden" id="annEditId">
+            <div class="form-group"><label>Title</label><input type="text" id="annEditTitle" class="form-control" required></div>
+            <div class="form-group"><label>Content</label><textarea id="annEditContent" class="form-control" required></textarea></div>
+            <div class="form-group"><label>Target Audience</label><div class="checkbox-group" id="annEditTargets"></div></div>
+            <div class="btn-group" style="justify-content:flex-end;margin-top:1rem;">
+                <button class="btn btn-outline" onclick="closeAnnEditModal()">Cancel</button>
+                <button class="btn btn-primary" id="annUpdateBtn">Update</button>
+                <button class="btn btn-danger" id="annDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin fa-2x"></i><h3 style="margin-top:1rem;">Processing...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ==================== GLOBAL STATE ====================
+        let currentUser = null, userData = null;
+        let allAttendance = [], attendanceChart = null;
+        let currentReportId = null;
+
+        // ==================== UTILITY ====================
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        // ==================== THEME ====================
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        // ==================== TAB NAVIGATION ====================
+        document.getElementById('tabNavigation').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document.querySelectorAll('#tabNavigation .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            if (btn.dataset.tab === 'attendance') loadAttendance();
+            else if (btn.dataset.tab === 'announcements') loadAnnouncements();
+            else if (btn.dataset.tab === 'calendar') loadCalendarEvents();
+            else if (btn.dataset.tab === 'dailyreports') loadDailyReports();
+        });
+
+        // ==================== ATTENDANCE ====================
+        async function loadAttendance() {
+            showLoading();
+            try {
+                const snap = await db.collection('attendance').orderBy('date','desc').limit(5000).get();
+                allAttendance = [];
+                const classesSet = new Set();
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    allAttendance.push({ id: doc.id, ...d });
+                    if (d.classId) classesSet.add(d.classId);
+                });
+                const sel = document.getElementById('attClassFilter');
+                sel.innerHTML = '<option value="all">All Classes</option>';
+                Array.from(classesSet).sort().forEach(c => sel.innerHTML += `<option value="${c}">${c.toUpperCase()}</option>`);
+                updateAttStats();
+                renderAttTable();
+                renderAttChart();
+            } catch(e) { console.error(e); }
+            finally { hideLoading(); }
+        }
+
+        function updateAttStats() {
+            document.getElementById('totalRecords').textContent = allAttendance.length;
+            document.getElementById('totalStudents').textContent = new Set(allAttendance.map(r => r.studentId)).size;
+            const present = allAttendance.filter(r => r.status === 'present').length;
+            document.getElementById('avgAttendance').textContent = allAttendance.length ? (present/allAttendance.length*100).toFixed(1)+'%' : '0%';
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('presentToday').textContent = allAttendance.filter(r => r.date===today && r.status==='present').length;
+            document.getElementById('recordsCount').textContent = allAttendance.length + ' records';
+        }
+
+        function renderAttTable() {
+            const cf = document.getElementById('attClassFilter').value;
+            const df = document.getElementById('attDateFilter').value;
+            const sf = document.getElementById('attSessionFilter').value;
+            const stf = document.getElementById('attStatusFilter').value;
+            const q = (document.getElementById('attSearchInput')?.value||'').toLowerCase();
+            let filtered = allAttendance.filter(r => {
+                if (cf!=='all' && r.classId!==cf) return false;
+                if (df && r.date!==df) return false;
+                if (sf!=='all' && r.session!==sf) return false;
+                if (stf!=='all' && r.status!==stf) return false;
+                if (q && !`${r.studentName||''} ${r.classId||''}`.toLowerCase().includes(q)) return false;
+                return true;
+            });
+            const tbody = document.getElementById('attendanceBody');
+            if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8">No records.</td></tr>'; return; }
+            tbody.innerHTML = filtered.map(r => `
+                <tr>
+                    <td>${r.date||'N/A'}</td>
+                    <td><strong>${escapeHtml(r.studentName||'Unknown')}</strong></td>
+                    <td>${escapeHtml(r.admissionNo||r.studentId?.substring(0,8)||'N/A')}</td>
+                    <td>${escapeHtml(r.classId?.toUpperCase()||'N/A')}</td>
+                    <td><span class="badge ${r.session==='morning'?'badge-morning':'badge-afternoon'}">${r.session==='morning'?'AM':'PM'}</span></td>
+                    <td><span class="badge ${r.status==='present'?'badge-present':'badge-absent'}">${r.status==='present'?'Present':'Absent'}</span></td>
+                    <td>${escapeHtml(r.teacherName||r.teacherId?.substring(0,8)||'N/A')}</td>
+                    <td>${escapeHtml(r.remark||'—')}</td>
+                </tr>`).join('');
+        }
+
+        function renderAttChart() {
+            const days = []; const today = new Date();
+            for (let i=29;i>=0;i--) { const d = new Date(today); d.setDate(today.getDate()-i); days.push(d.toISOString().split('T')[0]); }
+            const data = days.map(date => {
+                const recs = allAttendance.filter(r => r.date===date);
+                const p = recs.filter(r => r.status==='present').length;
+                return recs.length ? ((p/recs.length)*100).toFixed(1) : 0;
+            });
+            if (attendanceChart) attendanceChart.destroy();
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            attendanceChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: days.map(d => new Date(d).getDate()+'/'+(new Date(d).getMonth()+1)), datasets: [{ label: 'Attendance %', data, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { min:0, max:100 } } }
+            });
+        }
+
+        document.getElementById('attExportBtn').addEventListener('click', () => {
+            const csv = [['Date','Student','Admission','Class','Session','Status','Teacher','Remark'], ...allAttendance.map(r => [r.date,r.studentName,r.admissionNo,r.classId,r.session,r.status,r.teacherName,r.remark])].map(r=>r.join(',')).join('\n');
+            const b = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='attendance.csv'; a.click();
+        });
+
+        document.getElementById('attClassFilter').addEventListener('change', renderAttTable);
+        document.getElementById('attDateFilter').addEventListener('change', renderAttTable);
+        document.getElementById('attSessionFilter').addEventListener('change', renderAttTable);
+        document.getElementById('attStatusFilter').addEventListener('change', renderAttTable);
+        document.getElementById('attSearchInput').addEventListener('input', renderAttTable);
+        document.getElementById('attRefreshBtn').addEventListener('click', loadAttendance);
+        document.getElementById('attDateFilter').valueAsDate = new Date();
+
+        // ==================== ANNOUNCEMENTS ====================
+        async function loadAnnouncements() {
+            const snap = await db.collection('announcements').orderBy('createdAt','desc').get();
+            const container = document.getElementById('announcementsList');
+            if (snap.empty) { container.innerHTML = '<div class="empty-state"><i class="fas fa-bullhorn"></i><p>No announcements yet.</p></div>'; return; }
+            container.innerHTML = snap.docs.map(doc => {
+                const a = doc.data();
+                return `<div class="announcement-card">
+                    <div style="font-weight:700;font-size:1rem;margin-bottom:0.3rem;">${escapeHtml(a.title)}</div>
+                    <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem;">${a.createdAt?.toDate().toLocaleString()||'N/A'}</div>
+                    <div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-bottom:0.5rem;">${(a.targets||[]).map(t=>`<span class="target-badge">${t}</span>`).join('')}</div>
+                    <div style="white-space:pre-wrap;margin-bottom:0.75rem;">${escapeHtml(a.content)}</div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline btn-sm" onclick="editAnnouncement('${doc.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${doc.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('announcementForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('annTitle').value.trim();
+            const content = document.getElementById('annContent').value.trim();
+            const targets = Array.from(document.querySelectorAll('#announcementForm input[type=checkbox]:checked')).map(cb=>cb.value);
+            if (!targets.length) { alert('Select at least one target.'); return; }
+            await db.collection('announcements').add({ title, content, targets, createdBy: auth.currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            document.getElementById('annTitle').value = ''; document.getElementById('annContent').value = '';
+            document.querySelectorAll('#announcementForm input[type=checkbox]').forEach(cb=>cb.checked=false);
+            loadAnnouncements();
+        });
+
+        window.editAnnouncement = async (id) => {
+            const doc = await db.collection('announcements').doc(id).get();
+            const a = doc.data();
+            document.getElementById('annEditId').value = id;
+            document.getElementById('annEditTitle').value = a.title;
+            document.getElementById('annEditContent').value = a.content;
+            const roles = ['teachers','students','nonTeachingStaff','coAdmins','all'];
+            document.getElementById('annEditTargets').innerHTML = roles.map(r => `<label class="checkbox-label"><input type="checkbox" value="${r}" ${(a.targets||[]).includes(r)?'checked':''}> ${r}</label>`).join('');
+            document.getElementById('annEditModal').classList.add('active');
+        };
+
+        document.getElementById('annUpdateBtn').addEventListener('click', async () => {
+            const id = document.getElementById('annEditId').value;
+            const targets = Array.from(document.querySelectorAll('#annEditTargets input:checked')).map(cb=>cb.value);
+            if (!targets.length) { alert('Select at least one target.'); return; }
+            await db.collection('announcements').doc(id).update({ title: document.getElementById('annEditTitle').value, content: document.getElementById('annEditContent').value, targets });
+            closeAnnEditModal(); loadAnnouncements();
+        });
+
+        document.getElementById('annDeleteBtn').addEventListener('click', async () => {
+            if (!confirm('Delete?')) return;
+            await db.collection('announcements').doc(document.getElementById('annEditId').value).delete();
+            closeAnnEditModal(); loadAnnouncements();
+        });
+
+        window.deleteAnnouncement = async (id) => { if (confirm('Delete?')) { await db.collection('announcements').doc(id).delete(); loadAnnouncements(); } };
+        window.closeAnnEditModal = () => document.getElementById('annEditModal').classList.remove('active');
+
+        document.getElementById('toggleAnnFormBtn').addEventListener('click', function() {
+            const form = document.getElementById('announcementForm');
+            form.style.display = form.style.display==='none'?'block':'none';
+            this.textContent = form.style.display==='none'?'Show Form':'Hide Form';
+        });
+
+        // ==================== CALENDAR ====================
+        async function loadCalendarEvents() {
+            const snap = await db.collection('calendarEvents').orderBy('date','asc').get();
+            const container = document.getElementById('eventsContainer');
+            if (snap.empty) { container.innerHTML = '<div class="empty-state"><i class="fas fa-calendar"></i><p>No events yet.</p></div>'; return; }
+            container.innerHTML = snap.docs.map(doc => {
+                const ev = doc.data();
+                return `<div class="event-card">
+                    <div style="font-weight:700;font-size:1rem;">${escapeHtml(ev.title)}</div>
+                    <div style="color:var(--accent);font-size:0.85rem;"><i class="fas fa-calendar-day"></i> ${new Date(ev.date).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+                    ${ev.sessionTerm?`<div style="font-size:0.8rem;color:var(--text-secondary);">${escapeHtml(ev.sessionTerm)}</div>`:''}
+                    <div style="white-space:pre-wrap;margin:0.5rem 0;">${escapeHtml(ev.description||'No description')}</div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline btn-sm" onclick="editCalendarEvent('${doc.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCalendarEvent('${doc.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('calendarForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await db.collection('calendarEvents').add({
+                title: document.getElementById('calTitle').value.trim(),
+                date: document.getElementById('calDate').value,
+                description: document.getElementById('calDesc').value.trim(),
+                sessionTerm: document.getElementById('calSession').value.trim()||null,
+                createdBy: auth.currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('calTitle').value=''; document.getElementById('calDesc').value=''; document.getElementById('calSession').value='';
+            loadCalendarEvents();
+        });
+
+        window.editCalendarEvent = async (id) => {
+            const doc = await db.collection('calendarEvents').doc(id).get();
+            const ev = doc.data();
+            document.getElementById('calEditId').value = id;
+            document.getElementById('calEditTitle').value = ev.title;
+            document.getElementById('calEditDate').value = ev.date;
+            document.getElementById('calEditDesc').value = ev.description||'';
+            document.getElementById('calEditSession').value = ev.sessionTerm||'';
+            document.getElementById('calEditModal').classList.add('active');
+        };
+
+        document.getElementById('calUpdateBtn').addEventListener('click', async () => {
+            await db.collection('calendarEvents').doc(document.getElementById('calEditId').value).update({
+                title: document.getElementById('calEditTitle').value,
+                date: document.getElementById('calEditDate').value,
+                description: document.getElementById('calEditDesc').value,
+                sessionTerm: document.getElementById('calEditSession').value||null
+            });
+            closeCalEditModal(); loadCalendarEvents();
+        });
+
+        document.getElementById('calDeleteBtn').addEventListener('click', async () => {
+            if (!confirm('Delete?')) return;
+            await db.collection('calendarEvents').doc(document.getElementById('calEditId').value).delete();
+            closeCalEditModal(); loadCalendarEvents();
+        });
+
+        window.deleteCalendarEvent = async (id) => { if (confirm('Delete?')) { await db.collection('calendarEvents').doc(id).delete(); loadCalendarEvents(); } };
+        window.closeCalEditModal = () => document.getElementById('calEditModal').classList.remove('active');
+
+        document.getElementById('toggleCalFormBtn').addEventListener('click', function() {
+            const form = document.getElementById('calendarForm');
+            form.style.display = form.style.display==='none'?'block':'none';
+            this.textContent = form.style.display==='none'?'Show Form':'Hide Form';
+        });
+
+        // ==================== DAILY REPORTS ====================
+        async function loadDailyReports() {
+            showLoading();
+            try {
+                const snap = await db.collection('dailyReports').orderBy('date','desc').get();
+                let reports = [];
+                snap.forEach(doc => reports.push({ id: doc.id, ...doc.data() }));
+                const sf = document.getElementById('drStatusFilter').value;
+                const q = (document.getElementById('drSearchInput')?.value||'').toLowerCase();
+                if (sf!=='all') reports = reports.filter(r => r.status===sf);
+                if (q) reports = reports.filter(r => `${r.teacherName||''} ${r.teacherClass||''} ${r.date||''}`.toLowerCase().includes(q));
+
+                const container = document.getElementById('reportsContainer');
+                if (!reports.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No reports.</p></div>'; return; }
+                container.innerHTML = reports.map(r => {
+                    const sb = r.status==='acknowledged'?'badge-acknowledged':'badge-pending';
+                    let qhtml = '';
+                    if (r.questions?.length) {
+                        qhtml = '<div><strong>Q&A:</strong></div>';
+                        r.questions.forEach(q => qhtml += `<div style="background:var(--info-bg);padding:0.5rem;margin-top:0.3rem;border-radius:0.5rem;"><strong>Q:</strong> ${escapeHtml(q.question)}<br>${q.reply?`<strong>Reply:</strong> ${escapeHtml(q.reply)}`:'<em>Awaiting reply...</em>'}</div>`);
+                    }
+                    return `<div class="report-card-item">
+                        <div><strong>${escapeHtml(r.teacherName)}</strong> (${r.teacherClass||'N/A'}) | ${r.date} | ${r.openingTime||'?'}-${r.closingTime||'?'} <span class="badge ${sb}">${r.status||'pending'}</span></div>
+                        <div style="white-space:pre-wrap;margin:0.5rem 0;">${escapeHtml(r.content||'')}</div>
+                        ${r.adminRemark?`<div><i class="fas fa-check-circle"></i> ${escapeHtml(r.adminRemark)}</div>`:''}
+                        ${qhtml}
+                        <div class="btn-group" style="margin-top:0.5rem;">
+                            <button class="btn btn-outline btn-sm" onclick="askDrQuestion('${r.id}')"><i class="fas fa-question"></i> Ask</button>
+                            ${r.status!=='acknowledged'?`<button class="btn btn-success btn-sm" onclick="acknowledgeDr('${r.id}')"><i class="fas fa-check"></i> Acknowledge</button>`:''}
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch(e) { console.error(e); }
+            finally { hideLoading(); }
+        }
+
+        window.askDrQuestion = (id) => {
+            currentReportId = id;
+            document.getElementById('drQuestionText').value = '';
+            document.getElementById('questionModal').classList.add('active');
+        };
+
+        document.getElementById('sendQuestionBtn').addEventListener('click', async () => {
+            const q = document.getElementById('drQuestionText').value.trim();
+            if (!q) { alert('Enter a question'); return; }
+            const ref = db.collection('dailyReports').doc(currentReportId);
+            const doc = await ref.get();
+            const existing = doc.data().questions||[];
+            existing.push({ question: q, askedAt: firebase.firestore.FieldValue.serverTimestamp(), reply: null });
+            await ref.update({ questions: existing });
+            closeQuestionModal(); loadDailyReports();
+        });
+
+        window.acknowledgeDr = async (id) => {
+            const remark = prompt('Acknowledgement remark (optional):');
+            await db.collection('dailyReports').doc(id).update({
+                status: 'acknowledged', adminAcknowledged: true,
+                acknowledgedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                adminRemark: remark||'Acknowledged by admin'
+            });
+            loadDailyReports();
+        };
+
+        window.closeQuestionModal = () => document.getElementById('questionModal').classList.remove('active');
+        document.getElementById('drStatusFilter').addEventListener('change', loadDailyReports);
+        document.getElementById('drSearchInput').addEventListener('input', loadDailyReports);
+        document.getElementById('drRefreshBtn').addEventListener('click', loadDailyReports);
+
+        // ==================== AUTH ====================
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'admin-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || !['master-admin','admin'].includes(doc.data().role)) {
+                    auth.signOut(); window.location.href = 'index.html'; return;
+                }
+                currentUser = user; userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0]||'A')+(userData.surname?.[0]||'A');
+                document.getElementById('profileName').textContent = userData.firstName || 'Admin';
+                loadAttendance();
+            } catch(e) { console.error(e); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+    </script>
+</body>
+</html>
