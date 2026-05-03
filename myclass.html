@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Teacher Hub | Operations</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.75); --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: #dcfce7; --success-text: #16a34a; --warning-bg: #fef9c3;
+            --warning-text: #ca8a04; --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb; --input-bg: rgba(255,255,255,0.9);
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15,23,42,0.65); --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa;
+            --input-bg: rgba(30,41,59,0.8); --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: all 0.3s ease; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.08), transparent 70%); filter: blur(80px); z-index: 0; animation: float 20s infinite alternate; pointer-events: none; }
+        .orb-1 { top: -150px; right: -100px; } .orb-2 { bottom: -200px; left: -50px; width: 500px; height: 500px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px, 30px) scale(1.15); } }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; position: relative; z-index: 5; }
+
+        /* Top Navigation */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); flex-wrap: wrap; gap: 1rem; }
+        .nav-left { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+        .nav-logo { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-logo i { font-size: 2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-logo h2 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 0.75rem; align-items: center; }
+        .nav-link { padding: 0.6rem 1.2rem; border-radius: 0.75rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; }
+        .nav-link:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Tab Navigation */
+        .tab-navigation { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 0.4rem; overflow-x: auto; box-shadow: var(--shadow); }
+        .tab-btn { padding: 0.8rem 1.5rem; border-radius: 1.25rem; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; font-family: inherit; }
+        .tab-btn:hover { background: var(--hover-bg); color: var(--accent); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .tab-content { display: none; animation: fadeSlideIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Form */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; }
+        .form-group label i { margin-right: 0.4rem; }
+        .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.95rem; font-family: inherit; }
+        textarea.form-control { min-height: 120px; resize: vertical; }
+        select.form-control { appearance: auto; }
+
+        /* Grids */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+        /* Events */
+        .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+        .event-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; transition: transform 0.2s; }
+        .event-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+        .event-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .event-date { color: var(--accent); font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .event-desc { color: var(--text-secondary); font-size: 0.9rem; white-space: pre-wrap; }
+
+        /* Announcements */
+        .announcements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+        .announcement-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; transition: transform 0.2s; }
+        .announcement-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+        /* Items */
+        .request-item, .report-item { background: var(--hover-bg); border-radius: 1rem; padding: 1rem; margin-bottom: 0.75rem; }
+        .question-box { background: var(--info-bg); border-left: 3px solid var(--accent); padding: 0.75rem; margin-top: 0.5rem; border-radius: 0.5rem; }
+
+        /* Badges */
+        .badge { padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+        .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-approved { background: var(--success-bg); color: var(--success-text); }
+        .badge-rejected { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-acknowledged { background: var(--success-bg); color: var(--success-text); }
+
+        /* Buttons */
+        .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 0.75rem; }
+            .top-nav { flex-direction: column; align-items: stretch; }
+            .nav-left { flex-direction: column; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .events-grid, .announcements-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="main-container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <h2>EduTop</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="teacher-dashboard.html" class="nav-link"><i class="fas fa-arrow-left"></i> Dashboard</a>
+                    <a href="teacher-tests.html" class="nav-link"><i class="fas fa-file-alt"></i> Tests</a>
+                    <a href="teacher-exams.html" class="nav-link"><i class="fas fa-pen-fancy"></i> Exams</a>
+                    <a href="teacher-assignments.html" class="nav-link"><i class="fas fa-tasks"></i> Assignments</a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation" id="tabNavigation">
+            <button class="tab-btn active" data-tab="dailyreport"><i class="fas fa-journal-whills"></i> Daily Report</button>
+            <button class="tab-btn" data-tab="permissions"><i class="fas fa-envelope-open-text"></i> Permission Book</button>
+            <button class="tab-btn" data-tab="announcements"><i class="fas fa-bullhorn"></i> Announcements</button>
+            <button class="tab-btn" data-tab="calendar"><i class="fas fa-calendar-alt"></i> School Calendar</button>
+        </div>
+
+        <!-- TAB 1: Daily Report -->
+        <div class="tab-content active" id="tab-dailyreport">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-pen-alt"></i> Today's Report</h3></div>
+                <div class="form-group"><label>Date</label><input type="date" id="drDate" class="form-control"></div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Opening Time</label><input type="text" id="drOpeningTime" class="form-control" placeholder="8:00 AM"></div>
+                    <div class="form-group"><label>Closing Time</label><input type="text" id="drClosingTime" class="form-control" placeholder="2:30 PM"></div>
+                </div>
+                <div class="form-group"><label>Activities / Events / Observations</label><textarea id="drContent" class="form-control" placeholder="Describe what happened today..."></textarea></div>
+                <button class="btn btn-primary" id="drSubmitBtn"><i class="fas fa-paper-plane"></i> Submit Report</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-history"></i> My Reports</h3></div>
+                <div id="drReportsList"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Permission Book -->
+        <div class="tab-content" id="tab-permissions">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-pen-alt"></i> New Permission Request</h3></div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Date of Absence</label><input type="date" id="permDate" class="form-control"></div>
+                    <div class="form-group"><label>Request Type</label>
+                        <select id="permType" class="form-control">
+                            <option value="full_day">Full Day</option>
+                            <option value="specific_hours">Specific Hours</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="permHoursSection" style="display:none;">
+                    <div class="grid-2">
+                        <div class="form-group"><label>Start Time</label><input type="text" id="permStartTime" class="form-control" placeholder="10:00 AM"></div>
+                        <div class="form-group"><label>End Time</label><input type="text" id="permEndTime" class="form-control" placeholder="2:00 PM"></div>
+                    </div>
+                </div>
+                <div class="form-group"><label>Reason</label><textarea id="permReason" class="form-control" rows="3" placeholder="Explain why..."></textarea></div>
+                <button class="btn btn-primary" id="permSubmitBtn"><i class="fas fa-paper-plane"></i> Submit Request</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-history"></i> My Requests</h3></div>
+                <div id="permRequestsList"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div></div>
+            </div>
+        </div>
+
+        <!-- TAB 3: Announcements -->
+        <div class="tab-content" id="tab-announcements">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-bullhorn"></i> Announcements</h3></div>
+                <div id="announcementsList" class="announcements-grid">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Calendar -->
+        <div class="tab-content" id="tab-calendar">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-calendar-alt"></i> School Calendar</h3></div>
+                <div id="calendarEventsList" class="events-grid">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading events...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin fa-2x"></i><h3 style="margin-top:1rem;">Processing...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ==================== STATE ====================
+        let currentUser = null, userData = null;
+
+        // ==================== UTILITY ====================
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        // ==================== THEME ====================
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        // ==================== TAB NAVIGATION ====================
+        document.getElementById('tabNavigation').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document.querySelectorAll('#tabNavigation .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+
+        // ==================== LOAD USER DATA ====================
+        async function loadUserData() {
+            if (!currentUser) return;
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                if (doc.exists) userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData?.firstName?.[0]||'T')+(userData?.surname?.[0]||'E');
+                document.getElementById('profileName').textContent = userData?.firstName || 'Teacher';
+            } catch(e) { console.error('User load:', e); }
+        }
+
+        // ==================== TAB 1: DAILY REPORT ====================
+        document.getElementById('drDate').valueAsDate = new Date();
+
+        document.getElementById('drSubmitBtn').addEventListener('click', async () => {
+            const date = document.getElementById('drDate').value;
+            const openingTime = document.getElementById('drOpeningTime').value.trim();
+            const closingTime = document.getElementById('drClosingTime').value.trim();
+            const content = document.getElementById('drContent').value.trim();
+
+            if (!date || !content) { alert('Fill date and content'); return; }
+            showLoading();
+            try {
+                const reportData = {
+                    teacherId: currentUser.uid,
+                    teacherName: `${userData?.firstName||''} ${userData?.surname||''}`.trim(),
+                    teacherClass: userData?.classTeaching || 'Not assigned',
+                    date, openingTime, closingTime, content,
+                    status: 'pending', adminAcknowledged: false, acknowledgedAt: null, adminRemark: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Check if report already exists for this date
+                const existing = await db.collection('dailyReports')
+                    .where('teacherId','==',currentUser.uid)
+                    .where('date','==',date).get();
+
+                if (!existing.empty) {
+                    await db.collection('dailyReports').doc(existing.docs[0].id).update(reportData);
+                    alert('Report updated!');
+                } else {
+                    await db.collection('dailyReports').add(reportData);
+                    alert('Report submitted!');
+                }
+                document.getElementById('drOpeningTime').value = '';
+                document.getElementById('drClosingTime').value = '';
+                document.getElementById('drContent').value = '';
+                loadDailyReports();
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        async function loadDailyReports() {
+            if (!currentUser) return;
+            try {
+                const snap = await db.collection('dailyReports')
+                    .where('teacherId','==',currentUser.uid)
+                    .orderBy('date','desc').get();
+
+                const container = document.getElementById('drReportsList');
+                if (snap.empty) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No reports yet.</p></div>'; return; }
+
+                container.innerHTML = '';
+                for (const doc of snap.docs) {
+                    const r = doc.data();
+                    const sb = r.status==='acknowledged'?'badge-acknowledged':'badge-pending';
+                    let qhtml = '';
+                    if (r.questions?.length) {
+                        qhtml = '<div style="margin-top:0.5rem;"><strong>Questions from Admin:</strong></div>';
+                        r.questions.forEach((q, idx) => {
+                            qhtml += `<div class="question-box">
+                                <strong>Q:</strong> ${escapeHtml(q.question)}<br>
+                                ${q.reply ? `<strong>Your Reply:</strong> ${escapeHtml(q.reply)}` : `
+                                    <textarea id="reply_${doc.id}_${idx}" class="form-control" style="margin-top:0.5rem;" rows="2" placeholder="Write reply..."></textarea>
+                                    <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="postDrReply('${doc.id}',${idx})">Post Reply</button>
+                                `}
+                            </div>`;
+                        });
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = 'report-item';
+                    div.innerHTML = `
+                        <div style="font-weight:700;color:var(--accent);margin-bottom:0.3rem;">${r.date} | ${r.openingTime||'?'} - ${r.closingTime||'?'} <span class="badge ${sb}">${r.status||'pending'}</span></div>
+                        <div style="white-space:pre-wrap;margin:0.5rem 0;">${escapeHtml(r.content||'')}</div>
+                        ${r.adminRemark ? `<div class="question-box"><i class="fas fa-check-circle"></i> <strong>Admin:</strong> ${escapeHtml(r.adminRemark)}</div>` : ''}
+                        ${qhtml}
+                    `;
+                    container.appendChild(div);
+                }
+            } catch(e) { console.error('Reports:', e); }
+        }
+
+        window.postDrReply = async (reportId, qIndex) => {
+            const reply = document.getElementById(`reply_${reportId}_${qIndex}`).value.trim();
+            if (!reply) { alert('Write a reply'); return; }
+            showLoading();
+            try {
+                const ref = db.collection('dailyReports').doc(reportId);
+                const doc = await ref.get();
+                const questions = doc.data().questions || [];
+                if (questions[qIndex]) {
+                    questions[qIndex].reply = reply;
+                    questions[qIndex].repliedAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await ref.update({ questions });
+                    loadDailyReports();
+                }
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        };
+
+        // ==================== TAB 2: PERMISSIONS ====================
+        document.getElementById('permDate').valueAsDate = new Date();
+
+        document.getElementById('permType').addEventListener('change', function() {
+            document.getElementById('permHoursSection').style.display = this.value==='specific_hours' ? 'block' : 'none';
+        });
+
+        document.getElementById('permSubmitBtn').addEventListener('click', async () => {
+            const date = document.getElementById('permDate').value;
+            const type = document.getElementById('permType').value;
+            const startTime = document.getElementById('permStartTime').value.trim();
+            const endTime = document.getElementById('permEndTime').value.trim();
+            const reason = document.getElementById('permReason').value.trim();
+
+            if (!date || !reason) { alert('Fill date and reason'); return; }
+            if (type==='specific_hours' && (!startTime || !endTime)) { alert('Enter start and end time'); return; }
+
+            showLoading();
+            try {
+                await db.collection('permissions').add({
+                    userId: currentUser.uid,
+                    userRole: userData?.role || 'teacher',
+                    userName: `${userData?.firstName||''} ${userData?.surname||''}`.trim(),
+                    userClass: userData?.classTeaching || 'N/A',
+                    date, requestType: type,
+                    startTime: type==='specific_hours'?startTime:null,
+                    endTime: type==='specific_hours'?endTime:null,
+                    reason, status: 'pending', adminRemark: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('Request submitted!');
+                document.getElementById('permDate').valueAsDate = new Date();
+                document.getElementById('permReason').value = '';
+                document.getElementById('permStartTime').value = '';
+                document.getElementById('permEndTime').value = '';
+                loadPermissionRequests();
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        async function loadPermissionRequests() {
+            if (!currentUser) return;
+            try {
+                const snap = await db.collection('permissions')
+                    .where('userId','==',currentUser.uid)
+                    .orderBy('createdAt','desc').get();
+
+                const container = document.getElementById('permRequestsList');
+                if (snap.empty) { container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No requests yet.</p></div>'; return; }
+
+                container.innerHTML = snap.docs.map(doc => {
+                    const r = doc.data();
+                    const sb = r.status==='pending'?'badge-pending':r.status==='approved'?'badge-approved':'badge-rejected';
+                    const timeInfo = r.requestType==='full_day'?'Full Day':`${r.startTime} – ${r.endTime}`;
+                    return `<div class="request-item">
+                        <div><strong>${r.date}</strong> | ${timeInfo} <span class="badge ${sb}">${r.status}</span></div>
+                        <div style="margin:0.5rem 0;"><strong>Reason:</strong> ${escapeHtml(r.reason)}</div>
+                        ${r.adminRemark?`<div><strong>Admin:</strong> ${escapeHtml(r.adminRemark)}</div>`:''}
+                    </div>`;
+                }).join('');
+            } catch(e) { console.error('Permissions:', e); }
+        }
+
+        // ==================== TAB 3: ANNOUNCEMENTS ====================
+        async function loadAnnouncements() {
+            try {
+                const snap = await db.collection('announcements').orderBy('createdAt','desc').get();
+                const container = document.getElementById('announcementsList');
+
+                if (snap.empty) { container.innerHTML = '<div class="empty-state"><i class="fas fa-bullhorn"></i><p>No announcements.</p></div>'; return; }
+
+                const filtered = snap.docs.filter(doc => {
+                    const targets = doc.data().targets || [];
+                    return targets.includes('all') || targets.includes('teachers');
+                });
+
+                if (!filtered.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-bullhorn"></i><p>No teacher announcements.</p></div>'; return; }
+
+                container.innerHTML = filtered.map(doc => {
+                    const a = doc.data();
+                    return `<div class="announcement-card">
+                        <div style="font-weight:700;font-size:1.05rem;margin-bottom:0.3rem;">${escapeHtml(a.title)}</div>
+                        <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem;">${a.createdAt?.toDate().toLocaleString()||'N/A'}</div>
+                        <div style="white-space:pre-wrap;">${escapeHtml(a.content)}</div>
+                    </div>`;
+                }).join('');
+            } catch(e) { console.error('Announcements:', e); }
+        }
+
+        // ==================== TAB 4: CALENDAR ====================
+        async function loadCalendarEvents() {
+            try {
+                const snap = await db.collection('calendarEvents').orderBy('date','asc').get();
+                const container = document.getElementById('calendarEventsList');
+
+                if (snap.empty) { container.innerHTML = '<div class="empty-state"><i class="fas fa-calendar-alt"></i><p>No events scheduled.</p></div>'; return; }
+
+                container.innerHTML = snap.docs.map(doc => {
+                    const ev = doc.data();
+                    const displayDate = new Date(ev.date).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+                    return `<div class="event-card">
+                        <div class="event-title">${escapeHtml(ev.title)}</div>
+                        <div class="event-date"><i class="fas fa-calendar-day"></i> ${displayDate}</div>
+                        ${ev.sessionTerm?`<div style="font-size:0.8rem;color:var(--text-secondary);">${escapeHtml(ev.sessionTerm)}</div>`:''}
+                        <div class="event-desc">${escapeHtml(ev.description||'No description')}</div>
+                    </div>`;
+                }).join('');
+            } catch(e) { console.error('Calendar:', e); }
+        }
+
+        // ==================== AUTH ====================
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || doc.data().role !== 'teacher') {
+                    auth.signOut(); window.location.href = 'index.html'; return;
+                }
+                currentUser = user;
+                await loadUserData();
+                loadDailyReports();
+            } catch(e) { console.error('Auth:', e); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+    </script>
+</body>
+</html>
