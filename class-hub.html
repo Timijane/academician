@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Class Hub | Teacher Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --accent-glow: #2a5298; --border: rgba(0,0,0,0.08);
+            --card-bg: rgba(255,255,255,0.75); --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: #dcfce7; --success-text: #16a34a; --warning-bg: #fef9c3;
+            --warning-text: #ca8a04; --danger-bg: #fee2e2; --danger-text: #dc2626;
+            --info-bg: #dbeafe; --info-text: #2563eb; --input-bg: rgba(255,255,255,0.9);
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --accent-glow: #60a5fa; --border: rgba(255,255,255,0.05);
+            --card-bg: rgba(15,23,42,0.65); --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.2); --info-text: #60a5fa;
+            --input-bg: rgba(30,41,59,0.8); --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: all 0.3s ease; position: relative; overflow-x: hidden; }
+
+        .orb { position: fixed; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.08), transparent 70%); filter: blur(80px); z-index: 0; animation: float 20s infinite alternate; pointer-events: none; }
+        .orb-1 { top: -150px; right: -100px; } .orb-2 { bottom: -200px; left: -50px; width: 500px; height: 500px; animation-duration: 25s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px, 30px) scale(1.15); } }
+
+        .main-container { max-width: 1500px; margin: 0 auto; padding: 1.5rem; position: relative; z-index: 5; }
+
+        /* Top Navigation */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); flex-wrap: wrap; gap: 1rem; }
+        .nav-left { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+        .nav-logo { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-logo i { font-size: 2rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-logo h2 { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 0.75rem; align-items: center; }
+        .nav-link { padding: 0.6rem 1.2rem; border-radius: 0.75rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; }
+        .nav-link:hover { background: var(--hover-bg); color: var(--accent); border-color: var(--border); }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .theme-toggle { background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.8rem; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.3rem 0.3rem 0.3rem 1rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; }
+        .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem; min-width: 200px; display: none; z-index: 1000; }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.75rem 1rem; color: var(--text-primary); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem; transition: 0.2s; cursor: pointer; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        /* Tab Navigation */
+        .tab-navigation { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 0.4rem; overflow-x: auto; box-shadow: var(--shadow); }
+        .tab-btn { padding: 0.8rem 1.5rem; border-radius: 1.25rem; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; font-family: inherit; }
+        .tab-btn:hover { background: var(--hover-bg); color: var(--accent); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .tab-content { display: none; animation: fadeSlideIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; text-align: center; transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+        .stat-card h3 { font-size: 2rem; font-weight: 700; color: var(--accent); }
+        .stat-card p { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; }
+
+        /* Form */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-weight: 500; font-size: 0.9rem; }
+        .form-group label i { margin-right: 0.4rem; }
+        .form-control { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 1rem; color: var(--text-primary); font-size: 0.95rem; font-family: inherit; }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+        select.form-control { appearance: auto; }
+
+        /* Grids */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        th { background: var(--hover-bg); font-weight: 600; color: var(--text-secondary); }
+
+        /* Student Cards */
+        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+        .student-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; transition: all 0.2s; }
+        .student-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+        .student-avatar-sm { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+
+        /* Announcements */
+        .announcements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; }
+        .announcement-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.2rem; transition: all 0.2s; }
+        .announcement-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+        /* Badges */
+        .badge { padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+        .badge-active { background: var(--success-bg); color: var(--success-text); }
+        .badge-suspended { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-present { background: var(--success-bg); color: var(--success-text); }
+        .badge-absent { background: var(--danger-bg); color: var(--danger-text); }
+
+        /* Buttons */
+        .btn { padding: 0.5rem 1.2rem; border: none; border-radius: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-success { background: var(--success-text); color: white; }
+        .btn-danger { background: var(--danger-text); color: white; }
+        .btn-warning { background: var(--warning-text); color: #000; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-outline:hover { background: var(--hover-bg); }
+        .btn-sm { padding: 0.3rem 0.75rem; font-size: 0.75rem; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); }
+
+        /* Selectors Bar */
+        .selectors-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: flex-end; background: var(--card-bg); padding: 1rem 1.5rem; border-radius: 1.5rem; border: 1px solid var(--border); }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 0.75rem; }
+            .top-nav { flex-direction: column; align-items: stretch; }
+            .nav-left { flex-direction: column; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .student-grid, .announcements-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="main-container">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <h2>EduTop</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="teacher-dashboard.html" class="nav-link"><i class="fas fa-arrow-left"></i> Dashboard</a>
+                    <a href="teacher-tests.html" class="nav-link"><i class="fas fa-file-alt"></i> Tests</a>
+                    <a href="teacher-assignments.html" class="nav-link"><i class="fas fa-tasks"></i> Assignments</a>
+                    <a href="teacher-operations.html" class="nav-link"><i class="fas fa-tools"></i> Operations</a>
+                </div>
+            </div>
+            <div class="nav-right">
+                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+                <div class="profile-dropdown">
+                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation" id="tabNavigation">
+            <button class="tab-btn active" data-tab="roster"><i class="fas fa-users"></i> Class Roster</button>
+            <button class="tab-btn" data-tab="approvals"><i class="fas fa-user-check"></i> Student Approvals</button>
+            <button class="tab-btn" data-tab="attendance"><i class="fas fa-fingerprint"></i> Attendance</button>
+            <button class="tab-btn" data-tab="announcements"><i class="fas fa-bullhorn"></i> Class Announcements</button>
+        </div>
+
+        <!-- ==================== TAB 1: CLASS ROSTER ==================== -->
+        <div class="tab-content active" id="tab-roster">
+            <div class="stats-grid" id="rosterStats">
+                <div class="stat-card"><h3 id="rosterTotal">0</h3><p>Total Students</p></div>
+                <div class="stat-card"><h3 id="rosterActive">0</h3><p>Active</p></div>
+                <div class="stat-card"><h3 id="rosterSuspended">0</h3><p>Suspended</p></div>
+                <div class="stat-card"><h3 id="rosterPrefects">0</h3><p>Prefects</p></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-users"></i> Class: <span id="rosterClassName">Loading...</span></h3>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Student</th><th>Admission No</th><th>Email</th><th>Prefect Role</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="rosterBody"><tr><td colspan="6">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: STUDENT APPROVALS ==================== -->
+        <div class="tab-content" id="tab-approvals">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-check"></i> Students Awaiting Approval</h3>
+                    <span class="badge badge-pending" id="pendingApprovalCount">0 pending</span>
+                </div>
+                <div id="approvalsList"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div></div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: ATTENDANCE ==================== -->
+        <div class="tab-content" id="tab-attendance">
+            <div class="selectors-bar">
+                <div class="form-group" style="margin:0;min-width:180px;"><label>Date</label><input type="date" id="attDate" class="form-control"></div>
+                <div class="form-group" style="margin:0;min-width:180px;"><label>Session</label>
+                    <select id="attSession" class="form-control">
+                        <option value="morning">Morning (8AM-12PM)</option>
+                        <option value="afternoon">Afternoon (1PM-4PM)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="attLoadBtn"><i class="fas fa-download"></i> Load</button>
+                <button class="btn btn-success" id="attSaveBtn"><i class="fas fa-save"></i> Save</button>
+            </div>
+
+            <div class="stats-grid" id="attStats" style="display:none;">
+                <div class="stat-card"><h3 id="attTotal">0</h3><p>Students</p></div>
+                <div class="stat-card"><h3 id="attPresent">0</h3><p>Present</p></div>
+                <div class="stat-card"><h3 id="attAbsent">0</h3><p>Absent</p></div>
+                <div class="stat-card"><h3 id="attRate">0%</h3><p>Rate</p></div>
+            </div>
+
+            <div class="card" id="attTableCard" style="display:none;">
+                <div class="card-header"><h3><i class="fas fa-clipboard-list"></i> Attendance Sheet</h3></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>#</th><th>Student</th><th>Present</th><th>Absent</th><th>Remark</th></tr></thead>
+                        <tbody id="attTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="attEmpty" class="empty-state">
+                <i class="fas fa-calendar-check"></i><h3>Select date and session, then click Load</h3>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 4: CLASS ANNOUNCEMENTS ==================== -->
+        <div class="tab-content" id="tab-announcements">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-plus-circle"></i> New Class Announcement</h3></div>
+                <div class="form-group"><label>Class</label><input type="text" id="annClassDisplay" class="form-control" readonly></div>
+                <div class="form-group"><label>Title</label><input type="text" id="annTitle" class="form-control" required></div>
+                <div class="form-group"><label>Message</label><textarea id="annContent" class="form-control" required></textarea></div>
+                <button class="btn btn-primary" id="annSubmitBtn"><i class="fas fa-paper-plane"></i> Post</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-history"></i> My Class Announcements</h3></div>
+                <div id="announcementsList" class="announcements-grid">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div class="modal-overlay" id="editStudentModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:none;justify-content:center;align-items:center;z-index:2000;">
+        <div class="modal-content" style="background:var(--card-bg);border:1px solid var(--border);border-radius:1.5rem;padding:1.5rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3>Edit Student</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeEditStudentModal()"></i>
+            </div>
+            <input type="hidden" id="editStudentId">
+            <div class="form-group"><label>First Name</label><input type="text" id="editFirstName" class="form-control" required></div>
+            <div class="form-group"><label>Surname</label><input type="text" id="editSurname" class="form-control" required></div>
+            <div class="form-group"><label>Phone</label><input type="tel" id="editPhone" class="form-control"></div>
+            <div class="form-group"><label>Admission No</label><input type="text" id="editAdmissionNo" class="form-control"></div>
+            <div class="form-group"><label>Prefect Role</label>
+                <select id="editPrefect" class="form-control">
+                    <option value="">None</option>
+                    <option value="Head Boy">Head Boy</option>
+                    <option value="Head Girl">Head Girl</option>
+                    <option value="Sports Prefect">Sports Prefect</option>
+                    <option value="Health Prefect">Health Prefect</option>
+                    <option value="Library Prefect">Library Prefect</option>
+                    <option value="Lab Prefect">Lab Prefect</option>
+                    <option value="Assembly Prefect">Assembly Prefect</option>
+                    <option value="Social Prefect">Social Prefect</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Status</label>
+                <select id="editStatus" class="form-control">
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+            <div class="btn-group" style="justify-content:flex-end;margin-top:1.5rem;">
+                <button class="btn btn-outline" onclick="closeEditStudentModal()">Cancel</button>
+                <button class="btn btn-primary" id="saveEditStudentBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Detail Modal -->
+    <div class="modal-overlay" id="detailModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:none;justify-content:center;align-items:center;z-index:2000;">
+        <div class="modal-content" style="background:var(--card-bg);border:1px solid var(--border);border-radius:1.5rem;padding:1.5rem;max-width:500px;width:90%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3>Student Details</h3>
+                <i class="fas fa-times" style="cursor:pointer;" onclick="closeDetailModal()"></i>
+            </div>
+            <div id="detailContent"></div>
+            <div class="btn-group" style="justify-content:flex-end;margin-top:1rem;">
+                <button class="btn btn-outline" onclick="closeDetailModal()">Close</button>
+                <button class="btn btn-success" id="detailApproveBtn">Approve</button>
+                <button class="btn btn-danger" id="detailRejectBtn">Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin fa-2x"></i><h3 style="margin-top:1rem;">Processing...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ==================== STATE ====================
+        let currentUser = null, userData = null, teacherClass = null;
+        let allStudents = [], pendingStudents = [];
+        let currentAttendance = {};
+        let currentDetailStudentId = null;
+
+        // ==================== UTILITY ====================
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        async function logAudit(action, details = {}) {
+            if (!currentUser) return;
+            try {
+                await db.collection('auditLogs').add({
+                    userId: currentUser.uid,
+                    userName: `${userData?.firstName||''} ${userData?.surname||''}`.trim(),
+                    userRole: 'teacher',
+                    action,
+                    details: JSON.stringify(details),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    userAgent: navigator.userAgent
+                });
+            } catch(e) { console.warn('Audit:', e); }
+        }
+
+        // ==================== THEME ====================
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        themeToggle.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutop-theme', next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
+        });
+
+        // ==================== TAB NAVIGATION ====================
+        document.getElementById('tabNavigation').addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document.querySelectorAll('#tabNavigation .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            if (btn.dataset.tab === 'approvals') loadPendingStudents();
+            else if (btn.dataset.tab === 'announcements') loadAnnouncements();
+        });
+
+        // ==================== LOAD STUDENTS ====================
+        async function loadAllStudents() {
+            if (!teacherClass) return;
+            try {
+                const snap = await db.collection('users').where('role','==','student').where('class','==',teacherClass).get();
+                allStudents = []; pendingStudents = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const student = { id: doc.id, ...d };
+                    allStudents.push(student);
+                    if (d.approved !== true) pendingStudents.push(student);
+                });
+                allStudents.sort((a,b) => `${a.surname}${a.firstName}`.localeCompare(`${b.surname}${b.firstName}`));
+                updateRosterStats();
+                renderRoster();
+                updateApprovalCount();
+            } catch(e) { console.error('Load students:', e); }
+        }
+
+        function updateRosterStats() {
+            document.getElementById('rosterTotal').textContent = allStudents.length;
+            document.getElementById('rosterActive').textContent = allStudents.filter(s => !s.suspended).length;
+            document.getElementById('rosterSuspended').textContent = allStudents.filter(s => s.suspended).length;
+            document.getElementById('rosterPrefects').textContent = allStudents.filter(s => s.prefect && s.prefect !== '').length;
+        }
+
+        function renderRoster() {
+            document.getElementById('rosterClassName').textContent = teacherClass?.toUpperCase() || 'Not Assigned';
+            const tbody = document.getElementById('rosterBody');
+            if (!allStudents.length) { tbody.innerHTML = '<tr><td colspan="6">No students in this class.</td></tr>'; return; }
+            tbody.innerHTML = allStudents.map(s => {
+                const name = `${s.firstName||''} ${s.surname||''}`.trim() || 'Unknown';
+                const status = s.suspended ? 'suspended' : 'active';
+                return `<tr>
+                    <td><strong>${escapeHtml(name)}</strong></td>
+                    <td>${escapeHtml(s.admissionNo||'N/A')}</td>
+                    <td>${escapeHtml(s.email||'—')}</td>
+                    <td>${escapeHtml(s.prefect||'—')}</td>
+                    <td><span class="badge badge-${status}">${status}</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-outline btn-sm" onclick="editStudent('${s.id}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-warning btn-sm" onclick="assignPrefect('${s.id}')"><i class="fas fa-crown"></i></button>
+                            <button class="btn ${s.suspended?'btn-success':'btn-danger'} btn-sm" onclick="toggleSuspend('${s.id}',${!!s.suspended})"><i class="fas ${s.suspended?'fa-check':'fa-ban'}"></i> ${s.suspended?'Activate':'Suspend'}</button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ==================== EDIT STUDENT MODAL ====================
+        window.editStudent = async (id) => {
+            const s = allStudents.find(x => x.id === id);
+            if (!s) return;
+            document.getElementById('editStudentId').value = id;
+            document.getElementById('editFirstName').value = s.firstName || '';
+            document.getElementById('editSurname').value = s.surname || '';
+            document.getElementById('editPhone').value = s.phone || '';
+            document.getElementById('editAdmissionNo').value = s.admissionNo || '';
+            document.getElementById('editPrefect').value = s.prefect || '';
+            document.getElementById('editStatus').value = s.suspended ? 'suspended' : 'active';
+            document.getElementById('editStudentModal').style.display = 'flex';
+        };
+
+        window.closeEditStudentModal = () => { document.getElementById('editStudentModal').style.display = 'none'; };
+
+        document.getElementById('saveEditStudentBtn').addEventListener('click', async () => {
+            const id = document.getElementById('editStudentId').value;
+            const updates = {
+                firstName: document.getElementById('editFirstName').value,
+                surname: document.getElementById('editSurname').value,
+                phone: document.getElementById('editPhone').value,
+                admissionNo: document.getElementById('editAdmissionNo').value,
+                prefect: document.getElementById('editPrefect').value,
+                suspended: document.getElementById('editStatus').value === 'suspended',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                await db.collection('users').doc(id).update(updates);
+                await logAudit('UPDATE_STUDENT', { studentId: id, updates });
+                closeEditStudentModal();
+                loadAllStudents();
+            } catch(e) { alert('Error: ' + e.message); }
+        });
+
+        window.assignPrefect = async (id) => {
+            const role = prompt('Enter prefect role:');
+            if (!role) return;
+            try {
+                await db.collection('users').doc(id).update({ prefect: role });
+                await logAudit('ASSIGN_PREFECT', { studentId: id, role });
+                loadAllStudents();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        window.toggleSuspend = async (id, suspended) => {
+            if (!confirm(`${suspended?'Activate':'Suspend'} this student?`)) return;
+            try {
+                await db.collection('users').doc(id).update({ suspended: !suspended });
+                await logAudit(suspended ? 'ACTIVATE_STUDENT' : 'SUSPEND_STUDENT', { studentId: id });
+                loadAllStudents();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        // ==================== STUDENT APPROVALS ====================
+        function updateApprovalCount() {
+            document.getElementById('pendingApprovalCount').textContent = `${pendingStudents.length} pending`;
+        }
+
+        function renderApprovals() {
+            const container = document.getElementById('approvalsList');
+            if (!pendingStudents.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><h3>All caught up!</h3><p>No pending student approvals.</p></div>';
+                return;
+            }
+            container.innerHTML = pendingStudents.map(s => {
+                const name = `${s.firstName||''} ${s.surname||''}`.trim() || 'Unnamed';
+                return `<div class="student-card">
+                    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem;">
+                        <div class="student-avatar-sm">${(s.firstName?.[0]||'')+(s.surname?.[0]||'')}</div>
+                        <div><strong>${escapeHtml(name)}</strong><br><small>${s.email||'No email'} | ${s.phone||'No phone'}</small></div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline btn-sm" onclick="viewStudentDetail('${s.id}')"><i class="fas fa-eye"></i> Details</button>
+                        <button class="btn btn-success btn-sm" onclick="approveStudent('${s.id}')"><i class="fas fa-check"></i> Approve</button>
+                        <button class="btn btn-danger btn-sm" onclick="rejectStudent('${s.id}')"><i class="fas fa-times"></i> Reject</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function loadPendingStudents() {
+            if (!teacherClass) return;
+            try {
+                const snap = await db.collection('users').where('role','==','student').where('class','==',teacherClass).get();
+                pendingStudents = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.approved !== true) pendingStudents.push({ id: doc.id, ...d });
+                });
+                updateApprovalCount();
+                renderApprovals();
+            } catch(e) { console.error('Pending:', e); }
+        }
+
+        window.viewStudentDetail = (id) => {
+            const s = pendingStudents.find(x => x.id === id) || allStudents.find(x => x.id === id);
+            if (!s) return;
+            currentDetailStudentId = id;
+            document.getElementById('detailContent').innerHTML = `
+                <p><strong>Name:</strong> ${escapeHtml(`${s.firstName||''} ${s.surname||''}`)}</p>
+                <p><strong>Email:</strong> ${s.email||'—'}</p>
+                <p><strong>Phone:</strong> ${s.phone||'—'}</p>
+                <p><strong>Parent:</strong> ${escapeHtml(`${s.parentFirstName||''} ${s.parentSurname||''}`)||'—'}</p>
+                <p><strong>Parent Phone:</strong> ${s.parentPhone||'—'}</p>
+                <p><strong>Address:</strong> ${escapeHtml(s.address||'—')}</p>
+                <p><strong>Registered:</strong> ${s.createdAt?.toDate?.().toLocaleString()||'N/A'}</p>
+            `;
+            document.getElementById('detailModal').style.display = 'flex';
+        };
+
+        window.closeDetailModal = () => { document.getElementById('detailModal').style.display = 'none'; currentDetailStudentId = null; };
+
+        window.approveStudent = async (id) => {
+            if (!confirm('Approve this student?')) return;
+            try {
+                await db.collection('users').doc(id).update({ approved: true });
+                await logAudit('APPROVE_STUDENT', { studentId: id });
+                closeDetailModal();
+                loadAllStudents();
+                loadPendingStudents();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        window.rejectStudent = async (id) => {
+            if (!confirm('Reject and delete this student?')) return;
+            try {
+                await db.collection('users').doc(id).delete();
+                await logAudit('REJECT_STUDENT', { studentId: id });
+                closeDetailModal();
+                loadAllStudents();
+                loadPendingStudents();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        document.getElementById('detailApproveBtn').addEventListener('click', () => { if(currentDetailStudentId) approveStudent(currentDetailStudentId); });
+        document.getElementById('detailRejectBtn').addEventListener('click', () => { if(currentDetailStudentId) rejectStudent(currentDetailStudentId); });
+
+        // ==================== ATTENDANCE ====================
+        document.getElementById('attDate').valueAsDate = new Date();
+
+        document.getElementById('attLoadBtn').addEventListener('click', async () => {
+            const date = document.getElementById('attDate').value;
+            const session = document.getElementById('attSession').value;
+            if (!date || !teacherClass) { alert('Select date. Class must be assigned.'); return; }
+
+            showLoading();
+            try {
+                const snap = await db.collection('attendance').where('classId','==',teacherClass).get();
+                currentAttendance = {};
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.date === date && d.session === session && d.studentId) {
+                        currentAttendance[d.studentId] = d.status;
+                        currentAttendance[d.studentId+'_remark'] = d.remark || '';
+                    }
+                });
+
+                const tbody = document.getElementById('attTableBody');
+                const students = allStudents.filter(s => !s.suspended);
+                tbody.innerHTML = students.map((s, i) => {
+                    const status = currentAttendance[s.id] || 'present';
+                    const remark = currentAttendance[s.id+'_remark'] || '';
+                    return `<tr>
+                        <td>${i+1}</td>
+                        <td><strong>${escapeHtml(`${s.firstName||''} ${s.surname||''}`)}</strong></td>
+                        <td><input type="radio" name="att_${s.id}" value="present" ${status==='present'?'checked':''} onchange="updateAtt('${s.id}','present')"></td>
+                        <td><input type="radio" name="att_${s.id}" value="absent" ${status==='absent'?'checked':''} onchange="updateAtt('${s.id}','absent')"></td>
+                        <td><input type="text" class="form-control" id="attRemark_${s.id}" value="${escapeHtml(remark)}" style="padding:0.3rem;font-size:0.8rem;" placeholder="Reason"></td>
+                    </tr>`;
+                }).join('');
+
+                document.getElementById('attStats').style.display = 'grid';
+                document.getElementById('attTableCard').style.display = '';
+                document.getElementById('attEmpty').style.display = 'none';
+                updateAttStats();
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        window.updateAtt = (id, status) => { currentAttendance[id] = status; updateAttStats(); };
+        function updateAttStats() {
+            const students = allStudents.filter(s => !s.suspended);
+            const present = students.filter(s => currentAttendance[s.id] === 'present').length;
+            const total = students.length;
+            document.getElementById('attTotal').textContent = total;
+            document.getElementById('attPresent').textContent = present;
+            document.getElementById('attAbsent').textContent = total - present;
+            document.getElementById('attRate').textContent = total ? ((present/total)*100).toFixed(1)+'%' : '0%';
+        }
+
+        document.getElementById('attSaveBtn').addEventListener('click', async () => {
+            const date = document.getElementById('attDate').value;
+            const session = document.getElementById('attSession').value;
+            if (!date || !teacherClass) { alert('Select date.'); return; }
+
+            showLoading();
+            try {
+                const existingSnap = await db.collection('attendance').where('classId','==',teacherClass).get();
+                const batch = db.batch();
+                existingSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (d.date === date && d.session === session) batch.delete(doc.ref);
+                });
+
+                const students = allStudents.filter(s => !s.suspended);
+                students.forEach(s => {
+                    const status = currentAttendance[s.id] || 'present';
+                    const remark = document.getElementById(`attRemark_${s.id}`)?.value || '';
+                    batch.set(db.collection('attendance').doc(), {
+                        studentId: s.id,
+                        studentName: `${s.firstName||''} ${s.surname||''}`.trim(),
+                        admissionNo: s.admissionNo||'',
+                        classId: teacherClass,
+                        date, session, status, remark,
+                        teacherId: currentUser.uid,
+                        teacherName: `${userData?.firstName||''} ${userData?.surname||''}`.trim(),
+                        recordedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+
+                await batch.commit();
+                await logAudit('ATTENDANCE_SAVED', { classId: teacherClass, date, session, studentCount: students.length });
+                alert('Attendance saved!');
+            } catch(e) { alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        });
+
+        // ==================== CLASS ANNOUNCEMENTS ====================
+        async function loadAnnouncements() {
+            if (!teacherClass) return;
+            document.getElementById('annClassDisplay').value = teacherClass;
+            try {
+                const snap = await db.collection('classAnnouncements').where('classId','==',teacherClass).orderBy('createdAt','desc').get();
+                const container = document.getElementById('announcementsList');
+                if (snap.empty) { container.innerHTML = '<div class="empty-state"><i class="fas fa-bullhorn"></i><p>No class announcements.</p></div>'; return; }
+                container.innerHTML = snap.docs.map(doc => {
+                    const a = doc.data();
+                    return `<div class="announcement-card">
+                        <div style="font-weight:700;margin-bottom:0.3rem;">${escapeHtml(a.title)}</div>
+                        <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem;">${a.createdAt?.toDate().toLocaleString()||'N/A'}</div>
+                        <div style="white-space:pre-wrap;margin-bottom:0.75rem;">${escapeHtml(a.content)}</div>
+                        <div class="btn-group">
+                            <button class="btn btn-outline btn-sm" onclick="editAnnouncement('${doc.id}','${escapeHtml(a.title)}','${escapeHtml(a.content)}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${doc.id}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch(e) { console.error('Announcements:', e); }
+        }
+
+        document.getElementById('annSubmitBtn').addEventListener('click', async () => {
+            const title = document.getElementById('annTitle').value.trim();
+            const content = document.getElementById('annContent').value.trim();
+            if (!title || !content || !teacherClass) { alert('Fill all fields'); return; }
+            try {
+                await db.collection('classAnnouncements').add({
+                    teacherId: currentUser.uid,
+                    teacherName: `${userData?.firstName||''} ${userData?.surname||''}`.trim(),
+                    classId: teacherClass, className: teacherClass,
+                    title, content,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await logAudit('CLASS_ANNOUNCEMENT_POSTED', { classId: teacherClass, title });
+                document.getElementById('annTitle').value = '';
+                document.getElementById('annContent').value = '';
+                loadAnnouncements();
+            } catch(e) { alert('Error: ' + e.message); }
+        });
+
+        window.editAnnouncement = (id, oldTitle, oldContent) => {
+            const t = prompt('Edit title:', oldTitle);
+            if (!t) return;
+            const c = prompt('Edit content:', oldContent);
+            if (c === null) return;
+            db.collection('classAnnouncements').doc(id).update({ title: t, content: c, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }).then(() => loadAnnouncements());
+        };
+
+        window.deleteAnnouncement = (id) => {
+            if (confirm('Delete?')) { db.collection('classAnnouncements').doc(id).delete().then(() => loadAnnouncements()); }
+        };
+
+        // ==================== AUTH ====================
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'teacher-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || doc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = doc.data();
+                teacherClass = userData.classTeaching;
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0]||'T')+(userData.surname?.[0]||'E');
+                document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+                document.getElementById('rosterClassName').textContent = teacherClass?.toUpperCase() || 'Not Assigned';
+                document.getElementById('annClassDisplay').value = teacherClass || 'Not Assigned';
+                if (teacherClass) { loadAllStudents(); }
+            } catch(e) { console.error('Auth:', e); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+    </script>
+</body>
+</html>
