@@ -2,664 +2,752 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>EduTop · Student Classroom</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTop Scholars · Student Classroom</title>
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <!-- Quill (for viewing resources) -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root[data-theme="light"] {
-            --bg-primary: #f0f5fa; --bg-surface: rgba(255,255,255,0.75); --text-primary: #0b1e33;
-            --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298;
-            --accent-light: rgba(30,60,114,0.08); --border: rgba(0,0,0,0.08);
-            --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9);
-            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1); --shadow-sm: 0 5px 15px -5px rgba(0,0,0,0.05);
-            --success-bg: rgba(34,197,94,0.15); --success-text: #16a34a;
-            --warning-bg: rgba(245,158,11,0.15); --warning-text: #b45309;
-            --danger-bg: rgba(239,68,68,0.15); --danger-text: #b91c1c;
-            --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
-            --gradient-start: #1e3c72; --gradient-end: #2a5298;
-            --resource-bg: #fefce8; --key-point-bg: #eff6ff;
-            --meeting-live-bg: rgba(34,197,94,0.08); --meeting-soon-bg: rgba(245,158,11,0.08);
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --hover-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --success-bg: #22c55e20;
+            --success-text: #22c55e;
+            --warning-bg: #f59e0b20;
+            --warning-text: #f59e0b;
+            --danger-bg: #ef444420;
+            --danger-text: #ef4444;
+            --input-bg: #ffffff;
         }
+
         :root[data-theme="dark"] {
-            --bg-primary: #0a0f1e; --bg-surface: rgba(15,23,42,0.8); --text-primary: #f0f4fa;
-            --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa;
-            --accent-light: rgba(59,130,246,0.1); --border: rgba(255,255,255,0.06);
-            --card-bg: rgba(15,23,42,0.6); --hover-bg: rgba(30,41,59,0.8);
-            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5); --shadow-sm: 0 5px 15px -5px rgba(0,0,0,0.3);
-            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
-            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
-            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
-            --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
-            --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
-            --resource-bg: #1a1f2e; --key-point-bg: #1e293b;
-            --meeting-live-bg: rgba(34,197,94,0.08); --meeting-soon-bg: rgba(245,158,11,0.08);
+            --bg-primary: #0f172a;
+            --bg-sidebar: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --border: #334155;
+            --card-bg: #1e293b;
+            --hover-bg: #2d3a4f;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --success-bg: #22c55e20;
+            --success-text: #4ade80;
+            --warning-bg: #f59e0b20;
+            --warning-text: #fbbf24;
+            --danger-bg: #ef444420;
+            --danger-text: #f87171;
+            --input-bg: #1e293b;
         }
 
-        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
-        .orb { position: fixed; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; animation: float 25s infinite alternate ease-in-out; }
-        .orb-1 { width: 400px; height: 400px; top: -150px; right: -150px; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.12), transparent 70%); }
-        .orb-2 { width: 500px; height: 500px; bottom: -200px; left: -200px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.10), transparent 70%); animation-duration: 30s; }
-        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px,30px) scale(1.15); } }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
 
-        .top-nav { position: sticky; top: 0; z-index: 100; background: var(--bg-surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0.9rem 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-        .nav-left, .nav-right { display: flex; align-items: center; gap: 1rem; }
-        .nav-brand { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
-        .nav-btn { background: transparent; border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1.2rem; color: var(--text-primary); font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; text-decoration: none; display: flex; align-items: center; gap: 0.4rem; }
-        .nav-btn:hover { background: var(--hover-bg); border-color: var(--accent); color: var(--accent); }
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar .logo-area {
+            display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2.5rem; padding: 0 0.5rem;
+        }
+        .sidebar .logo-area i { font-size: 2rem; color: var(--accent); }
+        .sidebar .logo-area h2 { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+        .sidebar.collapsed .logo-area h2 { display: none; }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem;
+            border-radius: 0.75rem; color: var(--text-secondary); transition: 0.2s;
+            cursor: pointer; margin-bottom: 0.3rem; white-space: nowrap; text-decoration: none;
+        }
+        .sidebar .nav-item:hover { background: var(--hover-bg); color: var(--accent); }
+        .sidebar .nav-item.active { background: var(--accent); color: white; }
+        .sidebar .nav-item i { font-size: 1.2rem; width: 1.5rem; }
+        .sidebar.collapsed .nav-item span { display: none; }
+        .sidebar .toggle-btn { margin-top: auto; display: flex; justify-content: flex-end; padding: 1rem 0.5rem; cursor: pointer; color: var(--text-secondary); }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s;
+        }
+        .main-content.expanded { margin-left: 80px; }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .page-title h1 { font-size: 2rem; font-weight: 600; }
+        .page-title p { color: var(--text-secondary); }
+        .profile-area { display: flex; align-items: center; gap: 1.5rem; }
+        .theme-toggle {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem;
+            padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+            color: var(--text-secondary);
+        }
         .profile-dropdown { position: relative; cursor: pointer; }
-        .profile-trigger { display: flex; align-items: center; gap: 0.6rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem 0.3rem 0.3rem 0.8rem; }
-        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
-        .profile-pic { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; }
-        .dropdown-menu { position: absolute; right: 0; top: 50px; background: var(--bg-surface); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
-        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-item { padding: 0.7rem 1.1rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.7rem; transition: 0.2s; cursor: pointer; font-size: 0.9rem; }
-        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
-        .theme-toggle { display: flex; align-items: center; gap: 0.4rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.35rem 0.9rem; cursor: pointer; font-size: 0.8rem; color: var(--text-secondary); }
+        .profile-icon {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;
+        }
+        .dropdown-menu {
+            position: absolute; right: 0; top: 50px; background: var(--card-bg);
+            border: 1px solid var(--border); border-radius: 1rem; padding: 0.5rem;
+            min-width: 150px; display: none; z-index: 1000;
+        }
+        .profile-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { padding: 0.5rem 1rem; color: var(--text-primary); border-radius: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); }
 
-        .main-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem 3rem; position: relative; z-index: 5; }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .card-header h3 { font-size: 1.2rem; font-weight: 600; }
 
-        .welcome-banner { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); border-radius: 2rem; padding: 2rem; margin-bottom: 2rem; color: white; position: relative; overflow: hidden; }
-        .welcome-banner h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.4rem; }
-        .welcome-banner p { opacity: 0.9; font-size: 0.95rem; }
-        .welcome-banner .banner-icon { position: absolute; right: -30px; top: -30px; font-size: 7rem; opacity: 0.12; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .stat-label {
+            color: var(--text-secondary);
+        }
 
-        .subject-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.35rem; width: fit-content; flex-wrap: wrap; }
-        .subject-tab { padding: 0.7rem 1.8rem; border-radius: 3rem; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap; }
-        .subject-tab.active { background: var(--accent); color: white; box-shadow: 0 5px 20px -5px var(--accent); }
-        .subject-tab:hover:not(.active) { color: var(--accent); }
+        .info-row {
+            display: flex;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .info-label {
+            width: 120px;
+            color: var(--text-secondary);
+        }
+        .info-value {
+            flex: 1;
+        }
 
-        .week-selector { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .week-chip { padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 500; font-size: 0.85rem; cursor: pointer; background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border); white-space: nowrap; transition: 0.2s; }
-        .week-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
-        .week-chip:hover:not(.active) { border-color: var(--accent); }
+        /* Resource Grid */
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .resource-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem;
+            transition: 0.2s;
+        }
+        .resource-card:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+        .resource-card h4 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .resource-card p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+        .resource-card .badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+        }
 
-        .section-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-        .section-label i { color: var(--accent); }
+        /* Timetable */
+        .timetable-container {
+            overflow-x: auto;
+        }
+        .timetable-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        .timetable-table th,
+        .timetable-table td {
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .timetable-table th {
+            background: var(--hover-bg);
+            font-weight: 600;
+        }
 
-        .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; transition: all 0.3s; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border); }
-        .card-header h3 { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .modal-header h3 { font-size: 1.5rem; }
+        .close-btn {
+            background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;
+        }
+        .close-btn:hover { color: var(--accent); }
+        #resourceViewer { min-height: 300px; background: var(--hover-bg); border-radius: 1rem; padding: 1rem; }
 
-        .btn { padding: 0.55rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
-        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
-        .btn-success { background: var(--success-text); color: white; }
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: none;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
-        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.78rem; border-radius: 1.5rem; }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-outline:hover { background: var(--hover-bg); }
+        .btn-sm { padding: 0.25rem 0.8rem; font-size: 0.85rem; }
 
-        .textbook-content { background: var(--resource-bg); border: 1px solid var(--border); border-radius: 1.2rem; padding: 2rem; font-size: 1.05rem; line-height: 1.9; }
-        .textbook-content h2, .textbook-content h3 { color: var(--accent); margin: 1.2rem 0 0.5rem; }
-        .textbook-content h2:first-child { margin-top: 0; }
-        .textbook-content .key-point { background: var(--key-point-bg); border-left: 4px solid var(--accent); padding: 0.8rem 1.2rem; margin: 1rem 0; border-radius: 0.5rem; }
-        .textbook-content ul, .textbook-content ol { padding-left: 1.5rem; margin: 0.6rem 0; }
-        .textbook-content p { margin-bottom: 0.8rem; }
-        .textbook-content strong, .textbook-content b { color: var(--accent); }
-
-        .handwriting-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-        .handwriting-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1rem; overflow: hidden; cursor: pointer; transition: 0.2s; }
-        .handwriting-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
-        .handwriting-card img { width: 100%; display: block; min-height: 180px; object-fit: cover; background: #f0f0f0; }
-        .handwriting-card .caption { padding: 0.7rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; }
-
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
-        .video-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.2rem; overflow: hidden; transition: 0.2s; }
-        .video-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
-        .video-embed { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; }
-        .video-embed iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
-        .video-info { padding: 1rem; }
-        .video-info h4 { font-size: 0.9rem; margin-bottom: 0.2rem; }
-        .video-info p { font-size: 0.78rem; color: var(--text-secondary); }
-        .badge-platform { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
-        .badge-platform.youtube { background: #ff000022; color: #ff4444; }
-
-        .meetings-list { display: flex; flex-direction: column; gap: 1rem; }
-        .meeting-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.2rem; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; transition: 0.2s; }
-        .meeting-card:hover { border-color: var(--accent); }
-        .meeting-card.live { border: 2px solid var(--success-text); background: var(--meeting-live-bg); }
-        .meeting-card.soon { border: 2px solid var(--warning-text); background: var(--meeting-soon-bg); }
-        .meeting-info { flex: 1; min-width: 200px; }
-        .meeting-info h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
-        .meeting-info p { font-size: 0.8rem; color: var(--text-secondary); }
-        .meeting-meta { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.3rem; }
-        .meeting-meta span { font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem; }
-        .meeting-status { padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.72rem; font-weight: 600; }
-        .meeting-status.live { background: var(--success-bg); color: var(--success-text); animation: pulse 2s infinite; }
-        .meeting-status.soon { background: var(--warning-bg); color: var(--warning-text); }
-        .meeting-status.upcoming { background: var(--info-bg); color: var(--info-text); }
-        .meeting-status.past { background: var(--hover-bg); color: var(--text-secondary); }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .join-btn { background: var(--success-text); color: white; padding: 0.55rem 1.3rem; border-radius: 2rem; font-weight: 600; text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; transition: 0.2s; }
-        .join-btn:hover { opacity: 0.9; transform: scale(1.03); }
-        .join-btn.disabled { opacity: 0.4; pointer-events: none; }
-
-        .image-lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.93); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 3000; cursor: pointer; }
-        .image-lightbox.active { display: flex; }
-        .image-lightbox img { max-width: 90%; max-height: 90%; border-radius: 1rem; box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
-        .lightbox-close { position: absolute; top: 2rem; right: 2rem; color: white; font-size: 2rem; cursor: pointer; z-index: 3001; }
-        .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); color: white; font-size: 2rem; cursor: pointer; z-index: 3001; background: rgba(0,0,0,0.5); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .lightbox-nav.prev { left: 2rem; }
-        .lightbox-nav.next { right: 2rem; }
-        .lightbox-counter { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); color: white; font-size: 0.85rem; background: rgba(0,0,0,0.6); padding: 0.5rem 1.2rem; border-radius: 2rem; }
-
-        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
-        .empty-state i { font-size: 3.5rem; margin-bottom: 0.8rem; opacity: 0.25; display: block; }
-        .empty-state h3 { font-size: 1.1rem; margin-bottom: 0.4rem; color: var(--text-primary); }
-        .empty-state p { font-size: 0.85rem; }
-
-        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 5000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
-        .toast { background: rgba(15,23,42,0.95); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem 1.5rem; min-width: 300px; color: white; box-shadow: 0 15px 35px rgba(0,0,0,0.4); display: flex; align-items: flex-start; gap: 0.8rem; animation: slideIn 0.3s; pointer-events: auto; }
-        .toast.removing { animation: slideOut 0.3s ease-in forwards; }
-        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-primary { background: var(--accent); color: white; }
+        .badge-success { background: var(--success-bg); color: var(--success-text); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
 
         @media (max-width: 768px) {
-            .main-container { padding: 1rem; }
-            .top-nav { padding: 0.7rem 1rem; }
-            .welcome-banner { padding: 1.3rem; }
-            .welcome-banner h1 { font-size: 1.2rem; }
-            .video-grid { grid-template-columns: 1fr; }
-            .handwriting-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-            .meeting-card { flex-direction: column; align-items: flex-start; }
+            .sidebar { width: 80px; }
+            .sidebar .logo-area h2 { display: none; }
+            .sidebar .nav-item span { display: none; }
+            .main-content { margin-left: 80px; }
+            .top-bar { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
-    <div class="orb orb-1"></div><div class="orb orb-2"></div>
-    <div class="toast-container" id="toastContainer"></div>
-
-    <!-- Lightbox -->
-    <div class="image-lightbox" id="lightbox">
-        <i class="fas fa-times lightbox-close" onclick="closeLightbox()"></i>
-        <div class="lightbox-nav prev" onclick="navLightbox(-1)"><i class="fas fa-chevron-left"></i></div>
-        <img id="lightboxImg" src="" alt="Visual note" onclick="event.stopPropagation()">
-        <div class="lightbox-nav next" onclick="navLightbox(1)"><i class="fas fa-chevron-right"></i></div>
-        <div class="lightbox-counter" id="lightboxCounter">1 / 1</div>
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-user-graduate"></i>
+            <h2>Student Panel</h2>
+        </div>
+        <div class="nav-item active" data-section="dashboard"><i class="fas fa-chart-pie"></i><span>Dashboard</span></div>
+        <div class="nav-item" data-section="classroom"><i class="fas fa-chalkboard"></i><span>Classroom</span></div>
+        <div class="nav-item" data-section="profile"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
-    <div class="top-nav">
-        <div class="nav-left">
-            <div class="nav-brand"><i class="fas fa-graduation-cap"></i> EduTop</div>
-        </div>
-        <div class="nav-right">
-            <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
-            <div class="profile-dropdown">
-                <div class="profile-trigger"><span class="profile-name" id="profileName">Student</span><div class="profile-pic" id="profilePic">S</div></div>
-                <div class="dropdown-menu">
-                    <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
-                    <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+    <div class="main-content" id="mainContent">
+        <div class="top-bar">
+            <div class="page-title">
+                <h1 id="pageTitle">Dashboard</h1>
+                <p>Welcome back, <span id="studentName">Student</span></p>
+            </div>
+            <div class="profile-area">
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
                 </div>
+                <div class="profile-dropdown">
+                    <div class="profile-icon" id="profileInitials">S</div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="section-dashboard" class="content-section active">
+            <div class="card">
+                <h3>Overview</h3>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-value" id="pendingAssignments">0</div><div class="stat-label">Pending Assignments</div></div>
+                    <div class="stat-card"><div class="stat-value" id="averageScore">0%</div><div class="stat-label">Average Score</div></div>
+                    <div class="stat-card"><div class="stat-value" id="attendanceRate">0%</div><div class="stat-label">Attendance</div></div>
+                    <div class="stat-card"><div class="stat-value" id="upcomingClasses">0</div><div class="stat-label">Today's Classes</div></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>My Class Information</h3>
+                </div>
+                <div id="classInfo" class="info-row"><span class="info-label">Class:</span> <span class="info-value" id="className">Loading...</span></div>
+                <div id="teacherInfo" class="info-row"><span class="info-label">Class Teacher:</span> <span class="info-value" id="classTeacher">Loading...</span></div>
+            </div>
+        </div>
+
+        <!-- Classroom Section -->
+        <div id="section-classroom" class="content-section">
+            <!-- Timetable -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar-alt"></i> My Timetable</h3>
+                    <span id="timetableStatus" class="badge badge-warning">Loading...</span>
+                </div>
+                <div id="timetableDisplay" class="timetable-container">
+                    <p>Loading timetable...</p>
+                </div>
+            </div>
+
+            <!-- Published Resources -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-book-open"></i> Learning Resources</h3>
+                </div>
+                <div id="resourcesDisplay">
+                    <p>Loading resources...</p>
+                </div>
+            </div>
+
+            <!-- Virtual Classes -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-video"></i> Upcoming Virtual Classes</h3>
+                </div>
+                <div id="virtualClassesDisplay">
+                    <p>Loading virtual classes...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Section -->
+        <div id="section-profile" class="content-section">
+            <div class="card">
+                <h3>Profile Information</h3>
+                <div class="info-row"><span class="info-label">Name:</span> <span id="profileName"></span></div>
+                <div class="info-row"><span class="info-label">Email:</span> <span id="profileEmail"></span></div>
+                <div class="info-row"><span class="info-label">Class:</span> <span id="profileClass"></span></div>
+                <div class="info-row"><span class="info-label">Phone:</span> <span id="profilePhone"></span></div>
+                <div class="info-row"><span class="info-label">Prefect Role:</span> <span id="profilePrefect"></span></div>
+                <div class="info-row"><span class="info-label">Status:</span> <span id="profileStatus"></span></div>
             </div>
         </div>
     </div>
 
-    <div class="main-container">
-        <div class="welcome-banner">
-            <div class="banner-icon"><i class="fas fa-book-open"></i></div>
-            <h1 id="welcomeGreeting">Welcome!</h1>
-            <p id="classInfo">Loading your classroom...</p>
+    <!-- Resource View Modal -->
+    <div class="modal-overlay" id="resourceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="resourceModalTitle">Resource</h3>
+                <button class="close-btn" onclick="closeResourceModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="resourceViewer"></div>
         </div>
-
-        <div class="subject-tabs" id="subjectTabs"></div>
-        <div class="week-selector" id="weekSelector"></div>
-
-        <!-- Resources Section -->
-        <div id="resourcesSection"></div>
-        <!-- Videos Section -->
-        <div id="videosSection"></div>
-        <!-- Images Section -->
-        <div id="imagesSection"></div>
-        <!-- Meetings Section -->
-        <div id="meetingsSection"></div>
     </div>
 
-    <script type="module">
-        // === FIREBASE ===
-        firebase.initializeApp({
-            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
-            authDomain: "triangle-6e6b7.firebaseapp.com",
-            projectId: "triangle-6e6b7",
-            storageBucket: "triangle-6e6b7.firebasestorage.app",
-            messagingSenderId: "673937760480",
-            appId: "1:673937760480:web:f03c06e1207232213ef085"
-        });
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
+            authDomain: "edutopscholars-be54a.firebaseapp.com",
+            projectId: "edutopscholars-be54a",
+            storageBucket: "edutopscholars-be54a.firebasestorage.app",
+            messagingSenderId: "713866508372",
+            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
+            measurementId: "G-CCCDYZQ6LE"
+        };
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // === THEME ===
-        (() => {
-            const s = localStorage.getItem('edutopscholars-theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', s);
-            const sp = document.getElementById('themeToggle').querySelector('span');
-            sp.textContent = s === 'dark' ? 'Light' : 'Dark';
-            document.getElementById('themeToggle').addEventListener('click', () => {
-                const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', n);
-                localStorage.setItem('edutopscholars-theme', n);
-                sp.textContent = n === 'dark' ? 'Light' : 'Dark';
-            });
-        })();
-
-        // === HELPERS ===
-        function showToast(t, m, ty = 'info') {
-            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-            const el = document.createElement('div');
-            el.className = 'toast';
-            el.innerHTML = `<i class="fas ${icons[ty]}" style="color:${ty==='success'?'#4ade80':ty==='error'?'#f87171':ty==='warning'?'#fbbf24':'#60a5fa'};margin-top:2px;"></i><div><strong>${t}</strong><br><span style="opacity:0.85;font-size:0.85rem;">${m}</span></div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;cursor:pointer;"><i class="fas fa-times"></i></button>`;
-            document.getElementById('toastContainer').appendChild(el);
-            setTimeout(() => { el.classList.add('removing'); setTimeout(() => el.remove(), 300); }, 4000);
-        }
-        function getYouTubeId(url) {
-            if (!url) return null;
-            const patterns = [/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/];
-            for (const p of patterns) { const m = url.match(p); if (m) return m[1]; }
-            return null;
-        }
-        function getVimeoId(url) { const m = url?.match(/vimeo\.com\/(\d+)/); return m ? m[1] : null; }
-        function getVideoPlatform(url) { if (!url) return 'other'; if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube'; if (url.includes('vimeo.com')) return 'vimeo'; return 'other'; }
-
-        // === STATE ===
-        let currentUser = null, userData = null, currentClass = null;
-        let allSubjects = [], currentSubject = null;
-        let allNotesMap = {}, meetings = [];
-        let lightboxImages = [], lightboxIndex = 0;
-
-        // === AUTH ===
-        auth.onAuthStateChanged(async user => {
-            if (!user) { window.location.href = 'student-login.html'; return; }
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'student') {
-                    auth.signOut(); window.location.href = 'index.html'; return;
-                }
-                currentUser = user;
-                userData = userDoc.data();
-                currentClass = userData.classEnrolled || userData.classId || userData.classTeaching || null;
-
-                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'S');
-                document.getElementById('profileName').textContent = userData.firstName || 'Student';
-                document.getElementById('welcomeGreeting').textContent = `Welcome, ${userData.firstName || 'Student'}! 🎓`;
-                document.getElementById('classInfo').textContent = currentClass ? `Class: ${currentClass} · Your Learning Hub` : 'Your Learning Hub';
-
-                // Discover subjects from MULTIPLE sources
-                await discoverSubjects();
-                // Load ALL published notes
-                await loadAllPublishedNotes();
-                // Load meetings
-                await loadMeetings();
-                // Render
-                renderSubjectTabs();
-                renderAllContent();
-
-                // URL params
-                const params = new URLSearchParams(window.location.search);
-                const subj = params.get('subject');
-                const wk = params.get('week');
-                if (subj && allSubjects.includes(subj)) {
-                    switchSubject(subj);
-                    if (wk) selectWeek(parseInt(wk));
-                } else if (allSubjects.length > 0) {
-                    switchSubject(allSubjects[0]);
-                }
-            } catch (e) {
-                console.error('Auth error:', e);
-                showToast('Error', e.message, 'error');
-            }
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
         });
-        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
-        document.getElementById('profileLink').addEventListener('click', () => window.location.href = 'student-profile.html');
 
-        // === DISCOVER SUBJECTS ===
-        async function discoverSubjects() {
-            const subjectSet = new Set();
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        function updateThemeUI(theme) {
+            const icon = themeToggle.querySelector('i:first-child');
+            const text = themeToggle.querySelector('span');
+            icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            text.textContent = theme === 'dark' ? 'Dark' : 'Light';
+        }
+        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeUI(savedTheme);
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('edutopscholars-theme', next);
+            updateThemeUI(next);
+        });
 
-            // 1. From user's enrolled subjects
-            if (userData.subjects?.length) userData.subjects.forEach(s => subjectSet.add(s));
+        // Navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.content-section');
+        const pageTitle = document.getElementById('pageTitle');
+        function switchSection(sectionId) {
+            navItems.forEach(n => n.classList.remove('active'));
+            document.querySelector(`.nav-item[data-section="${sectionId}"]`).classList.add('active');
+            sections.forEach(s => s.classList.remove('active'));
+            document.getElementById(`section-${sectionId}`).classList.add('active');
+            const titles = { dashboard: 'Dashboard', classroom: 'Classroom', profile: 'Profile' };
+            pageTitle.textContent = titles[sectionId] || sectionId;
+        }
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                switchSection(item.dataset.section);
+            });
+        });
 
-            // 2. From class document
-            if (currentClass) {
-                try {
-                    const classDoc = await db.collection('classes').doc(currentClass).get();
-                    if (classDoc.exists && classDoc.data().subjects?.length) {
-                        classDoc.data().subjects.forEach(s => subjectSet.add(s));
-                    }
-                } catch (e) { /* silent */ }
+        let currentUser = null;
+        let userData = null;
+        let resourceQuill = null;
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'student-login.html';
+                return;
+            }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().role !== 'student') {
+                auth.signOut();
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = user;
+            userData = userDoc.data();
+            document.getElementById('studentName').textContent = userData.firstName || 'Student';
+            document.getElementById('profileInitials').textContent = 
+                (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'T');
+
+            loadDashboard();
+            loadClassroom();
+            loadProfile();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
+
+        async function loadDashboard() {
+            if (!userData.class) return;
+
+            // Pending assignments count
+            const assignmentsSnap = await db.collection('assignments')
+                .where('classId', '==', userData.class)
+                .get();
+            let pendingCount = 0;
+            for (const doc of assignmentsSnap.docs) {
+                const submissionSnap = await db.collection('submissions')
+                    .where('assignmentId', '==', doc.id)
+                    .where('studentId', '==', currentUser.uid)
+                    .get();
+                if (submissionSnap.empty) pendingCount++;
+            }
+            document.getElementById('pendingAssignments').textContent = pendingCount;
+
+            // Average score
+            const scoresSnap = await db.collection('scores')
+                .where('studentId', '==', currentUser.uid)
+                .get();
+            let total = 0, count = 0;
+            scoresSnap.forEach(doc => {
+                total += doc.data().score || 0;
+                count++;
+            });
+            const avg = count ? (total / count).toFixed(1) : 0;
+            document.getElementById('averageScore').textContent = avg + '%';
+
+            // Attendance rate
+            const attendanceSnap = await db.collection('attendance')
+                .where('studentId', '==', currentUser.uid)
+                .get();
+            let presentDays = 0;
+            attendanceSnap.forEach(doc => {
+                const a = doc.data();
+                if (a.morning || a.afternoon) presentDays++;
+            });
+            const totalDays = attendanceSnap.size || 1;
+            const rate = ((presentDays / totalDays) * 100).toFixed(1);
+            document.getElementById('attendanceRate').textContent = rate + '%';
+
+            // Today's classes
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            const timetableDoc = await db.collection('timetables').doc(userData.class).get();
+            if (timetableDoc.exists && timetableDoc.data().published) {
+                const periods = timetableDoc.data().periods || [];
+                const todayPeriods = periods.filter(p => p.day === today);
+                document.getElementById('upcomingClasses').textContent = todayPeriods.length;
+            } else {
+                document.getElementById('upcomingClasses').textContent = '0';
             }
 
-            // 3. From ALL lessonNotes with ANY published content for this student's class
-            try {
-                let query = db.collection('lessonNotes');
-                if (currentClass) query = query.where('classId', '==', currentClass);
-                const snap = await query.get();
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    if (d.subject) subjectSet.add(d.subject);
-                });
-            } catch (e) { /* silent */ }
+            // Class info
+            document.getElementById('className').textContent = userData.class || 'Not assigned';
+            // Fetch class teacher (admin/teacher assigned to this class)
+            const teachersSnap = await db.collection('users')
+                .where('role', '==', 'teacher')
+                .where('classTeaching', '==', userData.class)
+                .limit(1)
+                .get();
+            if (!teachersSnap.empty) {
+                const teacher = teachersSnap.docs[0].data();
+                document.getElementById('classTeacher').textContent = `${teacher.firstName || ''} ${teacher.surname || ''}`.trim() || 'Not assigned';
+            } else {
+                document.getElementById('classTeacher').textContent = 'Not assigned';
+            }
+        }
 
-            // 4. From all lessonNotes regardless of class (fallback)
-            if (subjectSet.size === 0) {
-                try {
-                    const snap = await db.collection('lessonNotes').get();
-                    snap.forEach(doc => {
-                        const d = doc.data();
-                        if (d.subject) subjectSet.add(d.subject);
+        async function loadClassroom() {
+            if (!userData.class) return;
+
+            // Load Timetable
+            await loadTimetable();
+
+            // Load Published Resources
+            await loadResources();
+
+            // Load Virtual Classes
+            await loadVirtualClasses();
+        }
+
+        async function loadTimetable() {
+            const timetableDoc = await db.collection('timetables').doc(userData.class).get();
+            const statusSpan = document.getElementById('timetableStatus');
+            
+            if (timetableDoc.exists && timetableDoc.data().published) {
+                const periods = timetableDoc.data().periods || [];
+                // Group by day
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                const times = [...new Set(periods.map(p => p.startTime))].sort();
+                
+                let html = '<table class="timetable-table"><thead><tr><th>Time</th>';
+                days.forEach(day => html += `<th>${day}</th>`);
+                html += '</tr></thead><tbody>';
+                
+                times.forEach(time => {
+                    html += `<tr><td><strong>${time}</strong></td>`;
+                    days.forEach(day => {
+                        const period = periods.find(p => p.day === day && p.startTime === time);
+                        html += `<td>${period ? period.subject || '—' : '—'}</td>`;
                     });
-                } catch (e) { /* silent */ }
-            }
-
-            // 5. From syllabi
-            try {
-                const snap = await db.collection('syllabus').get();
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    if (d.subject) subjectSet.add(d.subject);
+                    html += '</tr>';
                 });
-            } catch (e) { /* silent */ }
-
-            allSubjects = [...subjectSet].sort();
+                html += '</tbody></table>';
+                document.getElementById('timetableDisplay').innerHTML = html;
+                statusSpan.textContent = 'Published';
+                statusSpan.className = 'badge badge-success';
+            } else {
+                document.getElementById('timetableDisplay').innerHTML = '<p>Timetable not published yet. Please check back later.</p>';
+                statusSpan.textContent = 'Not Published';
+                statusSpan.className = 'badge badge-warning';
+            }
         }
 
-        // === LOAD ALL PUBLISHED NOTES ===
-        async function loadAllPublishedNotes() {
-            allNotesMap = {};
-            try {
-                let query = db.collection('lessonNotes');
-                if (currentClass) query = query.where('classId', '==', currentClass);
-                const snap = await query.get();
-
-                // If nothing found with classId, try without
-                let docs = snap.docs;
-                if (docs.length === 0 && currentClass) {
-                    const fallbackSnap = await db.collection('lessonNotes').get();
-                    docs = fallbackSnap.docs;
+        async function loadResources() {
+            const resourcesSnap = await db.collection('lessonNotes')
+                .where('classId', '==', userData.class)
+                .where('status', '==', 'approved')
+                .get();
+            
+            const resources = [];
+            resourcesSnap.forEach(doc => {
+                const d = doc.data();
+                if (d.studentResourcePublished && d.studentResource) {
+                    resources.push({ 
+                        id: doc.id, 
+                        subject: d.subject, 
+                        week: d.week, 
+                        type: 'Student Resource', 
+                        content: d.studentResource,
+                        icon: 'fa-file-alt'
+                    });
                 }
-
-                docs.forEach(doc => {
-                    const d = doc.data();
-                    if (!d.subject || d.week === undefined) return;
-                    const key = `${d.subject}_${d.week}`;
-                    // Check if ANYTHING is published
-                    const hasContent = d.resourcePublished || d.videosPublished || d.handwritingImagesPublished || d.teachable;
-                    if (!hasContent) return;
-
-                    if (!allNotesMap[key]) allNotesMap[key] = { id: doc.id, ...d };
-                    else allNotesMap[key] = { ...allNotesMap[key], ...d, id: doc.id }; // merge
-                });
-            } catch (e) {
-                console.error('Load notes error:', e);
-            }
-        }
-
-        // === LOAD MEETINGS ===
-        async function loadMeetings() {
-            meetings = [];
-            try {
-                let query = db.collection('virtualClasses').where('date', '>=', new Date().toISOString().split('T')[0]);
-                if (currentClass) query = query.where('classId', '==', currentClass);
-                const snap = await query.orderBy('date', 'asc').orderBy('time', 'asc').get();
-                meetings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                // If nothing with classId, try fetching all
-                if (meetings.length === 0 && currentClass) {
-                    const fallbackSnap = await db.collection('virtualClasses')
-                        .where('date', '>=', new Date().toISOString().split('T')[0])
-                        .orderBy('date', 'asc').orderBy('time', 'asc').get();
-                    meetings = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                }
-            } catch (e) {
-                console.warn('Meetings load error:', e);
-                // Try without ordering
-                try {
-                    const snap = await db.collection('virtualClasses').get();
-                    meetings = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => m.date >= new Date().toISOString().split('T')[0]);
-                } catch (e2) { /* silent */ }
-            }
-        }
-
-        // === SUBJECT TABS ===
-        function renderSubjectTabs() {
-            const c = document.getElementById('subjectTabs');
-            if (!allSubjects.length) {
-                c.innerHTML = '<span style="padding:0.5rem 1rem;color:var(--text-secondary);"><i class="fas fa-info-circle"></i> No subjects discovered yet. If your teacher has published resources, they will appear here.</span>';
-                return;
-            }
-            c.innerHTML = allSubjects.map(s => `<span class="subject-tab" onclick="switchSubject('${s.replace(/'/g, "\\'")}')">${s}</span>`).join('');
-        }
-        window.switchSubject = subject => {
-            currentSubject = subject;
-            document.querySelectorAll('.subject-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.subject-tab').forEach(t => { if (t.textContent === subject) t.classList.add('active'); });
-            renderAllContent();
-        };
-
-        // === WEEK SELECTOR ===
-        function getWeeksForSubject() {
-            if (!currentSubject) return [];
-            const weeks = new Set();
-            Object.keys(allNotesMap).forEach(key => {
-                const [subj, week] = key.split('_');
-                if (subj === currentSubject) weeks.add(parseInt(week));
-            });
-            return [...weeks].sort((a, b) => a - b);
-        }
-        function renderWeekSelector() {
-            const weeks = getWeeksForSubject();
-            const c = document.getElementById('weekSelector');
-            if (!weeks.length) {
-                c.innerHTML = '';
-                return;
-            }
-            c.innerHTML = weeks.map(w => {
-                const note = allNotesMap[`${currentSubject}_${w}`] || {};
-                const hasResource = !!(note.resourcePublished && note.studentResource);
-                const hasVideos = !!(note.videosPublished && note.videoLinks?.length);
-                const hasImages = !!(note.handwritingImagesPublished && note.handwritingImages?.length);
-                const indicators = [];
-                if (hasResource) indicators.push('<i class="fas fa-book" title="Study Resources"></i>');
-                if (hasVideos) indicators.push('<i class="fas fa-play" title="Videos"></i>');
-                if (hasImages) indicators.push('<i class="fas fa-image" title="Images"></i>');
-                return `<div class="week-chip" onclick="selectWeek(${w})">Week ${w} ${indicators.join(' ')}</div>`;
-            }).join('');
-        }
-        window.selectWeek = week => {
-            document.querySelectorAll('.week-chip').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.week-chip').forEach(c => {
-                if (c.textContent.includes(`Week ${week}`)) c.classList.add('active');
-            });
-            renderAllContent();
-        };
-
-        // === RENDER ALL CONTENT ===
-        function renderAllContent() {
-            if (!currentSubject) {
-                document.getElementById('resourcesSection').innerHTML = '';
-                document.getElementById('videosSection').innerHTML = '';
-                document.getElementById('imagesSection').innerHTML = '';
-                document.getElementById('meetingsSection').innerHTML = '';
-                renderWeekSelector();
-                renderMeetingsSection();
-                return;
-            }
-            renderWeekSelector();
-            const weeks = getWeeksForSubject();
-
-            if (!weeks.length) {
-                const empty = `<div class="empty-state"><i class="fas fa-folder-open"></i><h3>No published content</h3><p>Your teacher hasn't published any resources for <strong>${currentSubject}</strong> yet. Check back soon!</p></div>`;
-                document.getElementById('resourcesSection').innerHTML = empty;
-                document.getElementById('videosSection').innerHTML = '';
-                document.getElementById('imagesSection').innerHTML = '';
-                renderMeetingsSection();
-                return;
-            }
-
-            // Collect all content across all weeks
-            let allResources = '';
-            let allVideos = '';
-            let allImages = '';
-            let hasAnyResource = false, hasAnyVideo = false, hasAnyImage = false;
-
-            weeks.forEach(w => {
-                const note = allNotesMap[`${currentSubject}_${w}`] || {};
-
-                // Resources
-                if (note.resourcePublished && note.studentResource) {
-                    hasAnyResource = true;
-                    allResources += `
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-book-reader"></i> Week ${w} · ${note.topic || 'Study Notes'}</h3>
-                                <span style="font-size:0.8rem;color:var(--success-text);background:var(--success-bg);padding:0.3rem 1rem;border-radius:2rem;font-weight:600;">📖 Published</span>
-                            </div>
-                            <div class="textbook-content">${note.studentResource.replace(/\n/g, '<br>')}</div>
-                        </div>`;
-                }
-
-                // Videos
-                if (note.videosPublished && note.videoLinks?.length) {
-                    hasAnyVideo = true;
-                    const vidCards = note.videoLinks.map((link, i) => {
-                        const platform = getVideoPlatform(link);
-                        let embed = '';
-                        if (platform === 'youtube') {
-                            const ytId = getYouTubeId(link);
-                            if (ytId) embed = `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="Video ${i+1}"></iframe></div>`;
-                        } else if (platform === 'vimeo') {
-                            const vId = getVimeoId(link);
-                            if (vId) embed = `<div class="video-embed"><iframe src="https://player.vimeo.com/video/${vId}?quality=1080p" allow="autoplay; fullscreen" allowfullscreen title="Video ${i+1}"></iframe></div>`;
-                        }
-                        const badge = platform === 'youtube' ? '<span class="badge-platform youtube">YouTube</span>' : '';
-                        return `<div class="video-card">
-                            ${embed || `<div class="video-embed" style="display:flex;align-items:center;justify-content:center;background:var(--hover-bg);"><a href="${link}" target="_blank" class="btn btn-primary"><i class="fas fa-external-link-alt"></i> Open Video ${i+1}</a></div>`}
-                            <div class="video-info"><h4>${badge} Video ${i+1}</h4><p>${note.topic || 'Resource'} · Week ${w}</p></div>
-                        </div>`;
-                    }).join('');
-                    allVideos += `<div class="section-label"><i class="fas fa-play-circle"></i> Week ${w} · ${note.topic || 'Videos'}</div><div class="video-grid" style="margin-bottom:1.5rem;">${vidCards}</div>`;
-                }
-
-                // Images
-                if (note.handwritingImagesPublished && note.handwritingImages?.length) {
-                    hasAnyImage = true;
-                    // Add to global lightbox array
-                    const startIdx = lightboxImages.length;
-                    note.handwritingImages.forEach(img => lightboxImages.push(img));
-                    const imgCards = note.handwritingImages.map((img, i) => `
-                        <div class="handwriting-card" onclick="openLightbox(${startIdx + i})">
-                            <img src="${img.url}" alt="Visual note ${i+1}" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><rect fill=%22%23e0e0e0%22 width=%22300%22 height=%22200%22/><text fill=%22%23666%22 x=%22150%22 y=%22100%22 text-anchor=%22middle%22 font-size=%2214%22>Image unavailable</text></svg>';">
-                            <div class="caption"><i class="fas fa-search-plus"></i> Visual Note ${i+1} · Click to enlarge</div>
-                        </div>
-                    `).join('');
-                    allImages += `<div class="section-label"><i class="fas fa-images"></i> Week ${w} · ${note.topic || 'Visual Notes'}</div><div class="handwriting-grid" style="margin-bottom:1.5rem;">${imgCards}</div>`;
+                if (d.handwrittenPublished && d.handwrittenNotes) {
+                    resources.push({ 
+                        id: doc.id, 
+                        subject: d.subject, 
+                        week: d.week, 
+                        type: 'Handwriting Notes', 
+                        content: d.handwrittenNotes,
+                        icon: 'fa-pen-fancy'
+                    });
                 }
             });
-
-            // Render
-            document.getElementById('resourcesSection').innerHTML = hasAnyResource
-                ? `<div class="section-label" style="margin-top:1rem;"><i class="fas fa-book-reader"></i> Study Resources</div>${allResources}`
-                : `<div class="empty-state"><i class="fas fa-book-reader"></i><h3>No study resources yet</h3><p>Published textbook-style notes for <strong>${currentSubject}</strong> will appear here.</p></div>`;
-
-            document.getElementById('videosSection').innerHTML = hasAnyVideo
-                ? `<div class="section-label" style="margin-top:1rem;"><i class="fas fa-play-circle"></i> Video Resources</div>${allVideos}`
-                : `<div class="empty-state"><i class="fas fa-play-circle"></i><h3>No videos yet</h3><p>Published videos for <strong>${currentSubject}</strong> will appear here.</p></div>`;
-
-            document.getElementById('imagesSection').innerHTML = hasAnyImage
-                ? `<div class="section-label" style="margin-top:1rem;"><i class="fas fa-images"></i> Visual Notes</div>${allImages}`
-                : `<div class="empty-state"><i class="fas fa-images"></i><h3>No visual notes yet</h3><p>Published images for <strong>${currentSubject}</strong> will appear here.</p></div>`;
-
-            renderMeetingsSection();
-        }
-
-        // === MEETINGS ===
-        function renderMeetingsSection() {
-            const section = document.getElementById('meetingsSection');
-            // Filter meetings for current subject
-            const relevantMeetings = currentSubject
-                ? meetings.filter(m => !m.subject || m.subject === currentSubject)
-                : meetings;
-
-            if (!relevantMeetings.length) {
-                section.innerHTML = `<div class="section-label" style="margin-top:1.5rem;"><i class="fas fa-video"></i> Scheduled Meetings</div><div class="empty-state"><i class="fas fa-video"></i><h3>No meetings scheduled</h3><p>Upcoming virtual classes will appear here when your teacher schedules them.</p></div>`;
+            
+            if (resources.length === 0) {
+                document.getElementById('resourcesDisplay').innerHTML = '<p>No published resources available yet.</p>';
                 return;
             }
-
-            const now = new Date();
-            const cards = relevantMeetings.map(m => {
-                const meetingTime = new Date(`${m.date}T${m.time}`);
-                const diffMs = meetingTime - now;
-                const diffMins = Math.floor(diffMs / 60000);
-                let status = 'upcoming', statusText = 'Upcoming', cardClass = '';
-                let joinDisabled = false;
-                if (diffMins <= 0 && diffMins > -120) { status = 'live'; statusText = '● Live Now'; cardClass = 'live'; }
-                else if (diffMins <= 15 && diffMins > 0) { status = 'soon'; statusText = '● Starting Soon'; cardClass = 'soon'; }
-                else if (diffMins < -120) { status = 'past'; statusText = 'Ended'; joinDisabled = true; }
-
-                return `
-                <div class="meeting-card ${cardClass}">
-                    <div class="meeting-info">
-                        <h4><i class="fas fa-video" style="color:${status==='live'?'var(--success-text)':status==='soon'?'var(--warning-text)':'var(--accent)'};"></i> ${m.subject || 'Virtual Class'} · Week ${m.week || '?'}</h4>
-                        <p>${m.platform || 'Online'} · Duration: ${m.duration || '?'} min</p>
-                        <div class="meeting-meta">
-                            <span><i class="fas fa-calendar"></i> ${m.date || 'N/A'}</span>
-                            <span><i class="fas fa-clock"></i> ${m.time || 'N/A'}</span>
-                            <span class="meeting-status ${status}">${statusText}</span>
-                        </div>
+            
+            let html = '<div class="resource-grid">';
+            resources.forEach(r => {
+                const contentPreview = r.content.substring(0, 100) + (r.content.length > 100 ? '...' : '');
+                html += `
+                    <div class="resource-card">
+                        <h4><i class="fas ${r.icon}"></i> ${r.subject} - Week ${r.week}</h4>
+                        <p><span class="badge badge-primary">${r.type}</span></p>
+                        <p>${contentPreview}</p>
+                        <button class="btn btn-outline btn-sm" onclick="viewResource('${r.type}', \`${r.content.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`)">
+                            <i class="fas fa-eye"></i> View Full Resource
+                        </button>
                     </div>
-                    <a href="${m.link || '#'}" target="_blank" class="join-btn ${joinDisabled ? 'disabled' : ''}" ${joinDisabled ? 'onclick="return false;"' : ''}>
-                        <i class="fas fa-sign-in-alt"></i> ${status === 'live' ? 'Join Now' : status === 'past' ? 'Ended' : 'Join'}
-                    </a>
-                </div>`;
-            }).join('');
-
-            section.innerHTML = `
-                <div class="section-label" style="margin-top:1.5rem;"><i class="fas fa-video"></i> Scheduled Meetings</div>
-                <div class="card" style="margin-bottom:1.5rem;">
-                    <div class="card-header"><h3><i class="fas fa-video"></i> Virtual Classes${currentSubject ? ' · ' + currentSubject : ''}</h3><span style="font-size:0.8rem;color:var(--text-secondary);">${relevantMeetings.length} session${relevantMeetings.length > 1 ? 's' : ''}</span></div>
-                    <div class="meetings-list">${cards}</div>
-                </div>`;
+                `;
+            });
+            html += '</div>';
+            document.getElementById('resourcesDisplay').innerHTML = html;
         }
 
-        // === LIGHTBOX ===
-        window.openLightbox = index => {
-            lightboxIndex = index;
-            document.getElementById('lightboxImg').src = lightboxImages[index]?.url || '';
-            document.getElementById('lightboxCounter').textContent = `${index + 1} / ${lightboxImages.length}`;
-            document.getElementById('lightbox').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        };
-        window.closeLightbox = () => {
-            document.getElementById('lightbox').classList.remove('active');
-            document.body.style.overflow = '';
-        };
-        window.navLightbox = dir => {
-            lightboxIndex = (lightboxIndex + dir + lightboxImages.length) % lightboxImages.length;
-            document.getElementById('lightboxImg').src = lightboxImages[lightboxIndex]?.url || '';
-            document.getElementById('lightboxCounter').textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
-        };
-
-        // === KEYBOARD ===
-        document.addEventListener('keydown', e => {
-            if (document.getElementById('lightbox').classList.contains('active')) {
-                if (e.key === 'ArrowLeft') navLightbox(-1);
-                if (e.key === 'ArrowRight') navLightbox(1);
-                if (e.key === 'Escape') closeLightbox();
+        async function loadVirtualClasses() {
+            const now = new Date().toISOString().split('T')[0];
+            const virtualSnap = await db.collection('virtualClasses')
+                .where('classId', '==', userData.class)
+                .where('date', '>=', now)
+                .orderBy('date')
+                .orderBy('time')
+                .get();
+            
+            if (virtualSnap.empty) {
+                document.getElementById('virtualClassesDisplay').innerHTML = '<p>No upcoming virtual classes scheduled.</p>';
+                return;
             }
-        });
-        document.getElementById('lightbox').addEventListener('click', e => {
-            if (e.target === document.getElementById('lightbox')) closeLightbox();
-        });
+            
+            let html = '<div class="resource-grid">';
+            virtualSnap.forEach(doc => {
+                const v = doc.data();
+                html += `
+                    <div class="resource-card">
+                        <h4><i class="fas fa-video"></i> ${v.platform || 'Virtual Class'}</h4>
+                        <p><strong>Date:</strong> ${v.date}</p>
+                        <p><strong>Time:</strong> ${v.time}</p>
+                        <p><strong>Duration:</strong> ${v.duration} minutes</p>
+                        <a href="${v.link}" target="_blank" class="btn btn-primary btn-sm">
+                            <i class="fas fa-external-link-alt"></i> Join Class
+                        </a>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            document.getElementById('virtualClassesDisplay').innerHTML = html;
+        }
 
-        // === PERIODIC REFRESH ===
-        setInterval(async () => {
-            await loadMeetings();
-            renderMeetingsSection();
-        }, 60000);
+        function loadProfile() {
+            document.getElementById('profileName').textContent = `${userData.firstName || ''} ${userData.surname || ''}`.trim() || '—';
+            document.getElementById('profileEmail').textContent = userData.email || '—';
+            document.getElementById('profileClass').textContent = userData.class || '—';
+            document.getElementById('profilePhone').textContent = userData.phone || '—';
+            document.getElementById('profilePrefect').textContent = userData.prefect || 'None';
+            document.getElementById('profileStatus').textContent = userData.suspended ? 'Suspended' : 'Active';
+        }
+
+        // Resource Modal
+        const resourceModal = document.getElementById('resourceModal');
+        const resourceModalTitle = document.getElementById('resourceModalTitle');
+        const resourceViewer = document.getElementById('resourceViewer');
+
+        window.viewResource = (type, content) => {
+            resourceModalTitle.textContent = type;
+            if (!resourceQuill) {
+                resourceQuill = new Quill(resourceViewer, {
+                    theme: 'snow',
+                    modules: { toolbar: false },
+                    readOnly: true
+                });
+            }
+            resourceQuill.setText(content);
+            resourceModal.classList.add('active');
+        };
+
+        window.closeResourceModal = () => {
+            resourceModal.classList.remove('active');
+        };
     </script>
 </body>
 </html>
