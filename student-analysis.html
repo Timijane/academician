@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Academic Analysis</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --bg-surface: rgba(255,255,255,0.75); --text-primary: #0b1e33;
+            --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: rgba(34,197,94,0.15); --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.15); --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.15); --danger-text: #b91c1c;
+            --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+            --chart-bg: #ffffff;
+        }
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --bg-surface: rgba(15,23,42,0.8); --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.06); --card-bg: rgba(15,23,42,0.6); --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
+            --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --chart-bg: #1e293b;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
+        .orb { position: fixed; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; animation: float 25s infinite alternate ease-in-out; }
+        .orb-1 { width: 350px; height: 350px; top: -120px; right: -120px; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.12), transparent 70%); }
+        .orb-2 { width: 450px; height: 450px; bottom: -180px; left: -150px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.10), transparent 70%); animation-duration: 30s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px,30px) scale(1.15); } }
+
+        .top-nav { position: sticky; top: 0; z-index: 100; background: var(--bg-surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0.9rem 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .nav-left, .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .nav-btn { background: transparent; border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1.2rem; color: var(--text-primary); font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; text-decoration: none; display: flex; align-items: center; gap: 0.4rem; }
+        .nav-btn:hover { background: var(--hover-bg); border-color: var(--accent); color: var(--accent); }
+        .theme-toggle { display: flex; align-items: center; gap: 0.4rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.4rem 1rem; cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.6rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem 0.3rem 0.3rem 0.8rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; }
+        .dropdown-menu { position: absolute; right: 0; top: 50px; background: var(--bg-surface); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.4rem; min-width: 160px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.6rem 1rem; color: var(--text-primary); border-radius: 0.6rem; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem 3rem; position: relative; z-index: 5; }
+
+        .hero-card { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); border-radius: 2rem; padding: 2rem; color: white; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; }
+        .hero-card h1 { font-size: 1.6rem; font-weight: 700; }
+        .hero-stats { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .hero-stat { text-align: center; }
+        .hero-stat .val { font-size: 2rem; font-weight: 700; }
+        .hero-stat .lbl { font-size: 0.72rem; opacity: 0.8; }
+
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-box { background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 1rem; text-align: center; }
+        .stat-box .val { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+        .stat-box .lbl { font-size: 0.75rem; color: var(--text-secondary); }
+
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+        .chart-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); }
+        .chart-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .chart-wrap { position: relative; width: 100%; max-height: 350px; }
+        .chart-wrap canvas { width: 100% !important; max-height: 350px; }
+
+        .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+        .insight-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); }
+        .insight-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .insight-item { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+        .insight-item:last-child { border-bottom: none; }
+        .insight-item .topic { font-size: 0.85rem; }
+        .insight-item .pct { font-weight: 600; font-size: 0.9rem; }
+        .trend-up { color: var(--success-text); }
+        .trend-down { color: var(--danger-text); }
+        .trend-stable { color: var(--warning-text); }
+
+        .suggestions-list { list-style: none; }
+        .suggestions-list li { padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; display: flex; gap: 0.5rem; }
+        .suggestions-list li i { color: var(--accent); margin-top: 3px; flex-shrink: 0; }
+        .suggestions-list li:last-child { border-bottom: none; }
+
+        .detail-table-wrap { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.75rem 1rem; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border); background: var(--hover-bg); font-size: 0.78rem; white-space: nowrap; }
+        td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+        tr:last-child td { border-bottom: none; }
+
+        .badge { padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.68rem; font-weight: 600; display: inline-block; }
+        .badge-success { background: var(--success-bg); color: var(--success-text); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-info { background: var(--info-bg); color: var(--info-text); }
+        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
+
+        .btn { padding: 0.45rem 1rem; border: none; border-radius: 2rem; font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .sub-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap; }
+        .sub-tab { padding: 0.5rem 1.2rem; border-radius: 3rem; font-weight: 500; font-size: 0.82rem; cursor: pointer; transition: 0.2s; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem; }
+        .sub-tab.active { background: var(--accent); color: white; box-shadow: 0 5px 20px -5px var(--accent); }
+        .sub-tab:hover:not(.active) { color: var(--accent); }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.2; display: block; }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 1rem; }
+            .hero-card { padding: 1.25rem; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .insights-grid { grid-template-columns: 1fr; }
+            .hero-stats { gap: 1rem; }
+            .hero-stat .val { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div><div class="orb orb-2"></div>
+
+    <div class="top-nav">
+        <div class="nav-left">
+            <a href="student-assessments.html" class="nav-btn"><i class="fas fa-tasks"></i> Assessments</a>
+            <a href="student-grades.html" class="nav-btn"><i class="fas fa-star"></i> Grades</a>
+            <a href="student-classroom.html" class="nav-btn"><i class="fas fa-chalkboard"></i> Classroom</a>
+        </div>
+        <div class="nav-right">
+            <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+            <div class="profile-dropdown">
+                <div class="profile-trigger"><span class="profile-name" id="profileName">Student</span><div class="profile-pic" id="profilePic">S</div></div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="hero-card">
+            <div>
+                <h1>Academic Analysis</h1>
+                <p style="opacity:0.85;font-size:0.9rem;">Your complete performance overview</p>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat"><div class="val" id="heroOverall">0%</div><div class="lbl">Overall Grade</div></div>
+                <div class="hero-stat"><div class="val" id="heroAssign">0%</div><div class="lbl">Assignments</div></div>
+                <div class="hero-stat"><div class="val" id="heroTest">0%</div><div class="lbl">Tests</div></div>
+                <div class="hero-stat"><div class="val" id="heroExam">0%</div><div class="lbl">Exams</div></div>
+            </div>
+        </div>
+
+        <div class="sub-tabs" id="subTabs">
+            <div class="sub-tab active" data-tab="overview"><i class="fas fa-chart-pie"></i> Overview</div>
+            <div class="sub-tab" data-tab="subjects"><i class="fas fa-book"></i> By Subject</div>
+            <div class="sub-tab" data-tab="details"><i class="fas fa-table"></i> Detailed Breakdown</div>
+        </div>
+
+        <div id="tab-overview">
+            <div class="stats-row">
+                <div class="stat-box"><div class="val" id="statTotal">0</div><div class="lbl">Total Assessments</div></div>
+                <div class="stat-box"><div class="val" id="statBest">0%</div><div class="lbl">Best Score</div></div>
+                <div class="stat-box"><div class="val" id="statLowest">0%</div><div class="lbl">Lowest Score</div></div>
+                <div class="stat-box"><div class="val" id="statTrend">—</div><div class="lbl">Trend</div></div>
+                <div class="stat-box"><div class="val" id="statStreak">0</div><div class="lbl">A/B Streak</div></div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-line"></i> Performance Over Time</h3>
+                    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-pie"></i> Assessment Type Breakdown</h3>
+                    <div class="chart-wrap"><canvas id="typePieChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-bar"></i> Subject Performance</h3>
+                    <div class="chart-wrap"><canvas id="subjectBarChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-pie"></i> Grade Distribution</h3>
+                    <div class="chart-wrap"><canvas id="gradePieChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <h3><i class="fas fa-trophy" style="color:#f59e0b;"></i> Strengths</h3>
+                    <div id="strengthsList"><p style="color:var(--text-secondary);">Complete more assessments to identify strengths.</p></div>
+                </div>
+                <div class="insight-card">
+                    <h3><i class="fas fa-exclamation-triangle" style="color:var(--danger-text);"></i> Areas to Improve</h3>
+                    <div id="weaknessesList"><p style="color:var(--text-secondary);">Complete more assessments to identify areas for improvement.</p></div>
+                </div>
+                <div class="insight-card">
+                    <h3><i class="fas fa-lightbulb" style="color:#fbbf24;"></i> Study Suggestions</h3>
+                    <ul class="suggestions-list" id="suggestionsList">
+                        <li style="color:var(--text-secondary);"><i class="fas fa-info-circle"></i> Complete more assessments to get personalized suggestions.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-subjects" style="display:none;">
+            <div id="subjectsBreakdown"></div>
+        </div>
+
+        <div id="tab-details" style="display:none;">
+            <div class="detail-table-wrap">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr><th>Type</th><th>Title</th><th>Subject</th><th>Score</th><th>%</th><th>Grade</th><th>Date</th><th>Feedback</th></tr>
+                        </thead>
+                        <tbody id="detailBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        (() => {
+            const s = localStorage.getItem('edutopscholars-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', s);
+            const sp = document.getElementById('themeToggle').querySelector('span');
+            sp.textContent = s === 'dark' ? 'Light' : 'Dark';
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', n);
+                localStorage.setItem('edutopscholars-theme', n);
+                sp.textContent = n === 'dark' ? 'Light' : 'Dark';
+            });
+        })();
+
+        function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function getGradeLetter(pct) { if (pct >= 75) return 'A'; if (pct >= 65) return 'B'; if (pct >= 50) return 'C'; if (pct >= 40) return 'D'; return 'F'; }
+
+        let currentUser = null, userData = null;
+        let allResults = [];
+        let currentTab = 'overview';
+        let charts = {};
+
+        function destroyCharts() {
+            Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+            charts = {};
+        }
+
+        document.querySelectorAll('.sub-tab').forEach(t => t.addEventListener('click', () => {
+            document.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('active'));
+            t.classList.add('active');
+            currentTab = t.dataset.tab;
+            ['overview', 'subjects', 'details'].forEach(id => document.getElementById('tab-' + id).style.display = 'none');
+            document.getElementById('tab-' + currentTab).style.display = 'block';
+            if (currentTab === 'overview') renderCharts();
+            if (currentTab === 'subjects') renderSubjectBreakdown();
+            if (currentTab === 'details') renderDetailTable();
+        }));
+
+        async function loadAllResults() {
+            if (!currentUser || !userData) return;
+            allResults = [];
+            const configs = [
+                { subCol: 'submissions', type: 'assignment', label: 'Assignment' },
+                { subCol: 'testSubmissions', type: 'test', label: 'Test' },
+                { subCol: 'examSubmissions', type: 'exam', label: 'Exam' }
+            ];
+            for (const cfg of configs) {
+                try {
+                    const snap = await db.collection(cfg.subCol).where('studentId', '==', currentUser.uid).get();
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        const tp = d.totalPoints || 100;
+                        const sc = d.score || 0;
+                        const pct = tp > 0 ? (sc / tp) * 100 : 0;
+                        allResults.push({
+                            id: doc.id, type: cfg.type, label: cfg.label,
+                            title: d.assignmentTitle || d.testTitle || d.examTitle || 'Untitled',
+                            subject: d.subject || 'General',
+                            score: sc, totalPoints: tp, percentage: pct,
+                            grade: getGradeLetter(pct),
+                            date: d.submittedAt?.toDate?.() || new Date(),
+                            feedback: d.feedback || '',
+                            correctCount: d.correctCount || 0,
+                            wrongCount: d.wrongCount || 0,
+                            theoryCount: d.theoryCount || 0
+                        });
+                    });
+                } catch(e) { console.warn(cfg.label, e); }
+            }
+            allResults.sort((a, b) => a.date - b.date);
+            updateHeroStats();
+            renderCharts();
+            renderInsights();
+            renderDetailTable();
+        }
+
+        function updateHeroStats() {
+            if (!allResults.length) return;
+            const overall = allResults.reduce((s, r) => s + r.percentage, 0) / allResults.length;
+            const assign = allResults.filter(r => r.type === 'assignment');
+            const tests = allResults.filter(r => r.type === 'test');
+            const exams = allResults.filter(r => r.type === 'exam');
+            const avgA = assign.length ? assign.reduce((s, r) => s + r.percentage, 0) / assign.length : 0;
+            const avgT = tests.length ? tests.reduce((s, r) => s + r.percentage, 0) / tests.length : 0;
+            const avgE = exams.length ? exams.reduce((s, r) => s + r.percentage, 0) / exams.length : 0;
+            document.getElementById('heroOverall').textContent = overall.toFixed(0) + '%';
+            document.getElementById('heroAssign').textContent = avgA.toFixed(0) + '%';
+            document.getElementById('heroTest').textContent = avgT.toFixed(0) + '%';
+            document.getElementById('heroExam').textContent = avgE.toFixed(0) + '%';
+            document.getElementById('statTotal').textContent = allResults.length;
+            document.getElementById('statBest').textContent = Math.max(...allResults.map(r => r.percentage)).toFixed(0) + '%';
+            document.getElementById('statLowest').textContent = Math.min(...allResults.map(r => r.percentage)).toFixed(0) + '%';
+
+            // Trend
+            if (allResults.length >= 3) {
+                const recent3 = allResults.slice(-3);
+                const trend = recent3[2].percentage - recent3[0].percentage;
+                const trendEl = document.getElementById('statTrend');
+                if (trend > 5) { trendEl.textContent = '↑ Improving'; trendEl.style.color = 'var(--success-text)'; }
+                else if (trend < -5) { trendEl.textContent = '↓ Declining'; trendEl.style.color = 'var(--danger-text)'; }
+                else { trendEl.textContent = '→ Stable'; trendEl.style.color = 'var(--warning-text)'; }
+            }
+
+            // A/B streak
+            let streak = 0;
+            for (let i = allResults.length - 1; i >= 0; i--) {
+                if (allResults[i].grade === 'A' || allResults[i].grade === 'B') streak++;
+                else break;
+            }
+            document.getElementById('statStreak').textContent = streak;
+        }
+
+        function renderCharts() {
+            if (!allResults.length) return;
+            destroyCharts();
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+            const textColor = isDark ? '#a0b3d9' : '#2c3e50';
+
+            // Trend Chart
+            const labels = allResults.map((r, i) => `#${i + 1}`);
+            const data = allResults.map(r => r.percentage);
+            const ctx1 = document.getElementById('trendChart').getContext('2d');
+            charts.trend = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Score %',
+                        data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#3b82f6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: textColor } },
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } }
+                    }
+                }
+            });
+
+            // Type Pie
+            const types = ['assignment', 'test', 'exam'];
+            const typeCounts = types.map(t => allResults.filter(r => r.type === t).length);
+            const typeAvgs = types.map(t => {
+                const items = allResults.filter(r => r.type === t);
+                return items.length ? items.reduce((s, r) => s + r.percentage, 0) / items.length : 0;
+            });
+            const ctx2 = document.getElementById('typePieChart').getContext('2d');
+            charts.typePie = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Assignments', 'Tests', 'Exams'],
+                    datasets: [{
+                        data: typeCounts,
+                        backgroundColor: ['#3b82f6', '#f59e0b', '#8b5cf6'],
+                        borderColor: isDark ? '#0f172a' : '#ffffff',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: textColor, padding: 20 } },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.label}: ${ctx.raw} (Avg: ${typeAvgs[ctx.dataIndex].toFixed(0)}%)`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Subject Bar
+            const subjects = [...new Set(allResults.map(r => r.subject))];
+            const subjectAvgs = subjects.map(s => {
+                const items = allResults.filter(r => r.subject === s);
+                return items.length ? items.reduce((sum, r) => sum + r.percentage, 0) / items.length : 0;
+            });
+            const ctx3 = document.getElementById('subjectBarChart').getContext('2d');
+            charts.subjectBar = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: subjects,
+                    datasets: [{
+                        label: 'Avg %',
+                        data: subjectAvgs,
+                        backgroundColor: subjectAvgs.map(p => p >= 75 ? 'rgba(34,197,94,0.6)' : p >= 50 ? 'rgba(245,158,11,0.6)' : 'rgba(239,68,68,0.6)'),
+                        borderColor: subjectAvgs.map(p => p >= 75 ? '#22c55e' : p >= 50 ? '#f59e0b' : '#ef4444'),
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: textColor } },
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } }
+                    }
+                }
+            });
+
+            // Grade Distribution Pie
+            const grades = ['A', 'B', 'C', 'D', 'F'];
+            const gradeCounts = grades.map(g => allResults.filter(r => r.grade === g).length);
+            const gradeColors = ['#22c55e', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'];
+            const ctx4 = document.getElementById('gradePieChart').getContext('2d');
+            charts.gradePie = new Chart(ctx4, {
+                type: 'pie',
+                data: {
+                    labels: grades.map(g => `Grade ${g}`),
+                    datasets: [{
+                        data: gradeCounts,
+                        backgroundColor: gradeColors,
+                        borderColor: isDark ? '#0f172a' : '#ffffff',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 15 } } }
+                }
+            });
+        }
+
+        function renderInsights() {
+            if (!allResults.length) return;
+            const subjects = [...new Set(allResults.map(r => r.subject))];
+            const subjectData = subjects.map(s => {
+                const items = allResults.filter(r => r.subject === s);
+                return { subject: s, avg: items.reduce((sum, r) => sum + r.percentage, 0) / items.length, count: items.length };
+            }).sort((a, b) => b.avg - a.avg);
+
+            // Strengths (top 3 above 60%)
+            const strengths = subjectData.filter(s => s.avg >= 60).slice(0, 3);
+            const strEl = document.getElementById('strengthsList');
+            strEl.innerHTML = strengths.length ? strengths.map(s => `
+                <div class="insight-item">
+                    <span class="topic"><i class="fas fa-check-circle" style="color:var(--success-text);"></i> ${escapeHtml(s.subject)}</span>
+                    <span class="pct trend-up">${s.avg.toFixed(0)}%</span>
+                </div>`).join('') : '<p style="color:var(--text-secondary);">Keep working to build strengths.</p>';
+
+            // Weaknesses (bottom 3 below 60%)
+            const weaknesses = subjectData.filter(s => s.avg < 60).slice(-3).reverse();
+            const weakEl = document.getElementById('weaknessesList');
+            weakEl.innerHTML = weaknesses.length ? weaknesses.map(s => `
+                <div class="insight-item">
+                    <span class="topic"><i class="fas fa-exclamation-circle" style="color:var(--danger-text);"></i> ${escapeHtml(s.subject)}</span>
+                    <span class="pct trend-down">${s.avg.toFixed(0)}%</span>
+                </div>`).join('') : '<p style="color:var(--text-secondary);">No weak areas identified.</p>';
+
+            // Suggestions
+            const sugEl = document.getElementById('suggestionsList');
+            let suggestions = [];
+            if (weaknesses.length) {
+                suggestions.push(`Focus on <strong>${escapeHtml(weaknesses[0].subject)}</strong> — your lowest-scoring subject at ${weaknesses[0].avg.toFixed(0)}%.`);
+            }
+            if (allResults.length >= 3) {
+                const recent3 = allResults.slice(-3);
+                if (recent3[2].percentage < recent3[0].percentage - 10) {
+                    suggestions.push('Your scores are trending downward. Review past topics and practice more questions.');
+                }
+            }
+            const theoryItems = allResults.filter(r => r.theoryCount > 0);
+            if (theoryItems.length) {
+                suggestions.push(`You have ${theoryItems.length} assessment(s) with theory questions. Ask your teacher for feedback on written answers.`);
+            }
+            if (allResults.filter(r => r.percentage < 50).length > 0) {
+                suggestions.push('Review assessments scoring below 50%. Identify question types that challenge you most.');
+            }
+            if (!suggestions.length) {
+                suggestions.push('Great job! Keep maintaining your strong performance across all subjects.');
+            }
+            sugEl.innerHTML = suggestions.map(s => `<li><i class="fas fa-chevron-right"></i> ${s}</li>`).join('');
+        }
+
+        function renderSubjectBreakdown() {
+            const container = document.getElementById('subjectsBreakdown');
+            if (!allResults.length) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-book"></i><h3>No data</h3></div>';
+                return;
+            }
+            const subjects = [...new Set(allResults.map(r => r.subject))];
+            container.innerHTML = subjects.map(s => {
+                const items = allResults.filter(r => r.subject === s).sort((a, b) => a.date - b.date);
+                const avg = items.reduce((sum, r) => sum + r.percentage, 0) / items.length;
+                const trend = items.length >= 2 ? (items[items.length - 1].percentage - items[0].percentage) : 0;
+                const trendIcon = trend > 5 ? '<i class="fas fa-arrow-up trend-up"></i>' : trend < -5 ? '<i class="fas fa-arrow-down trend-down"></i>' : '<i class="fas fa-minus trend-stable"></i>';
+                const best = Math.max(...items.map(r => r.percentage));
+                return `
+                    <div class="chart-card" style="margin-bottom:1rem;">
+                        <h3><i class="fas fa-book"></i> ${escapeHtml(s)} ${trendIcon}</h3>
+                        <div class="stats-row" style="margin-bottom:0.5rem;">
+                            <div class="stat-box"><div class="val" style="font-size:1.2rem;">${items.length}</div><div class="lbl">Assessments</div></div>
+                            <div class="stat-box"><div class="val" style="font-size:1.2rem;">${avg.toFixed(0)}%</div><div class="lbl">Average</div></div>
+                            <div class="stat-box"><div class="val" style="font-size:1.2rem;">${best.toFixed(0)}%</div><div class="lbl">Best</div></div>
+                            <div class="stat-box"><div class="val" style="font-size:1.2rem;">${getGradeLetter(avg)}</div><div class="lbl">Overall Grade</div></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr><th>Title</th><th>Type</th><th>Score</th><th>%</th><th>Grade</th><th>Date</th></tr></thead>
+                                <tbody>${items.slice(-5).reverse().map(r => `
+                                    <tr>
+                                        <td>${escapeHtml(r.title)}</td>
+                                        <td><span class="badge ${r.type==='assignment'?'badge-info':r.type==='test'?'badge-warning':'badge-success'}">${r.label}</span></td>
+                                        <td>${r.score}/${r.totalPoints}</td>
+                                        <td>${r.percentage.toFixed(0)}%</td>
+                                        <td><strong style="color:${r.grade==='A'||r.grade==='B'?'var(--success-text)':r.grade==='F'?'var(--danger-text)':'var(--warning-text)'};">${r.grade}</strong></td>
+                                        <td>${r.date.toLocaleDateString()}</td>
+                                    </tr>`).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderDetailTable() {
+            const tbody = document.getElementById('detailBody');
+            if (!allResults.length) {
+                tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-table"></i><h3>No data</h3></div></td></tr>';
+                return;
+            }
+            tbody.innerHTML = allResults.slice().reverse().map(r => `
+                <tr>
+                    <td><span class="badge ${r.type==='assignment'?'badge-info':r.type==='test'?'badge-warning':'badge-success'}">${r.label}</span></td>
+                    <td>${escapeHtml(r.title)}</td>
+                    <td>${escapeHtml(r.subject)}</td>
+                    <td>${r.score}/${r.totalPoints}</td>
+                    <td><strong>${r.percentage.toFixed(0)}%</strong></td>
+                    <td><strong style="color:${r.grade==='A'||r.grade==='B'?'var(--success-text)':r.grade==='F'?'var(--danger-text)':'var(--warning-text)'};">${r.grade}</strong></td>
+                    <td>${r.date.toLocaleDateString()}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(r.feedback)}">${escapeHtml(r.feedback || '—')}</td>
+                </tr>`).join('');
+        }
+
+        // Handle URL params for direct navigation
+        function checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const type = params.get('type');
+            const id = params.get('id');
+            if (id) {
+                // Highlight specific assessment in details
+                document.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('active'));
+                document.querySelector('.sub-tab[data-tab="details"]').classList.add('active');
+                currentTab = 'details';
+                ['overview', 'subjects', 'details'].forEach(t => document.getElementById('tab-' + t).style.display = 'none');
+                document.getElementById('tab-details').style.display = 'block';
+                renderDetailTable();
+                // Scroll to the row
+                setTimeout(() => {
+                    const rows = document.querySelectorAll('#detailBody tr');
+                    rows.forEach(row => {
+                        if (row.textContent.includes(id)) row.style.background = 'var(--info-bg)';
+                    });
+                }, 500);
+            }
+        }
+
+        auth.onAuthStateChanged(async user => {
+            if (!user) { window.location.href = 'student-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || doc.data().role !== 'student') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'S');
+                document.getElementById('profileName').textContent = userData.firstName || 'Student';
+                await loadAllResults();
+                checkUrlParams();
+            } catch(e) { console.error(e); }
+        });
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+    </script>
+</body>
+</html>
