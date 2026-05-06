@@ -22,7 +22,7 @@
             --danger-bg: rgba(239,68,68,0.15); --danger-text: #b91c1c;
             --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
             --gradient-start: #1e3c72; --gradient-end: #2a5298;
-            --input-bg: rgba(255,255,255,0.9);
+            --input-bg: rgba(255,255,255,0.9); --debug-bg: #1e293b; --debug-text: #e2e8f0;
         }
         :root[data-theme="dark"] {
             --bg-primary: #0a0f1e; --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
@@ -34,7 +34,7 @@
             --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
             --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
             --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
-            --input-bg: rgba(30,41,59,0.8);
+            --input-bg: rgba(30,41,59,0.8); --debug-bg: #0f172a; --debug-text: #94a3b8;
         }
 
         body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
@@ -63,11 +63,6 @@
         .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; box-shadow: var(--shadow); margin-bottom: 1.25rem; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
         .card-header h3 { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-
-        .tab-row { display: flex; gap: 0.4rem; margin-bottom: 1.25rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap; }
-        .tab-btn { padding: 0.55rem 1.2rem; border-radius: 3rem; font-weight: 500; font-size: 0.82rem; cursor: pointer; transition: 0.2s; color: var(--text-secondary); border: none; background: transparent; font-family: inherit; white-space: nowrap; }
-        .tab-btn.active { background: var(--accent); color: white; box-shadow: 0 5px 20px -5px var(--accent); }
-        .tab-btn:hover:not(.active) { color: var(--accent); }
 
         .weight-config { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
         .weight-card { background: var(--hover-bg); border: 2px solid var(--border); border-radius: 1rem; padding: 1rem; text-align: center; }
@@ -118,6 +113,15 @@
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.7rem; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-debug { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 4000; background: var(--debug-bg); color: var(--debug-text); border: 1px solid var(--border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; opacity: 0.5; transition: 0.2s; }
+        .btn-debug:hover { opacity: 1; }
+
+        .debug-panel { background: var(--debug-bg); color: var(--debug-text); border-radius: 1rem; padding: 1rem; margin-top: 1rem; font-family: 'Space Grotesk', monospace; font-size: 0.68rem; max-height: 350px; overflow-y: auto; display: none; }
+        .debug-panel.active { display: block; }
+        .debug-entry { padding: 0.2rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .debug-entry.success { color: var(--success-text); }
+        .debug-entry.error { color: var(--danger-text); }
+        .debug-entry.warn { color: var(--warning-text); }
 
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
@@ -158,9 +162,9 @@
                 <button class="btn btn-primary" id="saveConfigBtn"><i class="fas fa-save"></i> Save Configuration</button>
             </div>
             <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:1rem;">
-                <strong>Rules:</strong> Teacher can select 1-3 assignments, 1-2 tests (from 4 per term), and 1 exam. 
+                <strong>Rules:</strong> Select 1-3 assignments, 1-2 tests (from 4 per term), and 1 exam. 
                 Assignments = 10 marks, Tests = 30 marks, Exam = 60 marks. Total = 100.
-                If no assignments, Tests = 40 marks. Teacher can adjust exam to 70 (then tests = 20, assignments = 10).</p>
+                If no assignments used, Tests = 40 marks.</p>
             <div class="weight-config">
                 <div class="weight-card assign">
                     <i class="fas fa-tasks"></i>
@@ -195,13 +199,13 @@
         <!-- SUBJECT TABS -->
         <div class="subject-selector" id="subjectSelector"></div>
 
-        <!-- ASSIGNMENT/TEST SELECTION FOR CURRENT SUBJECT -->
+        <!-- ASSIGNMENT/TEST SELECTION -->
         <div class="card" id="selectionCard">
             <div class="card-header">
                 <h3><i class="fas fa-check-square"></i> Select Items for: <span id="currentSubjectLabel">-</span></h3>
                 <button class="btn btn-outline btn-sm" id="fetchScoresBtn"><i class="fas fa-database"></i> Fetch All Scores</button>
             </div>
-            <div id="selectionContent"><p style="color:var(--text-secondary);font-size:0.85rem;">Select a subject above, then choose which assignments and tests to include.</p></div>
+            <div id="selectionContent"><p style="color:var(--text-secondary);font-size:0.85rem;">Select a subject above.</p></div>
         </div>
 
         <!-- STUDENT SCORES TABLE -->
@@ -217,7 +221,12 @@
                 </table>
             </div>
         </div>
+
+        <!-- DEBUG PANEL -->
+        <div class="debug-panel" id="debugPanel"><strong>🐛 Debug Console</strong><br><div id="debugContent"></div></div>
     </div>
+
+    <button class="btn-debug" id="debugToggle" title="Debug Panel"><i class="fas fa-bug"></i></button>
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Processing...</h3></div>
@@ -235,6 +244,24 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        // === DEBUG ===
+        const debugLogs = [];
+        function debug(msg, type = 'info') {
+            const ts = new Date().toLocaleTimeString();
+            debugLogs.push({ msg, type, ts });
+            console.log(`[${type.toUpperCase()}] ${msg}`);
+            renderDebug();
+        }
+        function renderDebug() {
+            const el = document.getElementById('debugContent');
+            if (!el) return;
+            el.innerHTML = debugLogs.slice(-40).map(d => `<div class="debug-entry ${d.type}">[${d.ts}] ${d.msg}</div>`).join('');
+        }
+        document.getElementById('debugToggle').addEventListener('click', () => {
+            document.getElementById('debugPanel').classList.toggle('active');
+            renderDebug();
+        });
 
         // === THEME ===
         (() => {
@@ -266,7 +293,7 @@
         let allAssignments = [], allTests = [], allExams = [];
         let allSubmissions = [], allTestSubs = [], allExamSubs = [];
         let selectedAssignIds = new Set(), selectedTestIds = new Set(), selectedExamId = null;
-        let studentScoreMap = {}; // {studentId: {assignAvg, testAvg, examScore, total, grade}}
+        let studentScoreMap = {};
 
         // === WEIGHT VALIDATION ===
         function validateWeights() {
@@ -279,56 +306,106 @@
             else { el.className = 'weight-total err'; el.textContent = `Total: ${total} marks (must = 100)`; }
         }
 
-        // === LOAD DATA ===
+        // === INIT ===
         async function init() {
             showLoading();
+            debug('Starting init...');
             try {
                 const classId = userData.classTeaching || 'jss2';
+                debug('Class ID: ' + classId);
                 subjects = userData.subjects || [];
+                debug('Subjects: ' + (subjects.length ? subjects.join(', ') : 'none'));
 
-                // Students
-                const stuSnap = await db.collection('users').where('role','==','student').where('class','==',classId).where('approved','==',true).get();
-                allStudents = []; stuSnap.forEach(d => { const dd = d.data(); allStudents.push({ id: d.id, name: `${dd.firstName||''} ${dd.surname||''}`.trim() }); });
+                // === STUDENTS ===
+                debug('Querying students for class: ' + classId);
+                const stuSnap = await db.collection('users')
+                    .where('role','==','student')
+                    .where('class','==',classId)
+                    .where('approved','==',true)
+                    .get();
+                allStudents = [];
+                const studentIds = new Set();
+                stuSnap.forEach(d => { 
+                    const dd = d.data(); 
+                    allStudents.push({ id: d.id, name: `${dd.firstName||''} ${dd.surname||''}`.trim() }); 
+                    studentIds.add(d.id);
+                });
                 allStudents.sort((a,b) => a.name.localeCompare(b.name));
+                debug(`Students loaded: ${allStudents.length}`, 'success');
 
-                // Assignments, Tests, Exams
+                // === ASSIGNMENTS, TESTS, EXAMS ===
+                debug('Querying assignments/tests/exams for classId: ' + classId);
                 const [aSnap, tSnap, eSnap] = await Promise.all([
-                    db.collection('assignments').where('teacherId','==',currentUser.uid).where('status','==','published').get(),
-                    db.collection('tests').where('teacherId','==',currentUser.uid).where('status','==','published').get(),
-                    db.collection('exams').where('teacherId','==',currentUser.uid).where('status','==','published').get()
+                    db.collection('assignments').where('classId','==',classId).where('status','==','published').get(),
+                    db.collection('tests').where('classId','==',classId).where('status','==','published').get(),
+                    db.collection('exams').where('classId','==',classId).where('status','==','published').get()
                 ]);
                 allAssignments = []; aSnap.forEach(d => { const dd = d.data(); allAssignments.push({ id: d.id, title: dd.title, subject: dd.subject, totalPoints: dd.totalPoints || 10 }); });
                 allTests = []; tSnap.forEach(d => { const dd = d.data(); allTests.push({ id: d.id, title: dd.title, subject: dd.subject, totalPoints: dd.totalPoints || 30 }); });
                 allExams = []; eSnap.forEach(d => { const dd = d.data(); allExams.push({ id: d.id, title: dd.title, subject: dd.subject, totalPoints: dd.totalPoints || 60 }); });
+                debug(`Assignments: ${allAssignments.length}, Tests: ${allTests.length}, Exams: ${allExams.length}`, 'success');
 
-                // Submissions
-                const [sSnap, tsSnap, esSnap] = await Promise.all([
-                    db.collection('submissions').where('teacherId','==',currentUser.uid).get(),
-                    db.collection('testSubmissions').where('teacherId','==',currentUser.uid).get(),
-                    db.collection('examSubmissions').where('teacherId','==',currentUser.uid).get()
-                ]);
-                allSubmissions = []; sSnap.forEach(d => { const dd = d.data(); allSubmissions.push({ id: d.id, assignmentId: dd.assignmentId, studentId: dd.studentId, score: dd.score || 0 }); });
-                allTestSubs = []; tsSnap.forEach(d => { const dd = d.data(); allTestSubs.push({ id: d.id, testId: dd.testId, studentId: dd.studentId, score: dd.score || 0 }); });
-                allExamSubs = []; esSnap.forEach(d => { const dd = d.data(); allExamSubs.push({ id: d.id, examId: dd.examId, studentId: dd.studentId, score: dd.score || 0 }); });
+                // === SUBMISSIONS ===
+                debug('Querying submissions...');
+                let sSnap, tsSnap, esSnap;
+                try {
+                    [sSnap, tsSnap, esSnap] = await Promise.all([
+                        db.collection('submissions').where('classId','==',classId).get(),
+                        db.collection('testSubmissions').where('classId','==',classId).get(),
+                        db.collection('examSubmissions').where('classId','==',classId).get()
+                    ]);
+                    debug(`Submissions: ${sSnap.size} assign, ${tsSnap.size} test, ${esSnap.size} exam (by classId)`, 'success');
+                } catch(e1) {
+                    debug('classId query failed: ' + e1.message, 'error');
+                    // Fallback: query all
+                    debug('Trying fallback queries...', 'warn');
+                    [sSnap, tsSnap, esSnap] = await Promise.all([
+                        db.collection('submissions').get(),
+                        db.collection('testSubmissions').get(),
+                        db.collection('examSubmissions').get()
+                    ]);
+                    debug(`Fallback: ${sSnap.size} assign, ${tsSnap.size} test, ${esSnap.size} exam (all)`, 'warn');
+                }
 
-                // Load saved config
-                const configDoc = await db.collection('reportCardConfig').doc(`${currentUser.uid}_${classId}`).get();
-                if (configDoc.exists) {
-                    const cfg = configDoc.data();
-                    document.getElementById('weightAssign').value = cfg.weightAssign || 10;
-                    document.getElementById('weightTest').value = cfg.weightTest || 30;
-                    document.getElementById('weightExam').value = cfg.weightExam || 60;
-                    document.getElementById('assignCountSelect').value = cfg.assignCount || 2;
-                    document.getElementById('testCountSelect').value = cfg.testCount || 2;
-                    if (cfg.selectedAssignIds) selectedAssignIds = new Set(cfg.selectedAssignIds);
-                    if (cfg.selectedTestIds) selectedTestIds = new Set(cfg.selectedTestIds);
-                    if (cfg.selectedExamId) selectedExamId = cfg.selectedExamId;
+                allSubmissions = []; 
+                sSnap.forEach(d => { const dd = d.data(); if (studentIds.has(dd.studentId)) { allSubmissions.push({ id: d.id, assignmentId: dd.assignmentId, studentId: dd.studentId, score: dd.score || 0 }); } });
+                allTestSubs = []; 
+                tsSnap.forEach(d => { const dd = d.data(); if (studentIds.has(dd.studentId)) { allTestSubs.push({ id: d.id, testId: dd.testId, studentId: dd.studentId, score: dd.score || 0 }); } });
+                allExamSubs = []; 
+                esSnap.forEach(d => { const dd = d.data(); if (studentIds.has(dd.studentId)) { allExamSubs.push({ id: d.id, examId: dd.examId, studentId: dd.studentId, score: dd.score || 0 }); } });
+                debug(`Filtered: ${allSubmissions.length} assign subs, ${allTestSubs.length} test subs, ${allExamSubs.length} exam subs`, 'success');
+
+                // === LOAD SAVED CONFIG ===
+                debug('Loading saved config...');
+                try {
+                    const configDoc = await db.collection('reportCardConfig').doc(`${currentUser.uid}_${classId}`).get();
+                    if (configDoc.exists) {
+                        const cfg = configDoc.data();
+                        document.getElementById('weightAssign').value = cfg.weightAssign || 10;
+                        document.getElementById('weightTest').value = cfg.weightTest || 30;
+                        document.getElementById('weightExam').value = cfg.weightExam || 60;
+                        document.getElementById('assignCountSelect').value = cfg.assignCount || 2;
+                        document.getElementById('testCountSelect').value = cfg.testCount || 2;
+                        if (cfg.selectedAssignIds) selectedAssignIds = new Set(cfg.selectedAssignIds);
+                        if (cfg.selectedTestIds) selectedTestIds = new Set(cfg.selectedTestIds);
+                        if (cfg.selectedExamId) selectedExamId = cfg.selectedExamId;
+                        debug('Config loaded successfully', 'success');
+                    } else {
+                        debug('No saved config found — using defaults', 'warn');
+                    }
+                } catch(e) {
+                    debug('Config load error: ' + e.message, 'error');
                 }
 
                 validateWeights();
                 renderSubjectSelector();
                 if (subjects.length) selectSubject(subjects[0]);
-            } catch(e) { console.error(e); alert('Error: ' + e.message); }
+                debug('Init complete!', 'success');
+            } catch(e) { 
+                debug('FATAL: ' + e.message, 'error');
+                console.error(e); 
+                alert('Error loading data: ' + e.message); 
+            }
             finally { hideLoading(); }
         }
 
@@ -354,44 +431,36 @@
             const assignCount = parseInt(document.getElementById('assignCountSelect').value) || 0;
             const testCount = parseInt(document.getElementById('testCountSelect').value) || 2;
 
-            // Auto-select exams (only 1 per term)
             if (subjExams.length && !selectedExamId) selectedExamId = subjExams[0].id;
 
             let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;">';
-
             html += '<div><h4 style="font-size:0.85rem;margin-bottom:0.5rem;"><i class="fas fa-tasks"></i> Assignments (select up to ' + assignCount + ')</h4>';
-            if (!subjAssignments.length) html += '<p style="color:var(--text-secondary);font-size:0.8rem;">No assignments found for this subject.</p>';
+            if (!subjAssignments.length) html += '<p style="color:var(--text-secondary);font-size:0.8rem;">No assignments found.</p>';
             else subjAssignments.forEach(a => {
                 const isSel = selectedAssignIds.has(a.id);
                 html += `<div class="assignment-card${isSel ? ' selected' : ''}" onclick="toggleAssign('${a.id}',${assignCount})">
                     <input type="checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation();toggleAssign('${a.id}',${assignCount})">
-                    <div class="info"><strong>${escapeHtml(a.title)}</strong><br>${a.totalPoints} pts</div>
-                </div>`;
+                    <div class="info"><strong>${escapeHtml(a.title)}</strong><br>${a.totalPoints} pts</div></div>`;
             });
             html += '</div>';
-
             html += '<div><h4 style="font-size:0.85rem;margin-bottom:0.5rem;"><i class="fas fa-file-alt"></i> Tests (select up to ' + testCount + ')</h4>';
             if (!subjTests.length) html += '<p style="color:var(--text-secondary);font-size:0.8rem;">No tests found.</p>';
             else subjTests.forEach(t => {
                 const isSel = selectedTestIds.has(t.id);
                 html += `<div class="assignment-card${isSel ? ' selected' : ''}" onclick="toggleTest('${t.id}',${testCount})">
                     <input type="checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation();toggleTest('${t.id}',${testCount})">
-                    <div class="info"><strong>${escapeHtml(t.title)}</strong><br>${t.totalPoints} pts</div>
-                </div>`;
+                    <div class="info"><strong>${escapeHtml(t.title)}</strong><br>${t.totalPoints} pts</div></div>`;
             });
             html += '</div>';
-
             html += '<div><h4 style="font-size:0.85rem;margin-bottom:0.5rem;"><i class="fas fa-pen-fancy"></i> Exam</h4>';
             if (!subjExams.length) html += '<p style="color:var(--text-secondary);font-size:0.8rem;">No exams found.</p>';
             else subjExams.forEach(e => {
                 const isSel = selectedExamId === e.id;
                 html += `<div class="assignment-card${isSel ? ' selected' : ''}" onclick="selectExam('${e.id}')">
                     <input type="radio" name="examSel" ${isSel ? 'checked' : ''} onclick="event.stopPropagation();selectExam('${e.id}')">
-                    <div class="info"><strong>${escapeHtml(e.title)}</strong><br>${e.totalPoints} pts</div>
-                </div>`;
+                    <div class="info"><strong>${escapeHtml(e.title)}</strong><br>${e.totalPoints} pts</div></div>`;
             });
             html += '</div></div>';
-
             document.getElementById('selectionContent').innerHTML = html;
             document.getElementById('scoresTableWrap').style.display = 'block';
             computeAndRenderScores();
@@ -411,7 +480,6 @@
         };
         window.selectExam = id => { selectedExamId = id; renderSelection(); };
 
-        // === COMPUTE SCORES ===
         function computeAndRenderScores() {
             if (!currentSubject) return;
             const subj = currentSubject;
@@ -421,9 +489,9 @@
 
             document.getElementById('scoresSubjectLabel').textContent = subj;
             studentScoreMap = {};
+            debug(`Computing scores for ${subj}: weights A=${weightA} T=${weightT} E=${weightE}, selected assigns=${selectedAssignIds.size}, tests=${selectedTestIds.size}, exam=${selectedExamId||'none'}`);
 
             allStudents.forEach(stu => {
-                // Assignment average
                 let assignSum = 0, assignCount = 0;
                 selectedAssignIds.forEach(aid => {
                     const sub = allSubmissions.find(s => s.assignmentId === aid && s.studentId === stu.id);
@@ -435,7 +503,6 @@
                 });
                 const assignAvg = assignCount > 0 ? assignSum / assignCount : 0;
 
-                // Test average
                 let testSum = 0, testCount = 0;
                 selectedTestIds.forEach(tid => {
                     const sub = allTestSubs.find(s => s.testId === tid && s.studentId === stu.id);
@@ -447,7 +514,6 @@
                 });
                 const testAvg = testCount > 0 ? testSum / testCount : 0;
 
-                // Exam
                 let examScore = 0;
                 if (selectedExamId) {
                     const sub = allExamSubs.find(s => s.examId === selectedExamId && s.studentId === stu.id);
@@ -467,13 +533,13 @@
                 };
             });
 
+            debug(`Scored ${Object.keys(studentScoreMap).length} students`, 'success');
             renderScoresTable();
         }
 
         function renderScoresTable() {
             const head = document.getElementById('scoresTableHead');
             const body = document.getElementById('scoresTableBody');
-
             head.innerHTML = '<tr><th>#</th><th>Student</th><th>Assignments (/' + (document.getElementById('weightAssign').value || 0) + ')</th><th>Tests (/' + (document.getElementById('weightTest').value || 0) + ')</th><th>Exam (/' + (document.getElementById('weightExam').value || 0) + ')</th><th>Total (100)</th><th>Grade</th></tr>';
 
             const sorted = allStudents.map(s => ({
@@ -485,23 +551,18 @@
                 const sc = s.scores;
                 const g = sc.grade;
                 return `<tr>
-                    <td>${i + 1}</td>
-                    <td><strong>${escapeHtml(s.name)}</strong></td>
-                    <td>${sc.assignAvg}</td>
-                    <td>${sc.testAvg}</td>
-                    <td>${sc.examScore}</td>
-                    <td><strong>${sc.total}</strong></td>
-                    <td><strong class="grade-${g}">${g}</strong></td>
-                </tr>`;
+                    <td>${i + 1}</td><td><strong>${escapeHtml(s.name)}</strong></td>
+                    <td>${sc.assignAvg}</td><td>${sc.testAvg}</td><td>${sc.examScore}</td>
+                    <td><strong>${sc.total}</strong></td><td><strong class="grade-${g}">${g}</strong></td></tr>`;
             }).join('');
         }
 
-        // === SAVE ===
         async function saveConfig() {
             if (parseInt(document.getElementById('weightAssign').value) + parseInt(document.getElementById('weightTest').value) + parseInt(document.getElementById('weightExam').value) !== 100) {
                 alert('Weights must total 100 marks.'); return;
             }
             showLoading();
+            debug('Saving config...');
             try {
                 const classId = userData.classTeaching || 'jss2';
                 const data = {
@@ -520,8 +581,12 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 await db.collection('reportCardConfig').doc(`${currentUser.uid}_${classId}`).set(data, { merge: true });
+                debug('Config saved!', 'success');
                 alert('Configuration and scores saved!');
-            } catch(e) { alert('Error: ' + e.message); }
+            } catch(e) { 
+                debug('Save error: ' + e.message, 'error');
+                alert('Error: ' + e.message); 
+            }
             finally { hideLoading(); }
         }
 
@@ -534,7 +599,6 @@
         document.getElementById('weightTest').addEventListener('change', () => { validateWeights(); if (currentSubject) computeAndRenderScores(); });
         document.getElementById('weightExam').addEventListener('change', () => { validateWeights(); if (currentSubject) computeAndRenderScores(); });
 
-        // === AUTH ===
         auth.onAuthStateChanged(async user => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
             try {
