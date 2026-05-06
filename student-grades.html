@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · My Grades</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --bg-surface: rgba(255,255,255,0.75); --text-primary: #0b1e33;
+            --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: rgba(34,197,94,0.15); --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.15); --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.15); --danger-text: #b91c1c;
+            --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+        }
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --bg-surface: rgba(15,23,42,0.8); --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.06); --card-bg: rgba(15,23,42,0.6); --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
+            --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
+        .orb { position: fixed; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; animation: float 25s infinite alternate ease-in-out; }
+        .orb-1 { width: 350px; height: 350px; top: -120px; right: -120px; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.12), transparent 70%); }
+        .orb-2 { width: 450px; height: 450px; bottom: -180px; left: -150px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.10), transparent 70%); animation-duration: 30s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px,30px) scale(1.15); } }
+
+        .top-nav { position: sticky; top: 0; z-index: 100; background: var(--bg-surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0.9rem 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .nav-left, .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .nav-btn { background: transparent; border: 1px solid var(--border); border-radius: 2rem; padding: 0.5rem 1.2rem; color: var(--text-primary); font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; text-decoration: none; display: flex; align-items: center; gap: 0.4rem; }
+        .nav-btn:hover { background: var(--hover-bg); border-color: var(--accent); color: var(--accent); }
+        .theme-toggle { display: flex; align-items: center; gap: 0.4rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.4rem 1rem; cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.6rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem 0.3rem 0.3rem 0.8rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+        .profile-pic { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem; }
+        .dropdown-menu { position: absolute; right: 0; top: 50px; background: var(--bg-surface); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.4rem; min-width: 160px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.6rem 1rem; color: var(--text-primary); border-radius: 0.6rem; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem 3rem; position: relative; z-index: 5; }
+
+        .hero-card { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); border-radius: 2rem; padding: 2rem; color: white; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; }
+        .hero-card h1 { font-size: 1.6rem; font-weight: 700; }
+        .hero-stats { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .hero-stat { text-align: center; }
+        .hero-stat .val { font-size: 2.2rem; font-weight: 700; }
+        .hero-stat .lbl { font-size: 0.75rem; opacity: 0.8; }
+
+        .sub-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.3rem; width: fit-content; flex-wrap: wrap; }
+        .sub-tab { padding: 0.6rem 1.5rem; border-radius: 3rem; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; }
+        .sub-tab.active { background: var(--accent); color: white; box-shadow: 0 5px 20px -5px var(--accent); }
+        .sub-tab:hover:not(.active) { color: var(--accent); }
+
+        .subject-tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .subject-chip { padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-secondary); transition: 0.2s; }
+        .subject-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .subject-chip:hover:not(.active) { border-color: var(--accent); }
+
+        .grade-table-wrap { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; box-shadow: var(--shadow); }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 0.8rem 1rem; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border); background: var(--hover-bg); font-size: 0.8rem; white-space: nowrap; }
+        td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        tr:last-child td { border-bottom: none; }
+
+        .badge { padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+        .badge-success { background: var(--success-bg); color: var(--success-text); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-info { background: var(--info-bg); color: var(--info-text); }
+        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
+
+        .grade-letter { font-weight: 700; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; }
+        .grade-A { background: var(--success-bg); color: var(--success-text); }
+        .grade-B { background: var(--info-bg); color: var(--info-text); }
+        .grade-C { background: var(--warning-bg); color: var(--warning-text); }
+        .grade-D { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .grade-F { background: var(--danger-bg); color: var(--danger-text); }
+
+        .progress-bar-wrap { width: 100px; height: 6px; background: var(--hover-bg); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 0.5rem; }
+        .progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+        .fill-A { background: var(--success-text); }
+        .fill-B { background: var(--info-text); }
+        .fill-C { background: var(--warning-text); }
+        .fill-D { background: #f59e0b; }
+        .fill-F { background: var(--danger-text); }
+
+        .btn { padding: 0.45rem 1rem; border: none; border-radius: 2rem; font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.2; display: block; }
+        .empty-state h3 { font-size: 1rem; margin-bottom: 0.3rem; color: var(--text-primary); }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 1rem; }
+            .hero-card { padding: 1.25rem; }
+            .hero-stats { gap: 1rem; }
+            .hero-stat .val { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div><div class="orb orb-2"></div>
+
+    <div class="top-nav">
+        <div class="nav-left">
+            <a href="student-assessments.html" class="nav-btn"><i class="fas fa-tasks"></i> Assessments</a>
+            <a href="student-classroom.html" class="nav-btn"><i class="fas fa-chalkboard"></i> Classroom</a>
+            <a href="student-analysis.html" class="nav-btn"><i class="fas fa-chart-bar"></i> Analysis</a>
+        </div>
+        <div class="nav-right">
+            <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+            <div class="profile-dropdown">
+                <div class="profile-trigger"><span class="profile-name" id="profileName">Student</span><div class="profile-pic" id="profilePic">S</div></div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="hero-card">
+            <div>
+                <h1>My Grades</h1>
+                <p style="opacity:0.85;font-size:0.9rem;">All your assessment results in one place</p>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat"><div class="val" id="heroAvg">0%</div><div class="lbl">Overall Average</div></div>
+                <div class="hero-stat"><div class="val" id="heroBest">0%</div><div class="lbl">Best Score</div></div>
+                <div class="hero-stat"><div class="val" id="heroCount">0</div><div class="lbl">Graded</div></div>
+            </div>
+        </div>
+
+        <div class="sub-tabs" id="subTabs">
+            <div class="sub-tab active" data-tab="all"><i class="fas fa-layer-group"></i> All</div>
+            <div class="sub-tab" data-tab="assignment"><i class="fas fa-tasks"></i> Assignments</div>
+            <div class="sub-tab" data-tab="test"><i class="fas fa-laptop"></i> Tests</div>
+            <div class="sub-tab" data-tab="exam"><i class="fas fa-pen-fancy"></i> Exams</div>
+        </div>
+
+        <div class="subject-tabs" id="subjectTabs"></div>
+
+        <div class="grade-table-wrap">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Title</th>
+                            <th>Subject</th>
+                            <th>Score</th>
+                            <th>Grade</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesBody">
+                        <tr><td colspan="7" style="text-align:center;padding:2rem;">Loading grades...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        (() => {
+            const s = localStorage.getItem('edutopscholars-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', s);
+            const sp = document.getElementById('themeToggle').querySelector('span');
+            sp.textContent = s === 'dark' ? 'Light' : 'Dark';
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', n);
+                localStorage.setItem('edutopscholars-theme', n);
+                sp.textContent = n === 'dark' ? 'Light' : 'Dark';
+            });
+        })();
+
+        function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function getGradeLetter(pct) {
+            if (pct >= 75) return 'A'; if (pct >= 65) return 'B'; if (pct >= 50) return 'C'; if (pct >= 40) return 'D'; return 'F';
+        }
+
+        let currentUser = null, userData = null;
+        let allGrades = [];
+        let currentTab = 'all';
+        let currentSubject = 'all';
+
+        document.querySelectorAll('.sub-tab').forEach(t => t.addEventListener('click', () => {
+            document.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('active'));
+            t.classList.add('active');
+            currentTab = t.dataset.tab;
+            renderTable();
+        }));
+
+        async function loadGrades() {
+            if (!currentUser || !userData) return;
+            allGrades = [];
+
+            const configs = [
+                { subCol: 'submissions', idField: 'assignmentId', type: 'assignment', label: 'Assignment', col: 'assignments' },
+                { subCol: 'testSubmissions', idField: 'testId', type: 'test', label: 'Test', col: 'tests' },
+                { subCol: 'examSubmissions', idField: 'examId', type: 'exam', label: 'Exam', col: 'exams' }
+            ];
+
+            const subjects = new Set();
+
+            for (const cfg of configs) {
+                try {
+                    const snap = await db.collection(cfg.subCol).where('studentId', '==', currentUser.uid).get();
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        const totalPts = d.totalPoints || 100;
+                        const score = d.score || 0;
+                        const pct = totalPts > 0 ? (score / totalPts) * 100 : 0;
+                        const subject = d.subject || 'General';
+                        subjects.add(subject);
+
+                        allGrades.push({
+                            id: doc.id,
+                            type: cfg.type,
+                            label: cfg.label,
+                            title: d.assignmentTitle || d.testTitle || d.examTitle || d.title || 'Untitled',
+                            subject: subject,
+                            score: score,
+                            totalPoints: totalPts,
+                            percentage: pct,
+                            grade: getGradeLetter(pct),
+                            date: d.submittedAt?.toDate?.() || new Date(),
+                            feedback: d.feedback || '',
+                            sourceId: d[cfg.idField] || doc.id
+                        });
+                    });
+                } catch (e) { console.warn(cfg.label, e); }
+            }
+
+            // Sort by date descending
+            allGrades.sort((a, b) => b.date - a.date);
+
+            // Hero stats
+            if (allGrades.length > 0) {
+                const avg = allGrades.reduce((s, g) => s + g.percentage, 0) / allGrades.length;
+                const best = Math.max(...allGrades.map(g => g.percentage));
+                document.getElementById('heroAvg').textContent = avg.toFixed(0) + '%';
+                document.getElementById('heroBest').textContent = best.toFixed(0) + '%';
+                document.getElementById('heroCount').textContent = allGrades.length;
+            }
+
+            // Subject chips
+            const subjectChips = document.getElementById('subjectTabs');
+            subjectChips.innerHTML = '<span class="subject-chip active" onclick="filterSubject(\'all\')">All Subjects</span>' +
+                [...subjects].sort().map(s => `<span class="subject-chip" onclick="filterSubject('${s.replace(/'/g, "\\'")}')">${s}</span>`).join('');
+
+            renderTable();
+        }
+
+        window.filterSubject = subj => {
+            currentSubject = subj;
+            document.querySelectorAll('.subject-chip').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.subject-chip').forEach(c => { if (c.textContent === subj || (subj === 'all' && c.textContent === 'All Subjects')) c.classList.add('active'); });
+            renderTable();
+        };
+
+        function renderTable() {
+            let filtered = allGrades;
+            if (currentTab !== 'all') filtered = filtered.filter(g => g.type === currentTab);
+            if (currentSubject !== 'all') filtered = filtered.filter(g => g.subject === currentSubject);
+
+            const tbody = document.getElementById('gradesBody');
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-star"></i><h3>No grades yet</h3><p>Complete assessments to see your grades here.</p></div></td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(g => {
+                const pct = g.percentage;
+                const grade = g.grade;
+                const fillClass = 'fill-' + grade;
+                const badgeClass = g.type === 'assignment' ? 'badge-info' : g.type === 'test' ? 'badge-warning' : 'badge-success';
+                return `
+                    <tr>
+                        <td><span class="badge ${badgeClass}">${g.label}</span></td>
+                        <td><strong>${escapeHtml(g.title)}</strong>${g.feedback ? `<br><small style="color:var(--text-secondary);">${escapeHtml(g.feedback.substring(0, 60))}${g.feedback.length > 60 ? '...' : ''}</small>` : ''}</td>
+                        <td>${escapeHtml(g.subject)}</td>
+                        <td>
+                            <div class="progress-bar-wrap"><div class="progress-bar-fill ${fillClass}" style="width:${pct}%"></div></div>
+                            ${g.score}/${g.totalPoints} (${pct.toFixed(0)}%)
+                        </td>
+                        <td><span class="grade-letter grade-${grade}">${grade}</span></td>
+                        <td style="white-space:nowrap;">${g.date.toLocaleDateString()}</td>
+                        <td><a href="student-analysis.html?type=${g.type}&id=${g.sourceId}" class="btn btn-outline"><i class="fas fa-chart-bar"></i> Analysis</a></td>
+                    </tr>`;
+            }).join('');
+        }
+
+        auth.onAuthStateChanged(async user => {
+            if (!user) { window.location.href = 'student-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || doc.data().role !== 'student') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'S');
+                document.getElementById('profileName').textContent = userData.firstName || 'Student';
+                await loadGrades();
+            } catch (e) { console.error(e); }
+        });
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+    </script>
+</body>
+</html>
