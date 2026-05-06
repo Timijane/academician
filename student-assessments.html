@@ -21,6 +21,7 @@
             --danger-bg: rgba(239,68,68,0.15); --danger-text: #b91c1c;
             --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
             --gradient-start: #1e3c72; --gradient-end: #2a5298;
+            --debug-bg: #1e293b; --debug-text: #e2e8f0;
         }
         :root[data-theme="dark"] {
             --bg-primary: #0a0f1e; --bg-surface: rgba(15,23,42,0.8); --text-primary: #f0f4fa;
@@ -32,6 +33,7 @@
             --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
             --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
             --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --debug-bg: #0f172a; --debug-text: #94a3b8;
         }
 
         body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
@@ -99,8 +101,14 @@
         .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.2; display: block; }
         .empty-state h3 { font-size: 1rem; margin-bottom: 0.3rem; color: var(--text-primary); }
 
-        .debug-panel { background: #1e293b; color: #94a3b8; border-radius: 1rem; padding: 1rem; margin-top: 1rem; font-family: monospace; font-size: 0.7rem; max-height: 200px; overflow-y: auto; display: none; }
+        .debug-panel { background: var(--debug-bg); color: var(--debug-text); border-radius: 1rem; padding: 1rem; margin-top: 1rem; font-family: 'Space Grotesk', monospace; font-size: 0.7rem; max-height: 300px; overflow-y: auto; display: none; }
         .debug-panel.active { display: block; }
+        .debug-entry { padding: 0.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .debug-entry.success { color: var(--success-text); }
+        .debug-entry.error { color: var(--danger-text); }
+        .debug-entry.warn { color: var(--warning-text); }
+        .btn-debug { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 4000; background: var(--debug-bg); color: var(--debug-text); border: 1px solid var(--border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; opacity: 0.5; transition: 0.2s; }
+        .btn-debug:hover { opacity: 1; }
 
         @media (max-width: 768px) {
             .main-container { padding: 1rem; }
@@ -142,8 +150,10 @@
         </div>
 
         <div id="contentArea"></div>
-        <div class="debug-panel" id="debugPanel"><strong>Debug:</strong><br><span id="debugInfo"></span></div>
+        <div class="debug-panel" id="debugPanel"><strong>🐛 Debug Console</strong><br><div id="debugContent"></div></div>
     </div>
+
+    <button class="btn-debug" id="debugToggle" title="Debug Panel"><i class="fas fa-bug"></i></button>
 
     <script>
         const firebaseConfig = {
@@ -172,8 +182,24 @@
             });
         })();
 
+        // === DEBUG ===
+        const debugLogs = [];
+        function debug(msg, type = 'info') {
+            const ts = new Date().toLocaleTimeString();
+            debugLogs.push({ msg, type, ts });
+            console.log(`[${type.toUpperCase()}] ${msg}`);
+            renderDebug();
+        }
+        function renderDebug() {
+            const el = document.getElementById('debugContent');
+            if (!el) return;
+            el.innerHTML = debugLogs.slice(-30).map(d => `<div class="debug-entry ${d.type}">[${d.ts}] ${d.msg}</div>`).join('');
+        }
+        document.getElementById('debugToggle').addEventListener('click', () => {
+            document.getElementById('debugPanel').classList.toggle('active');
+        });
+
         function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-        function debug(msg) { const el = document.getElementById('debugInfo'); if (el) el.innerHTML = msg + '<br>' + el.innerHTML.substring(0, 2000); console.log(msg); }
 
         let currentUser = null, userData = null;
         let allItems = [];
@@ -187,18 +213,24 @@
             renderContent();
         }));
 
-        // === STAT CLICK FILTERS ===
+        // === STAT CARD FILTERS ===
         document.getElementById('statPending').addEventListener('click', () => {
             document.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('active'));
-            // Show all pending across all tabs
-            renderPendingOnly();
+            const pending = allItems.filter(i => !i.submission);
+            renderCards(pending, 'Pending Assessments');
+        });
+        document.getElementById('statCompleted').addEventListener('click', () => {
+            document.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('active'));
+            const completed = allItems.filter(i => i.submission);
+            renderCards(completed, 'Completed Assessments');
         });
 
-        // === LOAD ALL DATA ===
+        // === LOAD ALL ===
         async function loadAll() {
             if (!currentUser || !userData) return;
             allItems = [];
-            debug('Loading assessments for class: ' + userData.class + ', student: ' + currentUser.uid);
+            const studentClass = userData.class || userData.classEnrolled || userData.classId || '';
+            debug(`Loading assessments — student: ${currentUser.uid}, class: "${studentClass}"`);
 
             const configs = [
                 { col: 'assignments', subCol: 'submissions', idField: 'assignmentId', type: 'assignment', label: 'Assignment' },
@@ -208,24 +240,41 @@
 
             for (const cfg of configs) {
                 try {
+                    // Query with classId
                     const snap = await db.collection(cfg.col)
-                        .where('classId', '==', userData.class)
+                        .where('classId', '==', studentClass)
                         .where('status', '==', 'published')
                         .get();
-                    debug(`${cfg.label}s found: ${snap.size}`);
+                    debug(`${cfg.label}: ${snap.size} published found for class "${studentClass}"`, snap.size > 0 ? 'success' : 'warn');
+
+                    // If nothing found, try without classId filter
+                    let docs = snap.docs;
+                    if (docs.length === 0 && studentClass) {
+                        debug(`${cfg.label}: No results with classId, trying all published...`, 'warn');
+                        try {
+                            const fallbackSnap = await db.collection(cfg.col)
+                                .where('status', '==', 'published')
+                                .get();
+                            // Filter manually by classId
+                            docs = fallbackSnap.docs.filter(d => d.data().classId === studentClass);
+                            debug(`${cfg.label}: Fallback found ${docs.length} matching`, docs.length > 0 ? 'success' : 'warn');
+                        } catch (e2) {
+                            debug(`${cfg.label}: Fallback error: ${e2.message}`, 'error');
+                        }
+                    }
 
                     const items = [];
-                    snap.forEach(doc => {
+                    docs.forEach(doc => {
                         const d = doc.data();
                         items.push({ id: doc.id, ...d });
-                        debug(`  ${cfg.label}: ${d.title || 'Untitled'} (${d.subject || '?'}) - questions: ${(d.questions || []).length}`);
+                        debug(`  ${cfg.label}: "${d.title || 'Untitled'}" | subject=${d.subject} | classId=${d.classId} | questions=${(d.questions || []).length}`, 'info');
                     });
 
                     // Get submissions
                     const subSnap = await db.collection(cfg.subCol)
                         .where('studentId', '==', currentUser.uid)
                         .get();
-                    debug(`${cfg.label} submissions: ${subSnap.size}`);
+                    debug(`${cfg.label} submissions: ${subSnap.size}`, subSnap.size > 0 ? 'success' : 'warn');
 
                     const subMap = {};
                     subSnap.forEach(doc => {
@@ -233,26 +282,25 @@
                         const key = d[cfg.idField];
                         if (key) {
                             subMap[key] = { id: doc.id, ...d };
-                            debug(`  Submission for ${cfg.label} ${key}: score=${d.score}, graded=${d.graded}, status=${d.status}`);
+                            debug(`  Sub for ${cfg.label} ${key}: score=${d.score}, graded=${d.graded}, status=${d.status}`, 'success');
                         }
                     });
 
                     items.forEach(item => {
-                        const sub = subMap[item.id] || null;
                         allItems.push({
                             id: item.id,
                             type: cfg.type,
                             data: item,
-                            submission: sub
+                            submission: subMap[item.id] || null
                         });
                     });
                 } catch (e) {
-                    debug(`ERROR loading ${cfg.type}: ${e.message}`);
-                    console.error(e);
+                    debug(`${cfg.label} ERROR: ${e.message}`, 'error');
+                    console.error(cfg.label, e);
                 }
             }
 
-            debug(`Total items loaded: ${allItems.length}`);
+            debug(`TOTAL items loaded: ${allItems.length}`, allItems.length > 0 ? 'success' : 'error');
             updateStats();
             renderContent();
         }
@@ -260,7 +308,7 @@
         function updateStats() {
             const pending = allItems.filter(i => !i.submission);
             const completed = allItems.filter(i => i.submission);
-            const graded = completed.filter(i => i.submission && (i.submission.graded || i.submission.score !== undefined));
+            const graded = completed.filter(i => i.submission && (i.submission.graded === true || i.submission.score !== undefined));
 
             document.getElementById('assignmentCount').textContent = allItems.filter(i => i.type === 'assignment').length;
             document.getElementById('testCount').textContent = allItems.filter(i => i.type === 'test').length;
@@ -272,7 +320,7 @@
             let avg = 0;
             if (graded.length > 0) {
                 const total = graded.reduce((s, i) => {
-                    const pct = i.submission.percentage || (i.submission.totalPoints > 0 ? (i.submission.score / i.submission.totalPoints) * 100 : 0);
+                    const pct = i.submission.percentage || (i.submission.totalPoints > 0 ? ((i.submission.score || 0) / i.submission.totalPoints) * 100 : 0);
                     return s + pct;
                 }, 0);
                 avg = total / graded.length;
@@ -284,87 +332,82 @@
 
         function renderContent() {
             const items = allItems.filter(i => i.type === currentTab);
-            const container = document.getElementById('contentArea');
-            debug(`Rendering tab: ${currentTab}, items: ${items.length}`);
+            debug(`Rendering tab "${currentTab}": ${items.length} items`);
 
             if (!items.length) {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><h3>No ${currentTab} yet</h3><p>Your teacher hasn't published any ${currentTab} for your class, or they may not match your class ID (${userData.class || 'unknown'}).</p></div>`;
+                document.getElementById('contentArea').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No ${currentTab} found</h3>
+                        <p>Possible reasons:</p>
+                        <p style="font-size:0.8rem;margin-top:0.5rem;">
+                            • Your class (${userData?.class || 'unknown'}) doesn't match the assessment classId<br>
+                            • No ${currentTab} have been published yet<br>
+                            • Check the debug panel (🐛 button) for details
+                        </p>
+                    </div>`;
                 return;
             }
-
-            container.innerHTML = items.map(item => renderCard(item)).join('');
+            renderCards(items, `${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}`);
         }
 
-        function renderPendingOnly() {
-            const items = allItems.filter(i => !i.submission);
+        function renderCards(items, title) {
             const container = document.getElementById('contentArea');
-            document.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('active'));
-            debug(`Rendering pending only: ${items.length}`);
+            const html = items.map(item => {
+                const d = item.data || {};
+                const sub = item.submission;
+                const isSubmitted = !!sub;
+                const isGraded = sub && (sub.graded === true || sub.score !== undefined);
+                const titleText = d.title || 'Untitled';
+                const subjectText = d.subject || 'General';
+                const totalPts = d.totalPoints || (d.questions || []).reduce((s, q) => s + (q.points || 1), 0) || 100;
+                const qCount = (d.questions || []).length;
+                const weeksText = (d.weeksCovered || []).join(', ') || 'All';
 
-            if (!items.length) {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle"></i><h3>All caught up!</h3><p>You've completed all your assessments.</p></div>`;
-                return;
-            }
-            container.innerHTML = `<div class="section-label"><i class="fas fa-clock"></i> Pending Assessments (${items.length})</div>` + items.map(item => renderCard(item)).join('');
-        }
+                let statusBadge = '<span class="badge badge-warning">Pending</span>';
+                if (isGraded) statusBadge = '<span class="badge badge-success">Graded</span>';
+                else if (isSubmitted) statusBadge = '<span class="badge badge-info">Submitted</span>';
 
-        function renderCard(item) {
-            const d = item.data || {};
-            const sub = item.submission;
-            const isSubmitted = !!sub;
-            const isGraded = sub && (sub.graded === true || sub.score !== undefined);
-            const title = d.title || 'Untitled';
-            const subject = d.subject || 'General';
-            const weeks = (d.weeksCovered || []).join(', ') || 'All';
-            const totalPts = d.totalPoints || (d.questions || []).reduce((s, q) => s + (q.points || 1), 0) || 100;
-            const qCount = (d.questions || []).length;
+                const typeLabel = d.assignmentType || d.examType ||
+                    (item.type === 'assignment' ? 'Assignment' : item.type === 'test' ? 'CBT Test' : 'Exam');
 
-            // Status badge
-            let statusHtml = '';
-            if (isGraded) {
-                statusHtml = '<span class="badge badge-success">Graded</span>';
-            } else if (isSubmitted) {
-                statusHtml = '<span class="badge badge-info">Submitted</span>';
-            } else {
-                statusHtml = '<span class="badge badge-warning">Pending</span>';
-            }
+                let footerHtml = '';
+                if (isGraded) {
+                    const score = sub.score || 0;
+                    const pct = sub.percentage || (totalPts > 0 ? (score / totalPts) * 100 : 0);
+                    let grade = 'F';
+                    if (pct >= 75) grade = 'A'; else if (pct >= 65) grade = 'B'; else if (pct >= 50) grade = 'C'; else if (pct >= 40) grade = 'D';
+                    footerHtml = `
+                        <div><span class="grade-score">${score}/${totalPts}</span> <span style="font-size:0.8rem;">(${pct.toFixed(0)}% · ${grade})</span></div>
+                        <a href="student-analysis.html?type=${item.type}&id=${item.id}" class="btn btn-outline"><i class="fas fa-chart-bar"></i> Analysis</a>`;
+                } else if (isSubmitted) {
+                    footerHtml = `<div><span style="color:var(--text-secondary);font-size:0.8rem;">Awaiting grading...</span></div><span></span>`;
+                } else {
+                    footerHtml = `<div></div><a href="student-take-assessment.html?type=${item.type}&id=${item.id}" class="btn btn-primary"><i class="fas fa-play"></i> Start</a>`;
+                }
 
-            // Type badge
-            const typeLabels = { assignment: 'Assignment', test: 'CBT Test', exam: 'Exam' };
-            const typeLabel = d.assignmentType || d.examType || typeLabels[item.type] || item.type;
-
-            // Footer
-            let footerHtml = '';
-            if (isGraded) {
-                const pct = sub.percentage || (totalPts > 0 ? ((sub.score || 0) / totalPts) * 100 : 0);
-                let grade = 'F';
-                if (pct >= 75) grade = 'A'; else if (pct >= 65) grade = 'B'; else if (pct >= 50) grade = 'C'; else if (pct >= 40) grade = 'D';
-                footerHtml = `
-                    <div><span class="grade-score">${sub.score || 0}/${totalPts}</span> <span style="font-size:0.8rem;">(${pct.toFixed(0)}% · ${grade})</span></div>
-                    <a href="student-analysis.html?type=${item.type}&id=${item.id}" class="btn btn-outline"><i class="fas fa-chart-bar"></i> Analysis</a>`;
-            } else if (isSubmitted) {
-                footerHtml = `<div><span style="color:var(--text-secondary);font-size:0.8rem;">Awaiting grading...</span></div><span></span>`;
-            } else {
-                footerHtml = `<div></div><a href="student-take-assessment.html?type=${item.type}&id=${item.id}" class="btn btn-primary"><i class="fas fa-play"></i> Start</a>`;
-            }
-
-            return `
-                <div class="assessment-card">
-                    <div class="card-top">
-                        <span class="badge badge-info">${typeLabel}</span>
-                        ${statusHtml}
-                    </div>
-                    <div class="card-body">
-                        <h4>${escapeHtml(title)}</h4>
-                        <div class="subject">${escapeHtml(subject)}</div>
-                        <div class="card-meta">
-                            <span><i class="fas fa-calendar-week"></i> Week${weeks.includes(',') ? 's' : ''}: ${weeks}</span>
-                            <span><i class="fas fa-star"></i> ${totalPts} pts</span>
-                            <span><i class="fas fa-question-circle"></i> ${qCount} Qs</span>
+                return `
+                    <div class="assessment-card">
+                        <div class="card-top">
+                            <span class="badge badge-info">${escapeHtml(typeLabel)}</span>
+                            ${statusBadge}
                         </div>
-                    </div>
-                    <div class="card-footer">${footerHtml}</div>
-                </div>`;
+                        <div class="card-body">
+                            <h4>${escapeHtml(titleText)}</h4>
+                            <div class="subject">${escapeHtml(subjectText)}</div>
+                            <div class="card-meta">
+                                <span><i class="fas fa-calendar-week"></i> Week${weeksText.includes(',') ? 's' : ''}: ${weeksText}</span>
+                                <span><i class="fas fa-star"></i> ${totalPts} pts</span>
+                                <span><i class="fas fa-question-circle"></i> ${qCount} Qs</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">${footerHtml}</div>
+                    </div>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="section-label"><i class="fas fa-list"></i> ${title} (${items.length})</div>
+                <div class="assessment-grid">${html}</div>`;
         }
 
         // === AUTH ===
@@ -378,7 +421,7 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'S');
                 document.getElementById('profileName').textContent = userData.firstName || 'Student';
                 await loadAll();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error(e); debug('Auth error: ' + e.message, 'error'); }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
