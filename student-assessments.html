@@ -89,7 +89,6 @@
         .badge-success { background: var(--success-bg); color: var(--success-text); }
         .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
         .badge-info { background: var(--info-bg); color: var(--info-text); }
-        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
         .grade-score { font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
         .btn { padding: 0.45rem 1rem; border: none; border-radius: 2rem; font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; }
@@ -97,13 +96,13 @@
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); }
         .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.2; display: block; }
         .empty-state h3 { font-size: 1rem; margin-bottom: 0.3rem; color: var(--text-primary); }
 
         .debug-panel { background: var(--debug-bg); color: var(--debug-text); border-radius: 1rem; padding: 1rem; margin-top: 1rem; font-family: 'Space Grotesk', monospace; font-size: 0.7rem; max-height: 300px; overflow-y: auto; display: none; }
         .debug-panel.active { display: block; }
-        .debug-entry { padding: 0.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .debug-entry { padding: 0.2rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .debug-entry.success { color: var(--success-text); }
         .debug-entry.error { color: var(--danger-text); }
         .debug-entry.warn { color: var(--warning-text); }
@@ -138,9 +137,9 @@
 
     <div class="main-container">
         <div class="sub-tabs" id="subTabs">
-            <div class="sub-tab active" data-tab="assignments"><i class="fas fa-tasks"></i> Assignments <span class="count-badge" id="assignmentCount">0</span></div>
-            <div class="sub-tab" data-tab="tests"><i class="fas fa-laptop"></i> CBT Tests <span class="count-badge" id="testCount">0</span></div>
-            <div class="sub-tab" data-tab="exams"><i class="fas fa-pen-fancy"></i> Exams <span class="count-badge" id="examCount">0</span></div>
+            <div class="sub-tab active" data-tab="assignment"><i class="fas fa-tasks"></i> Assignments <span class="count-badge" id="assignmentCount">0</span></div>
+            <div class="sub-tab" data-tab="test"><i class="fas fa-laptop"></i> CBT Tests <span class="count-badge" id="testCount">0</span></div>
+            <div class="sub-tab" data-tab="exam"><i class="fas fa-pen-fancy"></i> Exams <span class="count-badge" id="examCount">0</span></div>
         </div>
 
         <div class="stats-grid">
@@ -203,13 +202,15 @@
 
         let currentUser = null, userData = null;
         let allItems = [];
-        let currentTab = 'assignments';
+        // FIXED: tabs now use SINGULAR to match item.type
+        let currentTab = 'assignment';
 
         // === TAB SWITCHING ===
         document.querySelectorAll('.sub-tab').forEach(t => t.addEventListener('click', () => {
             document.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('active'));
             t.classList.add('active');
-            currentTab = t.dataset.tab;
+            currentTab = t.dataset.tab; // 'assignment', 'test', 'exam'
+            debug(`Tab switched to: ${currentTab}`);
             renderContent();
         }));
 
@@ -230,7 +231,7 @@
             if (!currentUser || !userData) return;
             allItems = [];
             const studentClass = userData.class || userData.classEnrolled || userData.classId || '';
-            debug(`Loading assessments — student: ${currentUser.uid}, class: "${studentClass}"`);
+            debug(`Loading — class: "${studentClass}"`);
 
             const configs = [
                 { col: 'assignments', subCol: 'submissions', idField: 'assignmentId', type: 'assignment', label: 'Assignment' },
@@ -240,67 +241,41 @@
 
             for (const cfg of configs) {
                 try {
-                    // Query with classId
                     const snap = await db.collection(cfg.col)
                         .where('classId', '==', studentClass)
                         .where('status', '==', 'published')
                         .get();
-                    debug(`${cfg.label}: ${snap.size} published found for class "${studentClass}"`, snap.size > 0 ? 'success' : 'warn');
-
-                    // If nothing found, try without classId filter
-                    let docs = snap.docs;
-                    if (docs.length === 0 && studentClass) {
-                        debug(`${cfg.label}: No results with classId, trying all published...`, 'warn');
-                        try {
-                            const fallbackSnap = await db.collection(cfg.col)
-                                .where('status', '==', 'published')
-                                .get();
-                            // Filter manually by classId
-                            docs = fallbackSnap.docs.filter(d => d.data().classId === studentClass);
-                            debug(`${cfg.label}: Fallback found ${docs.length} matching`, docs.length > 0 ? 'success' : 'warn');
-                        } catch (e2) {
-                            debug(`${cfg.label}: Fallback error: ${e2.message}`, 'error');
-                        }
-                    }
+                    debug(`${cfg.label}: ${snap.size} published`, snap.size > 0 ? 'success' : 'warn');
 
                     const items = [];
-                    docs.forEach(doc => {
-                        const d = doc.data();
-                        items.push({ id: doc.id, ...d });
-                        debug(`  ${cfg.label}: "${d.title || 'Untitled'}" | subject=${d.subject} | classId=${d.classId} | questions=${(d.questions || []).length}`, 'info');
-                    });
+                    snap.forEach(doc => { const d = doc.data(); items.push({ id: doc.id, ...d }); });
 
-                    // Get submissions
                     const subSnap = await db.collection(cfg.subCol)
                         .where('studentId', '==', currentUser.uid)
                         .get();
-                    debug(`${cfg.label} submissions: ${subSnap.size}`, subSnap.size > 0 ? 'success' : 'warn');
+                    debug(`${cfg.label} submissions: ${subSnap.size}`);
 
                     const subMap = {};
                     subSnap.forEach(doc => {
                         const d = doc.data();
                         const key = d[cfg.idField];
-                        if (key) {
-                            subMap[key] = { id: doc.id, ...d };
-                            debug(`  Sub for ${cfg.label} ${key}: score=${d.score}, graded=${d.graded}, status=${d.status}`, 'success');
-                        }
+                        if (key) subMap[key] = { id: doc.id, ...d };
                     });
 
                     items.forEach(item => {
                         allItems.push({
                             id: item.id,
-                            type: cfg.type,
+                            type: cfg.type, // 'assignment', 'test', 'exam'
                             data: item,
                             submission: subMap[item.id] || null
                         });
                     });
                 } catch (e) {
                     debug(`${cfg.label} ERROR: ${e.message}`, 'error');
-                    console.error(cfg.label, e);
                 }
             }
 
-            debug(`TOTAL items loaded: ${allItems.length}`, allItems.length > 0 ? 'success' : 'error');
+            debug(`TOTAL: ${allItems.length} items`, 'success');
             updateStats();
             renderContent();
         }
@@ -308,7 +283,10 @@
         function updateStats() {
             const pending = allItems.filter(i => !i.submission);
             const completed = allItems.filter(i => i.submission);
-            const graded = completed.filter(i => i.submission && (i.submission.graded === true || i.submission.score !== undefined));
+            const graded = completed.filter(i => {
+                const sub = i.submission;
+                return sub && (sub.graded === true || sub.score !== undefined);
+            });
 
             document.getElementById('assignmentCount').textContent = allItems.filter(i => i.type === 'assignment').length;
             document.getElementById('testCount').textContent = allItems.filter(i => i.type === 'test').length;
@@ -320,7 +298,10 @@
             let avg = 0;
             if (graded.length > 0) {
                 const total = graded.reduce((s, i) => {
-                    const pct = i.submission.percentage || (i.submission.totalPoints > 0 ? ((i.submission.score || 0) / i.submission.totalPoints) * 100 : 0);
+                    const sub = i.submission;
+                    const totalPts = i.data.totalPoints || 100;
+                    const score = sub.score || 0;
+                    const pct = totalPts > 0 ? (score / totalPts) * 100 : 0;
                     return s + pct;
                 }, 0);
                 avg = total / graded.length;
@@ -332,82 +313,79 @@
 
         function renderContent() {
             const items = allItems.filter(i => i.type === currentTab);
-            debug(`Rendering tab "${currentTab}": ${items.length} items`);
+            debug(`Rendering "${currentTab}": ${items.length} items`);
 
             if (!items.length) {
                 document.getElementById('contentArea').innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <h3>No ${currentTab} found</h3>
-                        <p>Possible reasons:</p>
-                        <p style="font-size:0.8rem;margin-top:0.5rem;">
-                            • Your class (${userData?.class || 'unknown'}) doesn't match the assessment classId<br>
-                            • No ${currentTab} have been published yet<br>
-                            • Check the debug panel (🐛 button) for details
-                        </p>
+                        <h3>No ${currentTab}s found</h3>
+                        <p>Possible reasons: class mismatch, not published, or check debug panel</p>
                     </div>`;
                 return;
             }
-            renderCards(items, `${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}`);
+            renderCards(items, currentTab.charAt(0).toUpperCase() + currentTab.slice(1) + 's');
         }
 
         function renderCards(items, title) {
             const container = document.getElementById('contentArea');
-            const html = items.map(item => {
-                const d = item.data || {};
-                const sub = item.submission;
-                const isSubmitted = !!sub;
-                const isGraded = sub && (sub.graded === true || sub.score !== undefined);
-                const titleText = d.title || 'Untitled';
-                const subjectText = d.subject || 'General';
-                const totalPts = d.totalPoints || (d.questions || []).reduce((s, q) => s + (q.points || 1), 0) || 100;
-                const qCount = (d.questions || []).length;
-                const weeksText = (d.weeksCovered || []).join(', ') || 'All';
-
-                let statusBadge = '<span class="badge badge-warning">Pending</span>';
-                if (isGraded) statusBadge = '<span class="badge badge-success">Graded</span>';
-                else if (isSubmitted) statusBadge = '<span class="badge badge-info">Submitted</span>';
-
-                const typeLabel = d.assignmentType || d.examType ||
-                    (item.type === 'assignment' ? 'Assignment' : item.type === 'test' ? 'CBT Test' : 'Exam');
-
-                let footerHtml = '';
-                if (isGraded) {
-                    const score = sub.score || 0;
-                    const pct = sub.percentage || (totalPts > 0 ? (score / totalPts) * 100 : 0);
-                    let grade = 'F';
-                    if (pct >= 75) grade = 'A'; else if (pct >= 65) grade = 'B'; else if (pct >= 50) grade = 'C'; else if (pct >= 40) grade = 'D';
-                    footerHtml = `
-                        <div><span class="grade-score">${score}/${totalPts}</span> <span style="font-size:0.8rem;">(${pct.toFixed(0)}% · ${grade})</span></div>
-                        <a href="student-analysis.html?type=${item.type}&id=${item.id}" class="btn btn-outline"><i class="fas fa-chart-bar"></i> Analysis</a>`;
-                } else if (isSubmitted) {
-                    footerHtml = `<div><span style="color:var(--text-secondary);font-size:0.8rem;">Awaiting grading...</span></div><span></span>`;
-                } else {
-                    footerHtml = `<div></div><a href="student-take-assessment.html?type=${item.type}&id=${item.id}" class="btn btn-primary"><i class="fas fa-play"></i> Start</a>`;
-                }
-
-                return `
-                    <div class="assessment-card">
-                        <div class="card-top">
-                            <span class="badge badge-info">${escapeHtml(typeLabel)}</span>
-                            ${statusBadge}
-                        </div>
-                        <div class="card-body">
-                            <h4>${escapeHtml(titleText)}</h4>
-                            <div class="subject">${escapeHtml(subjectText)}</div>
-                            <div class="card-meta">
-                                <span><i class="fas fa-calendar-week"></i> Week${weeksText.includes(',') ? 's' : ''}: ${weeksText}</span>
-                                <span><i class="fas fa-star"></i> ${totalPts} pts</span>
-                                <span><i class="fas fa-question-circle"></i> ${qCount} Qs</span>
-                            </div>
-                        </div>
-                        <div class="card-footer">${footerHtml}</div>
-                    </div>`;
-            }).join('');
-
+            const html = items.map(item => renderCard(item)).join('');
             container.innerHTML = `
                 <div class="section-label"><i class="fas fa-list"></i> ${title} (${items.length})</div>
                 <div class="assessment-grid">${html}</div>`;
+        }
+
+        function renderCard(item) {
+            const d = item.data || {};
+            const sub = item.submission;
+            const totalPts = d.totalPoints || (d.questions || []).reduce((s, q) => s + (q.points || 1), 0) || 100;
+            const qCount = (d.questions || []).length;
+            const weeksText = (d.weeksCovered || []).join(', ') || 'All';
+            const title = d.title || 'Untitled';
+            const subject = d.subject || 'General';
+
+            const isSubmitted = !!sub;
+            const isGraded = sub && (sub.graded === true || sub.score !== undefined);
+
+            let statusBadge = '<span class="badge badge-warning">Pending</span>';
+            if (isGraded) statusBadge = '<span class="badge badge-success">Graded</span>';
+            else if (isSubmitted) statusBadge = '<span class="badge badge-info">Submitted</span>';
+
+            const typeLabel = d.assignmentType || d.examType ||
+                (item.type === 'assignment' ? 'Assignment' : item.type === 'test' ? 'CBT Test' : 'Exam');
+
+            let footerHtml = '';
+            if (isGraded) {
+                const score = sub.score || 0;
+                const pct = totalPts > 0 ? (score / totalPts) * 100 : 0;
+                let grade = 'F';
+                if (pct >= 75) grade = 'A'; else if (pct >= 65) grade = 'B'; else if (pct >= 50) grade = 'C'; else if (pct >= 40) grade = 'D';
+                footerHtml = `
+                    <div><span class="grade-score">${score}/${totalPts}</span> <span style="font-size:0.8rem;">(${pct.toFixed(0)}% · ${grade})</span></div>
+                    <a href="student-analysis.html?type=${item.type}&id=${item.id}" class="btn btn-outline"><i class="fas fa-chart-bar"></i> Analysis</a>`;
+            } else if (isSubmitted) {
+                footerHtml = `<div><span style="color:var(--text-secondary);font-size:0.8rem;">Awaiting grading...</span></div><span></span>`;
+            } else {
+                footerHtml = `<div></div><a href="student-take-assessment.html?type=${item.type}&id=${item.id}" class="btn btn-primary"><i class="fas fa-play"></i> Start</a>`;
+            }
+
+            return `
+                <div class="assessment-card">
+                    <div class="card-top">
+                        <span class="badge badge-info">${escapeHtml(typeLabel)}</span>
+                        ${statusBadge}
+                    </div>
+                    <div class="card-body">
+                        <h4>${escapeHtml(title)}</h4>
+                        <div class="subject">${escapeHtml(subject)}</div>
+                        <div class="card-meta">
+                            <span><i class="fas fa-calendar-week"></i> Week${weeksText.includes(',') ? 's' : ''}: ${weeksText}</span>
+                            <span><i class="fas fa-star"></i> ${totalPts} pts</span>
+                            <span><i class="fas fa-question-circle"></i> ${qCount} Qs</span>
+                        </div>
+                    </div>
+                    <div class="card-footer">${footerHtml}</div>
+                </div>`;
         }
 
         // === AUTH ===
@@ -421,7 +399,7 @@
                 document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'S');
                 document.getElementById('profileName').textContent = userData.firstName || 'Student';
                 await loadAll();
-            } catch (e) { console.error(e); debug('Auth error: ' + e.message, 'error'); }
+            } catch (e) { debug('Auth error: ' + e.message, 'error'); }
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
