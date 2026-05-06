@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Take Assessment</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root[data-theme="light"] {
+            --bg-primary: #f0f5fa; --bg-surface: rgba(255,255,255,0.75); --text-primary: #0b1e33;
+            --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298;
+            --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.7); --hover-bg: rgba(255,255,255,0.9);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: rgba(34,197,94,0.15); --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.15); --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.15); --danger-text: #b91c1c;
+            --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+            --input-bg: rgba(255,255,255,0.9); --timer-bg: #f1f5f9;
+        }
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0f1e; --bg-surface: rgba(15,23,42,0.8); --text-primary: #f0f4fa;
+            --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa;
+            --border: rgba(255,255,255,0.06); --card-bg: rgba(15,23,42,0.6); --hover-bg: rgba(30,41,59,0.8);
+            --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
+            --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --input-bg: rgba(30,41,59,0.8); --timer-bg: #1e293b;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
+        .orb { position: fixed; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; animation: float 25s infinite alternate ease-in-out; }
+        .orb-1 { width: 350px; height: 350px; top: -120px; right: -120px; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.12), transparent 70%); }
+        .orb-2 { width: 450px; height: 450px; bottom: -180px; left: -150px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.10), transparent 70%); animation-duration: 30s; }
+        @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px,30px) scale(1.15); } }
+
+        .top-nav { position: sticky; top: 0; z-index: 100; background: var(--bg-surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0.7rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .nav-left { display: flex; align-items: center; gap: 0.8rem; }
+        .nav-btn { background: transparent; border: 1px solid var(--border); border-radius: 2rem; padding: 0.45rem 1rem; color: var(--text-primary); font-weight: 500; font-size: 0.82rem; cursor: pointer; transition: 0.2s; text-decoration: none; display: flex; align-items: center; gap: 0.4rem; }
+        .nav-btn:hover { background: var(--hover-bg); border-color: var(--accent); color: var(--accent); }
+        .nav-right { display: flex; align-items: center; gap: 0.8rem; }
+        .theme-toggle { display: flex; align-items: center; gap: 0.3rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.35rem 0.8rem; cursor: pointer; font-size: 0.8rem; color: var(--text-secondary); }
+        .profile-dropdown { position: relative; cursor: pointer; }
+        .profile-trigger { display: flex; align-items: center; gap: 0.5rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 3rem; padding: 0.25rem 0.25rem 0.25rem 0.7rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.8rem; }
+        .profile-pic { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.8rem; }
+        .dropdown-menu { position: absolute; right: 0; top: 45px; background: var(--bg-surface); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.4rem; min-width: 150px; display: none; z-index: 1000; box-shadow: var(--shadow); }
+        .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 0.5rem 0.8rem; color: var(--text-primary); border-radius: 0.6rem; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+        .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
+
+        .timer-bar { background: var(--timer-bg); border-bottom: 2px solid var(--accent); padding: 0.6rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .timer-clock { font-size: 1.8rem; font-weight: 700; font-family: monospace; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; position: relative; z-index: 5; }
+
+        .assessment-header { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: var(--shadow); }
+        .assessment-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .assessment-meta { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+        .meta-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); }
+        .meta-item i { color: var(--accent); width: 1rem; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; }
+        .question-area { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); }
+        .q-nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem; }
+        .q-counter { font-weight: 700; font-size: 1rem; color: var(--accent); }
+        .q-text { font-size: 1.05rem; line-height: 1.6; margin-bottom: 1.5rem; }
+        .options-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .option-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--hover-bg); border: 2px solid var(--border); border-radius: 0.75rem; cursor: pointer; transition: 0.2s; }
+        .option-item:hover { border-color: var(--accent); transform: translateX(3px); }
+        .option-item.selected { background: var(--info-bg); border-color: var(--accent); }
+        .option-letter { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border-radius: 50%; font-weight: 800; font-size: 1rem; color: var(--accent); flex-shrink: 0; }
+        .option-text { flex: 1; font-size: 0.9rem; }
+        .answer-input { width: 100%; padding: 0.75rem 1rem; background: var(--input-bg); border: 2px solid var(--border); border-radius: 0.75rem; color: var(--text-primary); font-size: 0.95rem; font-family: inherit; }
+        textarea.answer-input { min-height: 150px; resize: vertical; }
+
+        .nav-panel { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.25rem; box-shadow: var(--shadow); position: sticky; top: 6rem; }
+        .nav-panel h4 { font-size: 0.9rem; margin-bottom: 0.75rem; }
+        .q-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; margin-bottom: 0.75rem; }
+        .q-dot { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: var(--hover-bg); border: 1px solid var(--border); border-radius: 0.5rem; font-weight: 600; cursor: pointer; font-size: 0.75rem; transition: 0.15s; }
+        .q-dot.answered { background: var(--success-bg); border-color: var(--success-text); color: var(--success-text); }
+        .q-dot.current { background: var(--accent); color: white; border-color: var(--accent); transform: scale(1.15); }
+        .q-dot.flagged { background: var(--warning-bg); border-color: var(--warning-text); }
+        .legend { display: flex; flex-direction: column; gap: 0.3rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-size: 0.7rem; }
+        .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 3px; }
+
+        .action-buttons { display: flex; justify-content: space-between; margin-top: 1.5rem; gap: 0.75rem; flex-wrap: wrap; }
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 2rem; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
+
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 2rem; max-width: 450px; width: 90%; text-align: center; }
+        .warning-banner { background: var(--danger-bg); border-left: 4px solid var(--danger-text); padding: 0.6rem 0.8rem; margin-bottom: 0.75rem; border-radius: 0.5rem; display: none; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+        .warning-banner.show { display: flex; }
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
+        .loading-content i { font-size: 2.5rem; color: var(--accent); margin-bottom: 0.5rem; }
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 5000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+        .toast { background: rgba(15,23,42,0.95); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 0.75rem 1rem; min-width: 260px; color: white; box-shadow: 0 15px 35px rgba(0,0,0,0.4); display: flex; align-items: flex-start; gap: 0.5rem; animation: slideIn 0.3s; pointer-events: auto; font-size: 0.8rem; }
+        .toast.removing { animation: slideOut 0.3s ease-in forwards; }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+        @media (max-width: 768px) {
+            .two-col { grid-template-columns: 1fr; }
+            .nav-panel { position: static; }
+            .timer-clock { font-size: 1.2rem; }
+            .q-grid { grid-template-columns: repeat(8, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div><div class="orb orb-2"></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="top-nav">
+        <div class="nav-left">
+            <a href="student-assessments.html" class="nav-btn"><i class="fas fa-arrow-left"></i> Back</a>
+            <span style="font-weight:600;font-size:0.9rem;" id="navTitle">Assessment</span>
+        </div>
+        <div class="nav-right">
+            <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+            <div class="profile-dropdown">
+                <div class="profile-trigger"><span class="profile-name" id="profileName">Student</span><div class="profile-pic" id="profilePic">S</div></div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="timer-bar" id="timerBar" style="display:none;">
+        <div><i class="fas fa-hourglass-half" style="color:var(--accent);"></i> <span class="timer-clock" id="timerDisplay">00:00</span></div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);"><span id="answeredCount">0</span> / <span id="totalCount">0</span> answered</div>
+    </div>
+
+    <div class="main-container">
+        <div class="warning-banner" id="warningBanner"><i class="fas fa-exclamation-triangle"></i><span id="warningMessage"></span></div>
+        <div class="assessment-header">
+            <h1 class="assessment-title" id="assessmentTitle">Loading...</h1>
+            <div class="assessment-meta" id="assessmentMeta"></div>
+        </div>
+        <div id="contentArea"></div>
+    </div>
+
+    <div class="modal-overlay" id="submitModal">
+        <div class="modal-content">
+            <i class="fas fa-check-circle" style="font-size:3rem;color:var(--success-text);margin-bottom:0.75rem;"></i>
+            <h3>Submit Assessment?</h3>
+            <p style="margin:0.5rem 0;color:var(--text-secondary);">You cannot change answers after submission.</p>
+            <div style="display:flex;gap:0.75rem;justify-content:center;margin-top:1rem;">
+                <button class="btn btn-outline" onclick="closeSubmitModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmSubmit()">Submit Now</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="autoSubmitModal">
+        <div class="modal-content">
+            <i class="fas fa-clock" style="font-size:3rem;color:var(--warning-text);margin-bottom:0.75rem;"></i>
+            <h3>Time's Up!</h3>
+            <p style="margin:0.5rem 0;color:var(--text-secondary);">Submitting automatically...</p>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content"><i class="fas fa-spinner fa-spin"></i><h3>Submitting...</h3></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // === THEME ===
+        (() => {
+            const s = localStorage.getItem('edutopscholars-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', s);
+            const sp = document.getElementById('themeToggle').querySelector('span');
+            sp.textContent = s === 'dark' ? 'Light' : 'Dark';
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', n);
+                localStorage.setItem('edutopscholars-theme', n);
+                sp.textContent = n === 'dark' ? 'Light' : 'Dark';
+            });
+        })();
+
+        // === TOAST ===
+        function showToast(t, m, ty = 'info') {
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            const el = document.createElement('div');
+            el.className = 'toast';
+            el.innerHTML = `<i class="fas ${icons[ty]}" style="color:${ty==='success'?'#4ade80':ty==='error'?'#f87171':ty==='warning'?'#fbbf24':'#60a5fa'};margin-top:2px;"></i><div><strong>${t}</strong><br><span style="opacity:0.8;">${m}</span></div>`;
+            document.getElementById('toastContainer').appendChild(el);
+            setTimeout(() => { el.classList.add('removing'); setTimeout(() => el.remove(), 300); }, 4000);
+        }
+
+        function showWarning(msg) {
+            document.getElementById('warningMessage').textContent = msg;
+            document.getElementById('warningBanner').classList.add('show');
+            setTimeout(() => document.getElementById('warningBanner').classList.remove('show'), 5000);
+        }
+
+        function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+        function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function shuffleArray(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+        // === STATE ===
+        let currentUser = null, userData = null;
+        let assessmentData = null, assessmentType = ''; // 'assignment', 'test', 'exam'
+        let studentAnswers = [], currentQ = 0, flaggedQs = [];
+        let timerInterval = null, timeRemaining = 0, isSubmitted = false, tabSwitches = 0;
+        let assessmentId = null, collectionName = '', submissionsCollection = '';
+
+        // === TIMER ===
+        function startTimer(seconds) {
+            if (timerInterval) clearInterval(timerInterval);
+            timeRemaining = seconds;
+            updateTimer();
+            document.getElementById('timerBar').style.display = 'flex';
+            timerInterval = setInterval(() => {
+                if (isSubmitted) return;
+                if (timeRemaining <= 0) { clearInterval(timerInterval); autoSubmit(); return; }
+                timeRemaining--;
+                updateTimer();
+                if (timeRemaining === 60) showWarning('⚠️ 1 minute remaining!');
+            }, 1000);
+        }
+
+        function updateTimer() {
+            const m = Math.floor(timeRemaining / 60), s = timeRemaining % 60;
+            document.getElementById('timerDisplay').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        function autoSubmit() {
+            clearInterval(timerInterval);
+            document.getElementById('autoSubmitModal').classList.add('active');
+            setTimeout(() => submitAssessment(), 2000);
+        }
+
+        // === ANTI-CHEAT ===
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && !isSubmitted && assessmentData) {
+                tabSwitches++;
+                showWarning(`Tab switch ${tabSwitches} detected!`);
+                if (tabSwitches >= 3) { showWarning('Auto-submitting due to multiple tab switches...'); setTimeout(() => submitAssessment(), 3000); }
+            }
+        });
+        document.addEventListener('copy', e => { if (assessmentData) { e.preventDefault(); showWarning('Copying disabled'); } });
+        document.addEventListener('paste', e => { if (assessmentData) { e.preventDefault(); showWarning('Pasting disabled'); } });
+        document.addEventListener('contextmenu', e => { if (assessmentData) e.preventDefault(); });
+
+        // === ANSWER COMPARISON ===
+        function isAnswerCorrect(question, studentAnswer) {
+            if (!studentAnswer || studentAnswer === '') return false;
+            const type = (question.type || '').toLowerCase();
+
+            if (type === 'mcq' || type === 'multiple') {
+                // teacher stores correct as letter "A","B","C","D" — match directly
+                const correctLetter = question.correct || '';
+                const correctOptionText = question.options ? question.options[correctLetter.charCodeAt(0) - 65] : '';
+                return studentAnswer === correctLetter || studentAnswer === correctOptionText;
+            }
+            if (type === 'truefalse' || type === 'boolean') {
+                const correct = question.correct === true || question.correct === 'True' || question.correct === 1 ? 'True' : 'False';
+                return studentAnswer === correct || studentAnswer === question.correct?.toString();
+            }
+            if (type === 'fillblank' || type === 'text') {
+                return studentAnswer.toLowerCase().trim() === (question.correct || '').toLowerCase().trim();
+            }
+            return false; // theory — manual grading
+        }
+
+        function getCorrectAnswerDisplay(question) {
+            const type = (question.type || '').toLowerCase();
+            if (type === 'mcq' || type === 'multiple') {
+                const letter = question.correct || '';
+                const idx = letter.charCodeAt(0) - 65;
+                return `${letter}. ${question.options?.[idx] || 'N/A'}`;
+            }
+            if (type === 'truefalse' || type === 'boolean') {
+                return question.correct === true || question.correct === 'True' || question.correct === 1 ? 'True' : 'False';
+            }
+            return question.correct || question.sampleAnswer || 'Manual grading';
+        }
+
+        // === RENDER ===
+        function renderAssessment() {
+            const questions = assessmentData.questions || [];
+            const q = questions[currentQ];
+            if (!q) return;
+
+            const existing = studentAnswers.find(a => a.questionIndex === currentQ);
+            const sel = existing ? existing.answer : null;
+            const pts = q.points || 1;
+            const type = (q.type || 'mcq').toLowerCase();
+            const letters = ['A', 'B', 'C', 'D'];
+
+            let optionsHtml = '';
+            if (type === 'mcq' || type === 'multiple') {
+                const opts = q.options || [];
+                optionsHtml = `<div class="options-list">${opts.map((opt, idx) => `
+                    <div class="option-item ${sel === letters[idx] ? 'selected' : ''}" onclick="selectAnswer('${letters[idx]}')">
+                        <div class="option-letter">${letters[idx]}</div>
+                        <div class="option-text">${escapeHtml(opt)}</div>
+                    </div>`).join('')}</div>`;
+            } else if (type === 'truefalse' || type === 'boolean') {
+                optionsHtml = `<div class="options-list">
+                    <div class="option-item ${sel === 'True' ? 'selected' : ''}" onclick="selectAnswer('True')"><div class="option-letter">T</div><div class="option-text">True</div></div>
+                    <div class="option-item ${sel === 'False' ? 'selected' : ''}" onclick="selectAnswer('False')"><div class="option-letter">F</div><div class="option-text">False</div></div>
+                </div>`;
+            } else if (type === 'fillblank' || type === 'text') {
+                optionsHtml = `<input type="text" class="answer-input" id="textAnswer" placeholder="Type your answer..." value="${escapeHtml(sel || '')}" oninput="selectAnswer(this.value)">`;
+            } else {
+                optionsHtml = `<textarea class="answer-input" id="theoryAnswer" rows="8" placeholder="Write your answer...">${escapeHtml(sel || '')}</textarea>`;
+                setTimeout(() => {
+                    const ta = document.getElementById('theoryAnswer');
+                    if (ta) ta.addEventListener('input', e => selectAnswer(e.target.value));
+                }, 100);
+            }
+
+            document.getElementById('contentArea').innerHTML = `
+                <div class="two-col">
+                    <div class="question-area">
+                        <div class="q-nav-header">
+                            <span class="q-counter">Q${currentQ + 1} of ${questions.length} · ${pts} pt${pts > 1 ? 's' : ''}</span>
+                            <button class="btn btn-sm btn-outline" onclick="toggleFlag()"><i class="fas fa-flag${flaggedQs.includes(currentQ)?'':' fa-regular'}"></i> ${flaggedQs.includes(currentQ)?'Flagged':'Flag'}</button>
+                        </div>
+                        <div class="q-text">${escapeHtml(q.question)}</div>
+                        ${optionsHtml}
+                    </div>
+                    <div class="nav-panel">
+                        <h4><i class="fas fa-th"></i> Question Palette</h4>
+                        <div class="q-grid" id="qGrid"></div>
+                        <div class="legend">
+                            <div class="legend-item"><div class="legend-dot" style="background:var(--hover-bg);"></div> Not visited</div>
+                            <div class="legend-item"><div class="legend-dot" style="background:var(--success-bg);"></div> Answered</div>
+                            <div class="legend-item"><div class="legend-dot" style="background:var(--warning-bg);"></div> Flagged</div>
+                            <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> Current</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <div>
+                        <button class="btn btn-outline" onclick="prevQ()" ${currentQ === 0 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i> Previous</button>
+                        <button class="btn btn-outline" onclick="nextQ()" ${currentQ === questions.length - 1 ? 'disabled' : ''}>Next <i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openSubmitModal()"><i class="fas fa-paper-plane"></i> Submit</button>
+                </div>`;
+            renderQGrid();
+            document.getElementById('answeredCount').textContent = studentAnswers.length;
+            document.getElementById('totalCount').textContent = questions.length;
+        }
+
+        function renderQGrid() {
+            const grid = document.getElementById('qGrid');
+            if (!grid) return;
+            const questions = assessmentData.questions || [];
+            grid.innerHTML = questions.map((q, i) => {
+                const answered = studentAnswers.some(a => a.questionIndex === i && a.answer && a.answer !== '');
+                const flagged = flaggedQs.includes(i);
+                const cur = i === currentQ;
+                let cls = 'q-dot';
+                if (answered) cls += ' answered';
+                if (flagged) cls += ' flagged';
+                if (cur) cls += ' current';
+                return `<div class="${cls}" onclick="goToQ(${i})">${i + 1}</div>`;
+            }).join('');
+        }
+
+        window.selectAnswer = ans => {
+            const idx = studentAnswers.findIndex(a => a.questionIndex === currentQ);
+            if (idx !== -1) studentAnswers[idx].answer = ans;
+            else studentAnswers.push({ questionIndex: currentQ, answer: ans });
+            renderAssessment();
+        };
+        window.nextQ = () => { if (currentQ < assessmentData.questions.length - 1) { currentQ++; renderAssessment(); } };
+        window.prevQ = () => { if (currentQ > 0) { currentQ--; renderAssessment(); } };
+        window.goToQ = i => { currentQ = i; renderAssessment(); };
+        window.toggleFlag = () => {
+            const idx = flaggedQs.indexOf(currentQ);
+            idx === -1 ? flaggedQs.push(currentQ) : flaggedQs.splice(idx, 1);
+            renderAssessment();
+        };
+        window.openSubmitModal = () => document.getElementById('submitModal').classList.add('active');
+        window.closeSubmitModal = () => document.getElementById('submitModal').classList.remove('active');
+
+        // === SUBMISSION (FIXED) ===
+        function calculateScore() {
+            let score = 0, correct = 0, wrong = 0, theoryCount = 0;
+            const questions = assessmentData.questions || [];
+            const totalPts = assessmentData.totalPoints || questions.reduce((s, q) => s + (q.points || 1), 0);
+
+            questions.forEach((q, i) => {
+                const ans = studentAnswers.find(a => a.questionIndex === i);
+                const sa = ans ? ans.answer : null;
+                const pts = q.points || 1;
+                const type = (q.type || '').toLowerCase();
+
+                if (type === 'theory') { theoryCount++; return; }
+
+                if (isAnswerCorrect(q, sa)) { score += pts; correct++; }
+                else if (sa && sa !== '') { wrong++; }
+                else { wrong++; } // unanswered counts as wrong
+            });
+
+            let finalScore = score;
+            if (assessmentData.negativeMarking && assessmentData.negativeMarkValue) {
+                finalScore = Math.max(0, score - (wrong * (assessmentData.negativeMarkValue || 0.25)));
+            }
+
+            return { score: Math.round(finalScore * 100) / 100, correctCount: correct, wrongCount: wrong, theoryCount, totalPoints: totalPts };
+        }
+
+        async function submitAssessment() {
+            if (isSubmitted) return;
+            isSubmitted = true;
+            clearInterval(timerInterval);
+            showLoading();
+
+            const { score, correctCount, wrongCount, theoryCount, totalPoints } = calculateScore();
+            const pct = totalPoints > 0 ? (score / totalPoints) * 100 : 0;
+            let grade = 'F';
+            if (pct >= 75) grade = 'A'; else if (pct >= 65) grade = 'B'; else if (pct >= 50) grade = 'C'; else if (pct >= 40) grade = 'D';
+
+            const questions = assessmentData.questions || [];
+            const formattedAnswers = studentAnswers.map(a => {
+                const q = questions[a.questionIndex];
+                if (!q) return { questionIndex: a.questionIndex, studentAnswer: a.answer || '', correctAnswer: '', question: '', points: 0, type: 'unknown', isCorrect: false };
+                return {
+                    questionIndex: a.questionIndex,
+                    studentAnswer: a.answer || '',
+                    correctAnswer: getCorrectAnswerDisplay(q),
+                    question: q.question || '',
+                    points: q.points || 1,
+                    type: q.type || 'mcq',
+                    isCorrect: (q.type || '').toLowerCase() !== 'theory' ? isAnswerCorrect(q, a.answer) : false
+                };
+            });
+
+            // Build submission data — ensure NO undefined values
+            const studentName = [userData.firstName, userData.surname].filter(Boolean).join(' ').trim() || 'Student';
+            const studentEmail = userData.email || currentUser.email || '';
+            const title = assessmentData.title || 'Untitled';
+            const subject = assessmentData.subject || 'General';
+            const teacherId = assessmentData.teacherId || '';
+            const classId = assessmentData.classId || userData.class || '';
+
+            const submissionData = {
+                studentId: currentUser.uid,
+                studentName: studentName,
+                studentEmail: studentEmail,
+                teacherId: teacherId,
+                classId: classId,
+                answers: formattedAnswers,
+                score: score,
+                totalPoints: totalPoints,
+                percentage: parseFloat(pct.toFixed(2)),
+                grade: grade,
+                correctCount: correctCount,
+                wrongCount: wrongCount,
+                theoryCount: theoryCount,
+                tabSwitchCount: tabSwitches,
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'submitted',
+                graded: true,
+                gradeReleased: assessmentData.autoReleaseGrades !== false,
+                feedback: ''
+            };
+
+            // Add type-specific fields
+            if (assessmentType === 'assignment') {
+                submissionData.assignmentId = assessmentId;
+                submissionData.assignmentTitle = title;
+                submissionData.subject = subject;
+                submissionData.assignmentType = assessmentData.assignmentType || 'homework';
+                submissionData.dueDate = assessmentData.dueDate || null;
+                submissionData.autoScore = score;
+                submissionData.autoReleaseGrades = assessmentData.autoReleaseGrades !== false;
+            } else if (assessmentType === 'test') {
+                submissionData.testId = assessmentId;
+                submissionData.testTitle = title;
+                submissionData.subject = subject;
+                submissionData.weeksCovered = assessmentData.weeksCovered || [];
+                submissionData.duration = assessmentData.duration || 30;
+                submissionData.negativeMarking = assessmentData.negativeMarking || false;
+                submissionData.autoReleaseGrades = assessmentData.autoReleaseGrades !== false;
+            } else if (assessmentType === 'exam') {
+                submissionData.examId = assessmentId;
+                submissionData.examTitle = title;
+                submissionData.subject = subject;
+                submissionData.examType = assessmentData.examType || 'standard';
+                submissionData.weeksCovered = assessmentData.weeksCovered || [];
+                submissionData.duration = assessmentData.duration || 120;
+                submissionData.negativeMarking = assessmentData.negativeMarking || false;
+                submissionData.autoReleaseGrades = assessmentData.autoReleaseGrades !== false;
+            }
+
+            // Remove any undefined values
+            Object.keys(submissionData).forEach(k => {
+                if (submissionData[k] === undefined) delete submissionData[k];
+            });
+
+            try {
+                await db.collection(submissionsCollection).add(submissionData);
+                let msg = `${assessmentType.charAt(0).toUpperCase() + assessmentType.slice(1)} submitted!\nScore: ${score}/${totalPoints} (${pct.toFixed(1)}%) · Grade: ${grade}`;
+                if (theoryCount > 0) msg += `\n${theoryCount} theory question(s) will be manually graded.`;
+                alert(msg);
+                window.location.href = 'student-assessments.html';
+            } catch (e) {
+                console.error('Submit error:', e);
+                alert('Error: ' + e.message);
+                isSubmitted = false;
+            } finally { hideLoading(); closeSubmitModal(); }
+        }
+
+        window.confirmSubmit = () => { closeSubmitModal(); submitAssessment(); };
+
+        // === LOAD ===
+        async function loadAssessment() {
+            const params = new URLSearchParams(window.location.search);
+            assessmentType = params.get('type'); // 'assignment', 'test', 'exam'
+            assessmentId = params.get('id');
+
+            if (!assessmentType || !assessmentId) { alert('Invalid assessment link'); window.location.href = 'student-assessments.html'; return; }
+
+            const typeMap = { assignment: { col: 'assignments', subCol: 'submissions', label: 'Assignment' }, test: { col: 'tests', subCol: 'testSubmissions', label: 'Test' }, exam: { col: 'exams', subCol: 'examSubmissions', label: 'Exam' } };
+            const config = typeMap[assessmentType];
+            if (!config) { alert('Invalid type'); return; }
+
+            collectionName = config.col;
+            submissionsCollection = config.subCol;
+            document.getElementById('navTitle').textContent = `Take ${config.label}`;
+
+            showLoading();
+            try {
+                const doc = await db.collection(collectionName).doc(assessmentId).get();
+                if (!doc.exists) { alert(`${config.label} not found`); window.location.href = 'student-assessments.html'; return; }
+                const data = doc.data();
+                if (data.status !== 'published') { alert('Not available'); window.location.href = 'student-assessments.html'; return; }
+                if (data.classId !== userData.class) { alert('Not enrolled'); window.location.href = 'student-assessments.html'; return; }
+
+                // Check existing submission
+                const existingSnap = await db.collection(submissionsCollection)
+                    .where(assessmentType === 'assignment' ? 'assignmentId' : assessmentType === 'test' ? 'testId' : 'examId', '==', assessmentId)
+                    .where('studentId', '==', currentUser.uid).get();
+                if (!existingSnap.empty) { alert(`You've already submitted this ${config.label}`); window.location.href = 'student-assessments.html'; return; }
+
+                assessmentData = { id: doc.id, ...data };
+
+                // Shuffle
+                let questions = [...(assessmentData.questions || [])];
+                if (assessmentData.randomizeQuestions) questions = shuffleArray(questions);
+                if (assessmentData.randomizeOptions) {
+                    questions = questions.map(q => {
+                        if ((q.type === 'mcq' || q.type === 'multiple') && q.options) {
+                            const original = [...q.options];
+                            const shuffled = shuffleArray([...original]);
+                            const correctText = original[q.correct?.charCodeAt(0) - 65] || '';
+                            const newIdx = shuffled.findIndex(o => o === correctText);
+                            return { ...q, options: shuffled, correct: newIdx >= 0 ? String.fromCharCode(65 + newIdx) : q.correct };
+                        }
+                        return q;
+                    });
+                }
+                assessmentData.questions = questions;
+
+                // Render header
+                document.getElementById('assessmentTitle').textContent = assessmentData.title || 'Untitled';
+                const weeksText = (assessmentData.weeksCovered || []).join(', ') || 'All';
+                const duration = assessmentData.duration || (assessmentType === 'assignment' ? 0 : assessmentType === 'test' ? 30 : 120);
+                const metaItems = [
+                    `<div class="meta-item"><i class="fas fa-book"></i> ${escapeHtml(assessmentData.subject || 'General')}</div>`,
+                    `<div class="meta-item"><i class="fas fa-calendar-week"></i> Week${weeksText.includes(',') ? 's' : ''}: ${weeksText}</div>`,
+                    `<div class="meta-item"><i class="fas fa-star"></i> ${assessmentData.totalPoints || questions.reduce((s, q) => s + (q.points || 1), 0)} pts</div>`,
+                    `<div class="meta-item"><i class="fas fa-question-circle"></i> ${questions.length} questions</div>`
+                ];
+                if (duration > 0) metaItems.push(`<div class="meta-item"><i class="fas fa-hourglass-half"></i> ${duration} min</div>`);
+                if (assessmentData.negativeMarking) metaItems.push(`<div class="meta-item"><i class="fas fa-ban"></i> -${assessmentData.negativeMarkValue || 0.25}/wrong</div>`);
+                if (assessmentType === 'assignment' && assessmentData.dueDate) metaItems.push(`<div class="meta-item"><i class="fas fa-calendar"></i> Due: ${new Date(assessmentData.dueDate).toLocaleDateString()}</div>`);
+                document.getElementById('assessmentMeta').innerHTML = metaItems.join('');
+
+                studentAnswers = []; flaggedQs = []; currentQ = 0;
+                if (duration > 0) startTimer(duration * 60);
+                renderAssessment();
+            } catch (e) { console.error(e); alert('Error: ' + e.message); }
+            finally { hideLoading(); }
+        }
+
+        // === AUTH ===
+        auth.onAuthStateChanged(async user => {
+            if (!user) { window.location.href = 'student-login.html'; return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (!doc.exists || doc.data().role !== 'student') { auth.signOut(); window.location.href = 'index.html'; return; }
+                currentUser = user; userData = doc.data();
+                document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'S') + (userData.surname?.[0] || 'S');
+                document.getElementById('profileName').textContent = userData.firstName || 'Student';
+                await loadAssessment();
+            } catch (e) { console.error(e); }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+    </script>
+</body>
+</html>
