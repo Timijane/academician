@@ -2,464 +2,294 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTop Scholars · Attendance Kiosk</title>
-    <!-- Font Awesome 6 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>EduTop · Attendance Kiosk</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <!-- Firebase SDK -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
-        /* (same styles as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root[data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-sidebar: #ffffff;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --border: #e2e8f0;
-            --card-bg: #ffffff;
-            --hover-bg: #f1f5f9;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --success-bg: #22c55e20;
-            --success-text: #22c55e;
-            --warning-bg: #f59e0b20;
-            --warning-text: #f59e0b;
-            --danger-bg: #ef444420;
-            --danger-text: #ef4444;
+            --bg-primary: #f0f5fa; --text-primary: #0b1e33; --text-secondary: #2c3e50;
+            --accent: #1e3c72; --border: rgba(0,0,0,0.08); --card-bg: rgba(255,255,255,0.75);
+            --hover-bg: rgba(255,255,255,0.9); --shadow: 0 15px 35px -10px rgba(0,0,0,0.1);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #16a34a;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #b45309;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #b91c1c;
+            --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
+            --gradient-start: #1e3c72; --gradient-end: #2a5298;
+            --input-bg: rgba(255,255,255,0.9); --lock-bg: #1e293b; --lock-text: #e2e8f0;
         }
-
         :root[data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-sidebar: #1e293b;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --accent: #38bdf8;
-            --accent-hover: #7dd3fc;
-            --border: #334155;
-            --card-bg: #1e293b;
-            --hover-bg: #2d3a4f;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            --success-bg: #22c55e20;
-            --success-text: #4ade80;
-            --warning-bg: #f59e0b20;
-            --warning-text: #fbbf24;
-            --danger-bg: #ef444420;
-            --danger-text: #f87171;
+            --bg-primary: #0a0f1e; --text-primary: #f0f4fa; --text-secondary: #a0b3d9;
+            --accent: #3b82f6; --border: rgba(255,255,255,0.06); --card-bg: rgba(15,23,42,0.6);
+            --hover-bg: rgba(30,41,59,0.8); --shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
+            --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
+            --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
+            --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
+            --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
+            --input-bg: rgba(30,41,59,0.8); --lock-bg: #0f172a; --lock-text: #94a3b8;
         }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow: hidden; }
+        
+        /* FULLSCREEN KIOSK MODE */
+        .kiosk-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; z-index: 10; }
+        .kiosk-top-bar { background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0.7rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .kiosk-date { font-size: 1.1rem; font-weight: 600; }
+        .kiosk-date span { color: var(--accent); }
+        .kiosk-clock { font-size: 2rem; font-weight: 700; font-family: 'Space Grotesk', monospace; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kiosk-actions { display: flex; gap: 0.5rem; align-items: center; }
+        .kiosk-main { flex: 1; display: flex; overflow: hidden; }
+        .kiosk-sidebar { width: 320px; background: var(--card-bg); backdrop-filter: blur(12px); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        .kiosk-search { padding: 1rem; border-bottom: 1px solid var(--border); }
+        .kiosk-search input { width: 100%; padding: 0.7rem 1rem 0.7rem 2.5rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 2rem; color: var(--text-primary); font-size: 0.9rem; font-family: inherit; }
+        .kiosk-search i { position: absolute; margin-left: 0.9rem; margin-top: 0.8rem; color: var(--text-secondary); }
+        .staff-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
+        .staff-card { display: flex; align-items: center; gap: 0.8rem; padding: 0.7rem 0.8rem; border-radius: 1rem; cursor: pointer; transition: 0.2s; margin-bottom: 0.3rem; border: 2px solid transparent; }
+        .staff-card:hover { background: var(--hover-bg); border-color: var(--accent); }
+        .staff-card.selected { background: var(--info-bg); border-color: var(--accent); }
+        .staff-card.checked-in { border-left: 4px solid var(--success-text); }
+        .staff-card.checked-out { opacity: 0.6; }
+        .staff-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1rem; flex-shrink: 0; }
+        .staff-info { flex: 1; min-width: 0; }
+        .staff-info .name { font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .staff-info .role { font-size: 0.72rem; color: var(--text-secondary); }
+        .staff-status { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .status-dot.present { background: var(--success-text); box-shadow: 0 0 8px var(--success-text); }
+        .status-dot.late { background: var(--warning-text); box-shadow: 0 0 8px var(--warning-text); }
+        .status-dot.absent { background: var(--text-secondary); }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
+        .kiosk-content { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); position: relative; }
+        .welcome-screen { text-align: center; }
+        .welcome-screen i { font-size: 6rem; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem; display: block; }
+        .welcome-screen h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .welcome-screen p { color: var(--text-secondary); font-size: 1rem; }
 
-        .kiosk-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+        .action-panel { text-align: center; max-width: 500px; width: 100%; padding: 2rem; }
+        .action-panel .staff-name-large { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .action-panel .staff-role { color: var(--text-secondary); margin-bottom: 1.5rem; }
+        .big-btn { padding: 1.2rem 3rem; border: none; border-radius: 2rem; font-weight: 700; font-size: 1.2rem; cursor: pointer; transition: 0.2s; width: 100%; font-family: inherit; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+        .big-btn-checkin { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+        .big-btn-checkout { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .big-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .big-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .time-info { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; }
 
-        .top-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 3rem;
-            padding: 0.8rem 1.5rem;
-        }
-        .nav-links {
-            display: flex;
-            gap: 1.5rem;
-        }
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .nav-link:hover {
-            color: var(--accent);
-        }
-        .nav-link.active {
-            color: var(--accent);
-        }
+        /* CAMERA OVERLAY */
+        .camera-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .camera-overlay.active { display: flex; }
+        .camera-overlay video { max-width: 90%; max-height: 60vh; border-radius: 1.5rem; border: 3px solid var(--accent); }
+        .camera-overlay .snap-frame { position: relative; }
+        .camera-overlay .countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 5rem; color: white; font-weight: 800; text-shadow: 0 0 30px rgba(0,0,0,0.8); display: none; }
+        .camera-overlay .flash { position: fixed; top:0; left:0; width:100%; height:100%; background: white; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        .camera-msg { color: white; font-size: 1.2rem; margin-top: 1.5rem; text-align: center; }
+        .camera-btns { display: flex; gap: 1rem; margin-top: 1.5rem; }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 600;
-        }
-        .header p {
-            color: var(--text-secondary);
-        }
+        .btn { padding: 0.6rem 1.5rem; border: none; border-radius: 2rem; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.4rem; }
+        .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; }
+        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; }
+        .btn:hover { opacity: 0.9; }
 
-        .theme-toggle {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.5rem 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
+        /* LOCK SCREEN */
+        .lock-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--lock-bg); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .lock-overlay.active { display: flex; }
+        .lock-overlay i { font-size: 4rem; color: var(--accent); margin-bottom: 1.5rem; }
+        .lock-overlay h2 { color: var(--lock-text); margin-bottom: 1.5rem; font-size: 1.3rem; }
+        .lock-overlay input { padding: 0.8rem 1.5rem; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 1rem; color: white; font-size: 1.3rem; text-align: center; letter-spacing: 3px; width: 220px; font-family: 'Space Grotesk', monospace; }
+        .lock-overlay input:focus { outline: none; border-color: var(--accent); }
+        .lock-error { color: var(--danger-text); margin-top: 0.75rem; font-size: 0.85rem; display: none; }
+        .lock-error.show { display: block; }
 
-        #cameraPreview {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            flex-direction: column;
-        }
-        #cameraPreview video {
-            max-width: 90%;
-            max-height: 80vh;
-            border-radius: 1rem;
-        }
-        .camera-controls {
-            margin-top: 1rem;
-            display: flex;
-            gap: 1rem;
-        }
-        .btn {
-            padding: 0.8rem 2rem;
-            border: none;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-        .btn-primary:hover {
-            background: var(--accent-hover);
-        }
-        .btn-secondary {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
+        /* SETTINGS MODAL */
+        .settings-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 150; display: none; align-items: center; justify-content: center; }
+        .settings-overlay.active { display: flex; }
+        .settings-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 2rem; padding: 2rem; max-width: 500px; width: 90%; }
+        .settings-card h3 { font-size: 1.2rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+        .setting-row label { font-weight: 500; font-size: 0.9rem; }
+        .setting-row input { padding: 0.5rem 0.75rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.75rem; color: var(--text-primary); font-family: inherit; font-size: 0.9rem; }
+        .setting-row input[type="time"] { width: 130px; }
+        .setting-row input[type="password"] { width: 180px; }
 
-        .search-bar {
-            margin-bottom: 2rem;
-            display: flex;
-            gap: 1rem;
-        }
-        .search-input {
-            flex: 1;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.8rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .search-input i {
-            color: var(--text-secondary);
-        }
-        .search-input input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            color: var(--text-primary);
-            outline: none;
-        }
+        .toast { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); background: var(--success-text); color: white; padding: 0.75rem 2rem; border-radius: 2rem; font-weight: 600; z-index: 300; animation: slideDown 0.3s; font-size: 0.9rem; }
+        @keyframes slideDown { from { transform: translateX(-50%) translateY(-100%); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 
-        .staff-table {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            text-align: left;
-            padding: 0.8rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-            border-bottom: 1px solid var(--border);
-        }
-        td {
-            padding: 0.8rem;
-            border-bottom: 1px solid var(--border);
-        }
-        .staff-name {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-        .staff-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-        .btn-check {
-            padding: 0.4rem 1rem;
-            border: none;
-            border-radius: 2rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-check-in {
-            background: var(--success-bg);
-            color: var(--success-text);
-        }
-        .btn-check-out {
-            background: var(--warning-bg);
-            color: var(--warning-text);
-        }
-        .btn-check:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .status-badge {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-        }
-        .status-badge.present { background: var(--success-text); }
-        .status-badge.late { background: var(--warning-text); }
-        .status-badge.absent { background: var(--danger-text); }
-
-        .settings-panel {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-bottom: 2rem;
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-        .time-setting {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .time-setting input {
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 0.4rem 0.8rem;
-            color: var(--text-primary);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
+        @media (max-width: 768px) {
+            .kiosk-sidebar { width: 260px; }
+            .kiosk-clock { font-size: 1.3rem; }
         }
     </style>
 </head>
 <body>
-    <div class="kiosk-container">
-        <!-- Top navigation -->
-        <div class="top-nav">
-            <div class="nav-links">
-                <a href="admin-dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                <a href="admin-attendance-review.html" class="nav-link"><i class="fas fa-chart-bar"></i> Attendance Review</a>
-                <span class="nav-link active"><i class="fas fa-fingerprint"></i> Kiosk</span>
-            </div>
-            <div class="theme-toggle" id="themeToggle">
-                <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
-            </div>
-        </div>
+    <!-- LOCK SCREEN -->
+    <div class="lock-overlay" id="lockOverlay">
+        <i class="fas fa-lock"></i>
+        <h2>Enter Admin PIN to Exit Kiosk</h2>
+        <input type="password" id="lockPinInput" placeholder="••••••" maxlength="10" autocomplete="off">
+        <div class="lock-error" id="lockError">Incorrect PIN</div>
+    </div>
 
-        <div class="header">
-            <div>
-                <h1>Attendance Kiosk</h1>
-                <p>Staff check‑in / check‑out · Today's date: <span id="currentDate"></span></p>
-            </div>
-        </div>
-
-        <!-- Settings panel (visible only to master admin) -->
-        <div class="settings-panel" id="settingsPanel" style="display: none;">
-            <div class="time-setting">
-                <label>Morning cut‑off (late after):</label>
+    <!-- SETTINGS -->
+    <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-card">
+            <h3><i class="fas fa-cog"></i> Kiosk Settings</h3>
+            <div class="setting-row">
+                <label>Morning Cut-off (late after)</label>
                 <input type="time" id="morningCutoff" value="07:10">
             </div>
-            <div class="time-setting">
-                <label>Afternoon start (early before):</label>
+            <div class="setting-row">
+                <label>Afternoon Start (early before)</label>
                 <input type="time" id="afternoonStart" value="14:00">
             </div>
-            <button class="btn btn-primary" id="saveSettings">Save Settings</button>
-        </div>
-
-        <!-- Search -->
-        <div class="search-bar">
-            <div class="search-input">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search by name or role...">
+            <div class="setting-row">
+                <label>Kiosk Exit PIN</label>
+                <input type="password" id="exitPin" value="1234" maxlength="10" placeholder="Set PIN">
             </div>
-        </div>
-
-        <!-- Staff table -->
-        <div class="staff-table">
-            <table id="staffTable">
-                <thead>
-                    <tr>
-                        <th>Staff</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Check‑In</th>
-                        <th>Check‑Out</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="staffTableBody">
-                    <tr><td colspan="6" class="loading">Loading staff...</td></tr>
-                </tbody>
-            </table>
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;">
+                <button class="btn btn-outline" onclick="closeSettings()" style="border-color:var(--border);color:var(--text-primary);">Cancel</button>
+                <button class="btn btn-primary" id="saveSettingsBtn"><i class="fas fa-save"></i> Save Settings</button>
+            </div>
         </div>
     </div>
 
-    <!-- Camera preview modal -->
-    <div id="cameraPreview">
-        <video id="video" autoplay playsinline></video>
-        <div class="camera-controls">
-            <button class="btn btn-primary" id="captureBtn">Capture & Confirm</button>
-            <button class="btn btn-secondary" id="cancelCameraBtn">Cancel</button>
+    <!-- CAMERA -->
+    <div class="camera-overlay" id="cameraOverlay">
+        <div class="snap-frame">
+            <video id="video" autoplay playsinline></video>
+            <div class="countdown" id="countdown">3</div>
+        </div>
+        <div class="flash" id="flash"></div>
+        <div class="camera-msg" id="cameraMsg">Position your face in the frame</div>
+        <div class="camera-btns">
+            <button class="btn btn-outline" id="cancelCameraBtn">Cancel</button>
+            <button class="btn btn-primary" id="captureBtn" style="display:none;"><i class="fas fa-camera"></i> Capture Now</button>
+        </div>
+    </div>
+
+    <!-- KIOSK INTERFACE -->
+    <div class="kiosk-wrapper">
+        <div class="kiosk-top-bar">
+            <div class="kiosk-date"><span id="currentDate"></span></div>
+            <div class="kiosk-clock" id="liveClock">00:00:00</div>
+            <div class="kiosk-actions">
+                <button class="btn btn-outline btn-sm" id="settingsBtn" style="border-color:var(--border);color:var(--text-primary);font-size:0.75rem;" title="Settings"><i class="fas fa-cog"></i></button>
+            </div>
+        </div>
+        <div class="kiosk-main">
+            <div class="kiosk-sidebar">
+                <div class="kiosk-search" style="position:relative;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search staff...">
+                </div>
+                <div class="staff-list" id="staffList">
+                    <p style="text-align:center;padding:2rem;color:var(--text-secondary);">Loading staff...</p>
+                </div>
+            </div>
+            <div class="kiosk-content" id="kioskContent">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <i class="fas fa-fingerprint"></i>
+                    <h2>Attendance Kiosk</h2>
+                    <p>Select your name from the list to check in or out</p>
+                    <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.5rem;">
+                        <i class="fas fa-info-circle"></i> Late after: <strong id="lateDisplay">07:10 AM</strong> · Early before: <strong id="earlyDisplay">02:00 PM</strong>
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyByuuS7efaHOtUai4fqUgRIQr6pMtCo2SE",
-            authDomain: "edutopscholars-be54a.firebaseapp.com",
-            projectId: "edutopscholars-be54a",
-            storageBucket: "edutopscholars-be54a.firebasestorage.app",
-            messagingSenderId: "713866508372",
-            appId: "1:713866508372:web:92d49db6c867a48654d5c1",
-            measurementId: "G-CCCDYZQ6LE"
+            apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+            authDomain: "triangle-6e6b7.firebaseapp.com",
+            projectId: "triangle-6e6b7",
+            storageBucket: "triangle-6e6b7.firebasestorage.app",
+            messagingSenderId: "673937760480",
+            appId: "1:673937760480:web:f03c06e1207232213ef085"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const storage = firebase.storage();
 
-        // Theme toggle
-        const html = document.documentElement;
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = themeToggle.querySelector('i:first-child');
-        const themeText = themeToggle.querySelector('span');
-        function updateThemeUI(theme) {
-            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-            themeText.textContent = theme === 'dark' ? 'Dark' : 'Light';
-        }
-        const savedTheme = localStorage.getItem('edutopscholars-theme') || 'dark';
-        html.setAttribute('data-theme', savedTheme);
-        updateThemeUI(savedTheme);
-        themeToggle.addEventListener('click', () => {
-            const current = html.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            localStorage.setItem('edutopscholars-theme', next);
-            updateThemeUI(next);
-        });
-
-        // Display current date
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-        // Authentication and role check
-        let currentUser = null;
+        // === STATE ===
         let isMasterAdmin = false;
-        let morningCutoff = '07:10';
-        let afternoonStart = '14:00';
-        let staffList = [];
-        let todayAttendance = {};
-        let unsubscribeStaff = null;
-        let unsubscribeAttendance = null;
+        let morningCutoff = '07:10', afternoonStart = '14:00', exitPinCode = '1234';
+        let staffList = [], todayAttendance = {};
+        let selectedStaffId = null;
+        let videoStream = null, captureTimeout = null;
+        let unsubscribeStaff = null, unsubscribeAttendance = null;
 
-        auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = 'admin-login.html';
-                return;
-            }
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || (userDoc.data().role !== 'masterAdmin' && !userDoc.data().isCoAdmin)) {
-                alert('You are not authorized to use the attendance kiosk.');
+        // === CLOCK ===
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').textContent = now.toLocaleTimeString();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // === THEME ===
+        (() => {
+            const s = localStorage.getItem('edutopscholars-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', s);
+        })();
+
+        // === TOAST ===
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // === AUTH ===
+        auth.onAuthStateChanged(async user => {
+            if (!user) { window.location.href = 'admin-login.html'; return; }
+            const doc = await db.collection('users').doc(user.uid).get();
+            if (!doc.exists || (doc.data().role !== 'master-admin' && doc.data().role !== 'admin')) {
+                alert('Unauthorized.');
                 window.location.href = 'index.html';
                 return;
             }
-            currentUser = user;
-            isMasterAdmin = userDoc.data().role === 'masterAdmin';
+            isMasterAdmin = doc.data().role === 'master-admin';
 
-            if (isMasterAdmin) {
-                document.getElementById('settingsPanel').style.display = 'flex';
-                const configDoc = await db.collection('config').doc('attendance').get();
-                if (configDoc.exists) {
-                    const config = configDoc.data();
-                    morningCutoff = config.morningCutoff || '07:10';
-                    afternoonStart = config.afternoonStart || '14:00';
-                }
-                document.getElementById('morningCutoff').value = morningCutoff;
-                document.getElementById('afternoonStart').value = afternoonStart;
+            // Load config
+            const configDoc = await db.collection('config').doc('attendanceKiosk').get();
+            if (configDoc.exists) {
+                const c = configDoc.data();
+                morningCutoff = c.morningCutoff || '07:10';
+                afternoonStart = c.afternoonStart || '14:00';
+                exitPinCode = c.exitPin || '1234';
             }
+            document.getElementById('morningCutoff').value = morningCutoff;
+            document.getElementById('afternoonStart').value = afternoonStart;
+            document.getElementById('exitPin').value = exitPinCode;
+            document.getElementById('lateDisplay').textContent = morningCutoff + ' AM';
+            document.getElementById('earlyDisplay').textContent = afternoonStart + ' PM';
+            document.getElementById('settingsBtn').style.display = isMasterAdmin ? 'inline-flex' : 'none';
 
-            // Load approved staff (teachers and nonTeachingStaff) with real-time listener
-            loadStaffListener();
-            // Set up real-time listener for today's attendance
+            loadStaff();
             setupAttendanceListener();
         });
 
-        // Real-time listener for staff (approved teachers and nonTeachingStaff)
-        function loadStaffListener() {
+        // === STAFF ===
+        function loadStaff() {
             if (unsubscribeStaff) unsubscribeStaff();
             unsubscribeStaff = db.collection('users')
                 .where('role', 'in', ['teacher', 'nonTeachingStaff'])
                 .where('approved', '==', true)
-                .onSnapshot(snapshot => {
+                .onSnapshot(snap => {
                     staffList = [];
-                    snapshot.forEach(doc => {
-                        staffList.push({ id: doc.id, ...doc.data() });
-                    });
-                    // Once staff are loaded, remove loading message and render
-                    renderStaffTable();
-                }, error => {
-                    console.error('Staff listener error:', error);
-                    document.getElementById('staffTableBody').innerHTML = '<tr><td colspan="6">Error loading staff.</td></tr>';
+                    snap.forEach(d => staffList.push({ id: d.id, ...d.data() }));
+                    staffList.sort((a, b) => `${a.surname||''} ${a.firstName||''}`.localeCompare(`${b.surname||''} ${b.firstName||''}`));
+                    renderStaffList();
                 });
         }
 
@@ -468,193 +298,251 @@
             if (unsubscribeAttendance) unsubscribeAttendance();
             unsubscribeAttendance = db.collection('attendance')
                 .where('date', '==', today)
-                .onSnapshot(snapshot => {
+                .onSnapshot(snap => {
                     todayAttendance = {};
-                    snapshot.forEach(doc => {
-                        const record = doc.data();
-                        todayAttendance[record.staffId] = record;
-                    });
-                    renderStaffTable(); // re-render when attendance changes
-                }, error => {
-                    console.error('Attendance listener error:', error);
+                    snap.forEach(d => { const r = d.data(); todayAttendance[r.staffId] = r; });
+                    renderStaffList();
                 });
         }
 
-        function renderStaffTable() {
-            const tbody = document.getElementById('staffTableBody');
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        function renderStaffList() {
+            const search = (document.getElementById('searchInput').value || '').toLowerCase();
+            const filtered = staffList.filter(s => {
+                const name = `${s.firstName||''} ${s.surname||''}`.toLowerCase();
+                return name.includes(search) || (s.role||'').toLowerCase().includes(search);
+            });
 
-            if (!staffList.length) {
-                tbody.innerHTML = '<tr><td colspan="6">No staff members found.</td></tr>';
-                return;
-            }
+            const el = document.getElementById('staffList');
+            if (!filtered.length) { el.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-secondary);">No staff found.</p>'; return; }
 
-            const filtered = staffList.filter(s => 
-                ((s.firstName + ' ' + s.surname).toLowerCase().includes(searchTerm)) ||
-                (s.role.toLowerCase().includes(searchTerm))
-            );
-
-            if (!filtered.length) {
-                tbody.innerHTML = '<tr><td colspan="6">No matching staff.</td></tr>';
-                return;
-            }
-
-            let html = '';
-            filtered.forEach(staff => {
-                const name = `${staff.firstName || ''} ${staff.surname || ''}`.trim() || 'Unknown';
-                const initials = (staff.firstName?.[0] || '') + (staff.surname?.[0] || '') || '?';
-                const role = staff.role === 'teacher' ? 'Teacher' : 'Non‑Teaching';
-                const record = todayAttendance[staff.id] || {};
-                const checkInTime = record.checkInTime ? new Date(record.checkInTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
-                const checkOutTime = record.checkOutTime ? new Date(record.checkOutTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
-                
-                let statusClass = 'absent';
-                let statusText = 'Absent';
-                if (record.checkInTime) {
-                    const checkInDate = new Date(record.checkInTime.seconds * 1000);
-                    const cutoff = new Date();
-                    const [ch, cm] = morningCutoff.split(':').map(Number);
-                    cutoff.setHours(ch, cm, 0);
-                    if (checkInDate <= cutoff) {
-                        statusClass = 'present';
-                        statusText = 'Present';
-                    } else {
-                        statusClass = 'late';
-                        statusText = 'Late';
+            el.innerHTML = filtered.map(s => {
+                const name = `${s.firstName||''} ${s.surname||''}`.trim() || 'Unknown';
+                const initials = (s.firstName?.[0]||'') + (s.surname?.[0]||'') || '?';
+                const role = s.role === 'teacher' ? 'Teacher' : 'Non-Teaching';
+                const rec = todayAttendance[s.id];
+                let statusClass = 'absent', statusLabel = '';
+                let cardClass = '';
+                if (rec) {
+                    if (rec.checkInTime) {
+                        const ci = new Date(rec.checkInTime.seconds * 1000);
+                        const cutoff = new Date(); const [ch, cm] = morningCutoff.split(':').map(Number); cutoff.setHours(ch, cm, 0);
+                        statusClass = ci <= cutoff ? 'present' : 'late';
+                        statusLabel = ci.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        cardClass = 'checked-in';
+                    }
+                    if (rec.checkOutTime) {
+                        cardClass = 'checked-out';
+                        statusLabel = 'Done';
                     }
                 }
-
-                html += `
-                <tr>
-                    <td>
-                        <div class="staff-name">
-                            <div class="staff-avatar">${initials}</div>
-                            ${name}
-                        </div>
-                    </td>
-                    <td>${role}</td>
-                    <td><span class="status-badge ${statusClass}"></span> ${statusText}</td>
-                    <td>${checkInTime}</td>
-                    <td>${checkOutTime}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-check btn-check-in" ${record.checkInTime ? 'disabled' : ''} onclick="startCheckIn('${staff.id}')">Check In</button>
-                            <button class="btn-check btn-check-out" ${!record.checkInTime || record.checkOutTime ? 'disabled' : ''} onclick="startCheckOut('${staff.id}')">Check Out</button>
-                        </div>
-                    </td>
-                </tr>
-                `;
-            });
-            tbody.innerHTML = html;
+                const sel = s.id === selectedStaffId ? ' selected' : '';
+                return `<div class="staff-card${sel} ${cardClass}" onclick="selectStaff('${s.id}')">
+                    <div class="staff-avatar">${initials}</div>
+                    <div class="staff-info"><div class="name">${name}</div><div class="role">${role}</div></div>
+                    <div class="staff-status"><span class="status-dot ${statusClass}"></span><span style="font-size:0.65rem;color:var(--text-secondary);">${statusLabel}</span></div>
+                </div>`;
+            }).join('');
         }
 
-        document.getElementById('searchInput').addEventListener('input', renderStaffTable);
+        document.getElementById('searchInput').addEventListener('input', renderStaffList);
 
-        // Camera handling
-        let currentAction = null;
-        let videoStream = null;
-        const cameraPreview = document.getElementById('cameraPreview');
-        const video = document.getElementById('video');
-        const captureBtn = document.getElementById('captureBtn');
-        const cancelBtn = document.getElementById('cancelCameraBtn');
+        // === SELECT STAFF ===
+        window.selectStaff = id => {
+            selectedStaffId = id;
+            renderStaffList();
+            const staff = staffList.find(s => s.id === id);
+            if (!staff) return;
+            const rec = todayAttendance[id];
+            const name = `${staff.firstName||''} ${staff.surname||''}`.trim();
 
-        async function startCamera() {
+            const canCheckIn = !rec || !rec.checkInTime;
+            const canCheckOut = rec && rec.checkInTime && !rec.checkOutTime;
+
+            let html = `<div class="action-panel">
+                <div class="staff-avatar" style="width:80px;height:80px;font-size:1.5rem;margin:0 auto 1rem;">${(staff.firstName?.[0]||'')+(staff.surname?.[0]||'')}</div>
+                <div class="staff-name-large">${name}</div>
+                <div class="staff-role">${staff.role==='teacher'?'Teacher':'Non-Teaching Staff'}</div>`;
+
+            if (canCheckIn) {
+                html += `<button class="big-btn big-btn-checkin" onclick="startCheckIn()"><i class="fas fa-sign-in-alt"></i> Check In</button>`;
+            } else if (canCheckOut) {
+                html += `<button class="big-btn big-btn-checkout" onclick="startCheckOut()"><i class="fas fa-sign-out-alt"></i> Check Out</button>`;
+            } else if (rec && rec.checkOutTime) {
+                html += `<div style="padding:2rem;text-align:center;"><i class="fas fa-check-circle" style="font-size:3rem;color:var(--success-text);display:block;margin-bottom:0.5rem;"></i><p style="font-size:1.1rem;font-weight:600;">Completed for Today</p><p style="color:var(--text-secondary);">Check-in: ${rec.checkInTime ? new Date(rec.checkInTime.seconds*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}<br>Check-out: ${rec.checkOutTime ? new Date(rec.checkOutTime.seconds*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}</p></div>`;
+            }
+
+            html += `<div class="time-info"><i class="fas fa-clock"></i> Late after ${morningCutoff} · Early before ${afternoonStart}</div></div>`;
+            document.getElementById('kioskContent').innerHTML = html;
+        };
+
+        // === CHECK IN / OUT ===
+        window.startCheckIn = () => { if (selectedStaffId) startCamera('in'); };
+        window.startCheckOut = () => { if (selectedStaffId) startCamera('out'); };
+
+        async function startCamera(actionType) {
             try {
-                videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = videoStream;
-                cameraPreview.style.display = 'flex';
-            } catch (err) {
-                alert('Camera access denied or not available.');
-                console.error(err);
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+                document.getElementById('video').srcObject = videoStream;
+                document.getElementById('cameraOverlay').classList.add('active');
+                document.getElementById('cameraMsg').textContent = 'Position your face in the frame';
+                document.getElementById('captureBtn').style.display = 'inline-flex';
+                document.getElementById('countdown').style.display = 'none';
+
+                // Store action type
+                document.getElementById('captureBtn').onclick = () => capturePhoto(actionType);
+                document.getElementById('cancelCameraBtn').onclick = stopCamera;
+
+                // Auto-capture after 5 seconds
+                clearTimeout(captureTimeout);
+                document.getElementById('cameraMsg').textContent = 'Capturing in 5 seconds...';
+                const cd = document.getElementById('countdown');
+                cd.style.display = 'block';
+                let count = 5;
+                cd.textContent = count;
+                captureTimeout = setInterval(() => {
+                    count--;
+                    cd.textContent = count;
+                    if (count <= 0) { clearInterval(captureTimeout); capturePhoto(actionType); }
+                }, 1000);
+            } catch (e) {
+                alert('Camera access denied. Please allow camera permissions.');
+                console.error(e);
             }
         }
 
-        function stopCamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-            cameraPreview.style.display = 'none';
-            currentAction = null;
-        }
-
-        window.startCheckIn = (staffId) => {
-            currentAction = { type: 'in', staffId };
-            startCamera();
-        };
-
-        window.startCheckOut = (staffId) => {
-            currentAction = { type: 'out', staffId };
-            startCamera();
-        };
-
-        cancelBtn.addEventListener('click', stopCamera);
-
-        captureBtn.addEventListener('click', async () => {
-            if (!currentAction) return;
-
+        async function capturePhoto(actionType) {
+            clearInterval(captureTimeout);
+            const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg');
-            const blob = await (await fetch(dataUrl)).blob();
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            canvas.getContext('2d').drawImage(video, 0, 0);
 
-            const timestamp = Date.now();
-            const staffId = currentAction.staffId;
-            const fileName = `attendance/${staffId}_${timestamp}.jpg`;
-            const storageRef = storage.ref().child(fileName);
-            await storageRef.put(blob);
-            const photoURL = await storageRef.getDownloadURL();
+            // Flash effect
+            const flash = document.getElementById('flash');
+            flash.style.opacity = '1';
+            setTimeout(() => flash.style.opacity = '0', 150);
+
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+            const fileName = `kiosk/${selectedStaffId}_${Date.now()}.jpg`;
+            const ref = storage.ref().child(fileName);
+            await ref.put(blob);
+            const photoURL = await ref.getDownloadURL();
 
             const now = new Date();
             const today = now.toISOString().split('T')[0];
-            const attendanceRef = db.collection('attendance').doc(`${staffId}_${today}`);
-            const attendanceDoc = await attendanceRef.get();
-            const existing = attendanceDoc.exists ? attendanceDoc.data() : {};
+            const docRef = db.collection('attendance').doc(`${selectedStaffId}_${today}`);
 
-            const updateData = {
-                staffId,
+            const data = {
+                staffId: selectedStaffId,
                 date: today,
-                [`${currentAction.type === 'in' ? 'checkInTime' : 'checkOutTime'}`]: firebase.firestore.FieldValue.serverTimestamp(),
-                [`${currentAction.type === 'in' ? 'checkInPhoto' : 'checkOutPhoto'}`]: photoURL,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            if (currentAction.type === 'in') {
-                const cutoff = new Date();
-                const [ch, cm] = morningCutoff.split(':').map(Number);
-                cutoff.setHours(ch, cm, 0);
-                updateData.late = now > cutoff;
+            if (actionType === 'in') {
+                data.checkInTime = firebase.firestore.FieldValue.serverTimestamp();
+                data.checkInPhoto = photoURL;
+                const cutoff = new Date(); const [ch, cm] = morningCutoff.split(':').map(Number); cutoff.setHours(ch, cm, 0);
+                data.late = now > cutoff;
+            } else {
+                data.checkOutTime = firebase.firestore.FieldValue.serverTimestamp();
+                data.checkOutPhoto = photoURL;
+                const start = new Date(); const [sh, sm] = afternoonStart.split(':').map(Number); start.setHours(sh, sm, 0);
+                data.early = now < start;
             }
 
-            if (currentAction.type === 'out') {
-                const start = new Date();
-                const [sh, sm] = afternoonStart.split(':').map(Number);
-                start.setHours(sh, sm, 0);
-                updateData.early = now < start;
-            }
-
-            await attendanceRef.set(updateData, { merge: true });
+            await docRef.set(data, { merge: true });
             stopCamera();
+            showToast(actionType === 'in' ? '✅ Check-in recorded!' : '✅ Check-out recorded!');
+            selectStaff(selectedStaffId);
+        }
+
+        function stopCamera() {
+            clearInterval(captureTimeout);
+            if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+            document.getElementById('cameraOverlay').classList.remove('active');
+            document.getElementById('video').srcObject = null;
+        }
+
+        // === LOCK SCREEN ===
+        let lockActive = false;
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !lockActive) {
+                e.preventDefault();
+                showLockScreen();
+            }
         });
 
-        document.getElementById('saveSettings').addEventListener('click', async () => {
-            const newMorning = document.getElementById('morningCutoff').value;
-            const newAfternoon = document.getElementById('afternoonStart').value;
-            await db.collection('config').doc('attendance').set({
-                morningCutoff: newMorning,
-                afternoonStart: newAfternoon
+        function showLockScreen() {
+            lockActive = true;
+            document.getElementById('lockOverlay').classList.add('active');
+            document.getElementById('lockPinInput').value = '';
+            document.getElementById('lockError').classList.remove('show');
+            setTimeout(() => document.getElementById('lockPinInput').focus(), 200);
+        }
+
+        document.getElementById('lockPinInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') verifyLockPin();
+        });
+
+        function verifyLockPin() {
+            const pin = document.getElementById('lockPinInput').value;
+            if (pin === exitPinCode) {
+                lockActive = false;
+                document.getElementById('lockOverlay').classList.remove('active');
+                // Return to welcome
+                selectedStaffId = null;
+                renderStaffList();
+                document.getElementById('kioskContent').innerHTML = document.getElementById('welcomeScreen').outerHTML;
+            } else {
+                document.getElementById('lockError').classList.add('show');
+                document.getElementById('lockPinInput').value = '';
+            }
+        }
+
+        // === SETTINGS ===
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            if (!isMasterAdmin) return;
+            document.getElementById('lockOverlay').classList.add('active');
+            document.getElementById('lockPinInput').focus();
+            // Override lock verification for settings
+            const origVerify = verifyLockPin;
+            verifyLockPin = () => {
+                const pin = document.getElementById('lockPinInput').value;
+                if (pin === exitPinCode) {
+                    document.getElementById('lockOverlay').classList.remove('active');
+                    document.getElementById('settingsOverlay').classList.add('active');
+                    lockActive = false;
+                    verifyLockPin = origVerify;
+                } else {
+                    document.getElementById('lockError').classList.add('show');
+                    document.getElementById('lockPinInput').value = '';
+                }
+            };
+        });
+
+        window.closeSettings = () => document.getElementById('settingsOverlay').classList.remove('active');
+
+        document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+            morningCutoff = document.getElementById('morningCutoff').value;
+            afternoonStart = document.getElementById('afternoonStart').value;
+            exitPinCode = document.getElementById('exitPin').value || '1234';
+            await db.collection('config').doc('attendanceKiosk').set({
+                morningCutoff, afternoonStart, exitPin: exitPinCode,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            morningCutoff = newMorning;
-            afternoonStart = newAfternoon;
-            alert('Settings saved.');
+            document.getElementById('lateDisplay').textContent = morningCutoff + ' AM';
+            document.getElementById('earlyDisplay').textContent = afternoonStart + ' PM';
+            document.getElementById('settingsOverlay').classList.remove('active');
+            showToast('⚙️ Settings saved!');
+            if (selectedStaffId) selectStaff(selectedStaffId);
         });
 
-        // Cleanup listeners
+        // === CLEANUP ===
         window.addEventListener('beforeunload', () => {
             if (unsubscribeStaff) unsubscribeStaff();
             if (unsubscribeAttendance) unsubscribeAttendance();
+            stopCamera();
         });
     </script>
 </body>
