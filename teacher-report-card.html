@@ -54,11 +54,10 @@
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
         .card-header h3 { font-size: 1rem; font-weight: 600; }
 
-        .settings-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; }
+        .settings-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; }
         .settings-row label { font-size: 0.68rem; color: var(--text-secondary); display: block; margin-bottom: 0.15rem; }
         .form-control { width: 100%; padding: 0.45rem 0.65rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 0.6rem; color: var(--text-primary); font-size: 0.78rem; font-family: inherit; }
         select.form-control { appearance: auto; }
-        textarea.form-control { min-height: 50px; resize: vertical; }
 
         .two-col { display: grid; grid-template-columns: 300px 1fr; gap: 1rem; }
         .student-list-panel { max-height: 650px; overflow-y: auto; }
@@ -70,7 +69,6 @@
         .student-row .pos { font-size: 0.65rem; padding: 0.12rem 0.4rem; border-radius: 1rem; background: var(--accent); color: white; font-weight: 600; }
 
         .rc-scroll { max-height: 72vh; overflow-y: auto; }
-
         .report-card { background: #ffffff; color: #000000; font-family: 'Georgia', 'Times New Roman', serif; max-width: 1000px; margin: 0 auto; border: 3px double #1a1a2e; font-size: 12px; line-height: 1.45; }
         .rc-header-bg { background: #1a1a2e; color: #ffffff; padding: 12px 20px; text-align: center; }
         .rc-header-bg h1 { font-size: 18px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
@@ -99,6 +97,7 @@
         .btn-success { background: var(--success-text); color: white; }
         .btn-warning { background: #f59e0b; color: #000; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 0.25rem 0.6rem; font-size: 0.7rem; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
         .debug-panel { background: var(--debug-bg); color: var(--debug-text); border-radius: 1rem; padding: 1rem; margin-top: 1rem; font-family: 'Space Grotesk', monospace; font-size: 0.68rem; max-height: 300px; overflow-y: auto; display: none; }
@@ -106,11 +105,13 @@
         .debug-entry { padding: 0.2rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
         .debug-entry.error { color: #f87171; }
         .debug-entry.success { color: #4ade80; }
+        .debug-entry.warn { color: #fbbf24; }
         .btn-debug { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 4000; background: var(--debug-bg); color: var(--debug-text); border: 1px solid var(--border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; opacity: 0.5; }
         .btn-debug:hover { opacity: 1; }
 
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
         .loading-overlay.active { display: flex; }
+        .loading-content { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; text-align: center; }
 
         @media (max-width: 768px) {
             .two-col { grid-template-columns: 1fr; }
@@ -159,12 +160,16 @@
             </div>
         </div>
 
-        <!-- MAIN -->
         <div class="two-col">
+            <!-- STUDENT LIST -->
             <div class="card">
                 <div class="card-header"><h3><i class="fas fa-users"></i> Students</h3><span id="studentCount" style="font-size:0.75rem;color:var(--text-secondary);"></span></div>
-                <div class="student-list-panel" id="studentList"><p style="color:var(--text-secondary);text-align:center;padding:2rem;">Click <strong>"Load Data"</strong> to begin.</p></div>
+                <div class="student-list-panel" id="studentList">
+                    <p style="color:var(--text-secondary);text-align:center;padding:2rem;">Click <strong>"Load Data"</strong> to begin.</p>
+                </div>
             </div>
+
+            <!-- REPORT CARD -->
             <div class="card print-visible">
                 <div class="card-header">
                     <h3><i class="fas fa-graduation-cap"></i> Report Card</h3>
@@ -176,7 +181,9 @@
                         <button class="btn btn-sm btn-outline" id="printBtn"><i class="fas fa-print"></i> Print</button>
                     </div>
                 </div>
-                <div class="rc-scroll" id="reportCardContainer"><p style="color:var(--text-secondary);text-align:center;padding:3rem;">Select a student.</p></div>
+                <div class="rc-scroll" id="reportCardContainer">
+                    <p style="color:var(--text-secondary);text-align:center;padding:3rem;">Select a student to preview.</p>
+                </div>
             </div>
         </div>
 
@@ -213,7 +220,7 @@
             });
         })();
 
-        // === DEBUG SYSTEM ===
+        // === DEBUG ===
         const debugLogs = [];
         function debug(msg, type = 'info') {
             const ts = new Date().toLocaleTimeString();
@@ -240,19 +247,6 @@
         // === STATE ===
         let currentUser = null, userData = null, classId = '';
         let config = null, allStudents = [], currentIdx = 0;
-        let attendanceData = { totalDays: 50, presentMap: {} };
-        let studentExtras = {}, signatures = {};
-
-        // === SAFELY GET A VALUE ===
-        function safeVal(obj, path, def) {
-            const keys = path.split('.');
-            let val = obj;
-            for (const k of keys) {
-                if (val === null || val === undefined) return def;
-                val = val[k];
-            }
-            return (val === null || val === undefined) ? def : val;
-        }
 
         // === LOAD DATA ===
         async function loadData() {
@@ -263,30 +257,29 @@
                 if (userData.schoolName) document.getElementById('schoolNameInput').value = userData.schoolName;
                 debug('Loading config from reportCardConfig/' + currentUser.uid + '_' + classId);
 
-                // Load config
                 const configDoc = await db.collection('reportCardConfig').doc(`${currentUser.uid}_${classId}`).get();
-                if (!configDoc.exists) { 
-                    debug('Config not found! Go to Scoring Engine first.', 'error');
-                    alert('No scoring data found. Please go to Scoring Engine first to set up and save scores.'); 
-                    hideLoading(); 
-                    return; 
+                if (!configDoc.exists) {
+                    debug('Config NOT FOUND! Go to Scoring Engine first.', 'error');
+                    alert('No scoring data found. Please go to Scoring Engine first to set up and save scores.');
+                    hideLoading();
+                    return;
                 }
                 config = configDoc.data();
-                debug('Config loaded. Keys: ' + Object.keys(config).join(', '));
+                debug('Config keys: ' + Object.keys(config).join(', '));
 
-                // Validate critical fields
-                if (!config.globalWeights) {
-                    debug('globalWeights missing — using defaults', 'error');
+                // Validate and set defaults
+                if (!config.globalWeights || typeof config.globalWeights !== 'object') {
+                    debug('globalWeights missing — using defaults {a:10, t:30, e:60}', 'warn');
                     config.globalWeights = { a: 10, t: 30, e: 60 };
                 }
-                if (!config.subjectConfigs) {
-                    debug('subjectConfigs missing — using empty', 'error');
+                if (!config.subjectConfigs || typeof config.subjectConfigs !== 'object') {
+                    debug('subjectConfigs missing — using empty {}', 'warn');
                     config.subjectConfigs = {};
                 }
                 if (config.useAssignments === undefined) config.useAssignments = true;
 
                 debug(`Weights: A=${config.globalWeights.a}, T=${config.globalWeights.t}, E=${config.globalWeights.e}`);
-                debug(`Subjects: ${Object.keys(config.subjectConfigs).join(', ') || 'NONE'}`);
+                debug(`Subjects: ${Object.keys(config.subjectConfigs).join(', ') || 'NONE!'}`);
 
                 // Load students
                 const stuSnap = await db.collection('users').where('role','==','student').where('class','==',classId).where('approved','==',true).get();
@@ -294,8 +287,6 @@
                 stuSnap.forEach(d => {
                     const dd = d.data();
                     allStudents.push({ id: d.id, name: `${dd.surname||''} ${dd.firstName||''}`.trim(), firstName: dd.firstName||'', surname: dd.surname||'', gender: dd.gender||'N/A', admissionNo: dd.admissionNo||'N/A' });
-                    studentExtras[d.id] = { activities: {}, traits: {}, teacherComment: '', principalComment: '', attOverride: null };
-                    signatures[d.id] = { teacher: null, principal: null };
                 });
                 allStudents.sort((a,b) => a.name.localeCompare(b.name));
                 debug(`Students loaded: ${allStudents.length}`);
@@ -314,11 +305,10 @@
             const sorted = [...allStudents].sort((a,b) => {
                 let sumA = 0, cntA = 0, sumB = 0, cntB = 0;
                 subjects.forEach(sub => {
-                    const cfg = config.subjectConfigs[sub];
-                    const scA = cfg?.studentScores?.[a.id];
-                    const scB = cfg?.studentScores?.[b.id];
-                    if (scA && scA.total > 0) { sumA += (scA.override !== null ? scA.override : scA.total); cntA++; }
-                    if (scB && scB.total > 0) { sumB += (scB.override !== null ? scB.override : scB.total); cntB++; }
+                    const scA = config.subjectConfigs[sub]?.studentScores?.[a.id];
+                    const scB = config.subjectConfigs[sub]?.studentScores?.[b.id];
+                    if (scA && scA.total > 0) { sumA += (scA.override ?? scA.total); cntA++; }
+                    if (scB && scB.total > 0) { sumB += (scB.override ?? scB.total); cntB++; }
                 });
                 return (cntB > 0 ? sumB/cntB : 0) - (cntA > 0 ? sumA/cntA : 0);
             });
@@ -326,7 +316,7 @@
                 let sum = 0, cnt = 0;
                 subjects.forEach(sub => {
                     const sc = config.subjectConfigs[sub]?.studentScores?.[s.id];
-                    if (sc && sc.total > 0) { sum += (sc.override !== null ? sc.override : sc.total); cnt++; }
+                    if (sc && sc.total > 0) { sum += (sc.override ?? sc.total); cnt++; }
                 });
                 const avg = cnt > 0 ? sum/cnt : 0;
                 const idx = allStudents.indexOf(s);
@@ -340,7 +330,7 @@
 
         window.selectStudent = idx => { currentIdx = idx; renderStudentList(); if (allStudents[idx]) renderReportCard(allStudents[idx]); };
 
-        // === RENDER REPORT CARD ===
+        // === RENDER ===
         function renderReportCard(student) {
             if (!config || !student) return;
             const subjects = Object.keys(config.subjectConfigs || {});
@@ -352,13 +342,12 @@
             const useA = config.useAssignments !== false;
             const w = config.globalWeights;
 
-            // Rankings
             let rankings = [];
             allStudents.forEach(s => {
                 let sum = 0, cnt = 0;
                 subjects.forEach(sub => {
                     const sc = config.subjectConfigs[sub]?.studentScores?.[s.id];
-                    if (sc && sc.total > 0) { sum += (sc.override !== null ? sc.override : sc.total); cnt++; }
+                    if (sc && sc.total > 0) { sum += (sc.override ?? sc.total); cnt++; }
                 });
                 rankings.push({ id: s.id, avg: cnt>0?sum/cnt:0 });
             });
@@ -366,17 +355,13 @@
             const rank = rankings.findIndex(r => r.id === student.id) + 1;
             const classAvg = rankings.length ? rankings.reduce((s,r) => s+r.avg, 0) / rankings.length : 0;
 
-            // Subject rows
             let subjectRows = '', totalScored = 0, subjectCount = 0;
             subjects.forEach(sub => {
-                const cfg = config.subjectConfigs[sub];
-                const sc = cfg?.studentScores?.[student.id];
-                const sw = cfg?.weights || w;
+                const sc = config.subjectConfigs[sub]?.studentScores?.[student.id];
                 const hasAny = sc && (sc.assignAvg > 0 || sc.testAvg > 0 || sc.examScore > 0);
-
                 if (hasAny) {
-                    const total = Math.round(sc.override !== null ? sc.override : (sc.total || 0));
-                    const grade = getGrade(sc.override !== null ? sc.override : (sc.total || 0));
+                    const total = Math.round(sc.override ?? (sc.total || 0));
+                    const grade = getGrade(sc.override ?? (sc.total || 0));
                     totalScored += total; subjectCount++;
                     subjectRows += `<tr>
                         <td class="sub-col">${escapeHtml(sub)}</td>
@@ -385,18 +370,13 @@
                         <td>${sc.examScore > 0 ? sc.examScore.toFixed(1) : '<span class="no-data">—</span>'}</td>
                         <td><strong>${total}</strong></td>
                         <td><strong class="grade-${grade}">${grade}</strong></td>
-                        <td>${getRemark(grade)}</td>
-                    </tr>`;
+                        <td>${getRemark(grade)}</td></tr>`;
                 } else {
                     subjectRows += `<tr>
                         <td class="sub-col">${escapeHtml(sub)}</td>
                         ${useA ? '<td><span class="no-data">—</span></td>' : ''}
-                        <td><span class="no-data">—</span></td>
-                        <td><span class="no-data">—</span></td>
-                        <td><span class="no-data">—</span></td>
-                        <td><span class="no-data">—</span></td>
-                        <td><span class="no-data">—</span></td>
-                    </tr>`;
+                        <td><span class="no-data">—</span></td><td><span class="no-data">—</span></td>
+                        <td><span class="no-data">—</span></td><td><span class="no-data">—</span></td><td><span class="no-data">—</span></td></tr>`;
                 }
             });
 
@@ -405,10 +385,7 @@
 
             document.getElementById('reportCardContainer').innerHTML = `
                 <div class="report-card">
-                    <div class="rc-header-bg">
-                        <h1>${escapeHtml(schoolName)}</h1>
-                        <div class="motto">"Moulding Future Leaders with Excellence"</div>
-                    </div>
+                    <div class="rc-header-bg"><h1>${escapeHtml(schoolName)}</h1><div class="motto">"Moulding Future Leaders with Excellence"</div></div>
                     <div class="rc-title-bar">Student Progress Report Card — ${termName} Term, ${session}</div>
                     <div class="rc-info-grid">
                         <div><strong>Name:</strong> ${escapeHtml(student.surname)} ${escapeHtml(student.firstName)}</div>
@@ -420,42 +397,30 @@
                     </div>
                     <div class="rc-table-wrap">
                         <table class="rc-table">
-                            <thead>
-                                <tr>
-                                    <th rowspan="2" class="sub-col" style="text-align:left;">SUBJECTS</th>
-                                    ${useA ? `<th rowspan="2">Assign.<br>(${w.a}%)</th>` : ''}
-                                    <th rowspan="2">Test<br>(${w.t}%)</th>
-                                    <th rowspan="2">Exam<br>(${w.e}%)</th>
-                                    <th rowspan="2">TOTAL<br>(100%)</th>
-                                    <th rowspan="2">GRADE</th>
-                                    <th rowspan="2">REMARK</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${subjectRows}
+                            <thead><tr>
+                                <th rowspan="2" class="sub-col" style="text-align:left;">SUBJECTS</th>
+                                ${useA ? `<th rowspan="2">Assign.<br>(${w.a}%)</th>` : ''}
+                                <th rowspan="2">Test<br>(${w.t}%)</th><th rowspan="2">Exam<br>(${w.e}%)</th>
+                                <th rowspan="2">TOTAL<br>(100%)</th><th rowspan="2">GRADE</th><th rowspan="2">REMARK</th>
+                            </tr></thead>
+                            <tbody>${subjectRows}
                                 <tr class="total-row">
                                     <td class="sub-col"><strong>AGGREGATE</strong></td>
-                                    ${useA ? '<td></td>' : ''}
-                                    <td colspan="2"></td>
+                                    ${useA ? '<td></td>' : ''}<td colspan="2"></td>
                                     <td><strong>${subjectCount>0 ? Math.round(totalScored) : '—'}</strong></td>
                                     <td><strong>${overallGrade}</strong></td>
                                     <td>${subjectCount>0 ? getRemark(overallGrade) : '—'}</td>
-                                </tr>
-                            </tbody>
+                                </tr></tbody>
                         </table>
                     </div>
                     <div class="rc-summary">
-                        <div class="rc-summary-box">
-                            <h5>📊 Academic Summary</h5>
+                        <div class="rc-summary-box"><h5>📊 Academic Summary</h5>
                             <p><strong>Total:</strong> ${subjectCount>0 ? Math.round(totalScored)+' / '+(subjectCount*100) : '—'}</p>
                             <p><strong>Average:</strong> ${subjectCount>0 ? average.toFixed(1)+'%' : '—'}</p>
                             <p><strong>Class Average:</strong> ${classAvg.toFixed(1)}%</p>
-                            <p><strong>Grade:</strong> <strong>${overallGrade} — ${getRemark(overallGrade)}</strong></p>
                         </div>
-                        <div class="rc-summary-box">
-                            <h5>🎯 Grading</h5>
-                            <p>A:70-100 | B:60-69 | C:50-59</p>
-                            <p>D:45-49 | E:40-44 | F:0-39</p>
+                        <div class="rc-summary-box"><h5>🎯 Grading</h5>
+                            <p>A:70-100 | B:60-69 | C:50-59 | D:45-49 | E:40-44 | F:0-39</p>
                         </div>
                     </div>
                     <div class="rc-signatures">
@@ -463,94 +428,77 @@
                         <div><div class="rc-sign-line"><br><small>Principal</small></div></div>
                         <div><div class="rc-sign-line"><br><small>Parent/Guardian</small></div></div>
                     </div>
-                    <div class="rc-footer">Next Term Begins: ${document.getElementById('nextTermInput').value || 'TBA'} | Resumption: 8:00 AM</div>
+                    <div class="rc-footer">Next Term: ${document.getElementById('nextTermInput').value||'TBA'} | Resumption: 8:00 AM</div>
                 </div>`;
         }
 
-        // === SAVE (FULLY SANITIZED) ===
-        function buildCleanData(status) {
-            const session = document.getElementById('sessionInput').value || '2025/2026';
-            const term = document.getElementById('termSelect').value || 'first';
-            const schoolName = document.getElementById('schoolNameInput').value || 'Triangle International School';
-            const teacherSign = document.getElementById('teacherSignName').value || '';
-            const nextTerm = document.getElementById('nextTermInput').value || 'TBA';
-            const subjects = Object.keys(config?.subjectConfigs || {});
-            const useA = config?.useAssignments !== false;
-            const gw = config?.globalWeights || { a: 10, t: 30, e: 60 };
-
-            const studentResults = allStudents.map(stu => {
-                let sum = 0, cnt = 0;
-                const subResults = subjects.map(sub => {
-                    const cfg = config?.subjectConfigs?.[sub];
-                    const sc = cfg?.studentScores?.[stu.id];
-                    const assignAvg = sc?.assignAvg ?? 0;
-                    const testAvg = sc?.testAvg ?? 0;
-                    const examScore = sc?.examScore ?? 0;
-                    const rawTotal = sc ? (sc.override !== null ? sc.override : (sc.total ?? 0)) : 0;
-                    const total = Math.round(rawTotal);
-                    if (sc && sc.total > 0) { sum += (sc.override !== null ? sc.override : sc.total); cnt++; }
-                    return { name: sub, assignAvg, testAvg, examScore, total, grade: sc ? getGrade(sc.override !== null ? sc.override : (sc.total ?? 0)) : 'F' };
-                });
-                return {
-                    studentId: stu.id, studentName: stu.name, admissionNo: stu.admissionNo || 'N/A',
-                    gender: stu.gender || 'N/A', subjects: subResults,
-                    totalScore: sum, averageScore: cnt > 0 ? sum / cnt : 0
-                };
-            });
-
-            // Build data object with NO undefined values
-            const data = {};
-            data.teacherId = currentUser.uid || '';
-            data.teacherName = teacherSign;
-            data.classId = classId || '';
-            data.className = (classId || '').toUpperCase();
-            data.session = session;
-            data.term = term;
-            data.schoolName = schoolName;
-            data.motto = 'Moulding Future Leaders with Excellence';
-            data.address = '';
-            data.phone = '';
-            data.nextTerm = nextTerm;
-            data.useAssignments = useA;
-            data.globalWeights = { a: gw.a ?? 10, t: gw.t ?? 30, e: gw.e ?? 60 };
-            data.subjects = subjects;
-            data.studentResults = studentResults;
-            data.totalStudents = allStudents.length;
-            data.status = status;
-            data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-            if (status === 'pending_approval') data.submittedForApprovalAt = firebase.firestore.FieldValue.serverTimestamp();
-
-            // Debug: log the data
-            debug('Data to save: ' + JSON.stringify({ ...data, updatedAt: 'TIMESTAMP', submittedForApprovalAt: data.submittedForApprovalAt ? 'TIMESTAMP' : undefined }).substring(0, 500));
-            debug(`globalWeights: ${JSON.stringify(data.globalWeights)}`);
-
-            return data;
-        }
-
+        // === SAVE — FULLY SANITIZED ===
         async function saveReportCards(status) {
             showLoading();
             try {
-                const data = buildCleanData(status);
-                const session = data.session, term = data.term;
+                const session = document.getElementById('sessionInput').value || '2025/2026';
+                const term = document.getElementById('termSelect').value || 'first';
+                const schoolName = document.getElementById('schoolNameInput').value || 'Triangle International School';
+                const teacherSign = document.getElementById('teacherSignName').value || '';
+                const nextTerm = document.getElementById('nextTermInput').value || 'TBA';
+                const subjects = Object.keys(config?.subjectConfigs || {});
+                const useA = config?.useAssignments !== false;
+                const gw = config?.globalWeights || { a: 10, t: 30, e: 60 };
+
+                const studentResults = allStudents.map(stu => {
+                    let sum = 0, cnt = 0;
+                    const subResults = subjects.map(sub => {
+                        const sc = config?.subjectConfigs?.[sub]?.studentScores?.[stu.id];
+                        const assignAvg = sc?.assignAvg ?? 0;
+                        const testAvg = sc?.testAvg ?? 0;
+                        const examScore = sc?.examScore ?? 0;
+                        const rawTotal = sc ? ((sc.override ?? sc.total) ?? 0) : 0;
+                        const total = Math.round(rawTotal);
+                        if (sc && sc.total > 0) { sum += (sc.override ?? sc.total); cnt++; }
+                        return { name: sub, assignAvg, testAvg, examScore, total, grade: sc ? getGrade((sc.override ?? sc.total) ?? 0) : 'F' };
+                    });
+                    return { studentId: stu.id, studentName: stu.name, admissionNo: stu.admissionNo || 'N/A', gender: stu.gender || 'N/A', subjects: subResults, totalScore: sum, averageScore: cnt > 0 ? sum / cnt : 0 };
+                });
+
+                // Build data with ZERO undefined values
+                const data = {};
+                data.teacherId = currentUser.uid || '';
+                data.teacherName = teacherSign;
+                data.classId = classId || '';
+                data.className = (classId || '').toUpperCase();
+                data.session = session;
+                data.term = term;
+                data.schoolName = schoolName;
+                data.motto = 'Moulding Future Leaders with Excellence';
+                data.address = '';
+                data.phone = '';
+                data.nextTerm = nextTerm;
+                data.useAssignments = useA;
+                data.globalWeights = { a: gw.a ?? 10, t: gw.t ?? 30, e: gw.e ?? 60 };
+                data.subjects = subjects;
+                data.studentResults = studentResults;
+                data.totalStudents = allStudents.length;
+                data.status = status;
+                data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+                if (status === 'pending_approval') data.submittedForApprovalAt = firebase.firestore.FieldValue.serverTimestamp();
+
+                debug(`SAVING: globalWeights = ${JSON.stringify(data.globalWeights)}, subjects = ${subjects.length}, students = ${allStudents.length}`);
 
                 const existingSnap = await db.collection('reportCards')
-                    .where('teacherId','==',currentUser.uid)
-                    .where('classId','==',classId)
-                    .where('session','==',session)
-                    .where('term','==',term)
-                    .limit(1).get();
+                    .where('teacherId','==',currentUser.uid).where('classId','==',classId)
+                    .where('session','==',session).where('term','==',term).limit(1).get();
 
                 if (!existingSnap.empty) {
-                    debug('Updating existing report card: ' + existingSnap.docs[0].id);
+                    debug('Updating existing card: ' + existingSnap.docs[0].id);
                     await db.collection('reportCards').doc(existingSnap.docs[0].id).update(data);
                 } else {
-                    debug('Creating new report card');
+                    debug('Creating new card...');
                     const ref = await db.collection('reportCards').add(data);
                     debug('Created: ' + ref.id, 'success');
                 }
 
                 await db.collection('auditLogs').add({
-                    userId: currentUser.uid, userName: data.teacherName,
+                    userId: currentUser.uid, userName: teacherSign,
                     action: status === 'pending_approval' ? 'REPORT_CARD_SUBMITTED' : 'REPORT_CARD_SAVED',
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     details: { classId, session, term, studentCount: allStudents.length }
@@ -566,7 +514,7 @@
             finally { hideLoading(); }
         }
 
-        // === EVENT LISTENERS ===
+        // === EVENTS ===
         document.getElementById('loadDataBtn').addEventListener('click', loadData);
         document.getElementById('prevBtn').addEventListener('click', () => { if (currentIdx > 0) selectStudent(currentIdx - 1); });
         document.getElementById('nextBtn').addEventListener('click', () => { if (currentIdx < allStudents.length - 1) selectStudent(currentIdx + 1); });
