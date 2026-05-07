@@ -11,7 +11,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        /* ========== SAME STYLES AS BEFORE (kept unchanged) ========== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root[data-theme="light"] {
@@ -90,12 +89,13 @@
             100% { transform: translate(40px, 40px) scale(1.1); }
         }
 
+        /* ==================== SIDEBAR ==================== */
         .sidebar {
             width: 280px;
             background: var(--bg-sidebar);
             backdrop-filter: blur(20px);
             border-right: 1px solid var(--border);
-            padding: 2rem 1rem;
+            padding: 1.5rem 1rem;
             display: flex;
             flex-direction: column;
             transition: width 0.3s;
@@ -113,7 +113,7 @@
             display: flex;
             align-items: center;
             gap: 1rem;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             padding: 0 0.5rem;
         }
         .sidebar .logo-area i {
@@ -135,17 +135,18 @@
         .sidebar .nav-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 0.85rem 1.2rem;
-            border-radius: 1rem;
+            gap: 0.85rem;
+            padding: 0.7rem 1rem;
+            border-radius: 0.85rem;
             color: var(--text-secondary);
             transition: all 0.2s;
             cursor: pointer;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.2rem;
             text-decoration: none;
             font-weight: 500;
             white-space: nowrap;
             border: 1px solid transparent;
+            font-size: 0.875rem;
         }
         .sidebar .nav-item:hover {
             background: var(--hover-bg);
@@ -158,17 +159,20 @@
             color: white;
             box-shadow: 0 5px 15px -5px var(--accent);
         }
-        .sidebar .nav-item i { font-size: 1.2rem; width: 1.6rem; text-align: center; }
+        .sidebar .nav-item i { font-size: 1.1rem; width: 1.4rem; text-align: center; }
         .sidebar.collapsed .nav-item span { display: none; }
 
-        .sidebar .nav-group {
-            margin: 0.75rem 0 0.3rem;
+        .sidebar .nav-section-title {
+            margin: 1rem 0 0.2rem;
             padding-left: 1rem;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: var(--text-secondary);
-            letter-spacing: 1px;
-            font-weight: 600;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            text-transform: uppercase;
         }
+        .sidebar.collapsed .nav-section-title { display: none; }
+
         .sidebar .toggle-btn {
             margin-top: auto;
             display: flex;
@@ -177,8 +181,11 @@
             cursor: pointer;
             color: var(--text-secondary);
             font-size: 1.2rem;
+            transition: 0.2s;
         }
+        .sidebar .toggle-btn:hover { color: var(--accent); }
 
+        /* ==================== MAIN CONTENT ==================== */
         .main-content {
             flex: 1;
             margin-left: 280px;
@@ -186,10 +193,10 @@
             transition: margin-left 0.3s;
             position: relative;
             z-index: 5;
+            max-width: 1500px;
         }
         .main-content.expanded { margin-left: 90px; }
 
-        /* ========== REST OF THE STYLES (stats, cards, tables, etc.) ========== */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -233,7 +240,7 @@
             border-radius: 2rem;
             padding: 0.3rem 0.3rem 0.3rem 1rem;
         }
-        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+        .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .profile-pic {
             width: 40px;
             height: 40px;
@@ -246,6 +253,7 @@
             font-weight: 600;
             font-size: 1rem;
             box-shadow: 0 2px 10px var(--accent);
+            flex-shrink: 0;
         }
         .dropdown-menu {
             position: absolute;
@@ -273,13 +281,14 @@
             transition: 0.2s;
             cursor: pointer;
             text-decoration: none;
+            font-size: 0.9rem;
         }
         .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
 
         .welcome-banner {
             background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
             border-radius: 1.5rem;
-            padding: 1.5rem;
+            padding: 1.5rem 2rem;
             margin-bottom: 2rem;
             color: white;
             display: flex;
@@ -366,7 +375,9 @@
             color: var(--accent);
             text-decoration: none;
             font-size: 0.8rem;
+            font-weight: 500;
         }
+        .section-header a:hover { text-decoration: underline; }
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
@@ -383,6 +394,7 @@
             border-bottom: 1px solid var(--border);
             font-size: 0.85rem;
         }
+        tr:last-child td { border-bottom: none; }
 
         .badge {
             padding: 0.2rem 0.6rem;
@@ -413,6 +425,7 @@
             background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
             color: white;
         }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
         .btn-outline {
             background: transparent;
             border: 1px solid var(--border);
@@ -421,6 +434,7 @@
         .btn-outline:hover {
             background: var(--hover-bg);
             border-color: var(--accent);
+            color: var(--accent);
         }
 
         .two-columns {
@@ -430,12 +444,20 @@
             margin-bottom: 1.5rem;
         }
 
+        .empty-state-text {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
-            .sidebar .logo-area h2, .sidebar .nav-item span { display: none; }
+            .sidebar .logo-area h2, .sidebar .nav-item span, .sidebar .nav-section-title { display: none; }
             .main-content { margin-left: 80px; padding: 1rem; }
             .two-columns { grid-template-columns: 1fr; }
             .quick-actions { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -443,59 +465,38 @@
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
-    <!-- SIDEBAR – ALL NEW PAGES INCLUDED -->
+    <!-- ==================== SIDEBAR – UPDATED NAVIGATION ==================== -->
     <div class="sidebar" id="sidebar">
         <div class="logo-area">
-            <i class="fas fa-chalkboard-teacher"></i>
+            <i class="fas fa-graduation-cap"></i>
             <h2>EduTop</h2>
         </div>
 
-        <div class="nav-group">MAIN</div>
+        <div class="nav-section-title">Main</div>
         <a href="teacher-dashboard.html" class="nav-item active"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
 
-        <div class="nav-group">SCHOOL INFO</div>
-        <a href="calendar-view.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>School Calendar</span></a>
-
-        <div class="nav-group">LESSON PLANNING</div>
-        <a href="teacher-timetable.html" class="nav-item"><i class="fas fa-calendar-week"></i><span>Timetable</span></a>
-        <a href="teacher-syllabus.html" class="nav-item"><i class="fas fa-list-ul"></i><span>Syllabus</span></a>
-        <a href="teacher-lesson-notes.html" class="nav-item"><i class="fas fa-book-open"></i><span>Lesson Notes</span></a>
-
-        <div class="nav-group">ASSESSMENTS</div>
-        <a href="teacher-assignments.html" class="nav-item"><i class="fas fa-tasks"></i><span>Assignments</span></a>
-
-        <div class="nav-group">CBT TESTS</div>
-        <a href="teacher-tests.html" class="nav-item"><i class="fas fa-file-alt"></i><span>CBT Tests</span></a>
-
-        <div class="nav-group">EXAMS</div>
-        <a href="teacher-exams.html" class="nav-item"><i class="fas fa-pen-fancy"></i><span>Exams</span></a>
-
-        <div class="nav-group">GRADING & REPORTS</div>
-        <a href="teacher-grading-engine.html" class="nav-item"><i class="fas fa-calculator"></i><span>Grading Engine</span></a>
-        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Cards</span></a>
-        <a href="teacher-results-dashboard.html" class="nav-item"><i class="fas fa-chart-simple"></i><span>Results Dashboard</span></a>
-
-        <div class="nav-group">RESOURCES</div>
+        <div class="nav-section-title">Teacher's Tools</div>
+        <a href="teacher-test-center.html" class="nav-item"><i class="fas fa-flask"></i><span>Teacher's Tool</span></a>
+        <a href="teacher-report-card.html" class="nav-item"><i class="fas fa-graduation-cap"></i><span>Report Card</span></a>
         <a href="teacher-question-bank.html" class="nav-item"><i class="fas fa-database"></i><span>Question Bank</span></a>
+        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Teacher Profile</span></a>
 
-        <div class="nav-group">CLASS MANAGEMENT</div>
-        <a href="teacher-my-class.html" class="nav-item"><i class="fas fa-users"></i><span>My Class</span></a>
-        <a href="teacher-attendance.html" class="nav-item"><i class="fas fa-fingerprint"></i><span>Attendance</span></a>
-        <a href="teacher-approvals.html" class="nav-item"><i class="fas fa-user-check"></i><span>Approve Students</span></a>
+        <div class="nav-section-title">Assessments</div>
+        <a href="teacher-test-center.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Teacher Test</span></a>
+        <a href="teacher-test-center.html" class="nav-item"><i class="fas fa-tasks"></i><span>Teacher Assignment</span></a>
+        <a href="teacher-test-center.html" class="nav-item"><i class="fas fa-pen-fancy"></i><span>Teacher Exam</span></a>
 
-        <div class="nav-group">COMMUNICATION</div>
-        <a href="teacher-announcements.html" class="nav-item"><i class="fas fa-bullhorn"></i><span>School Announcements</span></a>
-        <a href="teacher-class-announcements.html" class="nav-item"><i class="fas fa-users"></i><span>Class Announcements</span></a>
-        <a href="teacher-daily-report.html" class="nav-item"><i class="fas fa-journal-whills"></i><span>Daily Report</span></a>
-        <a href="permission-request.html" class="nav-item"><i class="fas fa-envelope-open-text"></i><span>Permission Request</span></a>
+        <div class="nav-section-title">Teaching</div>
+        <a href="teacher-classroom-hub.html" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Teacher Teach</span></a>
+        <a href="teacher-analysis.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Teacher Analysis</span></a>
 
-        <div class="nav-group">ACCOUNT</div>
-        <a href="teacher-profile.html" class="nav-item"><i class="fas fa-user-edit"></i><span>Update Profile</span></a>
+        <div class="nav-section-title">Information</div>
+        <a href="school-info.html" class="nav-item"><i class="fas fa-info-circle"></i><span>School Info</span></a>
 
         <div class="toggle-btn" id="sidebarToggle"><i class="fas fa-chevron-left"></i></div>
     </div>
 
-    <!-- MAIN CONTENT (unchanged functionality – keeps all dashboard stats, charts, etc.) -->
+    <!-- ==================== MAIN CONTENT ==================== -->
     <div class="main-content" id="mainContent">
         <div class="top-bar">
             <div class="page-title">
@@ -503,14 +504,23 @@
                 <p>Welcome back, <span id="teacherName">Teacher</span></p>
             </div>
             <div class="profile-area">
-                <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i></div>
+                <div class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i><span>Light</span><i class="fas fa-moon"></i>
+                </div>
                 <div class="profile-dropdown">
-                    <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
-                    <div class="dropdown-menu"><a href="teacher-profile.html" class="dropdown-item"><i class="fas fa-user-edit"></i> Update Profile</a><div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div></div>
+                    <div class="profile-trigger">
+                        <span class="profile-name" id="profileName">Teacher</span>
+                        <div class="profile-pic" id="profilePic">T</div>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="teacher-profile.html" class="dropdown-item"><i class="fas fa-user-edit"></i> Update Profile</a>
+                        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Welcome Banner -->
         <div class="welcome-banner">
             <div>
                 <h2><i class="fas fa-chalkboard"></i> Ready to inspire minds!</h2>
@@ -519,6 +529,7 @@
             <div><span id="currentDate" style="font-size: 0.9rem;"></span></div>
         </div>
 
+        <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-value" id="totalStudents">0</div><div class="stat-label">Total Students</div></div>
             <div class="stat-card"><div class="stat-value" id="publishedAssignments">0</div><div class="stat-label">Assignments</div></div>
@@ -530,67 +541,147 @@
             <div class="stat-card"><div class="stat-value" id="attendanceToday">0%</div><div class="stat-label">Today's Attendance</div></div>
         </div>
 
+        <!-- Quick Actions -->
         <div class="quick-actions">
-            <a href="teacher-create-assignment.html" class="action-card"><i class="fas fa-plus-circle"></i><span>New Assignment</span></a>
-            <a href="teacher-create-test.html" class="action-card"><i class="fas fa-plus-square"></i><span>New CBT Test</span></a>
-            <a href="teacher-create-exam.html" class="action-card"><i class="fas fa-plus-circle"></i><span>New Exam</span></a>
-            <a href="teacher-grade.html" class="action-card"><i class="fas fa-check-double"></i><span>Grade Work</span></a>
-            <a href="teacher-attendance.html" class="action-card"><i class="fas fa-fingerprint"></i><span>Take Attendance</span></a>
+            <a href="teacher-test-center.html" class="action-card" onclick="localStorage.setItem('testCenterTab','create');"><i class="fas fa-plus-circle"></i><span>New Assignment</span></a>
+            <a href="teacher-test-center.html" class="action-card" onclick="localStorage.setItem('testCenterTab','create');"><i class="fas fa-plus-square"></i><span>New CBT Test</span></a>
+            <a href="teacher-test-center.html" class="action-card" onclick="localStorage.setItem('testCenterTab','create');"><i class="fas fa-plus-circle"></i><span>New Exam</span></a>
+            <a href="teacher-test-center.html" class="action-card" onclick="localStorage.setItem('testCenterTab','grade');"><i class="fas fa-check-double"></i><span>Grade Work</span></a>
+            <a href="teacher-classroom-hub.html" class="action-card" onclick="localStorage.setItem('classroomHubTab','attendance');"><i class="fas fa-fingerprint"></i><span>Take Attendance</span></a>
             <a href="teacher-question-bank.html" class="action-card"><i class="fas fa-database"></i><span>Question Bank</span></a>
-            <a href="teacher-grading-engine.html" class="action-card"><i class="fas fa-calculator"></i><span>Calculate Grades</span></a>
+            <a href="teacher-analysis.html" class="action-card"><i class="fas fa-calculator"></i><span>Calculate Grades</span></a>
             <a href="teacher-report-card.html" class="action-card"><i class="fas fa-graduation-cap"></i><span>Generate Reports</span></a>
         </div>
 
+        <!-- Two Column Layout -->
         <div class="two-columns">
+            <!-- Left Column -->
             <div>
+                <!-- Today's Schedule -->
                 <div class="section-card">
-                    <div class="section-header"><h3><i class="fas fa-calendar-alt"></i> Today's Schedule</h3><a href="teacher-timetable.html">View Full <i class="fas fa-arrow-right"></i></a></div>
-                    <div id="todaySchedule">Loading...</div>
+                    <div class="section-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Today's Schedule</h3>
+                        <a href="teacher-timetable.html">View Full <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div id="todaySchedule"><p class="empty-state-text">Loading...</p></div>
                 </div>
+
+                <!-- Pending Submissions -->
                 <div class="section-card">
-                    <div class="section-header"><h3><i class="fas fa-clock"></i> Pending Submissions to Grade</h3><a href="teacher-grade.html">View All <i class="fas fa-arrow-right"></i></a></div>
-                    <div class="table-responsive"><tr><thead><tr><th>Student</th><th>Assessment</th><th>Type</th><th>Submitted</th><th>Action</th></tr></thead><tbody id="pendingSubmissionsBody"><tr><td colspan="5">Loading...<\/td><\/tr><\/tbody>}</div>
+                    <div class="section-header">
+                        <h3><i class="fas fa-clock"></i> Pending Submissions to Grade</h3>
+                        <a href="teacher-test-center.html">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Student</th><th>Assessment</th><th>Type</th><th>Submitted</th><th>Action</th></tr></thead>
+                            <tbody id="pendingSubmissionsBody"><tr><td colspan="5" class="empty-state-text">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
+
+                <!-- Recent Assignments -->
                 <div class="section-card">
-                    <div class="section-header"><h3><i class="fas fa-tasks"></i> Recent Assignments</h3><a href="teacher-assignments.html">View All <i class="fas fa-arrow-right"></i></a></div>
-                    <div class="table-responsive"><table><thead><tr><th>Title</th><th>Subject</th><th>Due Date</th><th>Submissions</th><th>Status</th></tr></thead><tbody id="recentAssignmentsBody"><tr><td colspan="5">Loading...<\/td><\/tr><\/tbody>}</div>
+                    <div class="section-header">
+                        <h3><i class="fas fa-tasks"></i> Recent Assignments</h3>
+                        <a href="teacher-test-center.html">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Title</th><th>Subject</th><th>Due Date</th><th>Submissions</th><th>Status</th></tr></thead>
+                            <tbody id="recentAssignmentsBody"><tr><td colspan="5" class="empty-state-text">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+
+            <!-- Right Column -->
             <div>
+                <!-- Upcoming Tests -->
                 <div class="section-card">
-                    <div class="section-header"><h3><i class="fas fa-laptop"></i> Upcoming CBT Tests</h3><a href="teacher-tests.html">View All <i class="fas fa-arrow-right"></i></a></div>
-                    <div class="table-responsive"><table><thead><tr><th>Title</th><th>Subject</th><th>Date</th><th>Questions</th><th>Status</th></tr></thead><tbody id="upcomingTestsBody"><tr><td colspan="5">Loading...<\/td><\/tr><\/tbody>}</div>
+                    <div class="section-header">
+                        <h3><i class="fas fa-laptop"></i> Upcoming CBT Tests</h3>
+                        <a href="teacher-test-center.html">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Title</th><th>Subject</th><th>Date</th><th>Questions</th><th>Status</th></tr></thead>
+                            <tbody id="upcomingTestsBody"><tr><td colspan="5" class="empty-state-text">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
+
+                <!-- Upcoming Exams -->
                 <div class="section-card">
-                    <div class="section-header"><h3><i class="fas fa-pen-fancy"></i> Upcoming Exams</h3><a href="teacher-exams.html">View All <i class="fas fa-arrow-right"></i></a></div>
-                    <div class="table-responsive"><table><thead><tr><th>Title</th><th>Subject</th><th>Date</th><th>Duration</th><th>Status</th></tr></thead><tbody id="upcomingExamsBody"><tr><td colspan="5">Loading...<\/td><\/tr><\/tbody>}</div>
+                    <div class="section-header">
+                        <h3><i class="fas fa-pen-fancy"></i> Upcoming Exams</h3>
+                        <a href="teacher-test-center.html">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Title</th><th>Subject</th><th>Date</th><th>Duration</th><th>Status</th></tr></thead>
+                            <tbody id="upcomingExamsBody"><tr><td colspan="5" class="empty-state-text">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
+
+                <!-- Recent Graded Results -->
                 <div class="section-card">
-                    <div class="section-header"><h3><i class="fas fa-chart-simple"></i> Recent Graded Results</h3><a href="teacher-results-dashboard.html">View All <i class="fas fa-arrow-right"></i></a></div>
-                    <div class="table-responsive"><table><thead><tr><th>Student</th><th>Assessment</th><th>Score</th><th>Grade</th><th>Date</th></tr></thead><tbody id="recentResultsBody"><tr><td colspan="5">Loading...<\/td><\/tr><\/tbody>}</div>
+                    <div class="section-header">
+                        <h3><i class="fas fa-chart-simple"></i> Recent Graded Results</h3>
+                        <a href="teacher-analysis.html">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Student</th><th>Assessment</th><th>Score</th><th>Grade</th><th>Date</th></tr></thead>
+                            <tbody id="recentResultsBody"><tr><td colspan="5" class="empty-state-text">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Bottom Row -->
         <div class="two-columns">
+            <!-- Recent Activity -->
             <div class="section-card">
-                <div class="section-header"><h3><i class="fas fa-user-graduate"></i> Recent Student Activity</h3><a href="teacher-my-class.html">View Class <i class="fas fa-arrow-right"></i></a></div>
-                <div class="table-responsive"><table><thead><tr><th>Student</th><th>Activity</th><th>Assessment</th><th>Date</th><th>Status</th></tr></thead><tbody id="recentActivityBody"><tr><td colspan="5">Loading...<\/td><\/tr><\/tbody>}</div>
+                <div class="section-header">
+                    <h3><i class="fas fa-user-graduate"></i> Recent Student Activity</h3>
+                    <a href="teacher-classroom-hub.html">View Class <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>Student</th><th>Activity</th><th>Assessment</th><th>Date</th><th>Status</th></tr></thead>
+                        <tbody id="recentActivityBody"><tr><td colspan="5" class="empty-state-text">Loading...</td></tr></tbody>
+                    </table>
+                </div>
             </div>
+
+            <!-- Performance Chart -->
             <div class="section-card">
-                <div class="section-header"><h3><i class="fas fa-chart-line"></i> Class Performance Trend</h3></div>
+                <div class="section-header">
+                    <h3><i class="fas fa-chart-line"></i> Class Performance Trend</h3>
+                </div>
                 <canvas id="performanceChart" style="height: 200px; width: 100%;"></canvas>
             </div>
         </div>
 
+        <!-- Pending Lesson Notes -->
         <div class="section-card">
-            <div class="section-header"><h3><i class="fas fa-book-open"></i> Pending Lesson Notes</h3><a href="teacher-lesson-notes.html">View All <i class="fas fa-arrow-right"></i></a></div>
-            <div class="table-responsive"></table><thead><tr><th>Subject</th><th>Topic</th><th>Week</th><th>Submitted</th><th>Action</th></tr></thead><tbody id="pendingNotesBody"><tr><td colspan="5">Loading...<\/td><\/tr><\/tbody>}</div>
+            <div class="section-header">
+                <h3><i class="fas fa-book-open"></i> Pending Lesson Notes</h3>
+                <a href="teacher-lesson-notes.html">View All <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Subject</th><th>Topic</th><th>Week</th><th>Submitted</th><th>Action</th></tr></thead>
+                    <tbody id="pendingNotesBody"><tr><td colspan="5" class="empty-state-text">Loading...</td></tr></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        // Firebase config (same as all pages)
         const firebaseConfig = {
             apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
             authDomain: "triangle-6e6b7.firebaseapp.com",
@@ -603,195 +694,413 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // ==================== SIDEBAR TOGGLE ====================
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('sidebarToggle');
-        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); mainContent.classList.toggle('expanded'); });
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-left');
+            icon.classList.toggle('fa-chevron-right');
+        });
 
+        // ==================== THEME ====================
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
-        function updateThemeUI(theme) { themeToggle.querySelector('span').textContent = theme === 'dark' ? 'Light' : 'Dark'; }
         const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
         html.setAttribute('data-theme', savedTheme);
-        updateThemeUI(savedTheme);
+        themeToggle.querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
         themeToggle.addEventListener('click', () => {
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
             localStorage.setItem('edutop-theme', next);
-            updateThemeUI(next);
+            themeToggle.querySelector('span').textContent = next === 'dark' ? 'Light' : 'Dark';
         });
 
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        // ==================== DATE ====================
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
 
-        let currentUser = null, userData = null, performanceChart = null;
+        // ==================== GLOBALS ====================
+        let currentUser = null;
+        let userData = null;
+        let performanceChart = null;
 
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== AUTH ====================
         auth.onAuthStateChanged(async (user) => {
             if (!user) { window.location.href = 'teacher-login.html'; return; }
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'teacher') { auth.signOut(); window.location.href = 'index.html'; return; }
+                if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+                    auth.signOut();
+                    window.location.href = 'index.html';
+                    return;
+                }
                 userData = userDoc.data();
-                if (!(userData.approved === true || userData.status === 'approved')) { alert('Account pending approval.'); auth.signOut(); window.location.href = 'teacher-login.html'; return; }
+                if (!(userData.approved === true || userData.status === 'approved')) {
+                    alert('Your account is pending approval. Please contact admin.');
+                    auth.signOut();
+                    window.location.href = 'teacher-login.html';
+                    return;
+                }
                 currentUser = user;
                 document.getElementById('teacherName').textContent = userData.firstName || 'Teacher';
                 document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
                 const initials = (userData.firstName?.[0] || 'T') + (userData.surname?.[0] || 'E');
                 document.getElementById('profilePic').textContent = initials;
-                loadDashboardData();
-            } catch(e) { console.error(e); }
+                await loadDashboardData();
+            } catch (e) {
+                console.error('Auth error:', e);
+            }
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(() => window.location.href='index.html'));
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = 'index.html');
+        });
 
+        // ==================== LOAD DASHBOARD DATA ====================
         async function loadDashboardData() {
-            // (same data loading logic as before – unchanged)
             if (!currentUser) return;
             try {
                 const teacherClass = userData.classTeaching;
-                let totalStudents = 0, pendingSubmissionsCount = 0, gradedCount = 0, totalScore = 0;
-                let assignmentsHtml = '', testsHtml = '', examsHtml = '', resultsHtml = '', activityHtml = '', notesHtml = '';
+                let totalStudents = 0,
+                    pendingSubmissionsCount = 0,
+                    gradedCount = 0,
+                    totalScore = 0;
+                let assignmentsHtml = '',
+                    testsHtml = '',
+                    examsHtml = '',
+                    resultsHtml = '',
+                    activityHtml = '',
+                    notesHtml = '';
+                let pendingTableHtml = '';
 
+                // Total Students
                 if (teacherClass) {
-                    const studentsSnap = await db.collection('users').where('role', '==', 'student').where('class', '==', teacherClass).get();
+                    const studentsSnap = await db.collection('users')
+                        .where('role', '==', 'student')
+                        .where('class', '==', teacherClass)
+                        .get();
                     totalStudents = studentsSnap.size;
                 }
                 document.getElementById('totalStudents').textContent = totalStudents;
 
-                const assignmentsSnap = await db.collection('assignments').where('teacherId', '==', currentUser.uid).get();
-                const publishedAssignments = assignmentsSnap.docs.filter(d => d.data().status === 'published').length;
+                // Assignments
+                const assignmentsSnap = await db.collection('assignments')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .limit(5)
+                    .get();
+                const allAssignmentsSnap = await db.collection('assignments')
+                    .where('teacherId', '==', currentUser.uid)
+                    .get();
+                const publishedAssignments = allAssignmentsSnap.docs.filter(d => d.data().status === 'published').length;
                 document.getElementById('publishedAssignments').textContent = publishedAssignments;
 
-                for (const doc of assignmentsSnap.docs.slice(0, 5)) {
-                    const a = doc.data();
-                    const subsCount = await db.collection('submissions').where('assignmentId', '==', doc.id).get();
-                    const statusBadge = a.status === 'published' ? '<span class="badge badge-success">Published</span>' : '<span class="badge badge-warning">Draft</span>';
-                    assignmentsHtml += `<tr><td><strong>${a.title || 'Untitled'}</strong></td><td>${a.subject || '—'}</div><td>${a.dueDate || 'No date'}</td><td>${subsCount.size}</td><td>${statusBadge}</td></tr>`;
+                if (assignmentsSnap.empty) {
+                    assignmentsHtml = '<tr><td colspan="5" class="empty-state-text">No assignments created yet</td></tr>';
+                } else {
+                    for (const doc of assignmentsSnap.docs) {
+                        const a = doc.data();
+                        const subsSnap = await db.collection('submissions')
+                            .where('assignmentId', '==', doc.id)
+                            .get();
+                        const statusBadge = a.status === 'published' ?
+                            '<span class="badge badge-success">Published</span>' :
+                            '<span class="badge badge-warning">Draft</span>';
+                        assignmentsHtml += `<tr>
+                            <td><strong>${escapeHtml(a.title || 'Untitled')}</strong></td>
+                            <td>${escapeHtml(a.subject || '—')}</td>
+                            <td>${a.dueDate ? new Date(a.dueDate.seconds ? a.dueDate.seconds * 1000 : a.dueDate).toLocaleDateString() : 'No date'}</td>
+                            <td>${subsSnap.size}</td>
+                            <td>${statusBadge}</td>
+                        </tr>`;
+                    }
                 }
-                document.getElementById('recentAssignmentsBody').innerHTML = assignmentsHtml || '<tr><td colspan="5">No assignments<\/td><\/tr>';
+                document.getElementById('recentAssignmentsBody').innerHTML = assignmentsHtml;
 
-                const testsSnap = await db.collection('tests').where('teacherId', '==', currentUser.uid).get();
-                const publishedTests = testsSnap.docs.filter(d => d.data().status === 'published').length;
+                // Tests
+                const testsSnap = await db.collection('tests')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .limit(5)
+                    .get();
+                const allTestsSnap = await db.collection('tests')
+                    .where('teacherId', '==', currentUser.uid)
+                    .get();
+                const publishedTests = allTestsSnap.docs.filter(d => d.data().status === 'published').length;
                 document.getElementById('publishedTests').textContent = publishedTests;
 
-                for (const doc of testsSnap.docs.filter(d => d.data().status === 'published').slice(0, 5)) {
-                    const t = doc.data();
-                    testsHtml += `<tr><td>${t.title || 'Untitled'}</td><td>${t.subject || '—'}</td><td>${t.startDate ? new Date(t.startDate.toDate()).toLocaleDateString() : 'Available'}</td><td>${t.questions?.length || 0}</td><td><span class="badge badge-success">Published</span></td></tr>`;
+                const publishedTestsList = testsSnap.docs.filter(d => d.data().status === 'published');
+                if (publishedTestsList.length === 0) {
+                    testsHtml = '<tr><td colspan="5" class="empty-state-text">No published tests</td></tr>';
+                } else {
+                    for (const doc of publishedTestsList.slice(0, 5)) {
+                        const t = doc.data();
+                        testsHtml += `<tr>
+                            <td><strong>${escapeHtml(t.title || 'Untitled')}</strong></td>
+                            <td>${escapeHtml(t.subject || '—')}</td>
+                            <td>${t.startDate ? new Date(t.startDate.seconds ? t.startDate.seconds * 1000 : t.startDate).toLocaleDateString() : 'Available'}</td>
+                            <td>${t.questions?.length || 0}</td>
+                            <td><span class="badge badge-success">Published</span></td>
+                        </tr>`;
+                    }
                 }
-                document.getElementById('upcomingTestsBody').innerHTML = testsHtml || '<tr><td colspan="5">No tests available<\/td><\/tr>';
+                document.getElementById('upcomingTestsBody').innerHTML = testsHtml;
 
-                const examsSnap = await db.collection('exams').where('teacherId', '==', currentUser.uid).get();
-                const publishedExams = examsSnap.docs.filter(d => d.data().status === 'published').length;
+                // Exams
+                const examsSnap = await db.collection('exams')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .limit(5)
+                    .get();
+                const allExamsSnap = await db.collection('exams')
+                    .where('teacherId', '==', currentUser.uid)
+                    .get();
+                const publishedExams = allExamsSnap.docs.filter(d => d.data().status === 'published').length;
                 document.getElementById('publishedExams').textContent = publishedExams;
 
-                for (const doc of examsSnap.docs.filter(d => d.data().status === 'published').slice(0, 5)) {
-                    const e = doc.data();
-                    examsHtml += `<tr><td>${e.title || 'Untitled'}</td><td>${e.subject || '—'}</td><td>${e.startDate ? new Date(e.startDate.toDate()).toLocaleDateString() : 'Available'}</td><td>${e.duration || 120} min</div><td><span class="badge badge-success">Published</span></td></tr>`;
+                const publishedExamsList = examsSnap.docs.filter(d => d.data().status === 'published');
+                if (publishedExamsList.length === 0) {
+                    examsHtml = '<tr><td colspan="5" class="empty-state-text">No published exams</td></tr>';
+                } else {
+                    for (const doc of publishedExamsList.slice(0, 5)) {
+                        const e = doc.data();
+                        examsHtml += `<tr>
+                            <td><strong>${escapeHtml(e.title || 'Untitled')}</strong></td>
+                            <td>${escapeHtml(e.subject || '—')}</td>
+                            <td>${e.startDate ? new Date(e.startDate.seconds ? e.startDate.seconds * 1000 : e.startDate).toLocaleDateString() : 'Available'}</td>
+                            <td>${e.duration || 120} min</td>
+                            <td><span class="badge badge-success">Published</span></td>
+                        </tr>`;
+                    }
                 }
-                document.getElementById('upcomingExamsBody').innerHTML = examsHtml || '<tr><td colspan="5">No exams available<\/td><\/tr>';
+                document.getElementById('upcomingExamsBody').innerHTML = examsHtml;
 
-                const submissionsSnap = await db.collection('submissions').where('teacherId', '==', currentUser.uid).get();
-                const pendingSubs = submissionsSnap.docs.filter(d => d.data().graded === false);
+                // Submissions
+                const submissionsSnap = await db.collection('submissions')
+                    .where('teacherId', '==', currentUser.uid)
+                    .orderBy('submittedAt', 'desc')
+                    .limit(20)
+                    .get();
+
+                const pendingSubs = submissionsSnap.docs.filter(d => d.data().graded === false || d.data().graded === undefined);
                 const gradedSubs = submissionsSnap.docs.filter(d => d.data().graded === true);
                 pendingSubmissionsCount = pendingSubs.length;
                 gradedCount = gradedSubs.length;
                 document.getElementById('pendingSubmissions').textContent = pendingSubmissionsCount;
                 document.getElementById('gradedSubmissions').textContent = gradedCount;
 
-                let pendingHtml = '';
-                for (const doc of pendingSubs.slice(0, 5)) {
-                    const s = doc.data();
-                    let studentName = s.studentName || 'Student';
-                    try {
-                        const studentDoc = await db.collection('users').doc(s.studentId).get();
-                        if (studentDoc.exists) studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim() || 'Student';
-                    } catch(e) {}
-                    pendingHtml += `<tr><td>${studentName}</td><td>${s.assignmentTitle || 'Assignment'}</td><td>${s.assignmentType === 'mcq' ? 'MCQ' : 'Essay'}</td><td>${s.submittedAt ? new Date(s.submittedAt.toDate()).toLocaleDateString() : '—'}</td><td><a href="teacher-grade.html?assignmentId=${s.assignmentId}" class="btn btn-primary btn-sm">Grade</a></td></tr>`;
+                // Pending Submissions Table
+                if (pendingSubs.length === 0) {
+                    pendingTableHtml = '<tr><td colspan="5" class="empty-state-text">No pending submissions</td></tr>';
+                } else {
+                    for (const doc of pendingSubs.slice(0, 5)) {
+                        const s = doc.data();
+                        let studentName = s.studentName || 'Student';
+                        try {
+                            const studentDoc = await db.collection('users').doc(s.studentId).get();
+                            if (studentDoc.exists) {
+                                studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim() || 'Student';
+                            }
+                        } catch (e) { /* use default */ }
+                        pendingTableHtml += `<tr>
+                            <td>${escapeHtml(studentName)}</td>
+                            <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</td>
+                            <td>${s.assignmentType === 'mcq' ? 'MCQ' : 'Essay'}</td>
+                            <td>${s.submittedAt ? new Date(s.submittedAt.seconds ? s.submittedAt.seconds * 1000 : s.submittedAt).toLocaleDateString() : '—'}</td>
+                            <td><a href="teacher-test-center.html" class="btn btn-primary btn-sm">Grade</a></td>
+                        </tr>`;
+                    }
                 }
-                document.getElementById('pendingSubmissionsBody').innerHTML = pendingHtml || '<tr><td colspan="5">No pending submissions<\/td><\/tr>';
+                document.getElementById('pendingSubmissionsBody').innerHTML = pendingTableHtml;
 
-                for (const doc of gradedSubs.slice(0, 5)) {
-                    const s = doc.data();
-                    let studentName = s.studentName || 'Student';
-                    try {
-                        const studentDoc = await db.collection('users').doc(s.studentId).get();
-                        if (studentDoc.exists) studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim() || 'Student';
-                    } catch(e) {}
-                    const assignDoc = await db.collection('assignments').doc(s.assignmentId).get();
-                    const total = assignDoc.exists ? assignDoc.data().totalPoints : 100;
-                    const percentage = (s.score / total) * 100;
-                    const grade = percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
-                    totalScore += percentage;
-                    resultsHtml += `<tr><td>${studentName}</td><td>${s.assignmentTitle || 'Assignment'}</td><td>${s.score}/${total}</td><td><span class="badge badge-info">${grade}</span></td><td>${s.gradedAt ? new Date(s.gradedAt.toDate()).toLocaleDateString() : '—'}</td></tr>`;
+                // Recent Graded Results
+                if (gradedSubs.length === 0) {
+                    resultsHtml = '<tr><td colspan="5" class="empty-state-text">No graded results yet</td></tr>';
+                } else {
+                    for (const doc of gradedSubs.slice(0, 5)) {
+                        const s = doc.data();
+                        let studentName = s.studentName || 'Student';
+                        try {
+                            const studentDoc = await db.collection('users').doc(s.studentId).get();
+                            if (studentDoc.exists) {
+                                studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim() || 'Student';
+                            }
+                        } catch (e) { /* use default */ }
+                        let total = 100;
+                        try {
+                            const assignDoc = await db.collection('assignments').doc(s.assignmentId).get();
+                            if (assignDoc.exists) total = assignDoc.data().totalPoints || 100;
+                        } catch (e) { /* use default */ }
+                        const percentage = total > 0 ? (s.score / total) * 100 : 0;
+                        const grade = percentage >= 75 ? 'A' : percentage >= 65 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
+                        totalScore += percentage;
+                        resultsHtml += `<tr>
+                            <td>${escapeHtml(studentName)}</td>
+                            <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</td>
+                            <td><strong>${s.score}/${total}</strong></td>
+                            <td><span class="badge badge-info">${grade}</span></td>
+                            <td>${s.gradedAt ? new Date(s.gradedAt.seconds ? s.gradedAt.seconds * 1000 : s.gradedAt).toLocaleDateString() : '—'}</td>
+                        </tr>`;
+                    }
                 }
                 const avgScore = gradedCount ? (totalScore / gradedCount).toFixed(1) : 0;
                 document.getElementById('avgClassScore').textContent = avgScore + '%';
-                document.getElementById('recentResultsBody').innerHTML = resultsHtml || '<tr><td colspan="5">No results yet<\/td><\/tr>';
+                document.getElementById('recentResultsBody').innerHTML = resultsHtml;
 
-                for (const doc of submissionsSnap.docs.slice(0, 5)) {
-                    const s = doc.data();
-                    let studentName = s.studentName || 'Student';
-                    try {
-                        const studentDoc = await db.collection('users').doc(s.studentId).get();
-                        if (studentDoc.exists) studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim() || 'Student';
-                    } catch(e) {}
-                    const status = s.graded ? 'Graded' : 'Pending';
-                    const statusClass = s.graded ? 'badge-success' : 'badge-warning';
-                    activityHtml += `<tr><td>${studentName}</td><td>Submitted ${s.assignmentType === 'mcq' ? 'MCQ' : 'Essay'}</td><td>${s.assignmentTitle || 'Assignment'}</td><td>${s.submittedAt ? new Date(s.submittedAt.toDate()).toLocaleDateString() : '—'}</td><td><span class="badge ${statusClass}">${status}</span></td></tr>`;
+                // Recent Activity
+                if (submissionsSnap.empty) {
+                    activityHtml = '<tr><td colspan="5" class="empty-state-text">No recent activity</td></tr>';
+                } else {
+                    for (const doc of submissionsSnap.docs.slice(0, 5)) {
+                        const s = doc.data();
+                        let studentName = s.studentName || 'Student';
+                        try {
+                            const studentDoc = await db.collection('users').doc(s.studentId).get();
+                            if (studentDoc.exists) {
+                                studentName = `${studentDoc.data().firstName || ''} ${studentDoc.data().surname || ''}`.trim() || 'Student';
+                            }
+                        } catch (e) { /* use default */ }
+                        const status = s.graded ? 'graded' : 'pending';
+                        activityHtml += `<tr>
+                            <td>${escapeHtml(studentName)}</td>
+                            <td>Submitted ${s.assignmentType === 'mcq' ? 'MCQ' : 'Essay'}</td>
+                            <td>${escapeHtml(s.assignmentTitle || 'Assignment')}</td>
+                            <td>${s.submittedAt ? new Date(s.submittedAt.seconds ? s.submittedAt.seconds * 1000 : s.submittedAt).toLocaleDateString() : '—'}</td>
+                            <td><span class="badge ${s.graded ? 'badge-success' : 'badge-warning'}">${s.graded ? 'Graded' : 'Pending'}</span></td>
+                        </tr>`;
+                    }
                 }
-                document.getElementById('recentActivityBody').innerHTML = activityHtml || '<tr><td colspan="5">No recent activity<\/td><\/tr>';
+                document.getElementById('recentActivityBody').innerHTML = activityHtml;
 
-                const notesSnap = await db.collection('lessonNotes').where('teacherId', '==', currentUser.uid).where('status', '==', 'pending').limit(5).get();
-                for (const doc of notesSnap.docs) {
-                    const n = doc.data();
-                    notesHtml += `<tr><td>${n.subject || '—'}</td><td>${n.topic || '—'}</div><td>Week ${n.week || '?'}</td><td>${n.submittedAt ? new Date(n.submittedAt.toDate()).toLocaleDateString() : '—'}</td><td><a href="teacher-lesson-notes.html?note=${doc.id}" class="btn btn-outline btn-sm">Review</a></td></tr>`;
+                // Pending Lesson Notes
+                const notesSnap = await db.collection('lessonNotes')
+                    .where('teacherId', '==', currentUser.uid)
+                    .where('status', '==', 'pending')
+                    .limit(5)
+                    .get();
+
+                if (notesSnap.empty) {
+                    notesHtml = '<tr><td colspan="5" class="empty-state-text">No pending lesson notes</td></tr>';
+                } else {
+                    for (const doc of notesSnap.docs) {
+                        const n = doc.data();
+                        notesHtml += `<tr>
+                            <td>${escapeHtml(n.subject || '—')}</td>
+                            <td>${escapeHtml(n.topic || '—')}</td>
+                            <td>Week ${n.week || '?'}</td>
+                            <td>${n.submittedAt ? new Date(n.submittedAt.seconds ? n.submittedAt.seconds * 1000 : n.submittedAt).toLocaleDateString() : '—'}</td>
+                            <td><a href="teacher-lesson-notes.html?note=${doc.id}" class="btn btn-outline btn-sm">Review</a></td>
+                        </tr>`;
+                    }
                 }
-                document.getElementById('pendingNotesBody').innerHTML = notesHtml || '<tr><td colspan="5">No pending lesson notes<\/td><\/tr>';
+                document.getElementById('pendingNotesBody').innerHTML = notesHtml;
 
+                // Pending Tasks Count
                 const totalPendingTasks = pendingSubmissionsCount + notesSnap.size;
                 document.getElementById('pendingTasksCount').textContent = totalPendingTasks;
 
+                // Today's Schedule
                 const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
                 if (teacherClass) {
-                    const timetableSnap = await db.collection('timetable').where('class', '==', teacherClass).where('day', '==', today).orderBy('startTime').get();
-                    let scheduleHtml = '<ul style="list-style: none; padding: 0;">';
-                    if (timetableSnap.empty) scheduleHtml += '<li>No classes scheduled for today</li>';
+                    const timetableSnap = await db.collection('timetables')
+                        .where('classId', '==', teacherClass)
+                        .where('day', '==', today)
+                        .orderBy('startTime')
+                        .get();
+                    let scheduleHtml = '<ul style="list-style:none;padding:0;">';
+                    if (timetableSnap.empty) {
+                        scheduleHtml += '<li class="empty-state-text">No classes scheduled for today</li>';
+                    }
                     timetableSnap.forEach(doc => {
                         const p = doc.data();
-                        scheduleHtml += `<li style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-                            <span style="min-width: 80px; color: var(--accent);">${p.startTime || '—'} - ${p.endTime || '—'}</span>
-                            <span><strong>${p.subject || '—'}</strong> ${p.topic ? `(${p.topic})` : ''}</span>
+                        scheduleHtml += `<li style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+                            <span style="min-width:80px;color:var(--accent);font-weight:600;">${p.startTime || '—'} - ${p.endTime || '—'}</span>
+                            <span><strong>${escapeHtml(p.subject || '—')}</strong> ${p.topic ? `(${escapeHtml(p.topic)})` : ''}</span>
                         </li>`;
                     });
                     scheduleHtml += '</ul>';
                     document.getElementById('todaySchedule').innerHTML = scheduleHtml;
                 } else {
-                    document.getElementById('todaySchedule').innerHTML = '<p>No class assigned</p>';
+                    document.getElementById('todaySchedule').innerHTML = '<p class="empty-state-text">No class assigned</p>';
                 }
 
+                // Attendance
                 const todayStr = new Date().toISOString().split('T')[0];
-                const attSnap = await db.collection('attendance').where('classId', '==', teacherClass).where('date', '==', todayStr).get();
-                let present = 0;
-                attSnap.forEach(doc => { if (doc.data().status === 'present') present++; });
-                const attRate = attSnap.size ? ((present / attSnap.size) * 100).toFixed(1) : 0;
-                document.getElementById('attendanceToday').textContent = attRate + '%';
+                if (teacherClass) {
+                    const attSnap = await db.collection('attendance')
+                        .where('classId', '==', teacherClass)
+                        .where('date', '==', todayStr)
+                        .get();
+                    let present = 0;
+                    attSnap.forEach(doc => { if (doc.data().status === 'present') present++; });
+                    const attRate = attSnap.size ? ((present / attSnap.size) * 100).toFixed(1) : 0;
+                    document.getElementById('attendanceToday').textContent = attRate + '%';
+                } else {
+                    document.getElementById('attendanceToday').textContent = '0%';
+                }
 
+                // Performance Chart
                 const scores = [];
                 for (const doc of gradedSubs.slice(0, 10)) {
                     const s = doc.data();
-                    const assignDoc = await db.collection('assignments').doc(s.assignmentId).get();
-                    const total = assignDoc.exists ? assignDoc.data().totalPoints : 100;
-                    scores.push((s.score / total) * 100);
+                    let total = 100;
+                    try {
+                        const assignDoc = await db.collection('assignments').doc(s.assignmentId).get();
+                        if (assignDoc.exists) total = assignDoc.data().totalPoints || 100;
+                    } catch (e) { /* use default */ }
+                    scores.push(total > 0 ? (s.score / total) * 100 : 0);
                 }
-                if (performanceChart) performanceChart.destroy();
-                const ctx = document.getElementById('performanceChart').getContext('2d');
-                performanceChart = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels: scores.map((_, i) => `#${i+1}`), datasets: [{ label: 'Class Average (%)', data: scores, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 }] },
-                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } }, scales: { y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } } } }
-                });
+                const ctx = document.getElementById('performanceChart')?.getContext('2d');
+                if (ctx) {
+                    if (performanceChart) performanceChart.destroy();
+                    performanceChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: scores.map((_, i) => `#${i + 1}`),
+                            datasets: [{
+                                label: 'Score (%)',
+                                data: scores,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59,130,246,0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: { legend: { position: 'top', labels: { color: '#94a3b8' } } },
+                            scales: {
+                                y: {
+                                    min: 0,
+                                    max: 100,
+                                    title: { display: true, text: 'Score (%)', color: '#94a3b8' },
+                                    grid: { color: '#1e293b' }
+                                },
+                                x: {
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
 
-            } catch(e) { console.error('Error loading dashboard:', e); }
+            } catch (e) {
+                console.error('Error loading dashboard:', e);
+            }
         }
     </script>
 </body>
