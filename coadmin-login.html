@@ -11,114 +11,285 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root[data-theme="light"] {
-            --bg-image: url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80');
+            --bg-gradient: linear-gradient(160deg, #e8f0fe 0%, #f0f4ff 40%, #f8fafc 100%);
+            --grid-color: rgba(37, 99, 235, 0.04);
             --glass-bg: rgba(255, 255, 255, 0.85);
             --text-primary: #0f172a;
             --text-secondary: #475569;
             --accent: #2563eb;
             --accent-hover: #1d4ed8;
-            --border: rgba(0, 0, 0, 0.08);
+            --accent-soft: rgba(37, 99, 235, 0.08);
+            --border: rgba(0, 0, 0, 0.06);
             --input-bg: rgba(255, 255, 255, 0.95);
             --error: #dc2626;
             --success: #16a34a;
-            --shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-lg: 0 25px 50px -12px rgba(0,0,0,0.12);
         }
+
         :root[data-theme="dark"] {
-            --bg-image: url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80');
+            --bg-gradient: linear-gradient(160deg, #0a0f1e 0%, #111827 40%, #0f172a 100%);
+            --grid-color: rgba(59, 130, 246, 0.04);
             --glass-bg: rgba(15, 23, 42, 0.88);
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
             --accent: #3b82f6;
             --accent-hover: #2563eb;
-            --border: rgba(255, 255, 255, 0.08);
+            --accent-soft: rgba(59, 130, 246, 0.1);
+            --border: rgba(255, 255, 255, 0.06);
             --input-bg: rgba(30, 41, 59, 0.85);
             --error: #ef4444;
             --success: #22c55e;
-            --shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+            --shadow-lg: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
+
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--bg-image) no-repeat center center/cover fixed;
+            background: var(--bg-gradient);
             color: var(--text-primary);
             padding: 1rem;
             -webkit-font-smoothing: antialiased;
+            position: relative;
+            overflow: hidden;
         }
+
+        /* ============ INSTANT GRID PATTERN (no image load) ============ */
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 48px 48px;
+            animation: patternShift 40s linear infinite;
+        }
+
+        @keyframes patternShift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(48px, 48px); }
+        }
+
+        /* ============ AMBIENT ORBS (CSS only, instant) ============ */
+        .ambient-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 18s ease-in-out infinite alternate;
+        }
+        .ambient-orb--top {
+            width: 450px; height: 450px;
+            background: radial-gradient(circle, rgba(59,130,246,0.4), transparent 70%);
+            top: -180px; left: -120px;
+        }
+        .ambient-orb--bottom {
+            width: 380px; height: 380px;
+            background: radial-gradient(circle, rgba(99,102,241,0.3), transparent 70%);
+            bottom: -140px; right: -100px;
+            animation-duration: 22s;
+            animation-delay: -6s;
+        }
+
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(25px, -20px) scale(1.08); }
+            66% { transform: translate(-15px, 15px) scale(0.95); }
+            100% { transform: translate(10px, -8px) scale(1.04); }
+        }
+
+        /* ============ THEME TOGGLE ============ */
         .theme-toggle {
             position: fixed; top: 24px; right: 24px;
             background: var(--glass-bg); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--border); border-radius: 60px;
             width: 48px; height: 48px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; color: var(--accent); cursor: pointer;
-            z-index: 1000; transition: 0.2s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            font-size: 1.3rem; color: var(--accent); cursor: pointer;
+            z-index: 100; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: var(--shadow-sm);
         }
-        .theme-toggle:hover { transform: scale(1.05); }
+        .theme-toggle:hover { 
+            transform: scale(1.08); 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .theme-toggle:active { transform: scale(0.95); }
+
+        /* ============ CARD ============ */
         .glass-card {
-            background: var(--glass-bg); backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border); border-radius: 28px;
-            padding: 2.5rem 2rem; width: min(480px, 100%);
-            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 10;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 2.8rem 2.2rem;
+            width: min(460px, 100%);
+            box-shadow: var(--shadow-lg);
+            animation: cardEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+
+        @keyframes cardEnter {
+            from { opacity: 0; transform: translateY(28px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ============ LOGO ============ */
         .logo-icon {
             width: 52px; height: 52px; border-radius: 14px;
-            background: linear-gradient(135deg, var(--accent), #1e40af);
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 1.2rem; color: white; font-size: 1.5rem;
+            margin: 0 auto 1.2rem; color: white; font-size: 1.4rem;
+            box-shadow: 0 8px 24px rgba(59,130,246,0.3);
+            transition: transform 0.3s ease;
         }
-        h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.3rem; text-align: center; }
-        .sub { color: var(--text-secondary); margin-bottom: 2rem; text-align: center; font-size: 0.9rem; }
-        .input-group { margin-bottom: 1.2rem; }
-        .input-group label { display: block; margin-bottom: 0.4rem; font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; }
+        .glass-card:hover .logo-icon {
+            transform: scale(1.05);
+        }
+
+        /* ============ TYPOGRAPHY ============ */
+        h2 { 
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 0.2rem; 
+            text-align: center; letter-spacing: -0.2px;
+        }
+        .sub { 
+            color: var(--text-secondary); margin-bottom: 2rem; 
+            text-align: center; font-size: 0.88rem; 
+        }
+
+        /* ============ FORM ELEMENTS ============ */
+        .input-group { margin-bottom: 1.1rem; }
+        .input-group label { 
+            display: block; margin-bottom: 0.4rem; 
+            font-weight: 600; color: var(--text-secondary); 
+            font-size: 0.82rem; letter-spacing: 0.2px;
+        }
         .input-wrapper {
             display: flex; align-items: center;
-            background: var(--input-bg); border: 1.5px solid var(--border);
-            border-radius: 14px; padding: 0.2rem 1rem;
-            transition: 0.2s;
+            background: var(--input-bg); 
+            border: 1.5px solid var(--border);
+            border-radius: 14px; padding: 0.15rem 0.9rem;
+            transition: all 0.2s ease;
         }
         .input-wrapper:focus-within {
-            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+            border-color: var(--accent); 
+            box-shadow: 0 0 0 3px var(--accent-soft);
+            background: var(--glass-bg);
         }
-        .input-wrapper i { color: var(--text-secondary); font-size: 1rem; width: 1.8rem; }
+        .input-wrapper i { 
+            color: var(--text-secondary); font-size: 0.95rem; 
+            width: 1.6rem; transition: color 0.2s; 
+        }
+        .input-wrapper:focus-within i { color: var(--accent); }
         .input-wrapper input {
             width: 100%; background: transparent; border: none;
-            padding: 0.85rem 0; font-size: 0.95rem;
+            padding: 0.8rem 0; font-size: 0.93rem;
             color: var(--text-primary); outline: none;
+            font-family: 'Inter', sans-serif;
         }
-        .toggle-password { cursor: pointer; color: var(--text-secondary); font-size: 1rem; padding: 0 0.3rem; }
+        .input-wrapper input::placeholder { color: #94a3b8; }
+        .toggle-password { 
+            cursor: pointer; color: var(--text-secondary); 
+            font-size: 0.95rem; padding: 0 0.2rem; 
+            transition: color 0.2s;
+        }
         .toggle-password:hover { color: var(--accent); }
+
+        /* ============ BUTTON ============ */
         .btn-primary {
             width: 100%; background: var(--accent); border: none;
-            border-radius: 14px; padding: 0.9rem;
-            font-size: 1rem; font-weight: 600; color: white;
-            cursor: pointer; transition: 0.2s; margin-top: 0.5rem;
-            letter-spacing: 0.2px;
+            border-radius: 14px; padding: 0.85rem;
+            font-size: 0.95rem; font-weight: 600; color: white;
+            cursor: pointer; transition: all 0.25s ease; 
+            margin-top: 0.5rem; letter-spacing: 0.2px;
+            font-family: 'Inter', sans-serif;
+            position: relative; overflow: hidden;
         }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(37,99,235,0.3); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
-        .message { font-size: 0.85rem; margin-top: 0.5rem; display: none; padding: 0.6rem 0.8rem; border-radius: 10px; }
-        .error-message { color: var(--error); background: rgba(220,38,38,0.08); display: block; }
-        .footer-note { margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: var(--text-secondary); }
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15), transparent 60%);
+            transform: translateX(-100%);
+            transition: transform 0.4s ease;
+        }
+        .btn-primary:hover::after {
+            transform: translateX(100%);
+        }
+        .btn-primary:hover { 
+            background: var(--accent-hover); 
+            transform: translateY(-2px); 
+            box-shadow: 0 12px 28px rgba(37,99,235,0.35);
+        }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { 
+            opacity: 0.6; cursor: not-allowed; 
+            transform: none; box-shadow: none; 
+        }
+        .btn-primary:disabled::after { display: none; }
+
+        /* ============ MESSAGES ============ */
+        .message { 
+            font-size: 0.82rem; margin-top: 0.5rem; 
+            display: none; padding: 0.6rem 0.8rem; 
+            border-radius: 10px; font-weight: 500;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .error-message { 
+            color: var(--error); 
+            background: rgba(220,38,38,0.08); 
+            display: block; 
+            border-left: 3px solid var(--error);
+        }
+
+        /* ============ FOOTER ============ */
+        .footer-note { 
+            margin-top: 1.5rem; text-align: center; 
+            font-size: 0.78rem; color: var(--text-secondary); 
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+    <!-- Instant background layers (no image requests) -->
+    <div class="bg-pattern"></div>
+    <div class="ambient-orb ambient-orb--top"></div>
+    <div class="ambient-orb ambient-orb--bottom"></div>
+
+    <!-- Theme toggle -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Card -->
     <div class="glass-card">
         <div class="logo-icon"><i class="fas fa-users-cog"></i></div>
         <h2>Co‑Admin Login</h2>
         <div class="sub">Access your assigned modules</div>
-        <form id="coadminLoginForm">
+        <form id="coadminLoginForm" autocomplete="off">
             <div class="input-group">
-                <label>Email</label>
+                <label>Email address</label>
                 <div class="input-wrapper">
                     <i class="fas fa-envelope"></i>
-                    <input type="email" id="loginEmail" placeholder="coadmin@school.com" required>
+                    <input type="email" id="loginEmail" placeholder="coadmin@school.edu" required>
                 </div>
             </div>
             <div class="input-group">
@@ -130,12 +301,13 @@
                 </div>
             </div>
             <div class="message error-message" id="loginError"></div>
-            <button type="submit" class="btn-primary">Sign in</button>
+            <button type="submit" class="btn-primary">Sign in to Dashboard</button>
         </form>
         <div class="footer-note">
-            Powered by EduTop · Secure access
+            EduTop Scholars · Secure access portal
         </div>
     </div>
+
     <script>
         // ==================== FIREBASE CONFIG (UNIFIED) ====================
         const firebaseConfig = {
@@ -150,20 +322,27 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Theme toggle
+        // ==================== THEME ====================
         const html = document.documentElement;
         const themeToggle = document.getElementById('themeToggle');
-        const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
-        html.setAttribute('data-theme', savedTheme);
-        themeToggle.querySelector('i').className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        const themeIcon = themeToggle.querySelector('i');
+        const THEME_KEY = 'edutop-theme';
+        
+        function applyTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            localStorage.setItem(THEME_KEY, theme);
+        }
+        
+        const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+        applyTheme(savedTheme);
+        
         themeToggle.addEventListener('click', () => {
-            const current = html.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            localStorage.setItem('edutop-theme', next);
-            themeToggle.querySelector('i').className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
         });
 
+        // ==================== PASSWORD TOGGLE ====================
         window.togglePassword = (fieldId, eyeIcon) => {
             const input = document.getElementById(fieldId);
             const type = input.type === 'password' ? 'text' : 'password';
@@ -172,54 +351,71 @@
             eyeIcon.classList.toggle('fa-eye-slash');
         };
 
+        // ==================== LOGIN ====================
         document.getElementById('coadminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             const errorDiv = document.getElementById('loginError');
+            
             errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            
             if (!email || !password) {
-                errorDiv.textContent = 'Email and password required.';
+                errorDiv.textContent = 'Please enter both email and password.';
                 errorDiv.style.display = 'block';
                 return;
             }
+
             const btn = document.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
             btn.disabled = true;
-            btn.textContent = 'Signing in...';
+            btn.textContent = 'Verifying credentials...';
+
             try {
                 const userCred = await auth.signInWithEmailAndPassword(email, password);
                 const user = userCred.user;
+                
                 if (!user.emailVerified) {
                     await auth.signOut();
-                    errorDiv.textContent = 'Please verify your email before logging in.';
+                    errorDiv.textContent = 'Please verify your email address before signing in.';
                     errorDiv.style.display = 'block';
                     btn.disabled = false;
-                    btn.textContent = 'Sign in';
+                    btn.textContent = originalText;
                     return;
                 }
+
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists || !userDoc.data().isCoAdmin) {
                     await auth.signOut();
-                    errorDiv.textContent = 'Access denied. You are not a co‑admin.';
+                    errorDiv.textContent = 'Access denied. This portal is for co‑administrators only.';
                     errorDiv.style.display = 'block';
                     btn.disabled = false;
-                    btn.textContent = 'Sign in';
+                    btn.textContent = originalText;
                     return;
                 }
+
                 if (userDoc.data().approved === false) {
                     await auth.signOut();
-                    errorDiv.textContent = 'Your account is pending approval.';
+                    errorDiv.textContent = 'Your account is pending approval. Please wait for admin activation.';
                     errorDiv.style.display = 'block';
                     btn.disabled = false;
-                    btn.textContent = 'Sign in';
+                    btn.textContent = originalText;
                     return;
                 }
+
                 window.location.href = 'coadmin-dashboard.html';
             } catch (err) {
-                errorDiv.textContent = err.message;
+                const messages = {
+                    'auth/user-not-found': 'No account found with this email address.',
+                    'auth/wrong-password': 'Incorrect password. Please try again.',
+                    'auth/invalid-email': 'Please enter a valid email address.',
+                    'auth/too-many-requests': 'Too many attempts. Please try again later.',
+                };
+                errorDiv.textContent = messages[err.code] || err.message;
                 errorDiv.style.display = 'block';
                 btn.disabled = false;
-                btn.textContent = 'Sign in';
+                btn.textContent = originalText;
             }
         });
     </script>
