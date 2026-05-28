@@ -7,440 +7,1457 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-remote-config-compat.js"></script>
-  <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js">
+  </script>
+  <script type="importmap">
+    { "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }
+  </script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     :root[data-theme="light"] {
-      --bg-primary: #f4f7fc; --bg-surface: rgba(255,255,255,0.8); --text-primary: #0b1e33;
-      --text-secondary: #2c3e50; --accent: #1e3c72; --accent-glow: #2a5298;
-      --accent-light: rgba(30,60,114,0.08); --border: rgba(0,0,0,0.07);
-      --card-bg: rgba(255,255,255,0.75); --hover-bg: rgba(255,255,255,0.95);
-      --shadow: 0 15px 35px -10px rgba(0,0,0,0.08); --shadow-sm: 0 5px 15px -5px rgba(0,0,0,0.04);
-      --success-bg: rgba(34,197,94,0.15); --success-text: #16a34a;
-      --warning-bg: rgba(245,158,11,0.15); --warning-text: #b45309;
-      --danger-bg: rgba(239,68,68,0.15); --danger-text: #b91c1c;
-      --info-bg: rgba(59,130,246,0.1); --info-text: #1d4ed8;
-      --input-bg: rgba(255,255,255,0.95); --toolbar-bg: #f8fafc;
-      --gradient-start: #1e3c72; --gradient-end: #2a5298;
-      --assistant-user-bg: #1e3c72; --assistant-bot-bg: #ffffff;
-      --toast-bg: rgba(15,23,42,0.95); --unsaved-dot: #f59e0b;
-      --content-section-bg: #fefce8; --locked-bg: #f9fafb;
-      --saved-panel-bg: rgba(34,197,94,0.04);
+      --bg-primary: #f5f9ff;
+      --bg-surface: rgba(255, 255, 255, 0.8);
+      --text-primary: #0b1e33;
+      --text-secondary: #2c3e50;
+      --accent: #1e3c72;
+      --accent-glow: #2a5298;
+      --accent-light: rgba(30, 60, 114, 0.08);
+      --border: rgba(0, 0, 0, 0.07);
+      --card-bg: rgba(255, 255, 255, 0.75);
+      --hover-bg: rgba(255, 255, 255, 0.92);
+      --shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.08);
+      --shadow-sm: 0 5px 15px -5px rgba(0, 0, 0, 0.04);
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-text: #16a34a;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --warning-text: #b45309;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-text: #b91c1c;
+      --info-bg: rgba(59, 130, 246, 0.1);
+      --info-text: #1d4ed8;
+      --input-bg: rgba(255, 255, 255, 0.9);
+      --toolbar-bg: #f8fafc;
+      --gradient-start: #1e3c72;
+      --gradient-end: #2a5298;
+      --toast-bg: rgba(15, 23, 42, 0.95);
+      --unsaved-dot: #f59e0b;
+      --locked-bg: #f9fafb;
     }
+
     :root[data-theme="dark"] {
-      --bg-primary: #070b14; --bg-surface: rgba(15,23,42,0.85); --text-primary: #f0f4fa;
-      --text-secondary: #a0b3d9; --accent: #3b82f6; --accent-glow: #60a5fa;
-      --accent-light: rgba(59,130,246,0.12); --border: rgba(255,255,255,0.06);
-      --card-bg: rgba(15,23,42,0.65); --hover-bg: rgba(30,41,59,0.8);
-      --shadow: 0 15px 35px -10px rgba(0,0,0,0.6); --shadow-sm: 0 5px 15px -5px rgba(0,0,0,0.4);
-      --success-bg: rgba(34,197,94,0.2); --success-text: #4ade80;
-      --warning-bg: rgba(245,158,11,0.2); --warning-text: #fbbf24;
-      --danger-bg: rgba(239,68,68,0.2); --danger-text: #f87171;
-      --info-bg: rgba(59,130,246,0.15); --info-text: #60a5fa;
-      --input-bg: rgba(30,41,59,0.85); --toolbar-bg: #1e293b;
-      --gradient-start: #3b82f6; --gradient-end: #8b5cf6;
-      --assistant-user-bg: #3b82f6; --assistant-bot-bg: #1e293b;
-      --toast-bg: rgba(15,23,42,0.95); --unsaved-dot: #fbbf24;
-      --content-section-bg: #1a1f2e; --locked-bg: #111827;
-      --saved-panel-bg: rgba(34,197,94,0.06);
+      --bg-primary: #080d18;
+      --bg-surface: rgba(12, 20, 35, 0.85);
+      --text-primary: #f0f4fa;
+      --text-secondary: #a0b3d9;
+      --accent: #3b82f6;
+      --accent-glow: #60a5fa;
+      --accent-light: rgba(59, 130, 246, 0.1);
+      --border: rgba(255, 255, 255, 0.06);
+      --card-bg: rgba(15, 23, 42, 0.65);
+      --hover-bg: rgba(25, 35, 55, 0.85);
+      --shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6);
+      --shadow-sm: 0 5px 15px -5px rgba(0, 0, 0, 0.4);
+      --success-bg: rgba(34, 197, 94, 0.2);
+      --success-text: #4ade80;
+      --warning-bg: rgba(245, 158, 11, 0.2);
+      --warning-text: #fbbf24;
+      --danger-bg: rgba(239, 68, 68, 0.2);
+      --danger-text: #f87171;
+      --info-bg: rgba(59, 130, 246, 0.15);
+      --info-text: #60a5fa;
+      --input-bg: rgba(25, 35, 55, 0.85);
+      --toolbar-bg: #1a2332;
+      --gradient-start: #3b82f6;
+      --gradient-end: #8b5cf6;
+      --toast-bg: rgba(10, 16, 28, 0.95);
+      --unsaved-dot: #fbbf24;
+      --locked-bg: #0f172a;
     }
-    body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s; position: relative; overflow-x: hidden; }
-    .orb { position: fixed; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; animation: float 25s infinite alternate ease-in-out; }
-    .orb-1 { width: 400px; height: 400px; top: -150px; right: -150px; background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.12), transparent 70%); }
-    .orb-2 { width: 500px; height: 500px; bottom: -200px; left: -200px; background: radial-gradient(circle at 70% 70%, rgba(139,92,246,0.10), transparent 70%); animation-duration: 30s; }
-    @keyframes float { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(50px,30px) scale(1.15); } }
-    .top-nav { position: sticky; top: 0; z-index: 100; background: var(--bg-surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0.9rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .nav-left, .nav-right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-    .nav-btn { background: transparent; border: 1px solid var(--border); border-radius: 2rem; padding: 0.55rem 1.2rem; color: var(--text-primary); font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: 0.2s; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
-    .nav-btn:hover { background: var(--hover-bg); border-color: var(--accent); color: var(--accent); }
-    .profile-dropdown { position: relative; cursor: pointer; }
-    .profile-trigger { display: flex; align-items: center; gap: 0.7rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.35rem 0.35rem 0.35rem 0.9rem; }
-    .profile-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
-    .profile-pic { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem; box-shadow: 0 3px 12px var(--accent); }
-    .dropdown-menu { position: absolute; right: 0; top: 55px; background: var(--bg-surface); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 0.5rem; min-width: 180px; display: none; z-index: 1000; box-shadow: var(--shadow); }
-    .profile-dropdown:hover .dropdown-menu { display: block; animation: fadeIn 0.2s; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    .dropdown-item { padding: 0.8rem 1.2rem; color: var(--text-primary); border-radius: 0.8rem; display: flex; align-items: center; gap: 0.8rem; transition: 0.2s; cursor: pointer; }
-    .dropdown-item:hover { background: var(--hover-bg); color: var(--accent); }
-    .theme-toggle { display: flex; align-items: center; gap: 0.4rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 2rem; padding: 0.4rem 1rem; cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); }
-    .main-container { max-width: 1600px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; position: relative; z-index: 5; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-    .stat-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.2rem; padding: 1.2rem; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 1rem; transition: 0.2s; }
-    .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .stat-icon { width: 48px; height: 48px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
-    .stat-icon.blue { background: var(--info-bg); color: var(--info-text); } .stat-icon.green { background: var(--success-bg); color: var(--success-text); }
-    .stat-icon.yellow { background: var(--warning-bg); color: var(--warning-text); } .stat-icon.purple { background: rgba(139,92,246,0.15); color: #8b5cf6; }
-    .stat-info .stat-value { font-size: 1.5rem; font-weight: 700; } .stat-info .stat-label { font-size: 0.8rem; color: var(--text-secondary); }
-    .workspace-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.5rem; background: var(--card-bg); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 3rem; padding: 0.35rem; width: fit-content; flex-wrap: wrap; }
-    .workspace-tab { padding: 0.75rem 1.8rem; border-radius: 3rem; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: 0.2s; color: var(--text-secondary); white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; position: relative; }
-    .workspace-tab.active { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; box-shadow: 0 5px 20px -5px var(--accent); }
-    .workspace-tab .unsaved-dot { display: none; position: absolute; top: 6px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--unsaved-dot); }
-    .workspace-tab.dirty .unsaved-dot { display: block; }
-    .workspace-panel { display: none; } .workspace-panel.active { display: block; animation: fadeIn 0.3s; }
-    .card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; transition: all 0.3s; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border); }
-    .card-header h3 { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-    .btn { padding: 0.6rem 1.3rem; border: none; border-radius: 2rem; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; background: transparent; color: var(--text-primary); border: 1px solid var(--border); }
-    .btn-primary { background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; border: none; }
-    .btn-success { background: var(--success-text); color: white; border: none; } .btn-danger { background: var(--danger-text); color: white; border: none; }
-    .btn-warning { background: var(--warning-text); color: white; border: none; } .btn-outline { background: transparent; border: 1px solid var(--border); }
-    .btn-sm { padding: 0.35rem 0.9rem; font-size: 0.8rem; border-radius: 1.5rem; } .btn-edit-unlock { background: var(--warning-text); color: white; font-weight: 600; border: none; }
-    .btn:hover { opacity: 0.9; transform: translateY(-1px); } .btn:active { transform: translateY(0); }
-    .error-message { background: var(--danger-bg); color: var(--danger-text); padding: 1rem; border-radius: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--danger-text); display: none; }
-    .status-badge { display: inline-block; padding: 0.25rem 0.9rem; border-radius: 2rem; font-weight: 600; font-size: 0.8rem; }
-    .status-approved { background: var(--success-bg); color: var(--success-text); } .status-pending { background: var(--warning-bg); color: var(--warning-text); }
-    .status-rejected { background: var(--danger-bg); color: var(--danger-text); } .status-draft { background: var(--hover-bg); color: var(--text-secondary); }
-    .type-badge { background: var(--accent); color: white; padding: 0.3rem 1.2rem; border-radius: 2rem; font-size: 0.85rem; }
-    .badge { padding: 0.2rem 0.7rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; display: inline-block; }
-    .badge-pending { background: var(--warning-bg); color: var(--warning-text); } .badge-acknowledged { background: var(--success-bg); color: var(--success-text); }
-    .table-responsive { overflow-x: auto; margin-bottom: 1rem; } table { width: 100%; border-collapse: collapse; min-width: 600px; }
-    th, td { border: 1px solid var(--border); padding: 0.7rem 0.8rem; text-align: left; font-size: 0.9rem; } th { background: var(--hover-bg); font-weight: 600; }
-    input, select, textarea { width: 100%; padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: 0.8rem; background: var(--input-bg); color: var(--text-primary); font-size: 0.9rem; font-family: 'Inter', sans-serif; }
-    textarea { resize: vertical; min-height: 120px; } select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
-    .delete-row { color: var(--danger-text); cursor: pointer; text-align: center; } .delete-row:hover { transform: scale(1.2); }
-    .subject-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-    .subject-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.2rem; padding: 1.2rem; cursor: pointer; transition: 0.2s; position: relative; }
-    .subject-card:hover { border-color: var(--accent); } .subject-card.active { border: 2px solid var(--accent); }
-    .week-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; flex-wrap: wrap; }
-    .week-tab { padding: 0.55rem 1.3rem; border-radius: 2rem; font-weight: 500; font-size: 0.85rem; cursor: pointer; background: var(--card-bg); border: 1px solid var(--border); white-space: nowrap; }
-    .week-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-    .editor-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 1.5rem; overflow: hidden; margin-bottom: 1.5rem; }
-    .ql-container { min-height: 400px; font-size: 15px; background: var(--card-bg); } .ql-editor { min-height: 400px; line-height: 1.7; color: var(--text-primary); }
-    .ql-toolbar { border: none !important; border-bottom: 1px solid var(--border) !important; background: var(--toolbar-bg); }
-    .card.locked { opacity: 0.7; pointer-events: none; position: relative; background: var(--locked-bg); }
-    .card.locked::after { content: "✓ Published / Moved"; position: absolute; top: 12px; right: 16px; background: var(--success-text); color: white; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; z-index: 10; pointer-events: auto; }
-    .card.locked .btn-edit-unlock { pointer-events: auto; position: relative; z-index: 11; }
-    .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 5000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
-    .toast { background: var(--toast-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem 1.5rem; min-width: 280px; max-width: 400px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); display: flex; align-items: flex-start; gap: 0.8rem; animation: slideInRight 0.3s; pointer-events: auto; }
-    @keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; }
-    .modal-overlay.active { display: flex; } .modal-content { background: var(--card-bg); border-radius: 1.5rem; padding: 2rem; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      transition: background 0.3s;
+      overflow-x: hidden;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .orb-1 {
+      width: 450px;
+      height: 450px;
+      top: -180px;
+      right: -180px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
+      animation: float 22s infinite alternate;
+    }
+
+    .orb-2 {
+      width: 550px;
+      height: 550px;
+      bottom: -220px;
+      left: -220px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.12), transparent 70%);
+      animation: float 28s infinite alternate;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translate(0, 0) scale(1);
+      }
+      100% {
+        transform: translate(60px, 40px) scale(1.15);
+      }
+    }
+
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.7rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-left,
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      padding: 0.5rem 1.2rem;
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: 0.2s;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+
+    .nav-btn:hover {
+      background: var(--hover-bg);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .profile-dropdown {
+      position: relative;
+    }
+
+    .profile-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 3rem;
+      padding: 0.3rem 0.3rem 0.3rem 0.8rem;
+      cursor: pointer;
+    }
+
+    .profile-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .profile-pic {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: 50px;
+      background: var(--bg-surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 0.4rem;
+      min-width: 170px;
+      display: none;
+      z-index: 1000;
+      box-shadow: var(--shadow);
+    }
+
+    .profile-dropdown:hover .dropdown-menu {
+      display: block;
+      animation: fadeIn 0.2s;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown-item {
+      padding: 0.7rem 1rem;
+      border-radius: 0.7rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--hover-bg);
+      color: var(--accent);
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      padding: 0.4rem 1rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .main-container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 1.2rem 1.5rem 2.5rem;
+      position: relative;
+      z-index: 5;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.9rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .stat-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .stat-icon.blue {
+      background: var(--info-bg);
+      color: var(--info-text);
+    }
+
+    .stat-icon.green {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .stat-icon.yellow {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .stat-icon.purple {
+      background: rgba(139, 92, 246, 0.15);
+      color: #8b5cf6;
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .workspace-tabs {
+      display: flex;
+      gap: 0.3rem;
+      margin-bottom: 1.4rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 3rem;
+      padding: 0.3rem;
+      width: fit-content;
+      flex-wrap: wrap;
+    }
+
+    .workspace-tab {
+      padding: 0.65rem 1.8rem;
+      border-radius: 3rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      position: relative;
+    }
+
+    .workspace-tab.active {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      color: white;
+      box-shadow: 0 5px 18px -4px var(--accent);
+    }
+
+    .unsaved-dot {
+      display: none;
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--unsaved-dot);
+    }
+
+    .workspace-tab.dirty .unsaved-dot {
+      display: block;
+    }
+
+    .workspace-panel {
+      display: none;
+    }
+
+    .workspace-panel.active {
+      display: block;
+      animation: fadeIn 0.25s;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 1.3rem;
+      padding: 1.3rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.3rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.8rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1.2rem;
+      border: none;
+      border-radius: 2rem;
+      font-weight: 500;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      white-space: nowrap;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      color: white;
+      border: none;
+    }
+
+    .btn-success {
+      background: var(--success-text);
+      color: white;
+      border: none;
+    }
+
+    .btn-danger {
+      background: var(--danger-text);
+      color: white;
+      border: none;
+    }
+
+    .btn-warning {
+      background: var(--warning-text);
+      color: white;
+      border: none;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+
+    .btn-sm {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-edit-unlock {
+      background: var(--warning-text);
+      color: white;
+      font-weight: 600;
+      border: none;
+    }
+
+    .btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    .error-message {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+      padding: 0.9rem;
+      border-radius: 0.9rem;
+      margin-bottom: 0.9rem;
+      border-left: 4px solid var(--danger-text);
+      display: none;
+    }
+
+    .status-badge {
+      padding: 0.2rem 0.8rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    .status-approved {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .status-pending {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .status-draft {
+      background: var(--hover-bg);
+      color: var(--text-secondary);
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 500px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    th {
+      background: var(--hover-bg);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.5rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 0.7rem;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+
+    .delete-row {
+      color: var(--danger-text);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .subject-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.8rem;
+    }
+
+    .subject-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .subject-card.active {
+      border: 2px solid var(--accent);
+    }
+
+    .week-tabs {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .week-tab {
+      padding: 0.4rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+    }
+
+    .week-tab.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .editor-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1.3rem;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .ql-container {
+      min-height: 350px;
+      font-size: 15px;
+    }
+
+    .ql-editor {
+      min-height: 350px;
+      color: var(--text-primary);
+    }
+
+    .ql-toolbar {
+      border: none !important;
+      border-bottom: 1px solid var(--border) !important;
+      background: var(--toolbar-bg);
+    }
+
+    .card.locked {
+      opacity: 0.6;
+      pointer-events: none;
+      position: relative;
+      background: var(--locked-bg);
+    }
+
+    .card.locked::after {
+      content: "✓ Published / Moved";
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: var(--success-text);
+      color: white;
+      padding: 0.3rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      z-index: 10;
+      pointer-events: auto;
+    }
+
+    .card.locked .btn-edit-unlock {
+      pointer-events: auto;
+      position: relative;
+      z-index: 11;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 6000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      background: var(--toast-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 0.9rem 1.3rem;
+      min-width: 280px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      animation: slideIn 0.3s;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
     @media (max-width: 768px) {
-      .top-nav { padding: 0.8rem 1rem; } .workspace-tab { padding: 0.6rem 1rem; font-size: 0.8rem; }
-      .stats-grid { grid-template-columns: repeat(2,1fr); } .main-container { padding: 1rem; }
+      .main-container {
+        padding: 0.8rem;
+      }
+      .top-nav {
+        padding: 0.6rem 0.8rem;
+      }
+      .workspace-tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+      }
     }
   </style>
 </head>
 <body>
-<div class="orb orb-1"></div><div class="orb orb-2"></div>
-<div class="toast-container" id="toastContainer"></div>
-<div class="top-nav">
-  <div class="nav-left">
-    <a href="teacher-dashboard.html" class="nav-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
-    <button class="nav-btn" onclick="openTemplatesModal()"><i class="fas fa-layer-group"></i> Templates</button>
-    <button class="nav-btn" onclick="printLessonNote()"><i class="fas fa-print"></i> Print</button>
-  </div>
-  <div class="nav-right">
-    <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
-    <div class="profile-dropdown">
-      <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
-      <div class="dropdown-menu">
-        <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
-        <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="top-nav">
+    <div class="nav-left">
+      <a href="teacher-dashboard.html" class="nav-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+      <button class="nav-btn" onclick="openTemplatesModal()"><i class="fas fa-layer-group"></i> Templates</button>
+      <button class="nav-btn" onclick="printLessonNote()"><i class="fas fa-print"></i> Print</button>
+    </div>
+    <div class="nav-right">
+      <div class="theme-toggle" id="themeToggle"><i class="fas fa-sun"></i><span>Light</span></div>
+      <div class="profile-dropdown">
+        <div class="profile-trigger"><span class="profile-name" id="profileName">Teacher</span><div class="profile-pic" id="profilePic">T</div></div>
+        <div class="dropdown-menu">
+          <div class="dropdown-item" id="profileLink"><i class="fas fa-user"></i> Profile</div>
+          <div class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        </div>
       </div>
     </div>
   </div>
-</div>
-<div class="main-container">
-  <div id="errorMessage" class="error-message"></div>
-  <div class="stats-grid" id="weeklyStats">
-    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-book"></i></div><div class="stat-info"><div class="stat-value" id="statLessons">0</div><div class="stat-label">Lessons</div></div></div>
-    <div class="stat-card"><div class="stat-icon yellow"><i class="fas fa-clock"></i></div><div class="stat-info"><div class="stat-value" id="statPending">0</div><div class="stat-label">Pending</div></div></div>
-    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><div class="stat-value" id="statApproved">0</div><div class="stat-label">Approved</div></div></div>
-    <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-calendar-check"></i></div><div class="stat-info"><div class="stat-value" id="statReports">0</div><div class="stat-label">Reports</div></div></div>
+
+  <div class="main-container">
+    <div id="errorMessage" class="error-message"></div>
+    <div class="stats-grid" id="weeklyStats">
+      <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-book"></i></div><div class="stat-info"><div class="stat-value" id="statLessons">0</div><div class="stat-label">Lessons</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow"><i class="fas fa-clock"></i></div><div class="stat-info"><div class="stat-value" id="statPending">0</div><div class="stat-label">Pending</div></div></div>
+      <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><div class="stat-value" id="statApproved">0</div><div class="stat-label">Approved</div></div></div>
+    </div>
+
+    <div class="workspace-tabs" id="workspaceTabs">
+      <div class="workspace-tab active" data-panel="timetable"><i class="fas fa-calendar-alt"></i> Timetable</div>
+      <div class="workspace-tab" data-panel="lessonNotes"><i class="fas fa-book-open"></i> Lesson Notes</div>
+      <div class="workspace-tab" data-panel="dailyReport"><i class="fas fa-journal-whills"></i> Report</div>
+    </div>
+
+    <div class="workspace-panel active" id="panel-timetable">
+      <div class="card">
+        <div class="card-header"><h3>Timetable Draft</h3></div>
+        <div class="table-responsive">
+          <table>
+            <thead id="draftTableHeader"></thead>
+            <tbody id="draftBody"></tbody>
+          </table>
+        </div>
+        <div class="actions" style="margin-top:1rem;display:flex;gap:0.5rem;">
+          <button class="btn btn-outline btn-sm" id="addTimetableRowBtn">+ Row</button>
+          <button class="btn btn-primary btn-sm" id="saveDraftBtn">Save Draft</button>
+          <button class="btn btn-success btn-sm" id="submitTimetableBtn">Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="workspace-panel" id="panel-lessonNotes">
+      <div class="sub-tabs" style="display:flex;gap:0.3rem;margin-bottom:1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:3rem;padding:0.3rem;width:fit-content;">
+        <div class="sub-tab active" data-ln="syllabus">📋 Syllabus</div>
+        <div class="sub-tab" data-ln="notebook">📓 Notebook</div>
+        <div class="sub-tab" data-ln="saved">💾 Published</div>
+      </div>
+      <div id="ln-syllabus">
+        <div class="subject-grid" id="subjectGrid"></div>
+        <button class="btn btn-outline btn-sm" id="addSubjectBtn">+ Subject</button>
+        <div id="syllabusSection" style="display:none;margin-top:1rem;">
+          <div class="card">
+            <div class="card-header"><h3 id="currentSubjectTitle"></h3></div>
+            <div class="table-responsive">
+              <table>
+                <thead><tr><th>Week</th><th>Topic</th><th>Objectives</th><th></th></tr></thead>
+                <tbody id="syllabusBody"></tbody>
+              </table>
+            </div>
+            <div class="actions" style="margin-top:0.5rem;">
+              <button class="btn btn-outline btn-sm" id="addWeekBtn">+ Week</button>
+              <button class="btn btn-primary btn-sm" id="saveSyllabusBtn">Save</button>
+              <button class="btn btn-success btn-sm" id="submitSyllabusBtn">Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="ln-notebook" style="display:none;">
+        <div class="week-tabs" id="weekTabs"></div>
+        <div id="editorSection" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <h3>Lesson Note Editor</h3>
+              <button class="btn btn-primary btn-sm" id="aiGenerateFullLessonBtn"><i class="fas fa-robot"></i> AI Full Lesson Note</button>
+            </div>
+            <div class="editor-container"><div id="editor"></div></div>
+            <div class="actions" style="margin-top:0.8rem;">
+              <button class="btn btn-primary btn-sm" id="saveEditorBtn">Save Draft</button>
+              <button class="btn btn-success btn-sm" id="submitEditorBtn">Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="ln-saved" style="display:none;">
+        <div class="card">
+          <h3>Published & Moved Items</h3>
+          <div id="savedCollectionList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="workspace-panel" id="panel-dailyReport">
+      <div class="card">
+        <div class="card-header"><h3>Today's Report</h3></div>
+        <input type="date" id="reportDate" style="margin-bottom:0.5rem;">
+        <textarea id="reportContent" placeholder="Activities..." rows="4"></textarea>
+        <button class="btn btn-primary btn-sm" id="submitReportBtn" style="margin-top:0.5rem;">Submit</button>
+      </div>
+    </div>
   </div>
-  <div class="workspace-tabs" id="workspaceTabs">
-    <div class="workspace-tab active" data-panel="timetable"><i class="fas fa-calendar-alt"></i> Timetable</div>
-    <div class="workspace-tab" data-panel="lessonNotes"><i class="fas fa-book-open"></i> Lesson Notes</div>
-    <div class="workspace-tab" data-panel="dailyReport"><i class="fas fa-journal-whills"></i> Daily Report</div>
-  </div>
-  <div class="workspace-panel active" id="panel-timetable">
-    <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;"><select id="timetableType"><option value="academic">📚 Academic</option><option value="hairstyle">💇 Hairstyle</option><option value="test">📝 Test</option><option value="exam">🎓 Exam</option></select><button class="btn btn-primary" id="createNewTimetableBtn">+ New Draft</button></div>
-    <div class="sub-tabs" id="tt-tabs"><div class="sub-tab active" data-tt="draft">Draft</div><div class="sub-tab" data-tt="pending">Pending</div><div class="sub-tab" data-tt="approved">Approved</div><div class="sub-tab" data-tt="rejected">Rejected</div></div>
-    <div id="tt-draft" class="card"><div class="card-header"><span id="draftTypeLabel">Academic</span><button class="btn btn-outline btn-sm" id="deleteDraftBtn" style="display:none;"><i class="fas fa-trash"></i></button></div><div class="table-responsive"><table><thead id="draftTableHeader"></thead><tbody id="draftBody"></tbody></table></div><div class="actions" style="margin-top:1rem;"><button class="btn btn-outline" id="addTimetableRowBtn">+ Row</button><button class="btn btn-primary" id="saveDraftBtn">Save Draft</button><button class="btn btn-success" id="submitTimetableBtn">Submit</button></div></div>
-    <div id="tt-pending" class="card" style="display:none;"><h3>Pending</h3><div class="table-responsive"><table><thead id="pendingTableHeader"></thead><tbody id="pendingBody"></tbody></table></div><button class="btn btn-warning" id="editPendingBtn">Move to Draft</button></div>
-    <div id="tt-approved" class="card" style="display:none;"><h3>Approved</h3><select id="approvedTypeSelect"></select><div class="table-responsive"><table><thead id="approvedTableHeader"></thead><tbody id="approvedBody"></tbody></table></div><button class="btn btn-success" id="publishTimetableBtn">Publish</button></div>
-    <div id="tt-rejected" class="card" style="display:none;"><h3>Rejected</h3><div id="rejectedFeedback" class="error-message"></div><div class="table-responsive"><table><thead id="rejectedTableHeader"></thead><tbody id="rejectedBody"></tbody></table></div><button class="btn btn-warning" id="editRejectedBtn">Move to Draft</button></div>
-  </div>
-  <div class="workspace-panel" id="panel-lessonNotes">
-    <div class="sub-tabs" id="ln-subtabs"><div class="sub-tab active" data-ln="syllabus">📋 Syllabus</div><div class="sub-tab" data-ln="notebook">📓 Notebook</div><div class="sub-tab" data-ln="saved">💾 Published</div><div class="sub-tab" data-ln="teach">🎯 Teach</div></div>
-    <div id="ln-syllabus"><h2>Subjects</h2><div class="subject-grid" id="subjectGrid"></div><button class="btn btn-outline" id="addSubjectBtn">+ Subject</button><div id="syllabusSection" style="display:none;"><div class="card"><div class="card-header"><h3 id="currentSubjectTitle"></h3><span id="syllabusStatus" class="status-badge">Draft</span></div><div class="table-responsive"><table><thead><tr><th>Week</th><th>Topic</th><th>Objectives</th><th></th></tr></thead><tbody id="syllabusBody"></tbody></table></div><div class="actions"><button class="btn btn-outline" id="addWeekBtn">+ Week</button><button class="btn btn-primary" id="saveSyllabusBtn">Save</button><button class="btn btn-success" id="submitSyllabusBtn">Submit</button></div></div></div></div>
-    <div id="ln-notebook" style="display:none;"><div class="week-tabs" id="weekTabs"></div><div id="editorSection" style="display:none;"><textarea id="lessonContent" placeholder="Lesson content..." style="min-height:120px;"></textarea><button class="btn btn-outline btn-sm" id="useAIContentBtn"><i class="fas fa-robot"></i> AI Content</button>
-      <div class="card"><div class="card-header"><h3>Lesson Note</h3><button class="btn btn-primary" id="aiFullLessonNoteBtn"><i class="fas fa-magic"></i> AI Full Note</button><button class="btn btn-outline" id="mergeContentBtn">Merge Content</button><button class="btn btn-primary" id="saveEditorBtn">Save</button><button class="btn btn-success" id="submitEditorBtn" style="display:none;">Submit</button></div><div class="editor-container"><div id="editor"></div></div></div>
-      <div id="postApprovalSections" style="display:none;"><div class="card"><h3>Teaching Process</h3><div class="editor-container"><div id="teachingProcessEditor"></div></div><button class="btn btn-primary" id="saveTeachingProcessBtn">Save</button><button class="btn btn-success" id="moveToTeachBtn">Move to Teach</button></div>
-      <div class="card"><h3>Student Resources</h3><div class="editor-container"><div id="studentResourceEditor"></div></div><button class="btn btn-primary" id="saveStudentResourceBtn">Save</button><button class="btn btn-warning" id="moveResourceToResourcesBtn">Move to Resources</button><button class="btn btn-success" id="launchResourceToStudentsBtn">Publish</button></div>
-      <div class="card"><h3>Handwriting</h3><div class="handwriting-preview" id="handwritingImages"></div><input type="text" id="handwritingPrompt" placeholder="Describe picture..."><button class="btn btn-primary" id="generateHandwritingBtn">Generate</button></div>
-      <div class="card"><h3>Videos</h3><input type="url" id="videoLinkInput" placeholder="Paste URL"><button class="btn btn-sm" id="addVideoBtn">Add</button><div id="videoList"></div></div></div>
-    </div></div>
-    <div id="ln-saved" style="display:none;"><h3>Published Items</h3><div id="savedCollectionList"></div></div>
-    <div id="ln-teach" style="display:none;"><div id="teachableList"></div></div>
-  </div>
-  <div class="workspace-panel" id="panel-dailyReport">
-    <div class="card"><h3>Today's Report</h3><input type="date" id="reportDate"><input type="text" id="openingTime" placeholder="8:00 AM"><input type="text" id="closingTime" placeholder="2:30 PM"><textarea id="reportContent"></textarea><button class="btn btn-primary" id="submitReportBtn">Submit</button></div>
-    <div class="card"><h3>My Reports</h3><div id="reportsList"></div></div>
-  </div>
-</div>
-<div class="modal-overlay" id="templatesModal"><div class="modal-content"><h2>Templates</h2><div id="templatesGrid"></div><button onclick="closeTemplatesModal()">Close</button></div></div>
-<div class="modal-overlay" id="aiAssistantModal"><div class="modal-content" style="max-width:900px;"><h2>AI Assistant</h2><div id="assistantChat" style="max-height:400px;overflow-y:auto;"></div><input type="text" id="assistantInput" placeholder="Ask..."><button onclick="sendAssistantMessage()">Send</button><button onclick="closeAIAssistant()">Close</button></div></div>
-<script type="module">
-import Groq from "groq-sdk";
-firebase.initializeApp({ apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0", authDomain: "triangle-6e6b7.firebaseapp.com", projectId: "triangle-6e6b7", storageBucket: "triangle-6e6b7.firebasestorage.app", messagingSenderId: "673937760480", appId: "1:673937760480:web:f03c06e1207232213ef085" });
-const auth = firebase.auth(), db = firebase.firestore(), remoteConfig = firebase.remoteConfig();
-remoteConfig.settings.minimumFetchIntervalMillis = 0;
-let groq = null, currentUser = null, userData = null, currentClass = null, quill, studentQuill, teachingProcessQuill;
-let subjects = [], currentSubject = null, currentWeek = null, syllabusMap = {}, lessonNotesMap = {};
-let lessonNoteApproved = false, videoLinks = [], handwritingImages = [];
 
-function showToast(t,m,ty='info'){const c=document.getElementById('toastContainer');const el=document.createElement('div');el.className='toast';el.innerHTML=`<i class="fas fa-${ty==='success'?'check-circle':ty==='error'?'exclamation-circle':'info-circle'}"></i><div><strong>${t}</strong><div>${m}</div></div>`;c.appendChild(el);setTimeout(()=>el.remove(),3500);}
-function showError(m){document.getElementById('errorMessage').textContent=m;document.getElementById('errorMessage').style.display='block';setTimeout(()=>document.getElementById('errorMessage').style.display='none',5000);}
-const NIGERIAN_PROMPT = "You are a senior Nigerian teacher. Follow NERDC/UBEC standards. Use Nigerian English, local names, naira, markets. Reference real Nigerian textbooks (e.g., New Concept Mathematics by J.A. Adegboye, Comprehensive English by M.A. Oluikpe). Use 'Teacher asks... Pupils respond...' format. Return comprehensive, well-structured content.";
+  <script type="module">
+    import Groq from "groq-sdk";
 
-auth.onAuthStateChanged(async user=>{
-  if(!user) return window.location.href='teacher-login.html';
-  const d=await db.collection('users').doc(user.uid).get();
-  if(!d.exists||d.data().role!=='teacher'){auth.signOut();return;}
-  currentUser=user; userData=d.data(); currentClass=userData.classTeaching||'JSS1';
-  document.getElementById('profilePic').textContent=(userData.firstName?.[0]||'T');
-  document.getElementById('profileName').textContent=userData.firstName||'Teacher';
-  try{await remoteConfig.fetchAndActivate();const k=remoteConfig.getString('groq_api_key');if(k)groq=new Groq({apiKey:k,dangerouslyAllowBrowser:true});}catch(e){}
-  quill=new Quill('#editor',{theme:'snow',placeholder:'Write lesson note...',modules:{toolbar:[['bold','italic','underline'],['blockquote','code-block'],[{list:'ordered'},{list:'bullet'}],['link'],['clean']]}});
-  studentQuill=new Quill('#studentResourceEditor',{theme:'snow',placeholder:'Student resources...'});
-  teachingProcessQuill=new Quill('#teachingProcessEditor',{theme:'snow',placeholder:'Teaching process...'});
-  subjects=userData.subjects||['Mathematics','English']; renderSubjectGrid();
-  await loadAllLessonNotes(); updateStats();
-  document.getElementById('reportDate').valueAsDate=new Date();
-  loadTimetableData();
-});
-document.getElementById('logoutBtn').addEventListener('click',()=>auth.signOut());
-document.getElementById('themeToggle').addEventListener('click',()=>{
-  const cur=document.documentElement.getAttribute('data-theme');
-  const n=cur==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',n);
-  localStorage.setItem('edutopscholars-theme',n);
-  document.getElementById('themeToggle').querySelector('span').textContent=n==='dark'?'Light':'Dark';
-});
-
-// Panel switching
-document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(t=>t.addEventListener('click',function(){
-  document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(x=>x.classList.remove('active'));
-  this.classList.add('active');
-  document.querySelectorAll('.workspace-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('panel-'+this.dataset.panel).classList.add('active');
-}));
-document.querySelectorAll('#ln-subtabs .sub-tab').forEach(t=>t.addEventListener('click',function(){
-  document.querySelectorAll('#ln-subtabs .sub-tab').forEach(x=>x.classList.remove('active'));
-  this.classList.add('active');
-  ['syllabus','notebook','saved','teach'].forEach(k=>document.getElementById('ln-'+k).style.display=k===this.dataset.ln?'block':'none');
-  if(this.dataset.ln==='teach') renderTeachTab();
-  if(this.dataset.ln==='saved') renderSavedCollection();
-}));
-
-function renderSubjectGrid(){
-  const g=document.getElementById('subjectGrid'); g.innerHTML='';
-  subjects.forEach(s=>{
-    const c=document.createElement('div'); c.className='subject-card';
-    c.innerHTML=`<h3>${s}</h3>`; c.onclick=()=>selectSubject(s,c); g.appendChild(c);
-  });
-}
-async function selectSubject(sub,card){
-  currentSubject=sub; document.querySelectorAll('.subject-card').forEach(c=>c.classList.remove('active')); card.classList.add('active');
-  document.getElementById('syllabusSection').style.display='block'; document.getElementById('currentSubjectTitle').textContent=sub+' Syllabus';
-  const snap=await db.collection('syllabus').where('teacherId','==',currentUser.uid).where('subject','==',sub).limit(1).get();
-  if(!snap.empty){const d=snap.docs[0]; syllabusMap[sub]={id:d.id,...d.data()}; renderSyllabusTable(d.data().weeks||[]);}
-  else { syllabusMap[sub]={weeks:[]}; renderSyllabusTable([]); }
-  renderWeekTabs();
-}
-function renderSyllabusTable(weeks){
-  let h=''; weeks.forEach((w,i)=>h+=`<tr><td><input value="${w.week}" data-i="${i}" data-f="week"></td><td><input value="${w.topic||''}" data-i="${i}" data-f="topic"></td><td><input value="${w.objectives||''}" data-i="${i}" data-f="objectives"></td><td><button class="btn btn-sm btn-danger" onclick="deleteSW(${i})"><i class="fas fa-trash"></i></button></td></tr>`);
-  document.getElementById('syllabusBody').innerHTML=h;
-}
-window.deleteSW=i=>{syllabusMap[currentSubject].weeks.splice(i,1);renderSyllabusTable(syllabusMap[currentSubject].weeks);};
-document.getElementById('addWeekBtn').addEventListener('click',()=>{
-  if(!syllabusMap[currentSubject])syllabusMap[currentSubject]={weeks:[]};
-  syllabusMap[currentSubject].weeks.push({week:syllabusMap[currentSubject].weeks.length+1,topic:'',objectives:''});
-  renderSyllabusTable(syllabusMap[currentSubject].weeks);
-});
-document.getElementById('saveSyllabusBtn').addEventListener('click',async()=>{
-  if(!currentSubject)return; const w=syllabusMap[currentSubject]?.weeks;
-  const d={teacherId:currentUser.uid,subject:currentSubject,classId:currentClass,weeks:w,status:'draft'};
-  if(syllabusMap[currentSubject].id) await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update(d);
-  else {const r=await db.collection('syllabus').add(d); syllabusMap[currentSubject].id=r.id;}
-  showToast('Saved','Syllabus saved','success');
-});
-document.getElementById('submitSyllabusBtn').addEventListener('click',async()=>{
-  if(!currentSubject)return; const w=syllabusMap[currentSubject]?.weeks;
-  await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update({weeks:w,status:'pending'});
-  showToast('Submitted','Syllabus submitted','success');
-});
-
-function renderWeekTabs(){
-  const w=syllabusMap[currentSubject]?.weeks||[]; const t=document.getElementById('weekTabs'); t.innerHTML='';
-  w.forEach(wk=>{const d=document.createElement('div');d.className='week-tab';d.textContent=`Week ${wk.week}`;d.onclick=()=>selectWeek(wk.week);t.appendChild(d);});
-}
-function selectWeek(week){
-  currentWeek=week; document.getElementById('editorSection').style.display='block';
-  document.querySelectorAll('.week-tab').forEach(t=>t.classList.remove('active'));
-  if(event&&event.target)event.target.classList.add('active');
-  const k=`${currentSubject}_${week}`; const n=lessonNotesMap[k]||{};
-  quill.setText(n.lessonNote||''); document.getElementById('lessonContent').value=n.lessonContent||'';
-  studentQuill.setText(n.studentResource||''); teachingProcessQuill.setText(n.teachingProcess||'');
-  lessonNoteApproved=n.status==='approved';
-  document.getElementById('postApprovalSections').style.display=lessonNoteApproved?'block':'none';
-}
-async function loadAllLessonNotes(){
-  const s=await db.collection('lessonNotes').where('teacherId','==',currentUser.uid).get();
-  lessonNotesMap={}; s.forEach(d=>{const dd=d.data(); lessonNotesMap[`${dd.subject}_${dd.week}`]={id:d.id,...dd};});
-  updateStats();
-}
-function updateStats(){
-  const a=Object.values(lessonNotesMap);
-  document.getElementById('statLessons').textContent=a.length;
-  document.getElementById('statPending').textContent=a.filter(n=>n.status==='pending').length;
-  document.getElementById('statApproved').textContent=a.filter(n=>n.status==='approved').length;
-}
-
-// AI Full Lesson Note
-document.getElementById('aiFullLessonNoteBtn').addEventListener('click',async()=>{
-  if(!groq)return showToast('Error','AI not available','error');
-  const topic=syllabusMap[currentSubject]?.weeks?.find(w=>w.week==currentWeek)?.topic||'';
-  if(!topic)return showToast('Error','No topic','error');
-  showToast('AI','Generating full Nigerian lesson note...','info');
-  try{
-    const completion=await groq.chat.completions.create({
-      messages:[{role:'system',content:NIGERIAN_PROMPT},{role:'user',content:`Write a complete, comprehensive Nigerian lesson note for ${currentSubject}, Week ${currentWeek}, Topic: ${topic}. Include: Topic, Class, Subject, Week, Term, Duration, Objectives, Materials, Content, Presentation (Teacher's/Pupils' Activities), Evaluation, Conclusion, Assignment. Use authentic Nigerian references.`}],
-      model:'llama-3.3-70b-versatile',temperature:0.4,max_tokens:4096
+    // Initialize Firebase
+    firebase.initializeApp({
+      apiKey: "AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",
+      authDomain: "triangle-6e6b7.firebaseapp.com",
+      projectId: "triangle-6e6b7",
+      storageBucket: "triangle-6e6b7.appspot.com",
+      messagingSenderId: "673937760480",
+      appId: "1:673937760480:web:f03c06e1207232213ef085"
     });
-    quill.setText(completion.choices[0].message.content);
-    showToast('Done','Full lesson note generated','success');
-  }catch(e){showError(e.message);}
-});
-document.getElementById('useAIContentBtn').addEventListener('click',async()=>{
-  if(!groq)return; const topic=syllabusMap[currentSubject]?.weeks?.find(w=>w.week==currentWeek)?.topic||'';
-  const completion=await groq.chat.completions.create({messages:[{role:'system',content:NIGERIAN_PROMPT},{role:'user',content:`Write lesson content for ${currentSubject} Week ${currentWeek} Topic: ${topic}`}],model:'llama-3.3-70b-versatile',max_tokens:2000});
-  document.getElementById('lessonContent').value=completion.choices[0].message.content;
-});
-document.getElementById('mergeContentBtn').addEventListener('click',()=>{
-  const c=document.getElementById('lessonContent').value; if(!c)return;
-  quill.setText(quill.getText()+'\n\n'+c); document.getElementById('submitEditorBtn').style.display='inline-block';
-});
-document.getElementById('saveEditorBtn').addEventListener('click',async()=>{
-  if(!currentSubject||!currentWeek)return;
-  const k=`${currentSubject}_${currentWeek}`; const ex=lessonNotesMap[k]||{};
-  const d={teacherId:currentUser.uid,subject:currentSubject,week:currentWeek,lessonNote:quill.getText(),lessonContent:document.getElementById('lessonContent').value,status:ex.status||'draft'};
-  if(ex.id)await db.collection('lessonNotes').doc(ex.id).update(d);
-  else {const r=await db.collection('lessonNotes').add(d); lessonNotesMap[k]={id:r.id,...d};}
-  showToast('Saved','Draft saved','success'); loadAllLessonNotes();
-});
-document.getElementById('submitEditorBtn').addEventListener('click',async()=>{
-  if(!currentSubject||!currentWeek)return;
-  const k=`${currentSubject}_${currentWeek}`; const ex=lessonNotesMap[k]||{};
-  await db.collection('lessonNotes').doc(ex.id).update({status:'pending',lessonNote:quill.getText()});
-  showToast('Submitted','Sent for approval','success'); loadAllLessonNotes();
-});
 
-// Teaching process & resources save/move
-document.getElementById('saveTeachingProcessBtn').addEventListener('click',async()=>{
-  const k=`${currentSubject}_${currentWeek}`; const ex=lessonNotesMap[k]; if(!ex?.id)return;
-  await db.collection('lessonNotes').doc(ex.id).update({teachingProcess:teachingProcessQuill.getText()});
-  showToast('Saved','Teaching process saved','success');
-});
-document.getElementById('moveToTeachBtn').addEventListener('click',async()=>{
-  const k=`${currentSubject}_${currentWeek}`; const ex=lessonNotesMap[k]; if(!ex?.id)return;
-  await db.collection('lessonNotes').doc(ex.id).update({teachingProcessReady:true});
-  showToast('Moved','Moved to Teach','success'); renderSavedCollection();
-});
-document.getElementById('saveStudentResourceBtn').addEventListener('click',async()=>{
-  const k=`${currentSubject}_${currentWeek}`; const ex=lessonNotesMap[k]; if(!ex?.id)return;
-  await db.collection('lessonNotes').doc(ex.id).update({studentResource:studentQuill.getText()});
-  showToast('Saved','Resource saved','success');
-});
-document.getElementById('moveResourceToResourcesBtn').addEventListener('click',async()=>{
-  const k=`${currentSubject}_${currentWeek}`; const ex=lessonNotesMap[k]; if(!ex?.id)return;
-  await db.collection('lessonNotes').doc(ex.id).update({studentResourceReady:true});
-  showToast('Moved','Resource moved','success'); renderSavedCollection();
-});
-document.getElementById('launchResourceToStudentsBtn').addEventListener('click',async()=>{
-  const k=`${currentSubject}_${currentWeek}`; const ex=lessonNotesMap[k]; if(!ex?.id)return;
-  await db.collection('lessonNotes').doc(ex.id).update({resourcePublished:true});
-  showToast('Published','Resource published to students','success'); renderSavedCollection();
-});
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-function renderSavedCollection(){
-  const container=document.getElementById('savedCollectionList');
-  if(!currentSubject||!currentWeek){container.innerHTML='<p>Select a subject and week.</p>';return;}
-  const k=`${currentSubject}_${currentWeek}`; const note=lessonNotesMap[k]||{};
-  let items=[];
-  if(note.teachingProcessReady)items.push('Teaching Process (Moved)');
-  if(note.studentResourceReady||note.resourcePublished)items.push('Student Resources (Published)');
-  container.innerHTML=items.length?items.map(i=>`<div class="card"><p>✅ ${i} <button class="btn btn-sm btn-edit-unlock">Edit</button></p></div>`).join(''):'<p>No published items.</p>';
-}
-function renderTeachTab(){
-  const list=document.getElementById('teachableList');
-  const items=Object.values(lessonNotesMap).filter(n=>n.teachable||n.status==='approved');
-  list.innerHTML=items.map(n=>`<div class="card"><strong>${n.subject} Wk${n.week}</strong> ${n.topic||''}</div>`).join('')||'<p>No items.</p>';
-}
+    const NIGERIAN_PROMPT = `You are a senior Nigerian teacher. Write comprehensive LESSON NOTE in full NERDC/UBEC standard. Use Nigerian English, local names, ₦, markets. Include: TOPIC, CLASS, SUBJECT, DURATION, OBJECTIVES, MATERIALS, PREVIOUS KNOWLEDGE, INTRODUCTION, PRESENTATION (Step 1,2,3 with Teacher/Pupils activities), EVALUATION, CONCLUSION, ASSIGNMENT. Reference Nigerian textbooks (e.g., New Concept Mathematics by J.A. Adegboye, Comprehensive English by M.A. Oluikpe). Output ONLY the lesson note in HTML.`;
 
-// Timetable
-async function loadTimetableData(){
-  const ds=await db.collection('timetableProposals').where('classId','==',currentClass).where('teacherId','==',currentUser.uid).where('status','==','draft').limit(1).get();
-  if(!ds.empty){const d=ds.docs[0]; window.draftId=d.id; window.draftData=d.data().periods||[]; window.draftType=d.data().type||'academic';}
-  else {window.draftData=[{startTime:'08:00',endTime:'08:40',monday:'',tuesday:'',wednesday:'',thursday:'',friday:''}]; window.draftType='academic';}
-  renderDraftTable();
-}
-function renderDraftTable(){
-  document.getElementById('draftTableHeader').innerHTML='<tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr>';
-  let h=''; window.draftData.forEach((p,i)=>h+=`<tr><td><input value="${p.startTime}"></td><td><input value="${p.endTime}"></td><td><input value="${p.monday||''}"></td><td><input value="${p.tuesday||''}"></td><td><input value="${p.wednesday||''}"></td><td><input value="${p.thursday||''}"></td><td><input value="${p.friday||''}"></td></tr>`);
-  document.getElementById('draftBody').innerHTML=h;
-}
-document.getElementById('saveDraftBtn').addEventListener('click',async()=>{
-  const d={classId:currentClass,teacherId:currentUser.uid,periods:window.draftData,type:window.draftType,status:'draft'};
-  if(window.draftId)await db.collection('timetableProposals').doc(window.draftId).update(d);
-  else {const r=await db.collection('timetableProposals').add(d); window.draftId=r.id;}
-  showToast('Saved','Draft saved','success');
-});
-document.getElementById('submitTimetableBtn').addEventListener('click',async()=>{
-  const d={classId:currentClass,teacherId:currentUser.uid,periods:window.draftData,type:window.draftType,status:'pending'};
-  if(window.draftId)await db.collection('timetableProposals').doc(window.draftId).update(d);
-  showToast('Submitted','Sent for approval','success');
-});
-document.getElementById('createNewTimetableBtn').addEventListener('click',()=>{
-  window.draftType=document.getElementById('timetableType').value;
-  window.draftData=[{startTime:'08:00',endTime:'08:40',monday:'',tuesday:'',wednesday:'',thursday:'',friday:''}];
-  renderDraftTable();
-});
-document.getElementById('addTimetableRowBtn').addEventListener('click',()=>{
-  window.draftData.push({startTime:'',endTime:'',monday:'',tuesday:'',wednesday:'',thursday:'',friday:''});
-  renderDraftTable();
-});
+    // Global state variables
+    let currentUser = null;
+    let userData = null;
+    let currentClass = null;
+    let subjects = [];
+    let currentSubject = null;
+    let currentWeek = null;
+    let syllabusMap = {};
+    let lessonNotesMap = {};
+    let quill = null;
+    let groq = null;
+    let draftData = [{
+      start: '08:00',
+      end: '08:40',
+      monday: '',
+      tuesday: '',
+      wednesday: '',
+      thursday: '',
+      friday: ''
+    }];
 
-// Daily Report
-document.getElementById('submitReportBtn').addEventListener('click',async()=>{
-  const d={teacherId:currentUser.uid,date:document.getElementById('reportDate').value,content:document.getElementById('reportContent').value,status:'pending'};
-  await db.collection('dailyReports').add(d);
-  showToast('Submitted','Report sent','success');
-  document.getElementById('reportContent').value='';
-});
+    // Utility functions
+    function showToast(msg, type = 'info') {
+      const c = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = 'toast';
+      const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+      el.innerHTML = `<i class="fas fa-${icon}"></i> ${msg}`;
+      c.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
 
-// Templates modal
-window.openTemplatesModal=()=>document.getElementById('templatesModal').classList.add('active');
-window.closeTemplatesModal=()=>document.getElementById('templatesModal').classList.remove('active');
-window.printLessonNote=()=>window.print();
+    function showError(m) {
+      const errorEl = document.getElementById('errorMessage');
+      errorEl.textContent = m;
+      errorEl.style.display = 'block';
+      setTimeout(() => errorEl.style.display = 'none', 5000);
+    }
 
-// AI Assistant modal
-window.openAIAssistant=()=>document.getElementById('aiAssistantModal').classList.add('active');
-window.closeAIAssistant=()=>document.getElementById('aiAssistantModal').classList.remove('active');
-window.sendAssistantMessage=async()=>{
-  const input=document.getElementById('assistantInput'); const msg=input.value.trim(); if(!msg||!groq)return;
-  const chat=document.getElementById('assistantChat'); chat.innerHTML+=`<div><strong>You:</strong> ${msg}</div>`;
-  input.value='';
-  const completion=await groq.chat.completions.create({messages:[{role:'system',content:NIGERIAN_PROMPT},{role:'user',content:msg}],model:'llama-3.3-70b-versatile',max_tokens:2000});
-  chat.innerHTML+=`<div><strong>AI:</strong> ${completion.choices[0].message.content}</div>`;
-};
-</script>
+    // Theme toggle
+    (() => {
+      const savedTheme = localStorage.getItem('edutop-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').querySelector('span').textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+      document.getElementById('themeToggle').addEventListener('click', () => {
+        const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('edutop-theme', newTheme);
+        document.getElementById('themeToggle').querySelector('span').textContent = newTheme === 'dark' ? 'Light' : 'Dark';
+      });
+    })();
+
+    // Panel switching
+    document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.querySelectorAll('.workspace-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+      });
+    });
+
+    // Lesson notes sub-tabs
+    document.querySelectorAll('#panel-lessonNotes .sub-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('#panel-lessonNotes .sub-tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        ['syllabus', 'notebook', 'saved'].forEach(k => {
+          document.getElementById('ln-' + k).style.display = k === t.dataset.ln ? 'block' : 'none';
+        });
+        if (t.dataset.ln === 'saved') renderSavedCollection();
+      });
+    });
+
+    // Timetable functions
+    function renderDraftTimetable() {
+      document.getElementById('draftTableHeader').innerHTML =
+        '<tr><th>Start</th><th>End</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th></th></tr>';
+      let h = '';
+      draftData.forEach((p, i) => {
+        h += `<tr>
+          <td><input value="${p.start}" data-i="${i}" data-f="start"></td>
+          <td><input value="${p.end}" data-i="${i}" data-f="end"></td>
+          <td><input value="${p.monday||''}" data-i="${i}" data-f="monday"></td>
+          <td><input value="${p.tuesday||''}" data-i="${i}" data-f="tuesday"></td>
+          <td><input value="${p.wednesday||''}" data-i="${i}" data-f="wednesday"></td>
+          <td><input value="${p.thursday||''}" data-i="${i}" data-f="thursday"></td>
+          <td><input value="${p.friday||''}" data-i="${i}" data-f="friday"></td>
+          <td class="delete-row" onclick="window.deleteTTRow(${i})"><i class="fas fa-trash"></i></td>
+        </tr>`;
+      });
+      document.getElementById('draftBody').innerHTML = h;
+      document.querySelectorAll('#draftBody input').forEach(inp => {
+        inp.addEventListener('input', function() {
+          const i = parseInt(this.dataset.i);
+          draftData[i][this.dataset.f] = this.value;
+        });
+      });
+    }
+
+    window.deleteTTRow = (i) => {
+      draftData.splice(i, 1);
+      renderDraftTimetable();
+    };
+
+    document.getElementById('addTimetableRowBtn').addEventListener('click', () => {
+      draftData.push({
+        start: '',
+        end: '',
+        monday: '',
+        tuesday: '',
+        wednesday: '',
+        thursday: '',
+        friday: ''
+      });
+      renderDraftTimetable();
+    });
+
+    document.getElementById('saveDraftBtn').addEventListener('click', async () => {
+      try {
+        await db.collection('timetableDrafts').doc(currentUser.uid).set({
+          periods: draftData,
+          class: currentClass,
+          updatedAt: new Date()
+        });
+        showToast('Draft saved', 'success');
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    document.getElementById('submitTimetableBtn').addEventListener('click', async () => {
+      try {
+        await db.collection('timetableProposals').add({
+          teacherId: currentUser.uid,
+          periods: draftData,
+          class: currentClass,
+          status: 'pending',
+          submittedAt: new Date()
+        });
+        showToast('Submitted for approval', 'success');
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    // Subject functions
+    function renderSubjectGrid() {
+      const grid = document.getElementById('subjectGrid');
+      grid.innerHTML = '';
+      subjects.forEach(sub => {
+        const card = document.createElement('div');
+        card.className = 'subject-card';
+        card.innerHTML = `<h4>${sub}</h4>`;
+        card.onclick = () => selectSubject(sub);
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById('addSubjectBtn').addEventListener('click', async () => {
+      const name = prompt('Subject name:');
+      if (!name || !name.trim()) return;
+      const trimmedName = name.trim();
+      if (subjects.includes(trimmedName)) {
+        showToast('Subject already exists', 'warning');
+        return;
+      }
+      subjects.push(trimmedName);
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          subjects: subjects
+        });
+        renderSubjectGrid();
+        showToast('Subject added', 'success');
+      } catch (e) {
+        subjects.pop();
+        showError(e.message);
+      }
+    });
+
+    async function loadSyllabusData() {
+      try {
+        const snap = await db.collection('syllabus')
+          .where('teacherId', '==', currentUser.uid)
+          .get();
+        syllabusMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          syllabusMap[data.subject] = {
+            id: d.id,
+            ...data
+          };
+        });
+      } catch (e) {
+        console.warn('Syllabus load error:', e);
+      }
+    }
+
+    async function selectSubject(sub) {
+      currentSubject = sub;
+      document.getElementById('syllabusSection').style.display = 'block';
+      document.getElementById('currentSubjectTitle').textContent = sub + ' Syllabus';
+
+      const sy = syllabusMap[sub] || { weeks: [] };
+      renderSyllabusTable(sy.weeks || []);
+
+      try {
+        const snap = await db.collection('lessonNotes')
+          .where('teacherId', '==', currentUser.uid)
+          .where('subject', '==', sub)
+          .get();
+        lessonNotesMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          lessonNotesMap[data.week] = {
+            id: d.id,
+            ...data
+          };
+        });
+        renderWeekTabs();
+      } catch (e) {
+        console.warn('Lesson notes load error:', e);
+      }
+    }
+
+    function renderSyllabusTable(weeks) {
+      let h = '';
+      weeks.forEach((w, i) => {
+        h += `<tr>
+          <td><input value="${w.week||''}" data-i="${i}" data-f="week"></td>
+          <td><input value="${w.topic||''}" data-i="${i}" data-f="topic"></td>
+          <td><input value="${w.objectives||''}" data-i="${i}" data-f="objectives"></td>
+          <td class="delete-row" onclick="window.deleteSW(${i})"><i class="fas fa-trash"></i></td>
+        </tr>`;
+      });
+      document.getElementById('syllabusBody').innerHTML = h;
+      document.querySelectorAll('#syllabusBody input').forEach(inp => {
+        inp.addEventListener('input', function() {
+          const i = parseInt(this.dataset.i);
+          if (!syllabusMap[currentSubject]) syllabusMap[currentSubject] = { weeks: [] };
+          if (!syllabusMap[currentSubject].weeks[i]) syllabusMap[currentSubject].weeks[i] = {};
+          syllabusMap[currentSubject].weeks[i][this.dataset.f] = this.value;
+        });
+      });
+    }
+
+    window.deleteSW = (i) => {
+      if (!syllabusMap[currentSubject]) return;
+      syllabusMap[currentSubject].weeks.splice(i, 1);
+      renderSyllabusTable(syllabusMap[currentSubject].weeks);
+    };
+
+    document.getElementById('addWeekBtn').addEventListener('click', () => {
+      if (!syllabusMap[currentSubject]) syllabusMap[currentSubject] = { weeks: [] };
+      const len = syllabusMap[currentSubject].weeks.length;
+      syllabusMap[currentSubject].weeks.push({
+        week: len + 1,
+        topic: '',
+        objectives: ''
+      });
+      renderSyllabusTable(syllabusMap[currentSubject].weeks);
+    });
+
+    document.getElementById('saveSyllabusBtn').addEventListener('click', async () => {
+      if (!currentSubject) return;
+      const weeks = syllabusMap[currentSubject]?.weeks || [];
+      if (!weeks.length) {
+        showToast('Add at least one week', 'warning');
+        return;
+      }
+      try {
+        if (syllabusMap[currentSubject]?.id) {
+          await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update({
+            weeks: weeks,
+            updatedAt: new Date()
+          });
+        } else {
+          const ref = await db.collection('syllabus').add({
+            teacherId: currentUser.uid,
+            subject: currentSubject,
+            weeks: weeks,
+            status: 'draft',
+            createdAt: new Date()
+          });
+          syllabusMap[currentSubject] = { ...syllabusMap[currentSubject], id: ref.id };
+        }
+        showToast('Syllabus saved', 'success');
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    document.getElementById('submitSyllabusBtn').addEventListener('click', async () => {
+      if (!currentSubject) return;
+      const weeks = syllabusMap[currentSubject]?.weeks || [];
+      if (!weeks.length) {
+        showToast('Add at least one week', 'warning');
+        return;
+      }
+      try {
+        if (syllabusMap[currentSubject]?.id) {
+          await db.collection('syllabus').doc(syllabusMap[currentSubject].id).update({
+            weeks: weeks,
+            status: 'pending',
+            submittedAt: new Date()
+          });
+        } else {
+          const ref = await db.collection('syllabus').add({
+            teacherId: currentUser.uid,
+            subject: currentSubject,
+            weeks: weeks,
+            status: 'pending',
+            submittedAt: new Date()
+          });
+          syllabusMap[currentSubject] = { ...syllabusMap[currentSubject], id: ref.id };
+        }
+        showToast('Syllabus submitted for approval', 'success');
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    function renderWeekTabs() {
+      const weeks = syllabusMap[currentSubject]?.weeks || [];
+      const container = document.getElementById('weekTabs');
+      container.innerHTML = '';
+      weeks.forEach(w => {
+        const tab = document.createElement('div');
+        tab.className = 'week-tab';
+        tab.textContent = `Wk ${w.week}`;
+        tab.onclick = () => selectWeek(w.week);
+        container.appendChild(tab);
+      });
+    }
+
+    function selectWeek(week) {
+      currentWeek = week;
+      document.getElementById('editorSection').style.display = 'block';
+      const note = lessonNotesMap[week] || {};
+      if (quill) {
+        quill.setText(note.lessonNote || '');
+      }
+    }
+
+    // AI Generate Full Lesson Note
+    document.getElementById('aiGenerateFullLessonBtn').addEventListener('click', async () => {
+      if (!groq) {
+        showToast('AI not configured yet', 'error');
+        return;
+      }
+      if (!currentSubject || !currentWeek) {
+        showToast('Select a subject and week first', 'warning');
+        return;
+      }
+      const topic = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek)?.topic || 'General Topic';
+      const btn = document.getElementById('aiGenerateFullLessonBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+      try {
+        const completion = await groq.chat.completions.create({
+          messages: [
+            { role: 'system', content: NIGERIAN_PROMPT },
+            { role: 'user', content: `Write full lesson note for ${currentSubject}, Week ${currentWeek}, Topic: ${topic}. Class: ${currentClass || 'JSS1'}.` }
+          ],
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.4,
+          max_tokens: 4096
+        });
+        let html = completion.choices[0].message.content;
+        html = html.replace(/```html\n?/g, '').replace(/```/g, '').trim();
+        if (quill) {
+          quill.root.innerHTML = html;
+        }
+        showToast('AI lesson note generated successfully!', 'success');
+      } catch (e) {
+        showError('AI generation failed: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-robot"></i> AI Full Lesson Note';
+      }
+    });
+
+    // Save and Submit Lesson Note
+    document.getElementById('saveEditorBtn').addEventListener('click', async () => {
+      if (!currentSubject || !currentWeek) {
+        showToast('Select subject and week', 'warning');
+        return;
+      }
+      const ln = quill ? quill.getText() : '';
+      if (!ln.trim()) {
+        showToast('Lesson note is empty', 'warning');
+        return;
+      }
+      try {
+        const existingNote = lessonNotesMap[currentWeek];
+        const topic = syllabusMap[currentSubject]?.weeks?.find(w => w.week == currentWeek)?.topic || '';
+        const data = {
+          teacherId: currentUser.uid,
+          subject: currentSubject,
+          week: currentWeek,
+          topic: topic,
+          lessonNote: ln,
+          status: 'draft',
+          class: currentClass,
+          updatedAt: new Date()
+        };
+        if (existingNote?.id) {
+          await db.collection('lessonNotes').doc(existingNote.id).update(data);
+        } else {
+          const ref = await db.collection('lessonNotes').add({
+            ...data,
+            createdAt: new Date()
+          });
+          lessonNotesMap[currentWeek] = { id: ref.id, ...data };
+        }
+        showToast('Draft saved successfully', 'success');
+      } catch (e) {
+        showError('Save failed: ' + e.message);
+      }
+    });
+
+    document.getElementById('submitEditorBtn').addEventListener('click', async () => {
+      if (!currentSubject || !currentWeek) {
+        showToast('Select subject and week', 'warning');
+        return;
+      }
+      const existingNote = lessonNotesMap[currentWeek];
+      if (!existingNote?.id) {
+        showToast('Please save the draft first', 'warning');
+        return;
+      }
+      try {
+        await db.collection('lessonNotes').doc(existingNote.id).update({
+          status: 'pending',
+          submittedAt: new Date()
+        });
+        lessonNotesMap[currentWeek].status = 'pending';
+        showToast('Submitted for approval', 'success');
+      } catch (e) {
+        showError('Submit failed: ' + e.message);
+      }
+    });
+
+    // Saved Collection
+    function renderSavedCollection() {
+      const container = document.getElementById('savedCollectionList');
+      if (!currentSubject || !currentWeek) {
+        container.innerHTML = '<p style="color:var(--text-secondary);">Select a subject and week to see published items.</p>';
+        return;
+      }
+      const note = lessonNotesMap[currentWeek] || {};
+      const items = [];
+      if (note.teachingProcessReady) items.push({ title: 'Teaching Process', type: 'teachingProcess' });
+      if (note.resourcePublished) items.push({ title: 'Student Resources', type: 'resource' });
+      if (note.handwritingReady) items.push({ title: 'Handwriting & Visual Notes', type: 'handwriting' });
+      if (note.videosReady || note.videosPublished) items.push({ title: 'Video Links', type: 'videos' });
+
+      if (!items.length) {
+        container.innerHTML = '<p style="color:var(--text-secondary);">No published or moved items for this week yet.</p>';
+        return;
+      }
+      container.innerHTML = items.map(item => `
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:1rem;">
+          <span><i class="fas fa-check-circle" style="color:var(--success-text);"></i> ${item.title}</span>
+          <button class="btn btn-edit-unlock btn-sm" onclick="window.unlockItem('${item.type}')"><i class="fas fa-edit"></i> Edit (Unlock)</button>
+        </div>
+      `).join('');
+    }
+
+    window.unlockItem = async (type) => {
+      if (!currentSubject || !currentWeek) return;
+      const existingNote = lessonNotesMap[currentWeek];
+      if (!existingNote?.id) {
+        showToast('No data found', 'error');
+        return;
+      }
+      const updates = {};
+      if (type === 'teachingProcess') updates.teachingProcessReady = false;
+      if (type === 'resource') updates.resourcePublished = false;
+      if (type === 'handwriting') updates.handwritingReady = false;
+      if (type === 'videos') { updates.videosReady = false;
+        updates.videosPublished = false; }
+
+      try {
+        await db.collection('lessonNotes').doc(existingNote.id).update({
+          ...updates,
+          updatedAt: new Date()
+        });
+        // Update local state
+        Object.keys(updates).forEach(key => {
+          lessonNotesMap[currentWeek][key] = updates[key];
+        });
+        renderSavedCollection();
+        showToast('Item unlocked for editing', 'success');
+      } catch (e) {
+        showError('Unlock failed: ' + e.message);
+      }
+    };
+
+    // Daily Report
+    document.getElementById('submitReportBtn').addEventListener('click', async () => {
+      const date = document.getElementById('reportDate').value;
+      const content = document.getElementById('reportContent').value.trim();
+      if (!date || !content) {
+        showToast('Please fill in all fields', 'warning');
+        return;
+      }
+      try {
+        await db.collection('dailyReports').add({
+          teacherId: currentUser.uid,
+          date: date,
+          content: content,
+          status: 'pending',
+          createdAt: new Date()
+        });
+        document.getElementById('reportContent').value = '';
+        showToast('Report submitted successfully', 'success');
+      } catch (e) {
+        showError('Report submission failed: ' + e.message);
+      }
+    });
+
+    // Print function
+    window.printLessonNote = () => {
+      if (!quill || !quill.getText().trim()) {
+        showToast('No lesson note to print', 'warning');
+        return;
+      }
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head><title>Lesson Note</title>
+            <style>body{font-family:Inter,sans-serif;padding:2rem;line-height:1.6;}@media print{body{padding:1cm;}}</style>
+          </head>
+          <body>${quill.root.innerHTML}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    };
+
+    // Templates modal placeholder
+    window.openTemplatesModal = () => {
+      showToast('Templates feature coming soon', 'info');
+    };
+
+    // Auth state observer
+    auth.onAuthStateChanged(async user => {
+      if (!user) {
+        window.location.href = 'teacher-login.html';
+        return;
+      }
+      try {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (!userDoc.exists || userDoc.data().role !== 'teacher') {
+          await auth.signOut();
+          window.location.href = 'index.html';
+          return;
+        }
+        currentUser = user;
+        userData = userDoc.data();
+        currentClass = userData.classTeaching || 'JSS1';
+        subjects = userData.subjects || ['Mathematics', 'English'];
+
+        document.getElementById('profilePic').textContent = (userData.firstName?.[0] || 'T');
+        document.getElementById('profileName').textContent = userData.firstName || 'Teacher';
+
+        // Try to get Groq API key
+        try {
+          const response = await fetch(
+            'https://firebaseremoteconfig.googleapis.com/v1/projects/triangle-6e6b7/namespaces/io.customer/remote_config?key=AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0'
+          );
+          const config = await response.json();
+          const apiKey = config.parameters?.groq_api_key?.defaultValue?.value;
+          if (apiKey) {
+            groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+          }
+        } catch (e) {
+          console.warn('Remote config fetch failed:', e);
+        }
+
+        // Initialize Quill editor
+        quill = new Quill('#editor', {
+          theme: 'snow',
+          placeholder: 'Write your lesson note here...',
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline'],
+              [{ 'header': [1, 2, 3, false] }],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              ['clean']
+            ]
+          }
+        });
+
+        // Load initial data
+        await loadSyllabusData();
+        renderSubjectGrid();
+        renderDraftTimetable();
+
+        // Set today's date for report
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('reportDate').value = today;
+
+        // Update stats
+        updateStats();
+      } catch (e) {
+        console.error('Initialization error:', e);
+        showError('Failed to initialize: ' + e.message);
+      }
+    });
+
+    // Stats update
+    async function updateStats() {
+      try {
+        const allNotes = Object.values(lessonNotesMap);
+        document.getElementById('statLessons').textContent = allNotes.length;
+        document.getElementById('statPending').textContent = allNotes.filter(n => n.status === 'pending').length;
+        document.getElementById('statApproved').textContent = allNotes.filter(n => n.status === 'approved').length;
+      } catch (e) {
+        console.warn('Stats update error:', e);
+      }
+    }
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await auth.signOut();
+        window.location.href = 'index.html';
+      } catch (e) {
+        showError('Logout failed: ' + e.message);
+      }
+    });
+
+    // Profile link
+    document.getElementById('profileLink').addEventListener('click', () => {
+      window.location.href = 'teacher-profile.html';
+    });
+
+    console.log('✅ EduTop Teacher Workspace initialized successfully');
+  </script>
 </body>
 </html>
