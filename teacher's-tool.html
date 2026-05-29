@@ -16,6 +16,7 @@
     <script type="importmap">{ "imports": { "groq-sdk": "https://esm.run/groq-sdk" } }</script>
 
     <style>
+        /* All previous styles remain unchanged */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root[data-theme="light"] {
             --bg-primary: #f0f5fa; --bg-surface: rgba(255,255,255,0.75); --text-primary: #0b1e33;
@@ -282,9 +283,60 @@
         .school-letterhead h1 { font-size: 1.8rem; color: var(--accent); font-weight: 800; }
         .school-letterhead p { color: var(--text-secondary); font-size: 0.9rem; margin: 0.3rem 0; }
 
-        /* Locked card overlay */
+        /* Moved/Published section styles */
+        .moved-content-section { 
+            background: var(--card-bg); 
+            border: 2px solid var(--success-text); 
+            border-radius: 1rem; 
+            padding: 1.5rem; 
+            margin: 1rem 0;
+            position: relative;
+        }
+        .moved-content-section::before {
+            content: "✓ Published/Moved";
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: var(--success-text);
+            color: white;
+            padding: 0.2rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 10;
+        }
         .card.locked { opacity: 0.5; pointer-events: none; position: relative; }
         .card.locked::after { content: "✓ Moved"; position: absolute; top: 10px; right: 15px; background: var(--success-text); color: white; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; z-index: 10; }
+
+        /* Tab for moved/published content */
+        .ln-tab-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .ln-tab {
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            transition: 0.2s;
+        }
+        .ln-tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .ln-tab-content {
+            display: none;
+        }
+        .ln-tab-content.active {
+            display: block;
+        }
 
         @media print { 
             body { background: white !important; color: black !important; } 
@@ -319,6 +371,7 @@
         <div class="image-popup-actions">
             <button class="btn btn-success" id="popupMoveToTeachBtn" onclick="event.stopPropagation();moveImageToTeach()"><i class="fas fa-chalkboard-teacher"></i> Move to Teach</button>
             <button class="btn btn-success" id="popupPublishToStudentsBtn" onclick="event.stopPropagation();publishImageToStudents()"><i class="fas fa-users"></i> Publish to Students</button>
+            <button class="btn btn-warning" id="popupMoveToBothBtn" onclick="event.stopPropagation();moveImageToBoth()"><i class="fas fa-layer-group"></i> Move to Both</button>
         </div>
     </div>
 
@@ -360,6 +413,7 @@
             <div class="workspace-tab active" data-panel="timetable"><i class="fas fa-calendar-alt"></i> Timetable<span class="unsaved-dot"></span></div>
             <div class="workspace-tab" data-panel="lessonNotes"><i class="fas fa-book-open"></i> Lesson Notes<span class="unsaved-dot"></span></div>
             <div class="workspace-tab" data-panel="dailyReport"><i class="fas fa-journal-whills"></i> Daily Report<span class="unsaved-dot"></span></div>
+            <div class="workspace-tab" data-panel="publishedContent"><i class="fas fa-check-double"></i> Published/Moved<span class="unsaved-dot"></span></div>
         </div>
 
         <!-- PANEL 1: TIMETABLE (unchanged) -->
@@ -441,6 +495,7 @@
                                 <button class="btn btn-primary" id="saveTeachingProcessBtn">Save Teaching Process</button>
                                 <button class="btn btn-sm btn-outline" id="copyTPToTeachingProcessEditor" style="display:none;"><i class="fas fa-copy"></i> Copy to Teaching Process Editor</button>
                                 <button class="btn btn-success" id="moveToTeachBtn"><i class="fas fa-arrow-right"></i> Move to Teach</button>
+                                <button class="btn btn-warning" id="moveTPToBothBtn"><i class="fas fa-layer-group"></i> Move to Both</button>
                             </div>
                         </div>
 
@@ -464,6 +519,7 @@
                                 <button class="btn btn-sm btn-outline" id="copyResourceToResourceEditor" style="display:none;"><i class="fas fa-copy"></i> Copy to Resource Editor</button>
                                 <button class="btn btn-warning" id="moveResourceToResourcesBtn" style="display:none;"><i class="fas fa-folder-open"></i> Move to Resources</button>
                                 <button class="btn btn-success" id="launchResourceToStudentsBtn" style="display:none;"><i class="fas fa-rocket"></i> Launch to Students</button>
+                                <button class="btn btn-warning" id="moveResourceToBothBtn" style="display:none;"><i class="fas fa-layer-group"></i> Move to Both</button>
                             </div>
                         </div>
 
@@ -479,6 +535,7 @@
                             <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem;">
                                 <button class="btn btn-sm btn-success" id="moveHandwritingToTeachBtn" style="display:none;">Move All Images to Teach</button>
                                 <button class="btn btn-sm btn-success" id="publishHandwritingToStudentsBtn" style="display:none;">Publish All to Students</button>
+                                <button class="btn btn-sm btn-warning" id="moveHandwritingToBothBtn" style="display:none;">Move All to Both</button>
                             </div>
                         </div>
 
@@ -494,6 +551,7 @@
                             <div class="actions" style="justify-content:flex-end;">
                                 <button class="btn btn-sm btn-outline" id="moveVideosToTeachBtn" style="display:none;">Move Videos to Teach</button>
                                 <button class="btn btn-sm btn-success" id="publishVideosToStudentsBtn" style="display:none;">Publish Videos to Students</button>
+                                <button class="btn btn-sm btn-warning" id="moveVideosToBothBtn" style="display:none;">Move Videos to Both</button>
                             </div>
                         </div>
                     </div>
@@ -513,6 +571,39 @@
         <div class="workspace-panel" id="panel-dailyReport">
             <div class="card"><div class="card-header"><h3><i class="fas fa-pen-alt"></i> Today's Report</h3></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;"><div><label>Date</label><input type="date" id="reportDate"></div><div><label>Opening Time</label><input type="text" id="openingTime" placeholder="8:00 AM"></div><div><label>Closing Time</label><input type="text" id="closingTime" placeholder="2:30 PM"></div></div><div style="margin-bottom:1rem;"><label>Activities / Observations</label><textarea id="reportContent" placeholder="Describe today's activities..."></textarea></div><button class="btn btn-primary" id="submitReportBtn"><i class="fas fa-paper-plane"></i> Submit</button></div>
             <div class="card"><div class="card-header"><h3><i class="fas fa-history"></i> My Reports</h3></div><div id="reportsList">Loading...</div></div>
+        </div>
+
+        <!-- PANEL 4: PUBLISHED/MOVED CONTENT -->
+        <div class="workspace-panel" id="panel-publishedContent">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-archive"></i> Published & Moved Content</h3>
+                    <p style="color:var(--text-secondary);">All content that has been moved to Teach or published to Students appears here. Click to edit if needed.</p>
+                </div>
+                <div class="ln-tab-group" id="publishedTabGroup">
+                    <div class="ln-tab active" data-pub="teachingProcess">Teaching Process</div>
+                    <div class="ln-tab" data-pub="studentResources">Student Resources</div>
+                    <div class="ln-tab" data-pub="handwriting">Handwriting Images</div>
+                    <div class="ln-tab" data-pub="videos">Video Links</div>
+                </div>
+                
+                <div class="ln-tab-content active" id="pub-teachingProcess">
+                    <h4>Moved Teaching Processes</h4>
+                    <div id="publishedTeachingProcessList">Loading...</div>
+                </div>
+                <div class="ln-tab-content" id="pub-studentResources">
+                    <h4>Published Student Resources</h4>
+                    <div id="publishedResourcesList">Loading...</div>
+                </div>
+                <div class="ln-tab-content" id="pub-handwriting">
+                    <h4>Published Handwriting Images</h4>
+                    <div id="publishedHandwritingList">Loading...</div>
+                </div>
+                <div class="ln-tab-content" id="pub-videos">
+                    <h4>Published Video Links</h4>
+                    <div id="publishedVideosList">Loading...</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -544,7 +635,7 @@
         import Groq from "groq-sdk";
         firebase.initializeApp({apiKey:"AIzaSyCY0Kin3x6SFMNzQIMF0ZHp_ASxzGyXwP0",authDomain:"triangle-6e6b7.firebaseapp.com",projectId:"triangle-6e6b7",storageBucket:"triangle-6e6b7.firebasestorage.app",messagingSenderId:"673937760480",appId:"1:673937760480:web:f03c06e1207232213ef085"});
         const auth=firebase.auth(),db=firebase.firestore(),remoteConfig=firebase.remoteConfig();remoteConfig.settings.minimumFetchIntervalMillis=0;
-        const CLOUD_NAME='dcwof2ngn',UPLOAD_PRESET='Meet_video';
+        const CLOUD_NAME='dmbjrohtn',UPLOAD_PRESET='pelumi';
 
         (()=>{const s=localStorage.getItem('edutopscholars-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',s);document.getElementById('themeToggle').querySelector('span').textContent=s==='dark'?'Light':'Dark';document.getElementById('themeToggle').addEventListener('click',()=>{const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('edutopscholars-theme',n);document.getElementById('themeToggle').querySelector('span').textContent=n==='dark'?'Light':'Dark';});})();
 
@@ -553,7 +644,7 @@
         function showLoading(){document.getElementById('loadingOverlay').classList.add('active');}
         function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active');}
 
-        const NIGERIAN_PROMPT=`You are an expert Nigerian teacher. Follow NPE/UBEC/WAEC standards. Write in Nigerian English with local context, examples, and references to Nigerian textbooks (New Concept Mathematics by J.A. Adegboye, Comprehensive English by M.A. Oluikpe, etc.). When referencing any book, ALWAYS state the full book title and author. Use "Teacher asks... Pupils respond..." format. Include Nigerian names, locations, naira (₦), local markets, and cultural references. Format with clear headings, bold where necessary.`;
+        const NIGERIAN_PROMPT=`You are an expert Nigerian teacher. Follow NPE/UBEC/WAEC standards. Write in Nigerian English with local context, examples, and references to Nigerian textbooks (New Concept Mathematics by J.A. Adegboye, Comprehensive English by M.A. Oluikpe, etc.). When referencing any book, ALWAYS state the full book title and author. Use "Teacher asks... Pupils respond..." format. Include Nigerian names, locations, naira (₦), local markets, and cultural references. Format with clear headings, bold where necessary. Write professionally as a Nigerian teacher writing for lesson students.`;
 
         let currentUser=null,userData=null,currentClass=null;
         let draftId=null,draftData=[],draftType='academic',pendingId=null,pendingData=[],pendingType='academic',approvedList=[],currentApprovedType=null,rejectedId=null,rejectedData=[],rejectedType='academic',rejectedFeedback='';
@@ -568,7 +659,7 @@
         let teachingProcessMoved=false, resourceMoved=false, resourcePublished=false, handwritingMoved=false, handwritingPublished=false;
 
         let currentPanel='timetable';
-        document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentPanel=t.dataset.panel;document.querySelectorAll('.workspace-panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+currentPanel).classList.add('active');if(currentPanel==='timetable'&&currentClass)loadAllTimetableData();if(currentPanel==='dailyReport')loadMyReports();}));
+        document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('#workspaceTabs .workspace-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentPanel=t.dataset.panel;document.querySelectorAll('.workspace-panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+currentPanel).classList.add('active');if(currentPanel==='timetable'&&currentClass)loadAllTimetableData();if(currentPanel==='dailyReport')loadMyReports();if(currentPanel==='publishedContent')loadPublishedContent();}));
 
         function markUnsaved(){hasUnsaved=true;const t=document.querySelector(`.workspace-tab[data-panel="${currentPanel}"]`);if(t)t.classList.add('dirty');window.addEventListener('beforeunload',beforeUnloadHandler);}
         function clearUnsaved(){hasUnsaved=false;document.querySelectorAll('.workspace-tab.dirty').forEach(t=>t.classList.remove('dirty'));window.removeEventListener('beforeunload',beforeUnloadHandler);}
@@ -639,6 +730,24 @@
                 showToast('Published','Image published to students','success');
             }catch(e){showError(e.message);}
         };
+        window.moveImageToBoth=async()=>{
+            if(currentPopupImageIndex<0||!currentSubject||!currentWeek)return;
+            const k=`${currentSubject}_${currentWeek}`;
+            const n=lessonNotesMap[k];
+            if(!n?.id)return showToast('Error','Save first','error');
+            try{
+                await db.collection('lessonNotes').doc(n.id).update({
+                    handwritingImagesReady:true,
+                    handwritingImagesPublished:true,
+                    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+                });
+                closeImagePopup();
+                handwritingMoved=true;
+                handwritingPublished=true;
+                updateCardVisibility();
+                showToast('Moved to Both','Image moved to Teach and published to Students','success');
+            }catch(e){showError(e.message);}
+        };
 
         // ============ CARD VISIBILITY LOGIC ============
         function updateCardVisibility(){
@@ -671,6 +780,134 @@
                 vidCard.classList.remove('locked');
             }
         }
+
+        // ============ PUBLISHED CONTENT PANEL ============
+        async function loadPublishedContent(){
+            if(!currentUser)return;
+            try{
+                const allNotes = Object.values(lessonNotesMap);
+                
+                // Teaching Processes
+                const tpList = allNotes.filter(n => n.teachingProcessReady && n.teachingProcess);
+                let tpHTML = '';
+                tpList.forEach(n => {
+                    tpHTML += `
+                    <div class="moved-content-section">
+                        <h4>${n.subject} - Week ${n.week}: ${n.topic||'N/A'}</h4>
+                        <div style="max-height:200px;overflow-y:auto;margin:1rem 0;padding:1rem;background:var(--input-bg);border-radius:0.5rem;">
+                            ${n.teachingProcess.replace(/\n/g,'<br>').substring(0,500)}...
+                        </div>
+                        <button class="btn btn-sm btn-outline" onclick="editPublishedItem('teachingProcess','${n.subject}',${n.week})">
+                            <i class="fas fa-edit"></i> Edit Teaching Process
+                        </button>
+                    </div>`;
+                });
+                document.getElementById('publishedTeachingProcessList').innerHTML = tpHTML || '<p>No teaching processes moved yet.</p>';
+
+                // Student Resources
+                const resList = allNotes.filter(n => (n.studentResourceReady || n.resourcePublished) && n.studentResource);
+                let resHTML = '';
+                resList.forEach(n => {
+                    resHTML += `
+                    <div class="moved-content-section">
+                        <h4>${n.subject} - Week ${n.week}: ${n.topic||'N/A'}</h4>
+                        <p style="font-size:0.8rem;color:var(--text-secondary);">Status: ${n.resourcePublished?'Published to Students':'Moved to Resources'}</p>
+                        <div style="max-height:200px;overflow-y:auto;margin:1rem 0;padding:1rem;background:var(--input-bg);border-radius:0.5rem;">
+                            ${n.studentResource.replace(/\n/g,'<br>').substring(0,500)}...
+                        </div>
+                        <button class="btn btn-sm btn-outline" onclick="editPublishedItem('studentResource','${n.subject}',${n.week})">
+                            <i class="fas fa-edit"></i> Edit Resource
+                        </button>
+                    </div>`;
+                });
+                document.getElementById('publishedResourcesList').innerHTML = resHTML || '<p>No student resources published yet.</p>';
+
+                // Handwriting Images
+                const hwList = allNotes.filter(n => (n.handwritingImagesReady || n.handwritingImagesPublished) && n.handwritingImages?.length);
+                let hwHTML = '';
+                hwList.forEach(n => {
+                    hwHTML += `
+                    <div class="moved-content-section">
+                        <h4>${n.subject} - Week ${n.week}: ${n.topic||'N/A'}</h4>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;margin:1rem 0;">
+                            ${n.handwritingImages.map(img=>`<img src="${img.url}" style="width:100%;border-radius:0.5rem;cursor:pointer;" onclick="openImagePopup('${img.url.replace(/'/g,"\\'")}',0)">`).join('')}
+                        </div>
+                        <button class="btn btn-sm btn-outline" onclick="editPublishedItem('handwriting','${n.subject}',${n.week})">
+                            <i class="fas fa-edit"></i> Edit Images
+                        </button>
+                    </div>`;
+                });
+                document.getElementById('publishedHandwritingList').innerHTML = hwHTML || '<p>No handwriting images published yet.</p>';
+
+                // Videos
+                const vidList = allNotes.filter(n => (n.videosReady || n.videosPublished) && n.videoLinks?.length);
+                let vidHTML = '';
+                vidList.forEach(n => {
+                    vidHTML += `
+                    <div class="moved-content-section">
+                        <h4>${n.subject} - Week ${n.week}: ${n.topic||'N/A'}</h4>
+                        <div style="margin:1rem 0;">
+                            ${n.videoLinks.map(v=>`<div style="margin:0.3rem 0;"><a href="${v}" target="_blank">${v.substring(0,60)}...</a></div>`).join('')}
+                        </div>
+                        <button class="btn btn-sm btn-outline" onclick="editPublishedItem('videos','${n.subject}',${n.week})">
+                            <i class="fas fa-edit"></i> Edit Videos
+                        </button>
+                    </div>`;
+                });
+                document.getElementById('publishedVideosList').innerHTML = vidHTML || '<p>No videos published yet.</p>';
+
+            }catch(e){showError(e.message);}
+        }
+
+        window.editPublishedItem = (type, subject, week) => {
+            // Navigate to the subject and week to allow editing
+            const cards = document.querySelectorAll('.subject-card');
+            for(let c of cards){
+                if(c.querySelector('h3').textContent === subject){
+                    selectSubject(subject, c);
+                    break;
+                }
+            }
+            setTimeout(() => {
+                selectWeek(week);
+                document.getElementById('workspaceTabs').querySelector('[data-panel="lessonNotes"]').click();
+                document.getElementById('ln-subtabs').querySelector('[data-ln="notebook"]').click();
+                
+                // Reset the moved/published state for this item so it appears editable
+                const k=`${subject}_${week}`;
+                const n=lessonNotesMap[k]||{};
+                switch(type){
+                    case 'teachingProcess':
+                        teachingProcessMoved=false;
+                        break;
+                    case 'studentResource':
+                        resourceMoved=false;
+                        resourcePublished=false;
+                        break;
+                    case 'handwriting':
+                        handwritingMoved=false;
+                        handwritingPublished=false;
+                        break;
+                    case 'videos':
+                        videosReady=false;
+                        videosPublished=false;
+                        break;
+                }
+                updateCardVisibility();
+                showToast('Editing','You can now edit this content','success');
+            }, 300);
+        };
+
+        // Published Content Tab Navigation
+        document.querySelectorAll('#publishedTabGroup .ln-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('#publishedTabGroup .ln-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const pubType = tab.dataset.pub;
+                document.querySelectorAll('#panel-publishedContent .ln-tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById('pub-' + pubType).classList.add('active');
+            });
+        });
 
         // ============ AUTH ============
         auth.onAuthStateChanged(async user=>{if(!user){window.location.href='teacher-login.html';return;}try{const d=await db.collection('users').doc(user.uid).get();if(!d.exists||d.data().role!=='teacher'){auth.signOut();window.location.href='index.html';return;}currentUser=user;userData=d.data();currentClass=userData.classTeaching||null;document.getElementById('profilePic').textContent=(userData.firstName?.[0]||'T')+(userData.surname?.[0]||'E');document.getElementById('profileName').textContent=userData.firstName||'Teacher';document.getElementById('classDisplay').innerHTML=currentClass?`Class: <strong>${currentClass}</strong>`:'⚠️ Not assigned';if(userData.schoolName)document.getElementById('schoolName').textContent=userData.schoolName;
@@ -764,16 +1001,20 @@
             const moveResBtn=document.getElementById('moveResourceToResourcesBtn');
             const launchResBtn=document.getElementById('launchResourceToStudentsBtn');
             const copyResBtn=document.getElementById('copyResourceToResourceEditor');
+            const moveResBothBtn=document.getElementById('moveResourceToBothBtn');
             if(n.id&&lessonNoteApproved&&studentQuill.getText().trim()){
                 if(!resourceMoved)moveResBtn.style.display='inline-block';
                 else moveResBtn.style.display='none';
                 if(!resourcePublished)launchResBtn.style.display='inline-block';
                 else launchResBtn.style.display='none';
                 copyResBtn.style.display='inline-block';
+                if(!resourceMoved&&!resourcePublished)moveResBothBtn.style.display='inline-block';
+                else moveResBothBtn.style.display='none';
             }else{
                 moveResBtn.style.display='none';
                 launchResBtn.style.display='none';
                 copyResBtn.style.display='none';
+                moveResBothBtn.style.display='none';
             }
             const copyTPBtn=document.getElementById('copyTPToTeachingProcessEditor');
             if(teachingProcessQuill.getText().trim()){
@@ -783,11 +1024,13 @@
             if(teachingProcessMoved){moveToTeachBtn.style.display='none';}else{moveToTeachBtn.style.display='inline-block';}
             document.getElementById('moveVideosToTeachBtn').style.display=videoLinks.length&&!videosReady?'inline-block':'none';
             document.getElementById('publishVideosToStudentsBtn').style.display=videoLinks.length&&!videosPublished?'inline-block':'none';
+            document.getElementById('moveVideosToBothBtn').style.display=videoLinks.length&&!videosReady&&!videosPublished?'inline-block':'none';
         }
 
         function updateHandwritingButtons(){
             document.getElementById('moveHandwritingToTeachBtn').style.display=handwritingImages.length&&!handwritingMoved?'inline-block':'none';
             document.getElementById('publishHandwritingToStudentsBtn').style.display=handwritingImages.length&&!handwritingPublished?'inline-block':'none';
+            document.getElementById('moveHandwritingToBothBtn').style.display=handwritingImages.length&&!handwritingMoved&&!handwritingPublished?'inline-block':'none';
         }
 
         // CONTENT AI BUTTON
@@ -894,7 +1137,7 @@
             }catch(e){showError('AI generation failed: '+e.message);}finally{hideLoading();}
         });
 
-        // ============ TEACHING PROCESS - MOVE TO TEACH ============
+        // ============ TEACHING PROCESS - MOVE TO TEACH / BOTH ============
         document.getElementById('saveTeachingProcessBtn').addEventListener('click',async()=>{
             if(!lessonNoteApproved)return showToast('Locked','Lesson note must be approved first','warning');
             if(!currentSubject||!currentWeek)return;
@@ -919,6 +1162,22 @@
                 });
                 teachingProcessMoved=true;updateCardVisibility();updateAllButtons(n);
                 showToast('Moved','Teaching process moved to Teach. Box locked.','success');
+            }catch(e){showError(e.message);}
+        });
+
+        document.getElementById('moveTPToBothBtn').addEventListener('click',async()=>{
+            if(!currentSubject||!currentWeek)return;
+            const k=`${currentSubject}_${currentWeek}`;const n=lessonNotesMap[k];
+            if(!n?.id)return showToast('Error','Save teaching process first','error');
+            const tp=teachingProcessQuill.getText();
+            if(!tp.trim())return showToast('Empty','Write teaching process first','warning');
+            try{
+                await db.collection('lessonNotes').doc(n.id).update({
+                    teachingProcess:tp,teachingProcessReady:true,teachable:true,
+                    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+                });
+                teachingProcessMoved=true;updateCardVisibility();updateAllButtons(n);
+                showToast('Moved to Both','Teaching process moved to Teach and published to Students','success');
             }catch(e){showError(e.message);}
         });
 
@@ -998,6 +1257,20 @@
             }catch(e){showError(e.message);}
         });
 
+        document.getElementById('moveResourceToBothBtn').addEventListener('click',async()=>{
+            if(!currentSubject||!currentWeek)return;
+            const k=`${currentSubject}_${currentWeek}`;const n=lessonNotesMap[k];
+            if(!n?.id)return showToast('Error','Save resource first','error');
+            try{
+                await db.collection('lessonNotes').doc(n.id).update({
+                    studentResource:studentQuill.getText(),studentResourceReady:true,resourcePublished:true,
+                    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+                });
+                resourceMoved=true;resourcePublished=true;updateCardVisibility();updateAllButtons(n);
+                showToast('Moved to Both','Resources moved to Resources and published to Students','success');
+            }catch(e){showError(e.message);}
+        });
+
         // AUTO-FORMAT STUDENT RESOURCES
         document.getElementById('autoFormatResourceBtn').addEventListener('click',async()=>{
             if(!studentQuill||!groq)return showToast('Error','AI not available','error');
@@ -1049,6 +1322,17 @@
             }catch(e){showError(e.message);}
         });
 
+        document.getElementById('moveHandwritingToBothBtn').addEventListener('click',async()=>{
+            if(!currentSubject||!currentWeek||!handwritingImages.length)return;
+            const k=`${currentSubject}_${currentWeek}`;const n=lessonNotesMap[k];
+            if(!n?.id)return showToast('Error','Save first','error');
+            try{
+                await db.collection('lessonNotes').doc(n.id).update({handwritingImages,handwritingImagesReady:true,handwritingImagesPublished:true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+                handwritingMoved=true;handwritingPublished=true;updateCardVisibility();updateHandwritingButtons();
+                showToast('Moved to Both','All images moved to Teach and published to Students','success');
+            }catch(e){showError(e.message);}
+        });
+
         document.getElementById('generateHandwritingBtn').addEventListener('click',async()=>{
             if(!lessonNoteApproved)return showToast('Locked','Lesson note must be approved first','warning');
             const prompt=document.getElementById('handwritingPrompt').value.trim();
@@ -1064,12 +1348,12 @@
                     else{handwritingImages.push({url:directUrl,prompt});}
                 }catch(uploadErr){handwritingImages.push({url:directUrl,prompt});}
                 renderHandwritingImages();document.getElementById('handwritingPrompt').value='';markUnsaved();
-                showToast('Generated','Picture created. Click on it to see it bigger.','success');
+                showToast('Generated','Picture created and saved to Cloudinary. Click to see bigger.','success');
             }catch(e){showError('Generation failed: '+e.message);}finally{hideLoading();}
         });
 
         // ============ VIDEO LINKS ============
-        function renderVideoList(){const l=document.getElementById('videoList');if(!videoLinks.length){l.innerHTML='<p style="color:var(--text-secondary);">No video links added.</p>';document.getElementById('moveVideosToTeachBtn').style.display='none';document.getElementById('publishVideosToStudentsBtn').style.display='none';return;}l.innerHTML=videoLinks.map((v,i)=>{const p=getVideoPlatform(v);const badge=p==='youtube'?'<span class="platform-badge youtube">YouTube</span>':p==='vimeo'?'<span class="platform-badge vimeo">Vimeo</span>':'<span class="platform-badge other">Link</span>';return`<div class="video-item"><div>${badge} <a href="${v}" target="_blank">${v.substring(0,50)}...</a></div><div><button class="btn btn-xs btn-outline" onclick="previewVideo('${v.replace(/'/g,"\\'")}')">HD Preview</button><button class="btn btn-xs btn-danger" onclick="removeVideoLink(${i})"><i class="fas fa-trash"></i></button></div></div>`;}).join('');document.getElementById('moveVideosToTeachBtn').style.display=videosReady?'none':'inline-block';document.getElementById('publishVideosToStudentsBtn').style.display=videosPublished?'none':'inline-block';}
+        function renderVideoList(){const l=document.getElementById('videoList');if(!videoLinks.length){l.innerHTML='<p style="color:var(--text-secondary);">No video links added.</p>';document.getElementById('moveVideosToTeachBtn').style.display='none';document.getElementById('publishVideosToStudentsBtn').style.display='none';document.getElementById('moveVideosToBothBtn').style.display='none';return;}l.innerHTML=videoLinks.map((v,i)=>{const p=getVideoPlatform(v);const badge=p==='youtube'?'<span class="platform-badge youtube">YouTube</span>':p==='vimeo'?'<span class="platform-badge vimeo">Vimeo</span>':'<span class="platform-badge other">Link</span>';return`<div class="video-item"><div>${badge} <a href="${v}" target="_blank">${v.substring(0,50)}...</a></div><div><button class="btn btn-xs btn-outline" onclick="previewVideo('${v.replace(/'/g,"\\'")}')">HD Preview</button><button class="btn btn-xs btn-danger" onclick="removeVideoLink(${i})"><i class="fas fa-trash"></i></button></div></div>`;}).join('');document.getElementById('moveVideosToTeachBtn').style.display=videosReady?'none':'inline-block';document.getElementById('publishVideosToStudentsBtn').style.display=videosPublished?'none':'inline-block';document.getElementById('moveVideosToBothBtn').style.display=videosReady||videosPublished?'none':'inline-block';}
         window.removeVideoLink=i=>{videoLinks.splice(i,1);renderVideoList();markUnsaved();};
         window.previewVideo=url=>{const p=document.getElementById('videoPreview');const eu=getVideoEmbedUrl(url);if(eu){p.style.display='block';p.innerHTML=`<iframe src="${eu}" frameborder="0" allow="autoplay; fullscreen" allowfullscreen style="width:100%;height:100%;"></iframe><button onclick="closeVideoPreview()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);color:white;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;"><i class="fas fa-times"></i></button>`;}else{window.open(url,'_blank');}};
         window.closeVideoPreview=()=>{document.getElementById('videoPreview').style.display='none';document.getElementById('videoPreview').innerHTML='';};
@@ -1090,6 +1374,14 @@
             if(!n?.id)return showToast('Error','Save first','error');
             try{await db.collection('lessonNotes').doc(n.id).update({videoLinks,videosPublished:true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
             videosPublished=true;updateCardVisibility();renderVideoList();showToast('Published','Videos published to students','success');}catch(e){showError(e.message);}
+        });
+
+        document.getElementById('moveVideosToBothBtn').addEventListener('click',async()=>{
+            if(!currentSubject||!currentWeek||!videoLinks.length)return;
+            const k=`${currentSubject}_${currentWeek}`;const n=lessonNotesMap[k];
+            if(!n?.id)return showToast('Error','Save first','error');
+            try{await db.collection('lessonNotes').doc(n.id).update({videoLinks,videosReady:true,videosPublished:true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+            videosReady=true;videosPublished=true;updateCardVisibility();renderVideoList();showToast('Moved to Both','Videos moved to Teach and published to Students','success');}catch(e){showError(e.message);}
         });
 
         // Auto-Format Lesson Note
